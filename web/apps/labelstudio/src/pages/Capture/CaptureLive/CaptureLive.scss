@@ -1,0 +1,47 @@
+.capture-live {
+  &__heading {
+    text-align: center;
+  }
+
+  &__controls-container {
+    display: flex;
+    justify-content: center;
+    flex-grow: 1;
+    gap: 16px;
+  }
+
+  .video-player-container {
+    max-width: 654px;
+  }
+
+  &__camera-selector,
+  &__camera-controls {
+    flex: 30%;
+  }
+
+  &__camera-selector {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+  }
+
+  &__interval-settings {
+    border-radius: 12px;
+    background-color: rgba(0, 0, 0, 0.03);
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 353px;
+  }
+
+  &__start-capture {
+    margin: 0 auto;
+    background-color: #0f6d41;
+    color: #ffffff;
+    border: none;
+    border-radius: 12px;
+    margin-top: 8px;
+  }
+}

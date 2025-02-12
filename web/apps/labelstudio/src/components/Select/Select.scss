@@ -1,0 +1,20 @@
+.select {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 353px;
+
+    span {
+        font-weight: 400;
+        color: rgba(0, 0, 0, 0.6);
+    }
+
+    select {
+        background-color: rgba(0, 0, 0, 0.03);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        padding: 8px;
+        border-radius: 8px;
+        width: 258px;
+        color: rgba(0, 0, 0, 0.9);
+    }
+}

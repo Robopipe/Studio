@@ -1,0 +1,21 @@
+var _path;
+function _extends() { _extends = Object.assign ? Object.assign.bind() : function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends.apply(this, arguments); }
+import * as React from "react";
+import { forwardRef } from "react";
+var SvgStop = function SvgStop(props, ref) {
+  return /*#__PURE__*/React.createElement("svg", _extends({
+    xmlns: "http://www.w3.org/2000/svg",
+    width: 14,
+    height: 14,
+    fill: "none",
+    ref: ref
+  }, props), _path || (_path = /*#__PURE__*/React.createElement("path", {
+    fill: "#fff",
+    fillRule: "evenodd",
+    d: "M.542 4.5A3.958 3.958 0 0 1 4.5.542h5A3.958 3.958 0 0 1 13.458 4.5v5A3.958 3.958 0 0 1 9.5 13.458h-5A3.958 3.958 0 0 1 .542 9.5zM4.5 1.792A2.708 2.708 0 0 0 1.792 4.5v5A2.708 2.708 0 0 0 4.5 12.208h5A2.708 2.708 0 0 0 12.208 9.5v-5A2.708 2.708 0 0 0 9.5 1.792z",
+    clipRule: "evenodd"
+  })));
+};
+var ForwardRef = /*#__PURE__*/forwardRef(SvgStop);
+export { ForwardRef as ReactComponent };
+export default "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTQiIGhlaWdodD0iMTQiIHZpZXdCb3g9IjAgMCAxNCAxNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0wLjU0MTY3MiA0LjUwMDA4QzAuNTQxNjcyIDIuMzEzOTUgMi4zMTM4OCAwLjU0MTc0OCA0LjUwMDAxIDAuNTQxNzQ4SDkuNTAwMDFDMTEuNjg2MSAwLjU0MTc0OCAxMy40NTgzIDIuMzEzOTUgMTMuNDU4MyA0LjUwMDA4VjkuNTAwMDhDMTMuNDU4MyAxMS42ODYyIDExLjY4NjEgMTMuNDU4NCA5LjUwMDAxIDEzLjQ1ODRINC41MDAwMUMyLjMxMzg4IDEzLjQ1ODQgMC41NDE2NzIgMTEuNjg2MiAwLjU0MTY3MiA5LjUwMDA4VjQuNTAwMDhaTTQuNTAwMDEgMS43OTE3NUMzLjAwNDIzIDEuNzkxNzUgMS43OTE2NyAzLjAwNDMxIDEuNzkxNjcgNC41MDAwOFY5LjUwMDA4QzEuNzkxNjcgMTAuOTk1OSAzLjAwNDIzIDEyLjIwODQgNC41MDAwMSAxMi4yMDg0SDkuNTAwMDFDMTAuOTk1OCAxMi4yMDg0IDEyLjIwODMgMTAuOTk1OSAxMi4yMDgzIDkuNTAwMDhWNC41MDAwOEMxMi4yMDgzIDMuMDA0MzEgMTAuOTk1OCAxLjc5MTc1IDkuNTAwMDEgMS43OTE3NUg0LjUwMDAxWiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg==";

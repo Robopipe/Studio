@@ -1,0 +1,32 @@
+.camera-control {
+  display: flex;
+  align-items: center;
+  //   justify-content: space-between;
+
+  input {
+    -webkit-appearance: none;
+    appearance: none;
+    background: rgba(0, 0, 0, 0.03);
+    border-radius: 100px;
+    padding: 0;
+    height: 12px;
+    cursor: grab;
+    border: none;
+
+    &::-webkit-slider-thumb,
+    &::-moz-range-thumb {
+      background: #374151;
+      border-radius: 100%;
+      width: 16px;
+      height: 16px;
+      border: none;
+    }
+
+    &::-webkit-slider-runnable-track,
+    &::-moz-range-progress {
+      background-color: rgba(67, 196, 125, 0.15);
+      height: 100%;
+      border-radius: 100px;
+    }
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "input_shape": [1, 299, 299, 3],
+  "dtype": "float32"
+}
