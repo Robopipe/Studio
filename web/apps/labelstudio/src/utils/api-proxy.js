@@ -18,6 +18,7 @@ import { formDataToJPO } from "./helpers";
 /**
  * @typedef {{
  * gateway: string | URL,
+ * gateways: Dict<string>,
  * endpoints: Dict<EndpointConfig>,
  * commonHeaders: Dict<string>,
  * mockDelay: number,
@@ -35,6 +36,9 @@ export class APIProxy {
   gateway = null;
 
   /** @type {Dict<string>} */
+  gateways = {};
+
+  /** @type {Dict<string>} */
   commonHeaders = {};
 
   /** @type {number} */
@@ -42,9 +46,6 @@ export class APIProxy {
 
   /** @type {boolean} */
   mockDisabled = false;
-
-  /** @type {"same-origin"|"cors"} */
-  requestMode = "same-origin";
 
   /** @type {Dict} */
   sharedParams = {};
@@ -56,11 +57,16 @@ export class APIProxy {
   constructor(options) {
     this.commonHeaders = options.commonHeaders ?? {};
     this.gateway = this.resolveGateway(options.gateway);
-    this.requestMode = this.detectMode();
     this.mockDelay = options.mockDelay ?? 0;
     this.mockDisabled = options.mockDisabled ?? false;
     this.sharedParams = options.sharedParams ?? {};
     this.alwaysExpectJSON = options.alwaysExpectJSON ?? true;
+
+    const gateways = { ...(options.gateways ?? {}), default: this.gateway };
+    this.gateways = Object.entries(gateways).reduce((acc, [key, value]) => {
+      acc[key] = this.resolveGateway(value);
+      return acc;
+    });
 
     this.resolveMethods(options.endpoints);
   }
@@ -92,7 +98,9 @@ export class APIProxy {
       if (url[0] === "/") {
         gateway.pathname = url.replace(/([/])$/, "");
       } else {
-        gateway.pathname = `${gateway.pathname}/${url}`.replace(/([/]+)/g, "/").replace(/([/])$/, "");
+        gateway.pathname = `${gateway.pathname}/${url}`
+          .replace(/([/]+)/g, "/")
+          .replace(/([/])$/, "");
       }
       return gateway.toString();
     }
@@ -102,9 +110,9 @@ export class APIProxy {
    * Detect RequestMode.
    * @returns {"same-origin"|"cors"}
    */
-  detectMode() {
+  detectMode(gateway) {
     const currentOrigin = window.location.origin;
-    const gatewayOrigin = new URL(this.gateway).origin;
+    const gatewayOrigin = new URL(gateway).origin;
 
     return currentOrigin === gatewayOrigin ? "same-origin" : "cors";
   }
@@ -121,14 +129,18 @@ export class APIProxy {
         const { scope, ...restSettings } = this.getSettings(settings);
 
         Object.defineProperty(this, methodName, {
-          value: this.createApiCallExecutor(restSettings, [parentPath]),
+          value: this.createApiCallExecutor(restSettings, [parentPath])
         });
 
         Object.defineProperty(this, `${methodName}Raw`, {
-          value: this.createApiCallExecutor(restSettings, [parentPath], true),
+          value: this.createApiCallExecutor(restSettings, [parentPath], true)
         });
 
-        if (scope) this.resolveMethods(scope, [...(parentPath ?? []), restSettings.path]);
+        if (scope)
+          this.resolveMethods(scope, [
+            ...(parentPath ?? []),
+            restSettings.path
+          ]);
       });
     }
   }
@@ -146,27 +158,33 @@ export class APIProxy {
       try {
         const finalParams = {
           ...(urlParams ?? {}),
-          ...(this.sharedParams ?? {}),
+          ...(this.sharedParams ?? {})
         };
 
-        const { method, url: apiCallURL } = this.createUrl(methodSettings.path, finalParams, parentPath);
+        const { method, gateway, url: apiCallURL } = this.createUrl(
+          methodSettings.path,
+          finalParams,
+          parentPath
+        );
 
-        const requestMethod = method ?? (methodSettings.method ?? "get").toUpperCase();
+        const requestMethod =
+          method ?? (methodSettings.method ?? "get").toUpperCase();
 
         const initialheaders = Object.assign(
           this.getDefaultHeaders(requestMethod),
           this.commonHeaders ?? {},
           methodSettings.headers ?? {},
-          headers ?? {},
+          headers ?? {}
         );
 
         const requestHeaders = new Headers(initialheaders);
+        const mode = this.detectMode(gateway);
 
         const requestParams = {
           method: requestMethod,
           headers: requestHeaders,
-          mode: this.requestMode,
-          credentials: this.requestMode === "cors" ? "omit" : "same-origin",
+          mode,
+          credentials: mode === "cors" ? "omit" : "same-origin"
         };
 
         if (signal) {
@@ -185,7 +203,7 @@ export class APIProxy {
           } else {
             Object.assign(extendedBody, {
               ...(sharedParams ?? {}),
-              ...(body ?? {}),
+              ...(body ?? {})
             });
           }
 
@@ -209,8 +227,17 @@ export class APIProxy {
         /** @type {Response} */
         let rawResponse;
 
-        if (methodSettings.mock && process.env.NODE_ENV === "development" && !this.mockDisabled) {
-          rawResponse = await this.mockRequest(apiCallURL, urlParams, requestParams, methodSettings);
+        if (
+          methodSettings.mock &&
+          process.env.NODE_ENV === "development" &&
+          !this.mockDisabled
+        ) {
+          rawResponse = await this.mockRequest(
+            apiCallURL,
+            urlParams,
+            requestParams,
+            methodSettings
+          );
         } else {
           rawResponse = await fetch(apiCallURL, requestParams);
         }
@@ -219,7 +246,7 @@ export class APIProxy {
           headers: new Map(Array.from(rawResponse.headers)),
           status: rawResponse.status,
           url: rawResponse.url,
-          ok: rawResponse.ok,
+          ok: rawResponse.ok
         };
 
         if (raw) return rawResponse;
@@ -230,7 +257,9 @@ export class APIProxy {
           try {
             const responseData =
               rawResponse.status !== 204
-                ? JSON.parse(this.alwaysExpectJSON ? responseText : responseText || "{}")
+                ? JSON.parse(
+                    this.alwaysExpectJSON ? responseText : responseText || "{}"
+                  )
                 : { ok: true };
 
             if (methodSettings.convert instanceof Function) {
@@ -252,7 +281,7 @@ export class APIProxy {
         value: responseMeta,
         configurable: false,
         enumerable: false,
-        writable: false,
+        writable: false
       });
 
       return responseResult;
@@ -268,7 +297,7 @@ export class APIProxy {
   getSettings(settings) {
     if (typeof settings === "string") {
       settings = {
-        path: settings,
+        path: settings
       };
     }
 
@@ -277,7 +306,7 @@ export class APIProxy {
       mock: undefined,
       convert: undefined,
       scope: undefined,
-      ...settings,
+      ...settings
     };
   }
 
@@ -287,7 +316,7 @@ export class APIProxy {
       case "PATCH":
       case "DELETE": {
         return {
-          "Content-Type": "application/json",
+          "Content-Type": "application/json"
         };
       }
       default:
@@ -302,12 +331,17 @@ export class APIProxy {
    * @private
    */
   createUrl(endpoint, data = {}, parentPath) {
-    const url = new URL(this.gateway);
+    const {
+      path: resolvedPath,
+      method: resolvedMethod,
+      gateway: resolvedGw
+    } = this.resolveEndpoint(endpoint, data);
+    const gateway = this.gateways[resolvedGw ?? "default"];
+    const url = new URL(gateway);
     const usedKeys = [];
-    const { path: resolvedPath, method: resolvedMethod } = this.resolveEndpoint(endpoint, data);
     const path = []
       .concat(...(parentPath ?? []), resolvedPath)
-      .filter((p) => p !== undefined)
+      .filter(p => p !== undefined)
       .join("/")
       .replace(/([/]+)/g, "/");
 
@@ -339,6 +373,7 @@ export class APIProxy {
     return {
       url: url.toString(),
       method: resolvedMethod,
+      gateway
     };
   }
 
@@ -357,9 +392,14 @@ export class APIProxy {
 
     const methodRegexp = /^(GET|POST|PATCH|DELETE|PUT|HEAD|OPTIONS):/;
     const method = finalEndpoint.match(methodRegexp)?.[1];
-    const path = finalEndpoint.replace(methodRegexp, "");
 
-    return { method, path };
+    finalEndpoint = finalEndpoint.replace(methodRegexp, "");
+
+    const gwRegexp = new RegExp(`^(${Object.keys(this.gateways).join("|")}):`);
+    const gateway = finalEndpoint.match(gwRegexp)?.[1];
+    const path = finalEndpoint.replace(gwRegexp, "");
+
+    return { gateway, method, path };
   }
 
   /**
@@ -406,7 +446,7 @@ export class APIProxy {
     return {
       status: fetchResponse.status,
       error: (exception?.message ?? fetchResponse.statusText) || "Server Error",
-      response: await result,
+      response: await result
     };
   }
 
@@ -426,7 +466,7 @@ export class APIProxy {
     };
     return {
       error: exception.message,
-      details: parsedDetails(),
+      details: parsedDetails()
     };
   }
 
@@ -437,7 +477,7 @@ export class APIProxy {
    * @param {EndpointConfig} settings
    */
   mockRequest(url, params, request, settings) {
-    return new Promise(async (resolve) => {
+    return new Promise(async resolve => {
       let response = null;
       let ok = true;
 
@@ -461,10 +501,12 @@ export class APIProxy {
             return Promise.resolve(response);
           },
           text() {
-            return typeof response === "string" ? response : JSON.stringify(response);
+            return typeof response === "string"
+              ? response
+              : JSON.stringify(response);
           },
           headers: {},
-          status: 200,
+          status: 200
         });
       }, this.mockDelay);
     });
