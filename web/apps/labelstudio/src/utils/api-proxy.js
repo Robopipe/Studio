@@ -66,7 +66,7 @@ export class APIProxy {
     this.gateways = Object.entries(gateways).reduce((acc, [key, value]) => {
       acc[key] = this.resolveGateway(value);
       return acc;
-    });
+    }, {});
 
     this.resolveMethods(options.endpoints);
   }
@@ -360,7 +360,8 @@ export class APIProxy {
       return result;
     });
 
-    url.pathname += processedPath.replace(/\/+/g, "/").replace(/\/+$/g, "");
+    url.pathname += processedPath;
+    url.pathname = url.pathname.replace(/\/+/g, "/").replace(/\/+$/g, "");
 
     if (data && typeof data === "object") {
       Object.entries(data).forEach(([key, value]) => {
@@ -390,14 +391,14 @@ export class APIProxy {
       finalEndpoint = endpoint;
     }
 
-    const methodRegexp = /^(GET|POST|PATCH|DELETE|PUT|HEAD|OPTIONS):/;
-    const method = finalEndpoint.match(methodRegexp)?.[1];
-
-    finalEndpoint = finalEndpoint.replace(methodRegexp, "");
-
     const gwRegexp = new RegExp(`^(${Object.keys(this.gateways).join("|")}):`);
     const gateway = finalEndpoint.match(gwRegexp)?.[1];
-    const path = finalEndpoint.replace(gwRegexp, "");
+
+    finalEndpoint = finalEndpoint.replace(gwRegexp, "");
+
+    const methodRegexp = /^(GET|POST|PATCH|DELETE|PUT|HEAD|OPTIONS):/;
+    const method = finalEndpoint.match(methodRegexp)?.[1];
+    const path = finalEndpoint.replace(methodRegexp, "");
 
     return { gateway, method, path };
   }
