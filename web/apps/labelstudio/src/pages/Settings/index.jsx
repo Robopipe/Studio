@@ -17,16 +17,9 @@ const isAllowCloudStorage = !isInLicense(LF_CLOUD_STORAGE_FOR_MANAGERS);
 export const MenuLayout = ({ children, ...routeProps }) => {
   return (
     <SidebarMenu
-      menuItems={[
-        GeneralSettings,
-        LabelingSettings,
-        // AnnotationSettings,
-        // MachineLearningSettings,
-        // PredictionsSettings,
-        // isAllowCloudStorage && StorageSettings,
-        // WebhookPage,
-        DangerZone
-      ].filter(Boolean)}
+      menuItems={[GeneralSettings, LabelingSettings, DangerZone].filter(
+        Boolean
+      )}
       path={routeProps.match.url}
       children={children}
     />
@@ -34,11 +27,7 @@ export const MenuLayout = ({ children, ...routeProps }) => {
 };
 
 const pages = {
-  // AnnotationSettings,
   LabelingSettings,
-  // MachineLearningSettings,
-  // PredictionsSettings,
-  // WebhookPage,
   DangerZone
 };
 

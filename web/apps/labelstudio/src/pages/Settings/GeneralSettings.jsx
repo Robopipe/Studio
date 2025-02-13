@@ -61,35 +61,6 @@ export const GeneralSettings = () => {
                 label="Description"
                 style={{ minHeight: 128 }}
               />
-              {isFF(FF_LSDV_E_297) && (
-                <Block name="workspace-placeholder">
-                  <Elem name="badge-wrapper">
-                    <Elem name="title">Workspace</Elem>
-                    <EnterpriseBadge />
-                  </Elem>
-                  <Select
-                    placeholder="Select an option"
-                    disabled
-                    options={[]}
-                  />
-                  {/* <Caption>
-                    Simplify project management by organizing projects into workspaces.{" "}
-                    <a
-                      target="_blank"
-                      href={createURL(
-                        "https://docs.humansignal.com/guide/manage_projects#Create-workspaces-to-organize-projects",
-                        {
-                          experiment: "project_settings_tip",
-                          treatment: "simplify_project_management",
-                        },
-                      )}
-                      rel="noreferrer"
-                    >
-                      Learn more
-                    </a>
-                  </Caption> */}
-                </Block>
-              )}
               <RadioGroup
                 name="color"
                 label="Color"
@@ -117,37 +88,6 @@ export const GeneralSettings = () => {
                     description={description}
                   />
                 ))}
-                {/* {isFF(FF_LSDV_E_297) && (
-                  <RadioGroup.Button
-                    key="uncertainty-sampling"
-                    value=""
-                    label={
-                      <>
-                        Uncertainty sampling <EnterpriseBadge />
-                      </>
-                    }
-                    disabled
-                    description={
-                      <>
-                        Tasks are chosen according to model uncertainty score
-                        (active learning mode).{" "}
-                        <a
-                          target="_blank"
-                          href={createURL(
-                            "https://docs.humansignal.com/guide/active_learning",
-                            {
-                              experiment: "project_settings_workspace",
-                              treatment: "workspaces"
-                            }
-                          )}
-                          rel="noreferrer"
-                        >
-                          Learn more
-                        </a>
-                      </>
-                    }
-                  />
-                )} */}
               </RadioGroup>
             </Form.Row>
 
@@ -162,7 +102,6 @@ export const GeneralSettings = () => {
           </Form>
         </Block>
       </Elem>
-      {/* {isFF(FF_LSDV_E_297) && <HeidiTips collection="projectSettings" />} */}
     </Block>
   );
 };

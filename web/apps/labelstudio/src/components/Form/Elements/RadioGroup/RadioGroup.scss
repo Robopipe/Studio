@@ -3,18 +3,19 @@
   --padding: 4px;
   --font-size: 16px;
   --button-padding: 0 10px;
-  --button-checked-shadow: 0px 1px 0px rgb(0 0 0 / 10%), 0px 0px 0px 1px rgb(0 0 0 / 2%), 0px 5px 10px rgb(0 0 0 / 15%);
+  --button-checked-shadow: 0px 1px 0px rgb(0 0 0 / 10%),
+    0px 0px 0px 1px rgb(0 0 0 / 2%), 0px 5px 10px rgb(0 0 0 / 15%);
 
   border-radius: var(--radius);
   padding: var(--padding);
-  background: var(--sand_100);
-  border: 1px solid var(--sand_300);
+  background: var(--gray_100);
+  border: 1px solid var(--gray_300);
   box-sizing: border-box;
 
   &__buttons {
     height: calc(var(--height) - calc(var(--padding) * 2));
     display: grid;
-    grid-auto-columns: 1fr; 
+    grid-auto-columns: 1fr;
     grid-auto-flow: column;
   }
 
@@ -37,10 +38,10 @@
     font-weight: 500;
 
     &::before {
-      content: '';
-      background: var(--sand_0);
+      content: "";
+      background: var(--gray_50);
       border-radius: 100%;
-      border: 1px solid var(--sand_300);
+      border: 1px solid var(--gray_300);
       display: inline-block;
       width: 1.4em;
       height: 1.4em;
@@ -74,13 +75,13 @@
 
     &_checked {
       opacity: 1;
-      background-color: var(--sand_0);
+      background-color: var(--gray_50);
       box-shadow: var(--button-checked-shadow);
 
       & .label-ls__text {
         &::before {
-          background-color: var(--sand_0);
-          box-shadow: inset 0 0 0 4px var(--grape_500);
+          background-color: var(--gray_50);
+          box-shadow: inset 0 0 0 4px var(--emerald_600);
         }
       }
     }
@@ -127,7 +128,8 @@
       --padding: 2px;
       --font-size: 12px;
       --button-padding: 0 5px;
-      --button-checked-shadow: 0px 1px 0px rgb(0 0 0 / 10%), 0px 0px 0px 1px rgb(0 0 0 / 2%), 0px 2px 4px rgb(0 0 0 / 15%);
+      --button-checked-shadow: 0px 1px 0px rgb(0 0 0 / 10%),
+        0px 0px 0px 1px rgb(0 0 0 / 2%), 0px 2px 4px rgb(0 0 0 / 15%);
     }
   }
 
