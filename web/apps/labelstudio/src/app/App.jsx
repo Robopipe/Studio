@@ -32,9 +32,11 @@ import {
 import { TourProvider } from "@humansignal/core";
 import { ToastProvider, ToastViewport } from "@humansignal/ui";
 import { CaptureProvider } from "../providers/CaptureProvider";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const baseURL = new URL(APP_SETTINGS.hostname || location.origin);
 export const UNBLOCK_HISTORY_MESSAGE = "UNBLOCK_HISTORY";
+const queryClient = new QueryClient();
 
 const browserHistory = createBrowserHistory({
   basename: baseURL.pathname || "/",
@@ -74,6 +76,7 @@ const App = ({ content }) => {
         <MultiProvider
           providers={[
             <AppStoreProvider key="app-store" />,
+            <QueryClientProvider client={queryClient} />,
             <ApiProvider key="api" />,
             <ConfigProvider key="config" />,
             <RoutesProvider key="rotes" />,
