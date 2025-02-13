@@ -91,21 +91,28 @@
 }
 
 .project-card {
-  --text-color: var(--sand_900);
+  --text-color: var(--gray_900);
 
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: var(--sand_0);
-  border: 1px solid var(--sand_300);
+  border: 1px solid var(--gray_300);
   border-radius: 0.5rem;
   overflow: hidden;
   color: var(--text-color);
   box-shadow: 0 4px 8px rgb(0 0 0 / 5%);
 
+  &:hover {
+    border-color: var(--emerald_500);
+
+    .project-card__header {
+      border-color: var(--emerald_500);
+    }
+  }
+
   &__header {
     padding: 12px 16px;
-    border-bottom: 1px solid var(--sand_300);
+    border-bottom: 1px solid var(--gray_300);
   }
 
   &__menu {
