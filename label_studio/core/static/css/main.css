@@ -148,7 +148,7 @@ body {
   --red_7: #cf1322;
   --red_10: #5c0011;
 
-  --primary_link: #566fcf;
+  --primary_link: #20a963;
 
   overflow-x: unset !important;
 }
@@ -160,7 +160,7 @@ h4,
 h5,
 h6 {
   font-weight: normal;
-  color: var(--sand_900);
+  color: var(--gray_900);
 }
 a {
   text-decoration: none;
