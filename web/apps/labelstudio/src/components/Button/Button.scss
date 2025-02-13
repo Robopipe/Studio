@@ -72,17 +72,17 @@
   &_waiting,
   &:disabled,
   &_disabled {
-    --button-color: var(--sand_500);
-    --button-background-color: var(--sand_200);
+    --button-color: var(--gray_500);
+    --button-background-color: var(--gray_200);
     --button-events: none;
 
     border: none;
 
     & svg {
-      color: var(--sand_500) !important;
+      color: var(--gray_500) !important;
 
       & path {
-        stroke: var(--sand_500);
+        stroke: var(--gray_500);
       }
     }
   }
@@ -177,26 +177,30 @@
         border-color: var(--red_800);
         background: var(--red_100);
       }
+
+      &:focus:not(:disabled) {
+        box-shadow: 0 0 0 4px var(--red_200);
+      }
     }
 
     &_destructive {
-      --button-color: var(--sand_0);
+      --button-color: var(--gray_50);
       --button-background-color: var(--danger_color);
 
       &:hover:not(:disabled, .button-ls_waiting) {
         --button-color: var(--danger_color);
 
         border-color: var(--danger_color);
-        background: var(--red_1);
+        background: var(--red_50);
       }
 
       &:active {
-        --button-background--color: var(--red_10);
+        --button-background--color: var(--red_900);
       }
     }
 
     &_ghost {
-      --button-color: var(--sand_0);
+      --button-color: var(--gray_50);
 
       border: none;
 
@@ -207,7 +211,7 @@
   &_look_danger:disabled,
   &_look_danger &_waiting,
   &_look_danger &_disabled {
-    --button-color: var(--sand_500);
+    --button-color: var(--gray_500);
   }
 
   &_look_destructive:disabled,
@@ -219,14 +223,14 @@
 
   &_look_primary:disabled,
   &_look_primary.button-ls_disabled {
-    --button-color: var(--sand_500);
-    --button-background-color: var(--sand_200);
+    --button-color: var(--gray_500);
+    --button-background-color: var(--gray_200);
 
     border: none;
   }
 
   &_look_primary.button-ls_waiting {
-    --button-color: var(--sand_0);
+    --button-color: var(--gray_50);
   }
 
   &_size {
@@ -307,7 +311,7 @@
     background-size: 37px 100%;
 
     --button-background-image: var(--button-waiting-animation-bg);
-    --button-background-color: var(--sand_0);
+    --button-background-color: var(--gray_50);
 
     animation: button-waiting 1s linear infinite;
   }
