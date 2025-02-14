@@ -3,6 +3,7 @@ import "./VideoPlayer.scss";
 import { Block, Elem } from "../../utils/bem";
 import { IconStop } from "../../assets/icons";
 import { Oneof } from "../Oneof/Oneof";
+import { Spinner } from "../Spinner/Spinner";
 
 const CapturingVideoPlayer = ({
   src,
@@ -126,13 +127,18 @@ export const VideoPlayer = ({
   onStopAutoCapture
 }) => {
   return (
-    <Oneof>
-      <CapturingVideoPlayer
-        src={src}
-        onCapture={onCapture}
-        autoCapture={autoCapture}
-        onStopAutoCapture={onStopAutoCapture}
-      />
+    <Oneof name="video-player" value={!!src ? "ready" : "loading"}>
+      <Elem name="loading" case="loading">
+        <Spinner size={64} />
+      </Elem>
+      <Elem case="ready">
+        <CapturingVideoPlayer
+          src={src}
+          onCapture={onCapture}
+          autoCapture={autoCapture}
+          onStopAutoCapture={onStopAutoCapture}
+        />
+      </Elem>
     </Oneof>
   );
 };

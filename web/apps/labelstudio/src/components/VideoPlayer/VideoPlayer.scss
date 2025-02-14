@@ -28,6 +28,7 @@
     bottom: 32px;
     left: 50%;
     transform: translateX(-50%);
+    box-sizing: content-box;
 
     &:hover {
       cursor: pointer;
