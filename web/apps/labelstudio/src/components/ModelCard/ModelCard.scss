@@ -1,0 +1,48 @@
+.model-card {
+  cursor: pointer;
+  background-color: #ffffff;
+  border: 1px solid var(--surface_12);
+  padding: 12px;
+  border-radius: 8px;
+
+  &:hover:not(.model-card_disabled, .model-card_active) {
+    border: 1px solid var(--emerald_500);
+  }
+
+  &__badges {
+    display: flex;
+    gap: 10px;
+  }
+
+  &__badge {
+    font-weight: 300;
+    font-size: 14px;
+    background-color: var(--surface_5);
+    border-radius: 20px;
+    padding: 2px 6px;
+    width: fit-content;
+
+    &_danger {
+      background-color: var(--red_100);
+      color: var(--red_600);
+    }
+  }
+
+  &__name {
+    font-weight: 500;
+    margin-top: 10px;
+  }
+
+  &__timestamp {
+    margin-top: 10px;
+  }
+
+  &_active {
+    border: 1px solid var(--emerald_600);
+  }
+
+  &_disabled {
+    background-color: var(--surface_5);
+    cursor: not-allowed;
+  }
+}
