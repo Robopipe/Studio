@@ -1,6 +1,7 @@
 import * as tf from "@tensorflow/tfjs";
 import { useAPI } from "../providers/ApiProvider";
 import { useCallback, useEffect, useState } from "react";
+import { useProject } from "../providers/ProjectProvider";
 
 export const loadBackbone = async modelName => {
   const model = await tf.loadGraphModel(
@@ -12,6 +13,12 @@ export const loadBackbone = async modelName => {
   );
 
   return model;
+};
+
+export const getBackboneOutputShape = backbone => {
+  const output = Object.values(backbone.modelSignature.outputs)[0];
+
+  return output.tensorShape.dim.map(d => parseInt(d.size)).slice(1);
 };
 
 export const loadImage = async (url, shape) => {
@@ -53,10 +60,27 @@ export const buildClassificationModel = (numClasses, inputShape) => {
   return model;
 };
 
-export const useLoadDataset = ({ backbone, project, setStatus }) => {
-  const [dataset, setDataset] = useState(null);
-  const [numClasses, setNumClasses] = useState(null);
+export const useBackbone = ({ modelName, disabled, setStatus }) => {
+  const [backbone, setBackbone] = useState(null);
+
+  useEffect(() => {
+    if (disabled || !modelName) return;
+    setStatus?.({ statusType: "loading", status: "Loading base model" });
+
+    loadBackbone(modelName)
+      .then(setBackbone)
+      .then(() =>
+        setStatus?.({ statusType: "ready", status: "Ready for training" })
+      );
+  }, [modelName, disabled, setStatus]);
+
+  return { backbone };
+};
+
+export const useLoadDataset = ({ backbone, setStatus }) => {
   const api = useAPI();
+  const { project } = useProject();
+  const [dataset, setDataset] = useState(null);
 
   const getImgFeatures = useCallback(
     async imgUrl => {
@@ -71,7 +95,7 @@ export const useLoadDataset = ({ backbone, project, setStatus }) => {
 
   const loadDataset = useCallback(async () => {
     if (!backbone || !project) return;
-    setStatus?.("loading task data");
+
     const { tasks } = await api.callApi("tasks", {
       params: { project: project.id, fields: "all" }
     });
@@ -82,11 +106,9 @@ export const useLoadDataset = ({ backbone, project, setStatus }) => {
     project.parsed_label_config.choice.labels.forEach(
       (label, i) => (labelMap[label] = i)
     );
-    setNumClasses(Object.keys(labelMap).length);
 
     for (const task of tasks) {
-      setStatus?.(`loading task ${task.id}`);
-      if (!task.annotations[0].result[0]) continue;
+      if (!task?.annotations?.[0]?.result?.[0]) continue;
 
       const features = await getImgFeatures(
         `http://localhost:8081/${task.data.image}`
@@ -101,13 +123,65 @@ export const useLoadDataset = ({ backbone, project, setStatus }) => {
       tf.tensor1d(dataLabels, "int32"),
       Object.keys(labelMap).length
     );
-    setStatus?.("ready");
-    return { data: tf.stack(dataFeatures), labels: encodedLabels };
+
+    const loadedDataset = {
+      data: tf.stack(dataFeatures),
+      labels: encodedLabels
+    };
+    setDataset(loadedDataset);
+    return loadedDataset;
   }, [backbone, project, api, getImgFeatures]);
 
-  useEffect(() => {
-    loadDataset().then(setDataset);
-  }, [loadDataset]);
+  return { loadDataset, dataset };
+};
 
-  return { dataset, numClasses };
+export const useTrainModel = ({ backbone, model, setStatus }) => {
+  const [trained, setTrained] = useState(false);
+  const { loadDataset, dataset } = useLoadDataset({ backbone, setStatus });
+
+  const trainModel = useCallback(
+    async epochs => {
+      if (trained) return;
+
+      setStatus?.({ statusType: "loading", status: "Training model" });
+
+      const { data, labels } = dataset ?? (await loadDataset());
+
+      if (!model || !data || !labels) return;
+
+      await model.fit(data, labels, {
+        epochs: epochs ?? 10
+      });
+
+      setTrained(true);
+      setStatus?.({ statusType: "ready", status: "Model trained" });
+    },
+    [model, dataset, loadDataset]
+  );
+
+  return { model, trained, trainModel };
+};
+
+export const useModel = ({ baseModel, setStatus, disabled }) => {
+  const { project } = useProject();
+  const { backbone } = useBackbone({
+    modelName: baseModel,
+    setStatus,
+    disabled
+  });
+  const [model, setModel] = useState(null);
+  const { trainModel, trained } = useTrainModel({ backbone, model, setStatus });
+
+  useEffect(() => {
+    if (!project || !backbone) return;
+
+    setModel(
+      buildClassificationModel(
+        project.parsed_label_config.choice.labels.length,
+        getBackboneOutputShape(backbone)
+      )
+    );
+  }, [project, backbone]);
+
+  return { model, trainModel, trained };
 };
