@@ -1,6 +1,17 @@
 export const API_CONFIG = {
   gateway: `${window.APP_SETTINGS.hostname}/api`,
+  gateways: {
+    rbp: `${window.APP_SETTINGS.robopipeHostname}`,
+    ls: `${window.APP_SETTINGS.hostname}/api`
+  },
+
   endpoints: {
+    cameras: "rbp:/cameras",
+    streams: "rbp:/cameras/:mxid/streams",
+    cameraControl: "rbp:/cameras/:mxid/streams/:stream/control",
+    cameraConfig: "rbp:/cameras/:mxid/streams/:stream/config",
+    cameraIr: "rbp:/cameras/:mxid/ir",
+
     // Users
     users: "/users",
     me: "/current-user/whoami",
