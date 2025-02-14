@@ -1,3 +1,5 @@
+import { QueryClient } from "react-query";
+
 export interface Meta {
   headers: Map<string, string>;
   status: number;
@@ -18,6 +20,8 @@ export function useAPI(): {
       params?: Record<string, unknown>;
       errorFilter?: (result: unknown) => boolean;
       body?: FormData | Record<string, any>;
-    },
+    }
   ) => Promise<WrappedResponse<T>>;
 };
+
+export const queryClient: QueryClient;

@@ -8,7 +8,7 @@ import {
   leaveBlockerCallback
 } from "../components/LeaveBlocker/LeaveBlocker";
 import { initSentry } from "../config/Sentry";
-import { ApiProvider, useAPI } from "../providers/ApiProvider";
+import { ApiProvider, useAPI, queryClient } from "../providers/ApiProvider";
 import { AppStoreProvider } from "../providers/AppStoreProvider";
 import { ConfigProvider } from "../providers/ConfigProvider";
 import { MultiProvider } from "../providers/MultiProvider";
@@ -36,7 +36,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const baseURL = new URL(APP_SETTINGS.hostname || location.origin);
 export const UNBLOCK_HISTORY_MESSAGE = "UNBLOCK_HISTORY";
-const queryClient = new QueryClient();
 
 const browserHistory = createBrowserHistory({
   basename: baseURL.pathname || "/",

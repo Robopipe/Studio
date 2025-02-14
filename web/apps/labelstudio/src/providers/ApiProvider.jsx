@@ -1,9 +1,18 @@
-import { createContext, forwardRef, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  forwardRef,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState
+} from "react";
 import { ErrorWrapper } from "../components/Error/Error";
 import { modal } from "../components/Modal/Modal";
 import { API_CONFIG } from "../config/ApiConfig";
 import { APIProxy } from "../utils/api-proxy";
 import { absoluteURL } from "../utils/helpers";
+import { QueryClient } from "@tanstack/react-query";
 
 const API = new APIProxy(API_CONFIG);
 
@@ -12,9 +21,10 @@ ApiContext.displayName = "ApiContext";
 
 let apiLocked = false;
 
-const errorFormatter = (result) => {
+const errorFormatter = result => {
   const { response } = result;
-  const isShutdown = String(response?.detail ?? result?.error) === "Failed to fetch";
+  const isShutdown =
+    String(response?.detail ?? result?.error) === "Failed to fetch";
 
   return {
     isShutdown,
@@ -22,7 +32,7 @@ const errorFormatter = (result) => {
     message: response?.detail ?? result?.error,
     stacktrace: response?.exc_info ?? null,
     version: response?.version,
-    validation: Object.entries(response?.validation_errors ?? {}),
+    validation: Object.entries(response?.validation_errors ?? {})
   };
 };
 
@@ -53,7 +63,7 @@ const handleError = async (response, showModal = true) => {
         <ErrorWrapper {...formattedError} />
       ),
       simple: true,
-      style: { width: 680 },
+      style: { width: 680 }
     });
   }
 
@@ -63,34 +73,37 @@ const handleError = async (response, showModal = true) => {
 export const ApiProvider = forwardRef(({ children }, ref) => {
   const [error, setError] = useState(null);
 
-  const callApi = useCallback(async (method, { params = {}, errorFilter, ...rest } = {}) => {
-    if (apiLocked) return;
+  const callApi = useCallback(
+    async (method, { params = {}, errorFilter, ...rest } = {}) => {
+      if (apiLocked) return;
 
-    setError(null);
+      setError(null);
 
-    const result = await API[method](params, rest);
+      const result = await API[method](params, rest);
 
-    if (result.status === 401) {
-      apiLocked = true;
-      location.href = absoluteURL("/");
-      return;
-    }
-
-    if (result.error) {
-      const shouldCatchError = errorFilter?.(result) === false;
-
-      if (!errorFilter || shouldCatchError) {
-        setError(result);
-        const isShutdown = await handleError(result, contextValue.showModal);
-
-        apiLocked = apiLocked || isShutdown;
-
-        return null;
+      if (result.status === 401) {
+        apiLocked = true;
+        location.href = absoluteURL("/");
+        return;
       }
-    }
 
-    return result;
-  }, []);
+      if (result.error) {
+        const shouldCatchError = errorFilter?.(result) === false;
+
+        if (!errorFilter || shouldCatchError) {
+          setError(result);
+          const isShutdown = await handleError(result, contextValue.showModal);
+
+          apiLocked = apiLocked || isShutdown;
+
+          return null;
+        }
+      }
+
+      return result;
+    },
+    []
+  );
 
   const contextValue = useMemo(
     () => ({
@@ -102,9 +115,9 @@ export const ApiProvider = forwardRef(({ children }, ref) => {
       errorFormatter,
       isValidMethod(...args) {
         return API.isValidMethod(...args);
-      },
+      }
     }),
-    [error],
+    [error]
   );
 
   useEffect(() => {
@@ -113,9 +126,13 @@ export const ApiProvider = forwardRef(({ children }, ref) => {
     }
   }, [ref]);
 
-  return <ApiContext.Provider value={contextValue}>{children}</ApiContext.Provider>;
+  return (
+    <ApiContext.Provider value={contextValue}>{children}</ApiContext.Provider>
+  );
 });
 
 export const useAPI = () => {
   return useContext(ApiContext);
 };
+
+export const queryClient = new QueryClient();
