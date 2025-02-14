@@ -105,6 +105,8 @@ if HOSTNAME:
             if FORCE_SCRIPT_NAME:
                 logger.info("=> Django URL prefix is set to: %s", FORCE_SCRIPT_NAME)
 
+ROBOPIPE_HOSTNAME = get_env("ROBOPIPE_HOSTNAME", "http://localhost:8080")
+
 FRONTEND_HMR = get_bool_env("FRONTEND_HMR", False)
 FRONTEND_HOSTNAME = get_env(
     "FRONTEND_HOSTNAME", "http://localhost:8010" if FRONTEND_HMR else HOSTNAME
@@ -783,6 +785,7 @@ if ENABLE_CSP := get_bool_env("ENABLE_CSP", True):
     CSP_DEFAULT_SRC = (
         "'self'",
         "'report-sample'",
+        "'http://localhost:8080'",
     )
     CSP_STYLE_SRC = ("'self'", "'report-sample'", "'unsafe-inline'")
     CSP_SCRIPT_SRC = (
@@ -791,6 +794,7 @@ if ENABLE_CSP := get_bool_env("ENABLE_CSP", True):
         "'unsafe-inline'",
         "'unsafe-eval'",
         "blob:",
+        "'http://localhost:8080'",
         # 'browser.sentry-cdn.com',
         # 'https://*.googletagmanager.com',
     )
@@ -805,6 +809,7 @@ if ENABLE_CSP := get_bool_env("ENABLE_CSP", True):
     CSP_CONNECT_SRC = (
         "'self'",
         "'report-sample'",
+        "'http://localhost:8080'",
         # 'https://*.google-analytics.com',
         # 'https://*.analytics.google.com',
         # 'https://analytics.google.com',
@@ -815,7 +820,7 @@ if ENABLE_CSP := get_bool_env("ENABLE_CSP", True):
     # Note that this will be overridden to real CSP for views that use the override_report_only_csp decorator
     CSP_REPORT_ONLY = get_bool_env("LS_CSP_REPORT_ONLY", True)
     CSP_REPORT_URI = get_env("LS_CSP_REPORT_URI", None)
-    CSP_INCLUDE_NONCE_IN = ["script-src", "default-src"]
+    CSP_INCLUDE_NONCE_IN = ["script-src", "default-src", "http://localhost:8080"]
 
     MIDDLEWARE.append("core.middleware.HumanSignalCspMiddleware")
 
