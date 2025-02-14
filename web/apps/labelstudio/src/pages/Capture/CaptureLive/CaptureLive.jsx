@@ -10,26 +10,22 @@ import { Block, Elem } from "libs/editor/src/utils/bem";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import "./CaptureLive.scss";
 import { CameraControls } from "apps/labelstudio/src/components/CameraControls/CameraControls";
+import { useCameraSelector } from "apps/labelstudio/src/utils/camera-selector";
 
 export const CaptureLivePage = () => {
-  const { project } = useProject();
-  const [apiUrl, setApiUrl] = useState("http://localhost:8080");
-  const [cameras, setCameras] = useState([]);
-  const [streams, setStreams] = useState([]);
-  const [source, setSource] = useState({ camera: null, stream: null });
-  const wsUrl = useMemo(() => {
-    if (!source.camera || !source.stream) return null;
-
-    const url = new URL(apiUrl);
-
-    return `${url.protocol === "http:" ? "ws:" : "wss:"}//${url.hostname}${
-      url.port ? ":" + url.port : ""
-    }/cameras/${source.camera}/streams/${source.stream}/video`;
-  }, [apiUrl, source]);
   const api = useAPI();
-  const [namePattern, setNamePattern] = useState("");
+  const { project } = useProject();
+  const {
+    cameras,
+    streams,
+    camera,
+    stream,
+    setCamera,
+    setStream,
+    wsUrl
+  } = useCameraSelector(true);
   const { capturedImages, setCapturedImages } = useCapture();
-  const [imageUrl, setImageUrl] = useState();
+  const [namePattern, setNamePattern] = useState("");
   const [autoCapture, setAutoCapture] = useState({
     total: 10,
     capturing: false,
@@ -39,7 +35,7 @@ export const CaptureLivePage = () => {
   const captureImage = useCallback(async () => {
     const response = await (
       await fetch(
-        `${apiUrl}/cameras/${source.camera}/streams/${source.stream}/still?format=jpeg`
+        `${window.APP_SETTINGS.robopipeHostname}/cameras/${camera}/streams/${stream}/still?format=jpeg`
       )
     ).blob();
     const createdDT = new Date();
@@ -62,35 +58,9 @@ export const CaptureLivePage = () => {
       timestamp: createdDT,
       filename
     };
+    console.log("kokoaksods");
     setCapturedImages(prev => [capturedImage, ...prev]);
-  }, [apiUrl, source, namePattern]);
-
-  useEffect(() => {
-    if (!apiUrl) return;
-
-    (async () => {
-      const fetchedCameras = await (await fetch(`${apiUrl}/cameras`)).json();
-      setCameras(fetchedCameras.map(camera => camera.mxid));
-
-      if (fetchedCameras.length > 0)
-        setSource({ stream: null, camera: fetchedCameras[0].mxid });
-    })();
-  }, [apiUrl]);
-
-  useEffect(() => {
-    if (cameras.length <= 0) return;
-
-    (async () => {
-      const fetchedStreams = await (
-        await fetch(`${apiUrl}/cameras/${source.camera}/streams`)
-      ).json();
-      const streamNames = Object.keys(fetchedStreams);
-      setStreams(streamNames);
-
-      if (streamNames.length > 0)
-        setSource(src => ({ ...src, stream: streamNames[0] }));
-    })();
-  }, [apiUrl, source.camera]);
+  }, [camera, stream, namePattern]);
 
   return (
     <Block name="capture-live">
@@ -101,16 +71,13 @@ export const CaptureLivePage = () => {
         <Elem name="camera-selector">
           <Select
             label="Camera"
-            onChange={camera => setSource(src => ({ ...src, camera }))}
-            options={cameras.map(cam => ({ value: cam, label: cam }))}
+            onChange={setCamera}
+            options={cameras?.map(cam => cam.mxid) ?? []}
           />
           <Select
             label="Stream"
-            onChange={stream => setSource(src => ({ ...src, stream }))}
-            options={streams.map(stream => ({
-              value: stream,
-              label: stream
-            }))}
+            onChange={setStream}
+            options={Object.keys(streams ?? {})}
           />
           <Input
             label="Name pattern"
@@ -160,22 +127,18 @@ export const CaptureLivePage = () => {
             </Elem>
           )}
         </Elem>
-        {wsUrl ? (
-          <VideoPlayer
-            src={wsUrl}
-            key={`${source.stream}@${source.camera}`}
-            onCapture={captureImage}
-            autoCapture={{ ...autoCapture }}
-            onStopAutoCapture={() =>
-              setAutoCapture(prev => ({ ...prev, capturing: false }))
-            }
-          />
-        ) : (
-          <Elem>Loading...</Elem>
-        )}
+        <VideoPlayer
+          src={wsUrl && `${wsUrl}/video`}
+          key={wsUrl}
+          onCapture={captureImage}
+          autoCapture={{ ...autoCapture }}
+          onStopAutoCapture={() =>
+            setAutoCapture(prev => ({ ...prev, capturing: false }))
+          }
+        />
         <Elem name="camera-controls">
           <CameraControls
-            apiUrl={`${apiUrl}/cameras/${source.camera}/streams/${source.stream}`}
+            apiUrl={`${window.APP_SETTINGS.robopipeHostname}/cameras/${camera}/streams/${stream}`}
           />
         </Elem>
       </Elem>
