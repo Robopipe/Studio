@@ -1,6 +1,19 @@
 .model-detail {
-  display: flex;
-  gap: 64px;
+  &__heading {
+    text-align: center;
+    margin-top: 0;
+  }
+
+  &__container {
+    display: flex;
+    gap: 72px;
+    margin-top: 20px;
+
+    h2 {
+      margin-top: 0;
+      text-align: center;
+    }
+  }
 
   &__inputs {
     max-width: 350px;
@@ -19,6 +32,7 @@
 
   &__actions {
     display: flex;
+    flex-direction: column;
     gap: 10px;
   }
 

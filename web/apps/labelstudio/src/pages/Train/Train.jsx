@@ -1,5 +1,4 @@
-import * as tf from "@tensorflow/tfjs";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { load } from "@tensorflow-models/mobilenet";
 import { absoluteURL } from "../../utils/helpers";
 import { useProject } from "../../providers/ProjectProvider";
@@ -7,99 +6,109 @@ import { useAPI } from "../../providers/ApiProvider";
 import { Block, Elem } from "../../utils/bem";
 import "./Train.scss";
 import { ModelDetail } from "../../components/ModelDetail/ModelDetail";
+import { ModelCard } from "../../components/ModelCard/ModelCard";
+import { Button, Spinner } from "../../components";
+import { useQuery } from "@tanstack/react-query";
+import { Oneof } from "../../components/Oneof/Oneof";
 
 export const TrainPage = () => {
-  const defaultModel = {
-    id: null,
-    name: "",
-    created_at: null,
-    base_model: "mobilenet_v3"
-  };
-
-  const { project } = useProject();
   const api = useAPI();
-  const [models, setModels] = useState([]);
-  const [model, setModel] = useState(null);
-  const [creatingNew, setCreatingNew] = useState(false);
+  const { project } = useProject();
+  const { data: fetchedModels, status: modelsStatus } = useQuery({
+    queryKey: ["projects", project.id, "nn-models"],
+    queryFn: () => api.callApi("nnModels", { params: { pk: project.id } }),
+    enabled: !!project?.id
+  });
+  const [selectedModel, setSelectedModel] = useState(null);
+  const models = useMemo(
+    () => [
+      ...(selectedModel && !selectedModel.id ? [selectedModel] : []),
+      ...(fetchedModels ?? [])
+    ],
+    [fetchedModels, selectedModel]
+  );
+
+  const createNewModel = useCallback(() => {
+    const DEFAULT_MODEL = {
+      id: null,
+      name: "",
+      updated_at: new Date().toString(),
+      base_model: "mobilenet_v3"
+    };
+
+    setSelectedModel(DEFAULT_MODEL);
+  }, [setSelectedModel]);
 
   const switchModel = useCallback(
     newModel => {
-      if (model !== null && model.id === null) return;
+      if (selectedModel !== null && selectedModel.id === null) return;
 
-      setModel(newModel);
+      setSelectedModel(newModel);
     },
-    [model, setModel]
+    [selectedModel, setSelectedModel]
   );
 
-  const setModelName = useCallback(
-    name => {
-      setModel(prev => ({ ...prev, name }));
+  const renderModelCard = useCallback(
+    (model, i, arr) => {
+      const isDisabled =
+        selectedModel !== null &&
+        selectedModel.id === null &&
+        model.id !== null;
+      const badges = [{ text: `v${arr.length - i}` }];
+
+      if (model.id === null)
+        badges.push({
+          text: "Unsaved",
+          mod: { danger: true }
+        });
+
+      return (
+        <ModelCard
+          key={model.id ?? "new-model"}
+          model={model}
+          mod={{
+            active: model.id === selectedModel?.id,
+            disabled: isDisabled
+          }}
+          onClick={() => switchModel(model)}
+          badges={badges}
+        />
+      );
     },
-    [setModel]
+    [selectedModel, switchModel]
   );
-
-  useEffect(() => {
-    if (!project.id) return;
-
-    (async () => {
-      const models = await api.callApi("nnModels", {
-        params: { pk: project.id }
-      });
-
-      setModels(models);
-    })();
-  }, [project.id, api]);
-
-  useEffect(() => {
-    console.log(model);
-  }, [model]);
 
   return (
     <Block name="train">
-      <Elem name="content">
-        <Elem name="sidebar">
-          <Elem name="title">Versions</Elem>
-          <Elem
-            tag="button"
-            name="create-new"
-            disabled={model !== null && !model.id}
-            onClick={() => setModel(defaultModel)}
-          >
-            Create new version
+      <Block name="list-sidebar">
+        <Elem name="title">Versions</Elem>
+        <Oneof value={modelsStatus}>
+          <Elem name="loading" case="loading">
+            <Spinner />
           </Elem>
-          <Elem name="list">
-            {[...(model !== null && !model.id ? [model] : []), ...models].map(
-              (currModel, i, arr) => (
-                <Elem
-                  name="model"
-                  key={currModel.id}
-                  onClick={() => switchModel(currModel)}
-                  className={`${model?.id === currModel.id ? "active" : ""} ${
-                    model?.id === null && i !== 0 ? "disabled" : ""
-                  }`}
-                >
-                  <Elem name="version">v{arr.length - i}</Elem>
-                  <Elem name="name">{currModel.name}</Elem>
-                  <Elem name="status">{currModel.updated_at}</Elem>
-                </Elem>
-              )
-            )}
+          <Elem name="model-list" case="success">
+            <Button
+              disabled={selectedModel !== null && !selectedModel.id}
+              onClick={createNewModel}
+              className="create-new-btn"
+            >
+              Create new version
+            </Button>
+            {models.map(renderModelCard)}
           </Elem>
-        </Elem>
-        <Elem name="main">
-          <ModelDetail
-            model={model}
-            disabled={model?.id !== null}
-            taskType={
-              project?.parsed_label_config?.label?.type ??
-              project?.parsed_label_config?.choice?.type
-            }
-            onSave={model => {
-              setModels(prev => [model, ...prev]);
-              setModel(model);
-            }}
-          />
-        </Elem>
+        </Oneof>
+      </Block>
+      <Elem name="main">
+        <ModelDetail
+          key={selectedModel?.id}
+          model={selectedModel}
+          disabled={selectedModel?.id !== null}
+          taskType={
+            project?.parsed_label_config?.label?.type ??
+            project?.parsed_label_config?.choice?.type
+          }
+          onSave={() => setSelectedModel(models[models.length - 1])}
+        />
       </Elem>
     </Block>
   );

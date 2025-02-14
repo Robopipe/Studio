@@ -1,0 +1,23 @@
+.model-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+
+  &__icon {
+    width: 48px;
+    height: 48px;
+    padding: 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 100%;
+
+    &_ready {
+      background-color: var(--emerald_200);
+      svg {
+        fill: var(--emerald_500);
+      }
+    }
+  }
+}
