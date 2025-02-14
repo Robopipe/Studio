@@ -10,6 +10,8 @@ body {
   --black: #000000;
 
   --surface_3: rgba(0, 0, 0, 0.03);
+  --surface_5: rgba(0, 0, 0, 0.05);
+  --surface_12: rgba(0, 0, 0, 0.12);
 
   --gray_50: #f9fafb;
   --gray_100: #f3f4f6;
