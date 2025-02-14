@@ -107,7 +107,7 @@ export const TrainPage = () => {
             project?.parsed_label_config?.label?.type ??
             project?.parsed_label_config?.choice?.type
           }
-          onSave={() => setSelectedModel(models[models.length - 1])}
+          onSave={setSelectedModel}
         />
       </Elem>
     </Block>

@@ -29,7 +29,7 @@ export const ModelDetail = props => {
   const { project } = useProject();
   const [status, setStatus] = useState({
     statusType: "loading",
-    status: "Loading backbone"
+    status: "Loading model"
   });
   const [model, setModel] = useState(propModel);
   const [baseModels, setBaseModels] = useState([]);
@@ -40,6 +40,7 @@ export const ModelDetail = props => {
   });
 
   const saveModelCb = useCallback(async () => {
+    setStatus({ statusType: "loading", status: "Saving model" });
     const modelResponse = await api.callApi("createNnModel", {
       body: { name: model.name, base_model: model.base_model },
       params: { pk: project.id }
@@ -49,20 +50,27 @@ export const ModelDetail = props => {
         `http://localhost:8081/api/nn-models/${modelResponse.id}/upload?base_model=${model.base_model}`
       )
     );
-  }, [model, tfModel]);
+    setStatus({ statusType: "ready", status: "Model ready for deployment" });
+    return modelResponse;
+  }, [model, tfModel, setStatus]);
   const { mutate: saveModel } = useMutation({
     mutationFn: saveModelCb,
-    onSuccess: () => {
+    onSuccess: res => {
       queryClient.invalidateQueries({
         queryKey: ["projects", project.id, "nn-models"]
       });
-      onSave?.();
+      onSave?.(res);
     }
   });
 
   useEffect(() => {
     api.callApi("baseModels").then(setBaseModels);
   }, []);
+
+  useEffect(() => {
+    if (disabled)
+      setStatus({ statusType: "ready", status: "Model ready for deployment" });
+  }, [disabled]);
 
   if (!model) return <EmptyModelDetail />;
 
@@ -102,10 +110,17 @@ export const ModelDetail = props => {
             >
               Train
             </Button>
-            <Button primary disabled={disabled || !trained} onClick={saveModel}>
+            <Button
+              primary
+              disabled={disabled || !trained || status.statusType !== "ready"}
+              onClick={saveModel}
+            >
               Save
             </Button>
-            <Button look="danger" disabled={disabled || !trained}>
+            <Button
+              look="danger"
+              disabled={disabled || !trained || status.statusType !== "ready"}
+            >
               Reset
             </Button>
           </Elem>
