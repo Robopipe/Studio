@@ -3,10 +3,10 @@
 .textarea-ls {
   height: 40px;
   min-height: 40px;
-  background: var(--sand_0);
+  background: var(--gray_50);
   font-size: 16px;
   line-height: 22px;
-  border: 1px solid var(--sand_300);
+  border: 1px solid var(--gray_300);
   box-sizing: border-box;
   border-radius: 5px;
   padding: 0 16px;
@@ -30,4 +30,11 @@ input.input-ls[type="radio"] {
 .textarea-ls {
   padding: 12px 16px;
   min-height: 50px;
+}
+
+.empty-model {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
 }
