@@ -1,41 +1,42 @@
 import { useEffect, useMemo, useState } from "react";
+import { useAPI } from "../providers/ApiProvider";
+import { useQuery } from "@tanstack/react-query";
 
-export const useCameraSelector = apiUrl => {
-  const [cameras, setCameras] = useState([]);
-  const [streams, setStreams] = useState([]);
+export const useCameraSelector = autoSet => {
+  const api = useAPI();
   const [camera, setCamera] = useState(null);
   const [stream, setStream] = useState(null);
+  const { data: cameras } = useQuery({
+    queryKey: ["cameras"],
+    queryFn: () => api.callApi("cameras")
+  });
+  const { data: streams } = useQuery({
+    queryKey: ["cameras", camera, "streams"],
+    queryFn: () => api.callApi("streams", { params: { mxid: camera } }),
+    enabled: camera !== null
+  });
 
   const wsUrl = useMemo(() => {
     if (!camera || !stream) return null;
 
-    const url = new URL(apiUrl);
-    const protocol = url.protocol === "https:" ? "wss" : "ws";
+    const url = new URL(window.APP_SETTINGS.robopipeHostname);
+    const protocol = url.protocol === "https:" ? "wss:" : "ws:";
     const hostname = url.hostname + (url.port ? `:${url.port}` : "");
 
-    return `${protocol}://${hostname}/cameras/${camera}/streams/${stream}`;
-  }, [apiUrl, camera, stream]);
+    return `${protocol}//${hostname}/cameras/${camera}/streams/${stream}`;
+  }, [camera, stream]);
 
   useEffect(() => {
-    fetch(`${apiUrl}/cameras`)
-      .then(response => response.json())
-      .then(data => {
-        setCameras(data);
-        if (data.length > 0) setCamera(data[0].mxid);
-      });
-  }, [apiUrl]);
+    if (autoSet && cameras) {
+      setCamera(cameras[0]?.mxid);
+    }
+  }, [autoSet, cameras]);
 
   useEffect(() => {
-    if (!camera) return;
-
-    fetch(`${apiUrl}/cameras/${camera}/streams`)
-      .then(response => response.json())
-      .then(data => {
-        const streamNames = Object.keys(data);
-        setStreams(streamNames);
-        if (streamNames.length > 0) setStream(streamNames[0]);
-      });
-  }, [camera]);
+    if (autoSet && streams) {
+      setStream(Object.keys(streams)[0]);
+    }
+  }, [autoSet, streams]);
 
   return { cameras, streams, camera, stream, setCamera, setStream, wsUrl };
 };
