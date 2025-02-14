@@ -25,7 +25,9 @@ class NNModelListApi(generics.ListCreateAPIView):
     queryset = NNModel.objects.all()
 
     def get_queryset(self):
-        return NNModel.objects.filter(project_id=self.kwargs.get("pk"))
+        return NNModel.objects.filter(project_id=self.kwargs.get("pk")).order_by(
+            "-updated_at"
+        )
 
     def create(self, request, *args, **kwargs):
         request.data["project"] = self.kwargs.get("pk")
