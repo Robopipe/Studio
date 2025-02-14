@@ -101,9 +101,7 @@ export const InferePage = () => {
         </Elem>
       </Elem>
       <Elem name="content">
-        {!loading && wsUrl && (
-          <VideoPlayer key={wsUrl} src={`${wsUrl}/video`} />
-        )}
+        <VideoPlayer key={wsUrl} src={wsUrl && `${wsUrl}/video`} />
         {/* <Elem tag="canvas" name="inference-renderer" id="inference-renderer" /> */}
         <h2 id="inference-text"></h2>
         <pre id="inference-log"></pre>

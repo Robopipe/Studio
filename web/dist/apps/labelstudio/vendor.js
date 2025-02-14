@@ -5068,7 +5068,7 @@ function warnError(msg) {
  */
 function isTypeCheckingEnabled() {
     return (devMode() ||
-        (typeof process !== "undefined" && ({"NX_CLI_SET":"true","NX_LOAD_DOT_ENV_FILES":"true","NX_WORKSPACE_ROOT":"/Users/adamberkes/Desktop/Work/KOALA42/robopipe/label-studio/web","NX_TERMINAL_OUTPUT_PATH":"/Users/adamberkes/Desktop/Work/KOALA42/robopipe/label-studio/web/.nx/cache/terminalOutputs/3840830456767436280","NX_STREAM_OUTPUT":"true","NX_TASK_TARGET_PROJECT":"labelstudio","NX_TASK_TARGET_TARGET":"build","NX_TASK_TARGET_CONFIGURATION":"development","NX_TASK_HASH":"3840830456767436280"}) && ({"NX_CLI_SET":"true","NX_LOAD_DOT_ENV_FILES":"true","NX_WORKSPACE_ROOT":"/Users/adamberkes/Desktop/Work/KOALA42/robopipe/label-studio/web","NX_TERMINAL_OUTPUT_PATH":"/Users/adamberkes/Desktop/Work/KOALA42/robopipe/label-studio/web/.nx/cache/terminalOutputs/3840830456767436280","NX_STREAM_OUTPUT":"true","NX_TASK_TARGET_PROJECT":"labelstudio","NX_TASK_TARGET_TARGET":"build","NX_TASK_TARGET_CONFIGURATION":"development","NX_TASK_HASH":"3840830456767436280"}).ENABLE_TYPE_CHECK === "true"));
+        (typeof process !== "undefined" && ({"NX_CLI_SET":"true","NX_LOAD_DOT_ENV_FILES":"true","NX_WORKSPACE_ROOT":"/Users/adamberkes/Desktop/Work/KOALA42/robopipe/label-studio/web","NX_TERMINAL_OUTPUT_PATH":"/Users/adamberkes/Desktop/Work/KOALA42/robopipe/label-studio/web/.nx/cache/terminalOutputs/4550546306593593388","NX_STREAM_OUTPUT":"true","NX_TASK_TARGET_PROJECT":"labelstudio","NX_TASK_TARGET_TARGET":"build","NX_TASK_TARGET_CONFIGURATION":"development","NX_TASK_HASH":"4550546306593593388"}) && ({"NX_CLI_SET":"true","NX_LOAD_DOT_ENV_FILES":"true","NX_WORKSPACE_ROOT":"/Users/adamberkes/Desktop/Work/KOALA42/robopipe/label-studio/web","NX_TERMINAL_OUTPUT_PATH":"/Users/adamberkes/Desktop/Work/KOALA42/robopipe/label-studio/web/.nx/cache/terminalOutputs/4550546306593593388","NX_STREAM_OUTPUT":"true","NX_TASK_TARGET_PROJECT":"labelstudio","NX_TASK_TARGET_TARGET":"build","NX_TASK_TARGET_CONFIGURATION":"development","NX_TASK_HASH":"4550546306593593388"}).ENABLE_TYPE_CHECK === "true"));
 }
 /**
  * @internal
@@ -8679,7 +8679,7 @@ function createDecoratorForEnhancer(enhancer) {
     });
     var res = 
     // Extra process checks, as this happens during module initialization
-    typeof process !== "undefined" && ({"NX_CLI_SET":"true","NX_LOAD_DOT_ENV_FILES":"true","NX_WORKSPACE_ROOT":"/Users/adamberkes/Desktop/Work/KOALA42/robopipe/label-studio/web","NX_TERMINAL_OUTPUT_PATH":"/Users/adamberkes/Desktop/Work/KOALA42/robopipe/label-studio/web/.nx/cache/terminalOutputs/3840830456767436280","NX_STREAM_OUTPUT":"true","NX_TASK_TARGET_PROJECT":"labelstudio","NX_TASK_TARGET_TARGET":"build","NX_TASK_TARGET_CONFIGURATION":"development","NX_TASK_HASH":"3840830456767436280"}) && "development" !== "production"
+    typeof process !== "undefined" && ({"NX_CLI_SET":"true","NX_LOAD_DOT_ENV_FILES":"true","NX_WORKSPACE_ROOT":"/Users/adamberkes/Desktop/Work/KOALA42/robopipe/label-studio/web","NX_TERMINAL_OUTPUT_PATH":"/Users/adamberkes/Desktop/Work/KOALA42/robopipe/label-studio/web/.nx/cache/terminalOutputs/4550546306593593388","NX_STREAM_OUTPUT":"true","NX_TASK_TARGET_PROJECT":"labelstudio","NX_TASK_TARGET_TARGET":"build","NX_TASK_TARGET_CONFIGURATION":"development","NX_TASK_HASH":"4550546306593593388"}) && "development" !== "production"
         ? function observableDecorator() {
             // This wrapper function is just to detect illegal decorator invocations, deprecate in a next version
             // and simply return the created prop decorator
@@ -12896,7 +12896,7 @@ catch (e) {
     function testCodeMinification() { }
     if (testCodeMinification.name !== "testCodeMinification" &&
         "development" !== "production" &&
-        typeof process !== 'undefined' && ({"NX_CLI_SET":"true","NX_LOAD_DOT_ENV_FILES":"true","NX_WORKSPACE_ROOT":"/Users/adamberkes/Desktop/Work/KOALA42/robopipe/label-studio/web","NX_TERMINAL_OUTPUT_PATH":"/Users/adamberkes/Desktop/Work/KOALA42/robopipe/label-studio/web/.nx/cache/terminalOutputs/3840830456767436280","NX_STREAM_OUTPUT":"true","NX_TASK_TARGET_PROJECT":"labelstudio","NX_TASK_TARGET_TARGET":"build","NX_TASK_TARGET_CONFIGURATION":"development","NX_TASK_HASH":"3840830456767436280"}).IGNORE_MOBX_MINIFY_WARNING !== "true") {
+        typeof process !== 'undefined' && ({"NX_CLI_SET":"true","NX_LOAD_DOT_ENV_FILES":"true","NX_WORKSPACE_ROOT":"/Users/adamberkes/Desktop/Work/KOALA42/robopipe/label-studio/web","NX_TERMINAL_OUTPUT_PATH":"/Users/adamberkes/Desktop/Work/KOALA42/robopipe/label-studio/web/.nx/cache/terminalOutputs/4550546306593593388","NX_STREAM_OUTPUT":"true","NX_TASK_TARGET_PROJECT":"labelstudio","NX_TASK_TARGET_TARGET":"build","NX_TASK_TARGET_CONFIGURATION":"development","NX_TASK_HASH":"4550546306593593388"}).IGNORE_MOBX_MINIFY_WARNING !== "true") {
         // trick so it doesn't get replaced
         var varName = ["process", "env", "NODE_ENV"].join(".");
         console.warn("[mobx] you are running a minified build, but '" + varName + "' was not set to 'production' in your bundler. This results in an unnecessarily large and slow bundle");
