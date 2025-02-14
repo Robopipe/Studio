@@ -11,7 +11,6 @@ import {
 import "./Header.scss";
 import { absoluteURL } from "../../utils/helpers";
 import { useFixedLocation } from "../../providers/RoutesProvider";
-import { useAPI } from "../../providers/ApiProvider";
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router";
 import { ProjectPicker } from "../ProjectPicker/ProjectPicker";
