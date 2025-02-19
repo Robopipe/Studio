@@ -1,0 +1,12 @@
+.model-logs {
+  &__header {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+  }
+
+  &__logs-list {
+    max-height: 350px;
+    overflow-y: auto;
+  }
+}
