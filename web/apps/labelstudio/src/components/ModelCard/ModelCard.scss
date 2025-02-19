@@ -26,6 +26,11 @@
       background-color: var(--red_100);
       color: var(--red_600);
     }
+
+    &_success {
+      background-color: var(--emerald_100);
+      color: var(--emerald_600);
+    }
   }
 
   &__name {
