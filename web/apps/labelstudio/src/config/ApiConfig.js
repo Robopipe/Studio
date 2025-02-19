@@ -11,6 +11,8 @@ export const API_CONFIG = {
     cameraControl: "rbp:/cameras/:mxid/streams/:stream/control",
     cameraConfig: "rbp:/cameras/:mxid/streams/:stream/config",
     cameraIr: "rbp:/cameras/:mxid/ir",
+    streamNn: "rbp:/cameras/:mxid/streams/:stream/nn",
+    deployNn: "rbp:POST:/cameras/:mxid/streams/:stream/nn",
 
     // Users
     users: "/users",
