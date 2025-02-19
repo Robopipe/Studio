@@ -2,14 +2,6 @@ import { useCallback, useEffect, useState } from "react";
 import { Block, Elem } from "../../utils/bem";
 import { Input, Select } from "../Form";
 import "./ModelDetail.scss";
-import {
-  buildClassificationModel,
-  loadBackbone,
-  loadImage,
-  useBackbone,
-  useLoadDataset,
-  useModel
-} from "../../utils/tf";
 import { useProject } from "../../providers/ProjectProvider";
 import { queryClient, useAPI } from "../../providers/ApiProvider";
 import * as tf from "@tensorflow/tfjs";
@@ -17,6 +9,10 @@ import { EmptyModelDetail } from "./EmptyModelDetail";
 import { Button } from "../Button/Button";
 import { ModelStatus } from "./ModelStatus";
 import { useMutation } from "@tanstack/react-query";
+import { format } from "date-fns";
+import { useModel } from "../../hooks/useModel";
+import { ModelLogs } from "./ModelLogs";
+import * as tfvis from "@tensorflow/tfjs-vis";
 
 const TASK_TYPE_MAP = {
   Choices: "Object classification",
@@ -27,17 +23,25 @@ export const ModelDetail = props => {
   const { model: propModel, disabled, taskType, onSave } = props;
   const api = useAPI();
   const { project } = useProject();
+  const [logs, setLogs] = useState([]);
+  const addLog = useCallback(
+    log => setLogs(prev => [...prev, { timestamp: new Date(), content: log }]),
+    [setLogs]
+  );
   const [status, setStatus] = useState({
     statusType: "loading",
     status: "Loading model"
   });
   const [model, setModel] = useState(propModel);
   const [baseModels, setBaseModels] = useState([]);
-  const { model: tfModel, trainModel, trained } = useModel({
+  const { model: tfModel, trainModel, trained, reset } = useModel({
     baseModel: model?.base_model,
     setStatus,
-    disabled
+    disabled,
+    addLog,
+    visEl: document.getElementById("training-vis")
   });
+  const [epochs, setEpochs] = useState(10);
 
   const saveModelCb = useCallback(async () => {
     setStatus({ statusType: "loading", status: "Saving model" });
@@ -76,9 +80,6 @@ export const ModelDetail = props => {
 
   return (
     <Block name="model-detail">
-      <Elem tag="h1" name="heading">
-        Model detail
-      </Elem>
       <Elem name="container">
         <Elem name="inputs">
           <Elem tag="h2">Settings</Elem>
@@ -87,7 +88,7 @@ export const ModelDetail = props => {
           </Elem>
           <Input
             label="Name"
-            disabled={disabled}
+            disabled={disabled || status.statusType !== "ready"}
             placeholder={model.name}
             onChange={e =>
               setModel(prev => ({ ...prev, name: e.target.value }))
@@ -96,16 +97,22 @@ export const ModelDetail = props => {
           <Select
             label="Base model"
             options={baseModels}
-            disabled={disabled}
-            waiting
+            disabled={disabled || trained || status.statusType !== "ready"}
             onChange={e =>
               setModel(prev => ({ ...prev, base_model: e.target.value }))
             }
             value={model.base_model}
           />
+          <Input
+            label="Epochs"
+            disabled={disabled || trained || status.statusType !== "ready"}
+            type="number"
+            value={epochs}
+            onChange={e => setEpochs(e.target.value)}
+          />
           <Elem name="actions">
             <Button
-              onClick={trainModel}
+              onClick={() => trainModel(epochs)}
               disabled={disabled || trained || status.statusType !== "ready"}
             >
               Train
@@ -120,6 +127,7 @@ export const ModelDetail = props => {
             <Button
               look="danger"
               disabled={disabled || !trained || status.statusType !== "ready"}
+              onClick={reset}
             >
               Reset
             </Button>
@@ -129,11 +137,12 @@ export const ModelDetail = props => {
           <Elem tag="h2">Status</Elem>
           <ModelStatus {...status} />
         </Elem>
+        <Elem name="training">
+          <Elem tag="h2">Training</Elem>
+          <Elem name="training-vis" id="training-vis" />
+        </Elem>
       </Elem>
-      <Elem name="logs">
-        <h2>Logs:</h2>
-        {/* <pre>{JSON.stringify(trainingLogs, null, 2)}</pre> */}
-      </Elem>
+      <ModelLogs logs={logs} />
     </Block>
   );
 };

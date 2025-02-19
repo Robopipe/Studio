@@ -6,8 +6,7 @@
 
   &__container {
     display: flex;
-    gap: 72px;
-    margin-top: 20px;
+    gap: 48px;
 
     h2 {
       margin-top: 0;
@@ -57,6 +56,20 @@
       background: rgba(0, 0, 0, 0.2);
       border-color: transparent;
       cursor: not-allowed;
+    }
+  }
+
+  &__status {
+    flex-basis: 12%;
+  }
+
+  &__training {
+    flex-basis: 25%;
+
+    [data-name="onEpochEnd"] {
+      & > :first-of-type {
+        display: none;
+      }
     }
   }
 }
