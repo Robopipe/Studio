@@ -9,7 +9,7 @@ export const ModelStatus = ({ status, statusExtra, statusType }) => {
     <Block name="model-status">
       <Oneof value={statusType}>
         <Elem case="loading">
-          <Spinner size={48} />
+          <Spinner size={52} />
         </Elem>
         <Elem case="ready">
           <Elem name="icon" mod={{ ready: true }} tag={IconCheck} />
