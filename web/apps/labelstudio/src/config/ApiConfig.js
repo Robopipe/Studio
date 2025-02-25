@@ -84,6 +84,7 @@ export const API_CONFIG = {
     nnModels: "/projects/:pk/nn-models",
     createNnModel: "POST:/projects/:pk/nn-models",
     baseModels: "/nn-models/base-models",
+    trainNnModel: "POST:/projects/:pk/nn-models/train",
 
     // Export
     export: "/projects/:pk/export",

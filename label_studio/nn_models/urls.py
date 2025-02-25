@@ -14,6 +14,11 @@ _api_urlpatterns = [
 
 _api_projects_urlpatterns = [
     path("<int:pk>/nn-models", api.NNModelListApi.as_view(), name="nn-model-list"),
+    path(
+        "<int:pk>/nn-models/train",
+        api.NNModelTrainApi.as_view(),
+        name="nn-model-train",
+    ),
 ]
 
 urlpatterns = [
