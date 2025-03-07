@@ -3,12 +3,10 @@ import {
   SetStateAction,
   useCallback,
   useEffect,
-  useMemo,
   useState
 } from "react";
 import {
   buildClassificationModel,
-  buildDetectionModel,
   getBackboneOutputShape,
   getImgFeatures,
   loadBackbone
@@ -76,10 +74,45 @@ export const useLoadDataset = ({
 }: DatasetOptions) => {
   const api = useAPI();
   const { project } = useProject();
+  const labelConfig = useLabelConfig();
   const [dataset, setDataset] = useState<{
     data: tf.Tensor;
-    labels: tf.Tensor;
+    labels: tf.Tensor | tf.Tensor[];
   } | null>(null);
+
+  const loadCls = useCallback(
+    async (tasks: any) => {
+      if (!backbone || !labelConfig.labelMap) return;
+
+      const dataFeatures = [];
+      const dataLabels: number[] = [];
+
+      for (const task of tasks) {
+        if (!task?.annotations?.[0]?.result?.[0]) continue;
+
+        const features = (
+          await getImgFeatures(
+            backbone,
+            `http://localhost:8081/${task.data.image}`
+          )
+        )[0].squeeze();
+
+        dataFeatures.push(features);
+        dataLabels.push(
+          labelConfig.labelMap![task.annotations[0].result[0].value.choices[0]]
+        );
+      }
+
+      return {
+        data: tf.stack(dataFeatures),
+        labels: tf.oneHot(
+          tf.tensor1d(dataLabels, "int32"),
+          Object.keys(labelConfig.labelMap ?? {}).length
+        )
+      };
+    },
+    [getImgFeatures, labelConfig, backbone]
+  );
 
   const loadDataset = useCallback(async () => {
     if (!backbone || !project) return;
@@ -90,52 +123,23 @@ export const useLoadDataset = ({
     const { tasks } = (await api.callApi("tasks", {
       params: { project: project.id, fields: "all" }
     })) as any;
-    const labelMap: { [k in string]: number } = {};
-    const dataFeatures = [];
-    const dataLabels: number[] = [];
-
-    (project?.parsed_label_config as any)?.["choice"].labels?.forEach(
-      (label: string, i: number) => (labelMap[label] = i)
-    );
 
     addLog?.("label map created");
-    addLog?.(`label map: ${JSON.stringify(labelMap, null, 2)}`);
+    addLog?.(`label map: ${JSON.stringify(labelConfig.labelMap, null, 2)}`);
 
     setStatus?.({ statusType: "loading", status: "Extracting features" });
     addLog?.("extracting features");
 
-    for (const task of tasks) {
-      if (!task?.annotations?.[0]?.result?.[0]) continue;
+    const loadedDataset = await loadCls(tasks);
 
-      const features = await getImgFeatures(
-        backbone,
-        `http://localhost:8081/${task.data.image}`
-      );
-
-      dataFeatures.push(features);
-      dataLabels.push(labelMap[task.annotations[0].result[0].value.choices[0]]);
-    }
-
-    addLog?.("features extracted");
-    setStatus?.({ statusType: "loading", status: "Encoding dataset" });
-
-    tf.util.shuffleCombo(dataFeatures, dataLabels);
-    const encodedLabels = tf.oneHot(
-      tf.tensor1d(dataLabels, "int32"),
-      Object.keys(labelMap).length
-    );
-
-    const loadedDataset = {
-      data: tf.stack(dataFeatures),
-      labels: encodedLabels
-    };
+    if (!loadedDataset) return;
 
     setDataset(loadedDataset);
     setStatus?.({ statusType: "ready", status: "Dataset loaded" });
     addLog?.("dataset loaded");
 
     return loadedDataset;
-  }, [backbone, project, api, getImgFeatures]);
+  }, [backbone, project, api, getImgFeatures, labelConfig, loadCls]);
 
   useEffect(
     () => () => {
@@ -147,7 +151,10 @@ export const useLoadDataset = ({
   useEffect(
     () => () => {
       dataset?.data.dispose();
-      dataset?.labels.dispose();
+
+      if (Array.isArray(dataset?.labels))
+        dataset?.labels.forEach((l: tf.Tensor) => l.dispose());
+      else dataset?.labels.dispose();
     },
     [dataset]
   );
@@ -156,26 +163,31 @@ export const useLoadDataset = ({
 };
 
 export type TrainModelOptions = CommonModelOptions & {
+  baseModel?: string;
   backbone?: tf.GraphModel | null;
   model?: tf.LayersModel | tf.Sequential | null;
   visEl?: tfvis.Drawable;
 };
 
 export const useTrainModel = ({
+  baseModel,
   backbone,
   model,
   setStatus,
   addLog,
   visEl
 }: TrainModelOptions) => {
+  const { project } = useProject();
+  const api = useAPI();
   const [trained, setTrained] = useState(false);
+  const { taskType } = useLabelConfig();
   const { loadDataset, dataset } = useLoadDataset({
     backbone,
     setStatus,
     addLog
   });
 
-  const trainModel = useCallback(
+  const trainModelCls = useCallback(
     async (epochs?: number) => {
       if (trained) return;
 
@@ -214,11 +226,81 @@ export const useTrainModel = ({
     [model, dataset, loadDataset, addLog, trained]
   );
 
+  const trainModelDet = useCallback(
+    async (name: string, imgsz?: string, epochs?: number) => {
+      let onEpochEnd = (epoch: any, logs: any) => {};
+      if (visEl)
+        onEpochEnd = tfvis.show.fitCallbacks(visEl, ["box_loss", "cls_loss"], {
+          callbacks: ["onEpochEnd"],
+          zoomToFit: true,
+          seriesColors: ["#0f6d41"]
+        }).onEpochEnd;
+      console.log(baseModel);
+      const trainData = {
+        model_name: name,
+        epochs,
+        imgsz: imgsz,
+        base_model: baseModel
+      };
+      const parseData = (data: string) => {
+        if (data.includes("}{")) {
+          const messages = [];
+          const splitData = data.split("}{");
+
+          for (let i = 0; i < splitData.length; i++) {
+            if (i % 2 === 0) messages.push(JSON.parse(splitData[i] + "}"));
+            else messages.push(JSON.parse("{" + splitData[i]));
+          }
+
+          return messages;
+        } else return [JSON.parse(data)];
+      };
+
+      return fetch(
+        `${window.APP_SETTINGS.hostname}/api/projects/${project.id}/nn-models/train`,
+        {
+          method: "POST",
+          body: JSON.stringify(trainData),
+          headers: { "Content-Type": "application/json" }
+        }
+      ).then(async res => {
+        const reader = res.body!.getReader();
+
+        while (true) {
+          const { value, done } = await reader!.read();
+          const messages = parseData(new TextDecoder().decode(value!));
+
+          for (const msg of messages) {
+            if ("result" in msg) return msg.result;
+
+            if ("log" in msg) addLog?.(msg.log);
+
+            if ("status_type" in msg)
+              setStatus?.({ statusType: msg.status_type, status: msg.log });
+
+            if ("data" in msg)
+              onEpochEnd(msg.data.epoch, {
+                box_loss: msg.data.metrics["val/box_loss"],
+                cls_loss: msg.data.metrics["val/cls_loss"]
+              });
+          }
+
+          if (done) break;
+        }
+      });
+    },
+    [api, project, setStatus, addLog, visEl, baseModel]
+  );
+
   useEffect(() => {
     setTrained(false);
   }, [model]);
 
-  return { model, trained, trainModel };
+  return {
+    model,
+    trained,
+    trainModel: taskType === "classification" ? trainModelCls : trainModelDet
+  };
 };
 
 export type ModelOptions = CommonModelOptions & {
@@ -235,17 +317,16 @@ export const useModel = ({
   visEl
 }: ModelOptions) => {
   const { project } = useProject();
-  const labelConfig = useLabelConfig();
+  const { taskType, numClasses } = useLabelConfig();
   const { backbone } = useBackbone({
     modelName: baseModel,
     setStatus,
-    disabled,
+    disabled: disabled || !taskType || taskType === "detection",
     addLog
   });
-  const [model, setModel] = useState<tf.LayersModel | tf.Sequential | null>(
-    null
-  );
+  const [model, setModel] = useState<tf.LayersModel | null>(null);
   const { trainModel, trained } = useTrainModel({
+    baseModel,
     backbone,
     model,
     setStatus,
@@ -255,23 +336,22 @@ export const useModel = ({
 
   const reset = useCallback(() => {
     if (model) addLog?.("disposing model");
+    if (taskType === "detection")
+      setStatus?.({ statusType: "ready", status: "Ready for training" });
 
     if (!project || !backbone) return;
 
-    addLog?.(`building ${labelConfig.taskType} model`);
+    addLog?.(`building ${taskType} model`);
     setStatus?.({ statusType: "loading", status: "Building model" });
 
-    const backboneOutputShape = getBackboneOutputShape(backbone);
-    const buildModel =
-      labelConfig.taskType === "classification"
-        ? buildClassificationModel
-        : buildDetectionModel;
-
-    setModel(buildModel(labelConfig.numClasses!, backboneOutputShape));
+    if (taskType === "classification") {
+      const backboneOutputShape = getBackboneOutputShape(backbone);
+      setModel(buildClassificationModel(numClasses!, backboneOutputShape));
+    }
 
     addLog?.("model built");
     setStatus?.({ statusType: "ready", status: "Ready for training" });
-  }, [model, project, backbone, labelConfig]);
+  }, [model, project, backbone, taskType, numClasses]);
 
   useEffect(() => {
     if (!model) reset();
