@@ -39,7 +39,7 @@ label_studio/core/export
 label_studio/core/static_build
 label_studio/core/version_.py
 label_studio/core/core
-
+label_studio/nn_models/static
 archive
 
 *.rtl.css
