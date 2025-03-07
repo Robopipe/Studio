@@ -4,6 +4,11 @@ from django.utils.translation import gettext_lazy as _
 
 
 class NNModel(NNModelMixin, models.Model):
+    class ModelType(models.TextChoices):
+        Generic = "Generic", _("Generic")
+        YOLO = "YOLO", _("YOLO")
+        MobileNetSSD = "MobileNetSSD", _("MobileNetSSD")
+
     id = models.AutoField(
         auto_created=True,
         primary_key=True,
@@ -19,6 +24,9 @@ class NNModel(NNModelMixin, models.Model):
         related_name="nn_models",
         on_delete=models.CASCADE,
         help_text="Project ID for this NNModel",
+    )
+    model_type = models.CharField(
+        _("model_type"), max_length=255, choices=ModelType.choices
     )
     base_model = models.CharField(_("base_model"), max_length=255)
     model_path = models.CharField(_("model_path"), max_length=255)
