@@ -74,7 +74,7 @@ RUN --mount=type=cache,target="/var/cache/apt",sharing=locked \
     set -eux; \
     apt-get update; \
     apt-get install --no-install-recommends -y \
-            build-essential git; \
+    build-essential git cmake; \
     apt-get autoremove -y
 
 WORKDIR /label-studio
@@ -86,6 +86,7 @@ ENV PATH="$VENV_PATH/bin:$PATH"
 
 # Copy dependency files
 COPY pyproject.toml poetry.lock README.md ./
+COPY packages packages
 
 # Install dependencies without dev packages
 RUN --mount=type=cache,target=$POETRY_CACHE_DIR,sharing=locked \
@@ -128,7 +129,7 @@ RUN --mount=type=cache,target="/var/cache/apt",sharing=locked \
     apt-get update; \
     apt-get upgrade -y; \
     apt-get install --no-install-recommends -y libexpat1 \
-        gnupg2 curl; \
+    gnupg2 curl; \
     apt-get autoremove -y
 
 # install nginx
@@ -151,6 +152,7 @@ COPY --chown=1001:0 deploy/default.conf /etc/nginx/nginx.conf
 
 # Copy essential files for installing Label Studio and its dependencies
 COPY --chown=1001:0 pyproject.toml .
+COPY --chown=1001:0 packages packages
 COPY --chown=1001:0 poetry.lock .
 COPY --chown=1001:0 README.md .
 COPY --chown=1001:0 LICENSE LICENSE
