@@ -10,14 +10,17 @@ import { ModelCard } from "../../components/ModelCard/ModelCard";
 import { Button, Spinner } from "../../components";
 import { useQuery } from "@tanstack/react-query";
 import { Oneof } from "../../components/Oneof/Oneof";
+import { useLabelConfig } from "../../utils/label-config";
 
 export const TrainPage = () => {
   const api = useAPI();
   const { project } = useProject();
+  const { taskType } = useLabelConfig();
   const { data: fetchedModels, status: modelsStatus } = useQuery({
     queryKey: ["projects", project.id, "nn-models"],
     queryFn: () => api.callApi("nnModels", { params: { pk: project.id } }),
-    enabled: !!project?.id
+    enabled: !!project?.id,
+    networkMode: "offlineFirst"
   });
   const [selectedModel, setSelectedModel] = useState(null);
   const models = useMemo(
@@ -33,11 +36,11 @@ export const TrainPage = () => {
       id: null,
       name: "",
       updated_at: new Date().toString(),
-      base_model: "mobilenet_v3"
+      base_model: taskType === "classification" ? "mobilenet_v3" : "yolov8n"
     };
 
     setSelectedModel(DEFAULT_MODEL);
-  }, [setSelectedModel]);
+  }, [setSelectedModel, taskType]);
 
   const switchModel = useCallback(
     newModel => {
@@ -62,6 +65,12 @@ export const TrainPage = () => {
           mod: { danger: true }
         });
 
+      if (i === 0)
+        badges.push({
+          text: "Latest",
+          mod: { success: true }
+        });
+
       return (
         <ModelCard
           key={model.id ?? "new-model"}
@@ -77,6 +86,10 @@ export const TrainPage = () => {
     },
     [selectedModel, switchModel]
   );
+
+  useEffect(() => {
+    setSelectedModel(null);
+  }, [project]);
 
   return (
     <Block name="train">
@@ -103,10 +116,7 @@ export const TrainPage = () => {
           key={selectedModel?.id}
           model={selectedModel}
           disabled={selectedModel?.id !== null}
-          taskType={
-            project?.parsed_label_config?.label?.type ??
-            project?.parsed_label_config?.choice?.type
-          }
+          taskType={taskType}
           onSave={setSelectedModel}
         />
       </Elem>
