@@ -1,34 +1,50 @@
 .infere-page {
-  display: flex;
-
-  &__sidebar {
+  &__list-sidebar {
+    box-sizing: border-box;
     width: 300px;
     padding: 20px;
-  }
+    background: rgba(0, 0, 0, 0.03);
+    border-right: 1px solid rgba(0, 0, 0, 0.12);
+    height: calc(100vh - var(--header-height));
+    top: var(--header-height);
+    overflow-y: auto;
+    position: fixed;
 
-  &__settings {
-    & > * {
-      margin-bottom: 20px;
+    &__loading {
+      position: absolute;
+      right: 50%;
+      top: 25%;
+      transform: translateX(50%);
     }
   }
 
-  &__content {
+  &__settings {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    width: 100%;
+    gap: 20px;
+  }
+
+  &__content {
     margin-top: 20px;
+    margin-left: 300px;
+    padding: 20px;
 
     .video-player-container {
       max-width: 750px;
     }
   }
 
-  &__inference-renderer {
-    position: absolute;
+  &__video-wrapper {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
 
-  &__upload-btn {
-    width: 100%;
+  &__inference-renderer {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
   }
 }
