@@ -95,7 +95,13 @@ const CapturingVideoPlayer = ({
   return (
     <Block name="video-player-container">
       <Elem name="video-wrapper">
-        <video ref={videoRef} autoPlay muted disablePictureInPicture></video>
+        <video
+          ref={videoRef}
+          autoPlay
+          muted
+          disablePictureInPicture
+          id="video-player"
+        ></video>
         {typeof onCapture === "function" && (
           <Elem name="controls">
             {autoCapture && autoCapture.capturing && captureRemaining > 0 && (
