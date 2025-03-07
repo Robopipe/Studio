@@ -10,7 +10,7 @@ export const loadBackbone = async (modelName: string) => {
       tf.zeros(model.inputs[0].shape!.map(s => (s === -1 ? 1 : s)))
     );
   });
-
+  console.log(model.modelSignature);
   return model;
 };
 
@@ -20,6 +20,20 @@ export const getBackboneOutputShape = (backbone: tf.GraphModel) => {
   };
 
   return output.tensorShape.dim.map(d => parseInt(d.size)).slice(1);
+};
+
+export const getBackboneFeatureMaps = (backbone: tf.GraphModel) => {
+  const featureMapNames = Object.keys(
+    (backbone.modelSignature as any).outputs
+  ).filter(name => name.startsWith("FM"));
+  const featureMaps = featureMapNames.map(
+    name => (backbone.modelSignature as any).outputs[name]
+  );
+
+  return featureMaps.map(f => ({
+    ...f,
+    shape: f.tensorShape.dim.map((d: any) => parseInt(d.size)).slice(1)
+  }));
 };
 
 export const loadImage = async (
@@ -32,10 +46,7 @@ export const loadImage = async (
     img.onload = () => {
       let tensor = tf.browser.fromPixels(img);
 
-      if (resize) {
-        console.log("resizing image", resize);
-        tensor = tensor.resizeBilinear(resize);
-      }
+      if (resize) tensor = tensor.resizeBilinear(resize);
 
       tensor = tensor.div(255.0).expandDims();
 
@@ -68,67 +79,6 @@ export const buildClassificationModel = (
   return model;
 };
 
-export const buildDetectionModel = (
-  numClasses: number,
-  inputShape: number[]
-) => {
-  const inputs = tf.input({ shape: inputShape });
-  const reshape = tf.layers
-    .reshape({ targetShape: [1, 1, 1024] })
-    .apply(inputs) as tf.SymbolicTensor;
-  const upsample = tf.layers
-    .conv2dTranspose({
-      filters: 256,
-      kernelSize: 3,
-      strides: 2,
-      activation: "relu",
-      padding: "same"
-    })
-    .apply(reshape) as tf.SymbolicTensor;
-  const conv1 = tf.layers
-    .conv2d({
-      filters: 128,
-      kernelSize: 3,
-      activation: "relu",
-      padding: "same"
-    })
-    .apply(upsample) as tf.SymbolicTensor;
-  const conv2 = tf.layers
-    .conv2d({
-      filters: 64,
-      kernelSize: 3,
-      activation: "relu",
-      padding: "same"
-    })
-    .apply(conv1) as tf.SymbolicTensor;
-  const bboxOutput = tf.layers
-    .conv2d({
-      filters: 4,
-      kernelSize: 3,
-      activation: "relu"
-    })
-    .apply(conv2) as tf.SymbolicTensor;
-  const classOutput = tf.layers
-    .conv2d({
-      filters: numClasses,
-      kernelSize: 3,
-      activation: "softmax"
-    })
-    .apply(conv2) as tf.SymbolicTensor;
-  const model = tf.model({ inputs, outputs: [bboxOutput, classOutput] });
-
-  model.compile({
-    optimizer: "adam",
-    loss: [
-      "meanSquaredError",
-      numClasses === 2 ? "binaryCrossentropy" : "categoricalCrossentropy"
-    ],
-    metrics: ["accuracy"]
-  });
-
-  return model;
-};
-
 export const getImgFeatures = async (
   backbone: tf.GraphModel,
   imgUrl: string
@@ -137,9 +87,9 @@ export const getImgFeatures = async (
     imgUrl,
     backbone.inputs[0].shape?.slice(1, 3) as [number, number] | undefined
   );
-  const features = tf.tidy(() => backbone.predict(img) as tf.Tensor);
+  const features = tf.tidy(() => backbone.predict(img));
 
   img.dispose();
 
-  return features.squeeze();
+  return Array.isArray(features) ? features : ([features] as tf.Tensor[]);
 };
