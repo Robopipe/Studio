@@ -12,7 +12,7 @@ export const ModelStatus = ({ status, statusExtra, statusType }) => {
           <Spinner size={52} />
         </Elem>
         <Elem case="ready">
-          <Elem name="icon" mod={{ ready: true }} tag={IconCheck} />
+          <Elem name="icon-wrapper" mod={{ ready: true }} tag={IconCheck} />
         </Elem>
       </Oneof>
       <Elem tag="h3">{status}</Elem>

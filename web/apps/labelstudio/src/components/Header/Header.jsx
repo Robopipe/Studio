@@ -37,6 +37,7 @@ const NavLink = ({ href, icon, label }) => {
 export const Header = () => {
   const location = useFixedLocation();
   const { project } = useProject();
+  const projectRe = /\/projects\/[0-9]+\/.*/;
 
   return (
     <Block tag="header" name="header">
@@ -49,34 +50,38 @@ export const Header = () => {
         </Elem>
         <ProjectPicker />
         <Elem tag="ul" name="main-nav">
-          <li>
-            <NavLink
-              icon={<IconCamera />}
-              href={`/projects/${project.id}/capture`}
-              label="Capture"
-            />
-          </li>
-          <li>
-            <NavLink
-              icon={<IconLabel />}
-              href={`/projects/${project.id}/data?tab=8&labeling=1`}
-              label="Label"
-            />
-          </li>
-          <li>
-            <NavLink
-              icon={<IconTrain />}
-              href={`/projects/${project.id}/train`}
-              label="Train"
-            />
-          </li>
-          <li>
-            <NavLink
-              icon={<IconInfere />}
-              href={`/projects/${project.id}/infere`}
-              label="Infere"
-            />
-          </li>
+          {location.pathname.match(projectRe) && (
+            <>
+              <li>
+                <NavLink
+                  icon={<IconCamera />}
+                  href={`/projects/${project.id}/capture`}
+                  label="Capture"
+                />
+              </li>
+              <li>
+                <NavLink
+                  icon={<IconLabel />}
+                  href={`/projects/${project.id}/data`}
+                  label="Label"
+                />
+              </li>
+              <li>
+                <NavLink
+                  icon={<IconTrain />}
+                  href={`/projects/${project.id}/train`}
+                  label="Train"
+                />
+              </li>
+              <li>
+                <NavLink
+                  icon={<IconInfere />}
+                  href={`/projects/${project.id}/infere`}
+                  label="Infere"
+                />
+              </li>
+            </>
+          )}
         </Elem>
         <Elem tag="ul" name="side-nav">
           <li>
@@ -86,13 +91,15 @@ export const Header = () => {
               label="Help"
             />
           </li>
-          <li>
-            <NavLink
-              icon={<IconSettings />}
-              href={`/projects/${project.id}/settings`}
-              label="Settings"
-            />
-          </li>
+          {location.pathname.match(projectRe) && (
+            <li>
+              <NavLink
+                icon={<IconSettings />}
+                href={`/projects/${project.id}/settings`}
+                label="Settings"
+              />
+            </li>
+          )}
         </Elem>
       </Elem>
     </Block>

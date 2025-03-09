@@ -4,7 +4,7 @@
   align-items: center;
   gap: 20px;
 
-  &__icon {
+  &__icon-wrapper {
     width: 28px;
     height: 28px;
     padding: 12px;
@@ -12,6 +12,7 @@
     justify-content: center;
     align-items: center;
     border-radius: 100%;
+    box-sizing: content-box;
 
     &_ready {
       background-color: var(--emerald_200);
