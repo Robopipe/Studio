@@ -1,3 +1,4 @@
+from django.core.management import call_command
 from django.core.management.base import BaseCommand
 
 from nn_models.utils.base import list_models, install_model
@@ -37,3 +38,5 @@ class Command(BaseCommand):
         for model in models:
             install_model(model["name"])
             self.stdout.write(f"Model {model['name']} installed")
+
+        call_command("collectstatic", "--no-input")
