@@ -129,7 +129,7 @@ RUN --mount=type=cache,target="/var/cache/apt",sharing=locked \
     apt-get update; \
     apt-get upgrade -y; \
     apt-get install --no-install-recommends -y libexpat1 \
-    gnupg2 curl; \
+    gnupg2 curl libgl1-mesa-glx libglib2.0-0; \
     apt-get autoremove -y
 
 # install nginx
@@ -170,6 +170,6 @@ COPY --chown=1001:0 --from=frontend-version-generator $LS_DIR/web/dist/libs/data
 USER 1001
 
 EXPOSE 8080
-
+RUN label-stdio init --username admin@robopipe.io --password robopipe.io
 ENTRYPOINT ["./deploy/docker-entrypoint.sh"]
 CMD ["label-studio"]
