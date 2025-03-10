@@ -11,6 +11,7 @@
 # Re-ignore pyc files and frontend
 label_studio/frontend
 label_studio/**/*.pyc
+label_studio/nn_models/static/**
 
 # FRONTEND
 !web
