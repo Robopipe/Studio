@@ -58,7 +58,6 @@ export const CaptureLivePage = () => {
       timestamp: createdDT,
       filename
     };
-    console.log("kokoaksods");
     setCapturedImages(prev => [capturedImage, ...prev]);
   }, [camera, stream, namePattern]);
 

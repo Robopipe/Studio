@@ -10,7 +10,7 @@ export const loadBackbone = async (modelName: string) => {
       tf.zeros(model.inputs[0].shape!.map(s => (s === -1 ? 1 : s)))
     );
   });
-  console.log(model.modelSignature);
+
   return model;
 };
 

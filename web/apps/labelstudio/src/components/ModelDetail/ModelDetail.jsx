@@ -90,7 +90,6 @@ export const ModelDetail = props => {
 
   useEffect(() => {
     api.callApi("baseModels", { params: { task: taskType } }).then(r => {
-      console.log(r);
       if (r.length > 0) setModel(prev => ({ ...prev, base_model: r[0] }));
       setBaseModels(r);
     });

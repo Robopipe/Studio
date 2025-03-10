@@ -14,7 +14,6 @@ export const ProjectPicker = () => {
   const [open, setOpen] = useState(false);
 
   const getHref = project => {
-    console.log("location.pathname", location.pathname);
     const path = location.pathname.replace(/^\/projects(\/\d+)?\/?/, "");
     return `/projects/${project.id}/${path}`;
   };

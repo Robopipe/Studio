@@ -10,7 +10,6 @@ export const CameraControls = ({ apiUrl }) => {
   const onChange = useCallback(
     (name, value) => {
       setControl(prev => ({ ...prev, [name]: value }));
-      console.log(name, value);
       setChanged(true);
     },
     [setControl]

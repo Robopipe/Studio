@@ -74,7 +74,6 @@ function getFiles(files) {
 export const CaptureManualPage = () => {
   const api = useAPI();
   const { project } = useProject();
-  console.log(project);
   const { capturedImages, setCapturedImages } = useCapture();
   const [hovered, setHovered] = useState(false);
   const onHover = e => {

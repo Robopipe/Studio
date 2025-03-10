@@ -235,7 +235,6 @@ export const useTrainModel = ({
           zoomToFit: true,
           seriesColors: ["#0f6d41"]
         }).onEpochEnd;
-      console.log(baseModel);
       const trainData = {
         model_name: name,
         epochs,

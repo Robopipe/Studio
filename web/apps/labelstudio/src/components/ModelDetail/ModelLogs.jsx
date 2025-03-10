@@ -66,7 +66,7 @@ export const ModelLogs = ({ subscribe, unsubscribe, maxLogs = 1000 }) => {
 
   useEffect(() => {
     const id = subscribe(addLog);
-    console.log(id);
+
     return () => {
       unsubscribe(id);
     };
