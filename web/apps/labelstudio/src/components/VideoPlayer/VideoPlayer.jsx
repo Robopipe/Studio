@@ -89,7 +89,8 @@ const CapturingVideoPlayer = ({
   }, [videoRef]);
 
   useEffect(() => {
-    setCaptureRemaining(autoCapture ? autoCapture.total : 0);
+    if (autoCapture && !autoCapture.capturing)
+      setCaptureRemaining(autoCapture ? autoCapture.total : 0);
   }, [autoCapture]);
 
   return (
