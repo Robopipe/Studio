@@ -67,7 +67,7 @@ export const ModelDetail = props => {
     });
     const uploadResponse = await tfModel.save(
       tf.io.http(
-        `http://localhost:8081/api/nn-models/${modelResponse.id}/upload?base_model=${model.base_model}`,
+        `${window.APP_SETTINGS.hostname}/nn-models/${modelResponse.id}/upload?base_model=${model.base_model}`,
         {
           requestInit: {
             headers: imageSize ? { "X-imgsz": imageSize } : undefined

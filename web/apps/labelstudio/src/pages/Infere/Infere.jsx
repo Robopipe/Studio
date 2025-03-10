@@ -105,7 +105,7 @@ export const InferePage = () => {
     setLoading(true);
     addLog("fetchiong model from backend");
     const modelBlob = await (
-      await fetch(`http://localhost:8081/data/model/${model.model_path}`)
+      await fetch(`/data/model/${model.model_path}`)
     ).blob();
     const formData = new FormData();
     const config = { type: model.model_type };
@@ -125,7 +125,7 @@ export const InferePage = () => {
     addLog(`model config: ${JSON.stringify(config)}`);
 
     await fetch(
-      `http://localhost:8080/cameras/${camera}/streams/${stream}/nn`,
+      `${window.APP_SETTINGS.robopipeHostname}/cameras/${camera}/streams/${stream}/nn`,
       {
         method: "POST",
         body: formData
@@ -138,7 +138,7 @@ export const InferePage = () => {
   const stopModel = useCallback(async () => {
     setLoading(true);
     await fetch(
-      `http://localhost:8080/cameras/${camera}/streams/${stream}/nn`,
+      `${window.APP_SETTINGS.robopipeHostname}/cameras/${camera}/streams/${stream}/nn`,
       {
         method: "DELETE"
       }

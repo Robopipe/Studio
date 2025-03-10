@@ -91,10 +91,7 @@ export const useLoadDataset = ({
         if (!task?.annotations?.[0]?.result?.[0]) continue;
 
         const features = (
-          await getImgFeatures(
-            backbone,
-            `http://localhost:8081/${task.data.image}`
-          )
+          await getImgFeatures(backbone, `${task.data.image}`)
         )[0].squeeze();
 
         dataFeatures.push(features);
