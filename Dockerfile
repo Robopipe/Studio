@@ -170,6 +170,6 @@ COPY --chown=1001:0 --from=frontend-version-generator $LS_DIR/web/dist/libs/data
 USER 1001
 
 EXPOSE 8080
-RUN label-stdio init --username admin@robopipe.io --password robopipe.io
+RUN label-studio init --username admin@robopipe.io --password robopipe.io
 ENTRYPOINT ["./deploy/docker-entrypoint.sh"]
 CMD ["label-studio"]
