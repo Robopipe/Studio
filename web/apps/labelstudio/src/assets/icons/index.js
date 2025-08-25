@@ -42,3 +42,7 @@ export { ReactComponent as IconInfere } from "./infere.svg";
 export { ReactComponent as IconHelp } from "./help.svg";
 export { ReactComponent as IconSettings } from "./settings-rbp.svg";
 export { ReactComponent as IconUploadRbp } from "./upload-rbp.svg";
+export { ReactComponent as IconNoCamera } from "./no-camera.svg";
+export { ReactComponent as IconUSB } from "./usb.svg";
+export { ReactComponent as IconEthernet } from "./ethernet.svg";
+export { ReactComponent as IconRefresh } from "./refresh.svg";

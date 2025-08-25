@@ -11,6 +11,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import "./CaptureLive.scss";
 import { CameraControls } from "apps/labelstudio/src/components/CameraControls/CameraControls";
 import { useCameraSelector } from "apps/labelstudio/src/utils/camera-selector";
+import { NoCamera } from "apps/labelstudio/src/components/NoCamera/NoCamera";
+import { useCamera } from "apps/labelstudio/src/providers/CameraProvider";
 
 export const CaptureLivePage = () => {
   const api = useAPI();
@@ -23,7 +25,7 @@ export const CaptureLivePage = () => {
     setCamera,
     setStream,
     wsUrl
-  } = useCameraSelector(true);
+  } = useCamera();
   const { capturedImages, setCapturedImages } = useCapture();
   const [namePattern, setNamePattern] = useState("");
   const [autoCapture, setAutoCapture] = useState({
@@ -60,6 +62,14 @@ export const CaptureLivePage = () => {
     };
     setCapturedImages(prev => [capturedImage, ...prev]);
   }, [camera, stream, namePattern]);
+
+  useEffect(() => {
+    console.log(cameras);
+  }, [cameras]);
+
+  if (cameras && cameras.length === 0) {
+    return <NoCamera />;
+  }
 
   return (
     <Block name="capture-live">

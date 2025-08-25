@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { Block, Elem } from "../../utils/bem";
 import { UploadRow } from "../../components/UploadRow/UploadRow";
 import { CaptureLivePage } from "./CaptureLive/CaptureLive";
@@ -7,6 +7,7 @@ import { Redirect, useParams } from "react-router";
 import { useCapture } from "../../providers/CaptureProvider";
 import "./Capture.scss";
 import { useFixedLocation } from "../../providers/RoutesProvider";
+import { useCamera } from "../../providers/CameraProvider";
 
 export const CapturePageLayout = props => {
   const location = useFixedLocation();
@@ -16,6 +17,11 @@ export const CapturePageLayout = props => {
       prev.filter(upload => upload.uploadId !== uploadId)
     );
   }, []);
+  const { cameras } = useCamera();
+  const displayUploadedFiles = useMemo(
+    () => !location.pathname.endsWith("live") || !cameras || cameras.length > 0,
+    [cameras, location]
+  );
 
   return (
     <Block name="project-capture">
@@ -34,18 +40,20 @@ export const CapturePageLayout = props => {
         </Elem>
       </Elem>
       {props.children}
-      <Elem name="body-wrapper">
-        <Elem tag="h2">{capturedImages.length} Files uploaded</Elem>
-        <Elem name="upload-container">
-          {capturedImages.map(upload => (
-            <UploadRow
-              key={upload.uploadId}
-              {...upload}
-              onDelete={deleteUpload}
-            />
-          ))}
+      {displayUploadedFiles && (
+        <Elem name="body-wrapper">
+          <Elem tag="h2">{capturedImages.length} Files uploaded</Elem>
+          <Elem name="upload-container">
+            {capturedImages.map(upload => (
+              <UploadRow
+                key={upload.uploadId}
+                {...upload}
+                onDelete={deleteUpload}
+              />
+            ))}
+          </Elem>
         </Elem>
-      </Elem>
+      )}
     </Block>
   );
 };
@@ -58,7 +66,7 @@ export const CapturePage = {
   component: () => {
     const params = useParams();
 
-    return <Redirect to={`/projects/${params.id}/capture/live`} />
+    return <Redirect to={`/projects/${params.id}/capture/live`} />;
   },
   pages: {
     CaptureLivePage,

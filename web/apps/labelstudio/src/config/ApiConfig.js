@@ -7,6 +7,7 @@ export const API_CONFIG = {
 
   endpoints: {
     cameras: "rbp:/cameras",
+    refreshCameras: "rbp:POST:/cameras/refresh",
     streams: "rbp:/cameras/:mxid/streams",
     cameraControl: "rbp:/cameras/:mxid/streams/:stream/control",
     cameraConfig: "rbp:/cameras/:mxid/streams/:stream/config",
