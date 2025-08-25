@@ -86,7 +86,7 @@ export const CaptureLivePage = () => {
           <Select
             label="Stream"
             onChange={setStream}
-            options={Object.keys(streams ?? {})}
+            options={streams?.map(stream => stream.name) ?? []}
           />
           <Input
             label="Name pattern"
