@@ -33,6 +33,7 @@ import { TourProvider } from "@humansignal/core";
 import { ToastProvider, ToastViewport } from "@humansignal/ui";
 import { CaptureProvider } from "../providers/CaptureProvider";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { CameraProvider } from "../providers/CameraProvider";
 
 const baseURL = new URL(APP_SETTINGS.hostname || location.origin);
 export const UNBLOCK_HISTORY_MESSAGE = "UNBLOCK_HISTORY";
@@ -77,6 +78,7 @@ const App = ({ content }) => {
             <AppStoreProvider key="app-store" />,
             <QueryClientProvider client={queryClient} />,
             <ApiProvider key="api" />,
+            <CameraProvider key="camera" />,
             <ConfigProvider key="config" />,
             <RoutesProvider key="rotes" />,
             <ProjectProvider key="project" />,
