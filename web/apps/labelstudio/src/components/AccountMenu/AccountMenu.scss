@@ -1,0 +1,17 @@
+.account-menu-trigger {
+  &__initials {
+    color: var(--gray_600);
+    text-transform: uppercase;
+    border-radius: 50%;
+    color: var(--gray_900);
+    border: 2px solid rgba(0, 0, 0, 0.15);
+    background-color: var(--gray_200);
+    width: 28px;
+    height: 28px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 12px;
+    font-weight: bold;
+  }
+}

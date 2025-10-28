@@ -15,6 +15,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "react-router";
 import { ProjectPicker } from "../ProjectPicker/ProjectPicker";
 import { useProject } from "../../providers/ProjectProvider";
+import { AccountMenu } from "../AccountMenu/AccountMenu";
 
 const NavLink = ({ href, icon, label }) => {
   const location = useFixedLocation();
@@ -84,13 +85,6 @@ export const Header = () => {
           )}
         </Elem>
         <Elem tag="ul" name="side-nav">
-          <li>
-            <NavLink
-              icon={<IconHelp />}
-              href="https://robopipe.gitbook.io"
-              label="Help"
-            />
-          </li>
           {location.pathname.match(projectRe) && (
             <li>
               <NavLink
@@ -100,6 +94,14 @@ export const Header = () => {
               />
             </li>
           )}
+          <li>
+            <NavLink
+              icon={<IconHelp />}
+              href="https://robopipe.gitbook.io"
+              label="Help"
+            />
+          </li>
+          {/* <AccountMenu /> */}
         </Elem>
       </Elem>
     </Block>
