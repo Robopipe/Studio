@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-ARG NODE_VERSION=18
+ARG NODE_VERSION=20
 ARG PYTHON_VERSION=3.12
 ARG POETRY_VERSION=2.0.1
 ARG VERSION_OVERRIDE
@@ -129,7 +129,7 @@ RUN --mount=type=cache,target="/var/cache/apt",sharing=locked \
     apt-get update; \
     apt-get upgrade -y; \
     apt-get install --no-install-recommends -y libexpat1 \
-    gnupg2 curl libgl1-mesa-glx libglib2.0-0; \
+    gnupg2 curl libgl1 libglx-mesa0 libglib2.0-0; \
     apt-get autoremove -y
 
 # install nginx
@@ -169,7 +169,7 @@ COPY --chown=1001:0 --from=frontend-version-generator $LS_DIR/web/dist/libs/data
 
 USER 1001
 
-EXPOSE 8080
+EXPOSE 8081
 RUN label-studio init --username admin@robopipe.io --password robopipe.io
 ENTRYPOINT ["./deploy/docker-entrypoint.sh"]
-CMD ["label-studio"]
+CMD ["label-studio", "-p", "8081"]
