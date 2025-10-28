@@ -9,6 +9,7 @@ import {
 } from "react";
 import { ErrorWrapper } from "../components/Error/Error";
 import { modal } from "../components/Modal/Modal";
+import { NoApi } from "../components/NoApi/NoApi";
 import { API_CONFIG } from "../config/ApiConfig";
 import { APIProxy } from "../utils/api-proxy";
 import { absoluteURL } from "../utils/helpers";
@@ -36,7 +37,7 @@ const errorFormatter = result => {
   };
 };
 
-const handleError = async (response, showModal = true) => {
+const handleError = async (response, showModal = true, method = "") => {
   let result = response;
 
   if (result instanceof Response) {
@@ -49,22 +50,36 @@ const handleError = async (response, showModal = true) => {
   }
 
   const { isShutdown, ...formattedError } = errorFormatter(result);
+  const isRbpErr =
+    response.error?.startsWith("NetworkError") &&
+    API_CONFIG.endpoints[method]?.startsWith("rbp:");
+  console.log("API error:", response, isRbpErr);
 
   if (showModal) {
-    modal({
-      allowClose: !isShutdown,
-      body: isShutdown ? (
-        <ErrorWrapper
-          possum={false}
-          title={"Connection refused"}
-          message={"Server not responding. Is it still running?"}
-        />
-      ) : (
-        <ErrorWrapper {...formattedError} />
-      ),
-      simple: true,
-      style: { width: 680 }
-    });
+    if (isRbpErr) {
+      modal({
+        allowClose: false,
+        body: <NoApi />,
+        simple: true,
+        bare: true,
+        style: { width: 680 }
+      });
+    } else {
+      modal({
+        allowClose: !isShutdown,
+        body: isShutdown ? (
+          <ErrorWrapper
+            possum={false}
+            title={"Connection refused"}
+            message={"Server not responding. Is it still running?"}
+          />
+        ) : (
+          <ErrorWrapper {...formattedError} />
+        ),
+        simple: true,
+        style: { width: 680 }
+      });
+    }
   }
 
   return isShutdown;
@@ -92,7 +107,11 @@ export const ApiProvider = forwardRef(({ children }, ref) => {
 
         if (!errorFilter || shouldCatchError) {
           setError(result);
-          const isShutdown = await handleError(result, contextValue.showModal);
+          const isShutdown = await handleError(
+            result,
+            contextValue.showModal,
+            method
+          );
 
           apiLocked = apiLocked || isShutdown;
 
