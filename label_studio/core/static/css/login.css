@@ -1,4 +1,5 @@
-html, body {
+html,
+body {
   height: 100%;
 }
 
@@ -6,21 +7,56 @@ html, body {
   display: flex;
   font-weight: 400;
   height: 100%;
-  font-family: 'Hellix', sans-serif;
+  font-family: "Space Grotesk", sans-serif;
+}
+
+.login_page_new_ui h1,
+.login_page_new_ui h2,
+.login_page_new_ui h3 {
+  font-family: "Barlow", sans-serif;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.9);
 }
 
 .login_page_new_ui .left {
-  flex: 1;
-  background: linear-gradient(109.47deg, rgba(255, 166, 99, 0.15) 0%, rgba(255, 117, 87, 0.15) 51.56%, rgba(227, 123, 211, 0.15) 100%);
-  height: 100%;
+  flex: 2;
+  /* background: linear-gradient(109.47deg, rgba(255, 166, 99, 0.15) 0%, rgba(255, 117, 87, 0.15) 51.56%, rgba(227, 123, 211, 0.15) 100%); */
+  background: linear-gradient(
+      180deg,
+      rgba(67, 196, 125, 0.15) 0%,
+      rgba(0, 0, 0, 0) 100%
+    ),
+    url("../images/background.svg") no-repeat center right/90%, #0f0f18;
   position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  align-items: center;
+  align-items: start;
+  justify-content: space-between;
+  padding: 4rem;
 }
 
-.login_page_new_ui .left:after {
+.login_page_new_ui .left .content {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  gap: 2rem;
+}
+
+.login_page_new_ui .left .content .heading {
+  font-size: 38px;
+  line-height: 32px;
+  letter-spacing: -2%;
+}
+
+.login_page_new_ui .left .content .heading .light {
+  color: var(--emerald_100);
+}
+
+.login_page_new_ui .left .content .heading .dark {
+  color: var(--emerald_400);
+}
+
+/* .login_page_new_ui .left:after {
   content: '';
   position: absolute;
   bottom: 0;
@@ -29,9 +65,9 @@ html, body {
   height: 239px;
   background: url('../images/login-bg.svg') no-repeat center center;
   background-size: contain;
-}
+} */
 
-.login_page_new_ui .left h2 {
+/* .login_page_new_ui .left h2 {
   font-size: 24px;
   font-weight: 500;
   line-height: 32px;
@@ -46,21 +82,20 @@ html, body {
   line-height: 24px;
   text-align: center;
   margin: 8px 0 0 0;
-}
+} */
 
-.login_page_new_ui .left .logo_humansignal{
-  position: absolute;
-  bottom: 60px;
-  left: 60px;
+.login_page_new_ui .left .logo_koala42 {
   display: flex;
-  flex-direction: column;
-  font-size: .75rem;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1rem;
   font-style: normal;
   font-weight: 400;
-  line-height: 28px;
+  line-height: 24px;
+  color: var(--emerald_100);
 }
 
-.login_page_new_ui .tips {
+/* .login_page_new_ui .tips {
   max-width: 520px;
   border-radius: 8px;
   border: 1px solid var(--sand_300);
@@ -97,9 +132,9 @@ html, body {
   font-weight: 400;
   line-height: 20px;
   letter-spacing: 0.25px;
-}
+} */
 
-.login_page_new_ui .tips .description a {
+/* .login_page_new_ui .tips .description a {
   color: var(--primary_link);
   font-size: .875rem;
   font-style: normal;
@@ -110,7 +145,7 @@ html, body {
 
 .login_page_new_ui .tips .description a:hover {
   text-decoration: none;
-}
+} */
 
 .login_page_new_ui .right {
   display: flex;
@@ -132,31 +167,27 @@ html, body {
 .login_page_new_ui .toggle > * {
   flex-grow: 1;
   text-align: center;
-  padding: .75rem 0;
+  padding: 0.75rem 0;
   font-size: 1rem;
   color: var(--sand_500);
   border-top: 2px solid transparent;
 }
 .login_page_new_ui .toggle > *.active {
-  border-color: var(--primary_link); 
+  border-color: var(--primary_link);
   color: var(--primary_link);
 }
 .login_page_new_ui .toggle > *:hover {
   color: var(--grape_700);
   border-color: var(--grape_700);
 }
-.form-wrapper{
+.form-wrapper {
   position: relative;
-  background: #FDFDFC;
   margin-top: 1.5rem;
-  border: 1px solid #E1DED5;
   padding: 2rem;
-  border-radius: 1rem;
-  box-shadow: 0px 0px 12px rgba(23, 20, 13, 0.16);
   width: 22rem;
 }
 
-.form-wrapper h2{
+.form-wrapper h2 {
   font-size: 2rem;
   font-weight: 500;
   margin: 0 0 1rem 0;
@@ -178,13 +209,13 @@ html, body {
 }
 .login_page_new_ui form .error {
   color: var(--red_7);
-  font-size: .875rem;
+  font-size: 0.875rem;
 }
 .login_page_new_ui form input,
 .login_page_new_ui form button,
 .login_page_new_ui form select {
   width: 100%;
-  font-family: 'Hellix', sans-serif;
+  font-family: "Hellix", sans-serif;
 }
 
 .login_page_new_ui form button {
@@ -197,12 +228,12 @@ html, body {
   padding: 0;
   list-style: none;
   text-align: left;
-  font-size: .875rem;
+  font-size: 0.875rem;
   line-height: 16px;
   color: var(--red_7);
 }
 .login_page_new_ui .field_errors li {
-  margin-top: .25rem;
+  margin-top: 0.25rem;
 }
 
 .auto-generated form {
@@ -234,24 +265,24 @@ html, body {
   margin-bottom: 0;
 }
 
-.input-wrapper label{
-  font-size: .825rem !important;
-  margin-bottom: .2rem;
-  font-family: 'Hellix', sans-serif !important;
+.input-wrapper label {
+  font-size: 0.825rem !important;
+  margin-bottom: 0.2rem;
+  font-family: "Hellix", sans-serif !important;
   font-weight: 500;
 }
 
-label{
-  font-family: 'Hellix', sans-serif !important;
+label {
+  font-family: "Hellix", sans-serif !important;
   font-weight: 500;
-  font-size: .825rem !important;
-  margin-bottom: .2rem;
+  font-size: 0.825rem !important;
+  margin-bottom: 0.2rem;
   display: block;
 }
 
 .form-group {
   display: block;
-  margin-bottom: .5rem;
+  margin-bottom: 0.5rem;
 }
 
 .form-group input {
@@ -266,19 +297,19 @@ label{
 .form-group label {
   position: relative;
   cursor: pointer;
-  font-size: .875rem;
+  font-size: 0.875rem;
 }
 
-.form-group label a{
-  font-family: 'Hellix', sans-serif !important;
+.form-group label a {
+  font-family: "Hellix", sans-serif !important;
   font-weight: 500;
 }
 
 .form-group label:before {
-  content:'';
+  content: "";
   -webkit-appearance: none;
   background-color: transparent;
-  border: 1px solid #CAC5B8;
+  border: 1px solid #cac5b8;
   padding: 10px;
   border-radius: 4px;
   display: inline-block;
@@ -295,7 +326,7 @@ label{
 }
 
 .form-group input:checked + label:after {
-  content: '';
+  content: "";
   display: block;
   position: absolute;
   top: 1px;
@@ -307,19 +338,19 @@ label{
   transform: rotate(45deg);
 }
 
-.text-wrapper{
+.text-wrapper {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: .875rem;
+  font-size: 0.875rem;
 }
 
-.text-wrapper a{
+.text-wrapper a {
   color: var(--primary_link);
   text-decoration: underline;
   font-weight: 500;
 }
 
-.text-wrapper a:hover{
+.text-wrapper a:hover {
   text-decoration: none;
 }

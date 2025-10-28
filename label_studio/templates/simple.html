@@ -29,8 +29,12 @@
 </head>
 
 <body>
-{% block content %}
-{% endblock %}
+  {% include 'mobile.html' %}
+
+  <div id="content">
+    {% block content %}
+    {% endblock %}
+  </div>
 
 </body>
 </html>

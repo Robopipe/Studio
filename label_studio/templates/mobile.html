@@ -1,0 +1,22 @@
+{% load static %}
+
+<div id="content-mobile">
+    <div class="wrapper">
+        <img src="{{ settings.HOSTNAME }}{% static 'icons/robopipe-logo.svg' %}" height="28" alt="Robopipe Logo">
+        <div class="desktop-icon-container">
+            <div class="desktop-icon">
+                <img src="{{ settings.HOSTNAME }}{% static 'icons/desktop.svg' %}" alt="Desktop Icon">
+            </div>
+        </div>
+        <h2>
+            Unsupported
+            <br>
+            screen size
+        </h2>
+        <div>
+            <p>We're sorry, but this app isn't currently optimized for your device's screen size. For the best experience, please use a device with a screen width of at least 1024px.</p>
+            <p>If you still wish to proceed, try switching your browser to desktop mode.</p>
+        </div>
+        {% include 'robopipe-footer.html' %}
+    </div>
+</div>

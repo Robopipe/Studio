@@ -14,7 +14,8 @@
 
 {% block user_content %}
   <div class="form-wrapper">
-    <h2>Log in</h2>
+    <h2>Welcome back</h2>
+    <p>Log in to the Robopipe app</p>
     <form id="login-form" action="{% url 'user-login' %}?next={{ next }}" method="post">
       {% csrf_token %}
       <div class="input-wrapper">

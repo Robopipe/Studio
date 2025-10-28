@@ -1,0 +1,71 @@
+body {
+    --mobile-breakpoint: 900px;
+}
+
+#content {
+  height: 100%;
+  
+  @media only screen and (max-width: 1024px) {
+      display: none;
+    }
+}
+
+#content-mobile {
+  overflow-y: hidden;
+  display: none;
+  height: 100vh;
+  background: linear-gradient(180deg, rgba(67, 196, 125, 0.15) 0%, rgba(0, 0, 0, 0) 40%), #0f0f18;
+  display: none;
+
+  .wrapper {
+    height: calc(100% - 4rem - 2rem);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 2rem;
+    padding: 4rem 1.75rem 2rem 1.75rem;
+  }
+
+  .desktop-icon-container {
+    margin-top: 2rem;
+    border: 1px solid var(--border_5);
+    padding: 8px;
+    border-radius: 50%;
+    width: 96px;
+    height: 96px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    .desktop-icon {
+        border: 1px solid var(--border_5);
+        padding: 20px;
+        border-radius: 50%;
+        background-color: var(--surface_12);
+    }
+  }
+
+  h2 {
+    font-size: 32px;
+    line-height: 40px;
+    font-weight: 600;
+    color: #fff;
+  }
+  
+  p {
+    font-size: 14px;
+    line-height: 20px;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 1rem;
+    max-width: 640px;
+  }
+
+  .robopipe-footer {
+    margin-top: auto;
+  }
+
+  @media only screen and (max-width: 1024px) {
+    display: block;
+  }
+}
