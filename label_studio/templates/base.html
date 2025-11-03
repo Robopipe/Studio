@@ -40,7 +40,7 @@
   </script>
 
   {% block page_labeling %}
-    <title>Label Studio</title>
+    <title>Robopipe Studio</title>
     <link href="{{settings.HOSTNAME}}{% static 'images/favicon.ico' %}" rel="shortcut icon"/>
   {% endblock %}
 
@@ -96,7 +96,7 @@
     debug: {{settings.DEBUG|yesno:"true,false"}},
     hostname: "{{settings.HOSTNAME}}",
     apiUrl: "{{settings.API_URL}}",
-    robopipeHostname: "{{settings.ROBOPIPE_HOSTNAME}}",
+    robopipeHostname: "{{robopipe_api_url|default:user.robopipe_api_url}}",
     version: {{ versions|json_dumps_ensure_ascii|safe }},
     sentry_dsn: {% if settings.FRONTEND_SENTRY_DSN %}"{{ settings.FRONTEND_SENTRY_DSN }}"{% else %}null{% endif %},
     sentry_rate: "{{ settings.FRONTEND_SENTRY_RATE }}",

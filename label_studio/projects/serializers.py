@@ -239,6 +239,7 @@ class ProjectSerializer(FlexFieldsModelSerializer):
             'queue_total',
             'queue_done',
             'config_suitable_for_bulk_annotation',
+            'robopipe_api_url',
         ]
 
     def validate_label_config(self, value):

@@ -281,6 +281,10 @@ class Project(ProjectMixin, models.Model):
         help_text='Custom task lock TTL in seconds. If not set, the default value is used',
     )
 
+    robopipe_api_url = models.URLField(
+        _('robopipe_api_url'), max_length=512, blank=True, null=True, help_text='Robopipe API URL'
+    )
+
     def __init__(self, *args, **kwargs):
         super(Project, self).__init__(*args, **kwargs)
         self.__original_label_config = self.label_config

@@ -13,6 +13,7 @@ from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
 from organizations.models import Organization
 from projects.models import Project
+from projects.decorators import with_robopipe_api_url
 from rest_framework import generics, status
 from rest_framework.exceptions import ValidationError
 
@@ -23,10 +24,10 @@ logger = logging.getLogger(__name__)
 def project_list(request):
     return render(request, "projects/list.html")
 
-
+@with_robopipe_api_url(param="pk")
 @login_required
 def project_capture(request, pk, mode):
-    return render(request, "base.html")
+    return render(request, "base.html", {"robopipe_api_url": request.robopipe_api_url})
 
 
 @login_required
@@ -34,9 +35,10 @@ def project_train(request, pk):
     return render(request, "base.html")
 
 
+@with_robopipe_api_url(param="pk")
 @login_required
 def project_infere(request, pk):
-    return render(request, "base.html")
+    return render(request, "base.html", {"robopipe_api_url": request.robopipe_api_url})
 
 
 @login_required

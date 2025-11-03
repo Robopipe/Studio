@@ -203,6 +203,12 @@ _project_schema = openapi.Schema(
                 }
             },
         ),
+        "robopipe_api_url": openapi.Schema(
+            title="robopipe_api_url",
+            description="Robopipe API URL",
+            type=openapi.TYPE_STRING,
+            example="https://robopipe-1.local",
+        ),
     },
 )
 
