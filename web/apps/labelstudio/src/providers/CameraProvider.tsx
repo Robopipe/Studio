@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import { useAPI } from "./ApiProvider";
 import { useQuery } from "@tanstack/react-query";
+import { useFixedLocation } from "./RoutesProvider";
 
 type Context = {
   cameras?: APICamera[];
@@ -35,19 +36,24 @@ export const CameraContext = createContext<Context>({} as Context);
 
 export const CameraProvider: React.FC<PropsWithChildren> = ({ children }) => {
   const api = useAPI();
+  const location = useFixedLocation();
+  const [enabled, setEnabled] = useState(false);
   const [camera, setCamera] = useState<APICamera>();
   const [stream, setStream] = useState<APICameraStream>();
   const { data: cameras, isLoading: camerasLoading } = useQuery({
     queryKey: ["cameras"],
-    queryFn: () => api.callApi<APICamera[]>("cameras")
+    queryFn: () => api.callApi<APICamera[]>("cameras"),
+    enabled,
+    networkMode: 'always'
   });
   const { data: streams, isLoading: streamsLoading } = useQuery({
     queryKey: ["cameras", camera?.mxid, "streams"],
     queryFn: () =>
       api.callApi<APICameraStream[]>("streams", {
-        params: { mxid: camera?.mxid }
+         params: {mxid: camera?.mxid}
       }),
-    enabled: !!camera
+    enabled: enabled && !!camera,
+    networkMode: 'always'
   });
   const wsUrl = useMemo(() => getWsUrl(camera, stream), [camera, stream]);
   const setCameraByMxid = useCallback(
@@ -68,6 +74,7 @@ export const CameraProvider: React.FC<PropsWithChildren> = ({ children }) => {
   useEffect(() => {
     if (cameras && cameras.length > 0) {
       setCamera(cameras[0]);
+      console.log("camera", cameras[0])
     }
   }, [cameras]);
 
@@ -79,6 +86,14 @@ export const CameraProvider: React.FC<PropsWithChildren> = ({ children }) => {
       }
     }
   }, [streams]);
+
+  // set enabled on specific routes only
+  useEffect(() => {
+    const path = location.pathname;
+    if (path.includes("/capture/live") || path.includes("/infere")) {
+      setEnabled(true);
+    }
+  }, [location]);
 
   return (
     <CameraContext.Provider
