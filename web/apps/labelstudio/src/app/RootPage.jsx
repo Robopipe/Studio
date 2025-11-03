@@ -1,7 +1,6 @@
 import { Menubar } from "../components/Menubar/Menubar";
 import { ProjectRoutes } from "../routes/ProjectRoutes";
 import { useOrgValidation } from "../hooks/useOrgValidation";
-import { Header } from "../components/Header/Header";
 
 export const RootPage = ({ content }) => {
   useOrgValidation();
@@ -21,10 +20,4 @@ export const RootPage = ({ content }) => {
       <ProjectRoutes content={content} />
     </Menubar>
   );
-  // return (
-  //   <>
-  //     <Header />
-  //     <ProjectRoutes content={content} />
-  //   </>
-  // );
 };
