@@ -86,6 +86,7 @@ class BaseUserSerializer(FlexFieldsModelSerializer):
             'active_organization',
             'allow_newsletters',
             'date_joined',
+            'robopipe_api_url',
         )
 
 

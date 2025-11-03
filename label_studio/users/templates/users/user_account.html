@@ -197,6 +197,22 @@
     </form>
 
 
+    <!-- Robopipe -->
+    <form action="{% url 'user-detail' pk=user.pk %}" method="patch" class="user__info">
+      <input type="hidden" name="_method" value="patch"/>
+
+      <header>Robopipe Integration</header>
+        <li class="field">
+          <label for="">Robopipe API</label>
+          <input type="text" class="lsf-input-ls" name="robopipe_api_url" value="{{user.robopipe_api_url}}" />
+        </li>
+      </ul>
+      <footer>
+        <button class="lsf-button-ls lsf-button-ls_look_primary" onclick="smart_submit()">Save</button>
+      </footer>
+    </form>
+
+
     <!-- Organization -->
     <form action="" class="organization block-info" id="organization">
       <header>

@@ -113,6 +113,10 @@ class User(UserMixin, AbstractBaseUser, PermissionsMixin, UserLastActivityMixin)
         _('allow newsletters'), null=True, default=None, help_text=_('Allow sending newsletters to user')
     )
 
+    robopipe_api_url = models.URLField(
+        _('Robopipe API URL'), max_length=512, blank=False, default='https://robopipe-1.local', help_text=_('Robopipe API URL')
+    )
+
     objects = UserManager()
 
     EMAIL_FIELD = 'email'
