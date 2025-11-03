@@ -90,6 +90,7 @@ export const DataManagerPage = ({ ...props }) => {
       dataManagerRef.current ??
       (await initializeDataManager(root.current, props, {
         ...params,
+        id: project.id,
         project,
         autoAnnotation: isDefined(interactiveBacked),
       })));
