@@ -89,6 +89,8 @@ export const GeneralSettings = () => {
                   />
                 ))}
               </RadioGroup>
+
+              <Input name="robopipe_api_url" label="Robopipe API URL" />
             </Form.Row>
 
             <Form.Actions>
