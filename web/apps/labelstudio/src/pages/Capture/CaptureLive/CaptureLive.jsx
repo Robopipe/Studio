@@ -13,6 +13,7 @@ import { CameraControls } from "apps/labelstudio/src/components/CameraControls/C
 import { useCameraSelector } from "apps/labelstudio/src/utils/camera-selector";
 import { NoCamera } from "apps/labelstudio/src/components/NoCamera/NoCamera";
 import { useCamera } from "apps/labelstudio/src/providers/CameraProvider";
+import { useCameraControls } from "apps/labelstudio/src/hooks/useCameraControls";
 
 export const CaptureLivePage = () => {
   const api = useAPI();
@@ -26,6 +27,7 @@ export const CaptureLivePage = () => {
     setStream,
     wsUrl
   } = useCamera();
+  const { captureStill } = useCameraControls();
   const { capturedImages, setCapturedImages } = useCapture();
   const [namePattern, setNamePattern] = useState("");
   const [autoCapture, setAutoCapture] = useState({
@@ -37,7 +39,7 @@ export const CaptureLivePage = () => {
   const captureImage = useCallback(async () => {
     const response = await (
       await fetch(
-        `${window.APP_SETTINGS.robopipeHostname}/cameras/${camera}/streams/${stream}/still?format=jpeg`
+        `${window.APP_SETTINGS.robopipeHostname}/cameras/${camera.mxid}/streams/${stream.name}/still?format=jpeg`
       )
     ).blob();
     const createdDT = new Date();

@@ -1,5 +1,4 @@
-"""This file and its contents are licensed under the Apache License 2.0. Please see the included NOTICE for copyright information and LICENSE for a copy of the license.
-"""
+"""This file and its contents are licensed under the Apache License 2.0. Please see the included NOTICE for copyright information and LICENSE for a copy of the license."""
 
 import json
 import logging
@@ -24,12 +23,14 @@ logger = logging.getLogger(__name__)
 def project_list(request):
     return render(request, "projects/list.html")
 
+
 @with_robopipe_api_url(param="pk")
 @login_required
 def project_capture(request, pk, mode):
     return render(request, "base.html", {"robopipe_api_url": request.robopipe_api_url})
 
 
+@with_robopipe_api_url(param="pk")
 @login_required
 def project_train(request, pk):
     return render(request, "base.html")
@@ -41,6 +42,7 @@ def project_infere(request, pk):
     return render(request, "base.html", {"robopipe_api_url": request.robopipe_api_url})
 
 
+@with_robopipe_api_url(param="pk")
 @login_required
 def project_settings(request, pk, sub_path):
     return render(request, "projects/settings.html")

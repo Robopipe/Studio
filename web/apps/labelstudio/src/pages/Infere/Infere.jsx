@@ -12,6 +12,7 @@ import { useLabelConfig } from "../../utils/label-config";
 import { Button } from "../../components";
 import { ModelLogs } from "../../components/ModelDetail/ModelLogs";
 import { useLogs } from "../../hooks/useLogs";
+import { useCamera } from "../../providers/CameraProvider";
 
 const classificationCb = (labels, elId, addLog) => ({ data }) => {
   addLog?.(data);
@@ -74,7 +75,7 @@ export const InferePage = () => {
     wsUrl,
     camera,
     stream
-  } = useCameraSelector(true);
+  } = useCamera();
   const { subscribe, unsubscribe, addLog } = useLogs();
   const { data: models, status: modelsStatus } = useQuery({
     queryKey: ["projects", project.id, "nn-models"],
@@ -84,7 +85,9 @@ export const InferePage = () => {
   const { data: nnConfig, refetch: refetchNnConfig } = useQuery({
     queryKey: ["cameras", camera, "streams", stream, "nn"],
     queryFn: () =>
-      api.callApi("streamNn", { params: { mxid: camera, stream } }),
+      api.callApi("streamNn", {
+        params: { mxid: camera.mxid, stream: stream.name }
+      }),
     enabled: !!camera && !!stream
   });
   const [model, setModel] = useState(null);
@@ -121,11 +124,11 @@ export const InferePage = () => {
 
     formData.append("model", modelBlob, model.model_path);
     formData.append("config", JSON.stringify(config));
-    addLog(`uploading mode to camera ${camera} stream ${stream}`);
+    addLog(`uploading mode to camera ${camera.mxid} stream ${stream.name}`);
     addLog(`model config: ${JSON.stringify(config)}`);
 
     await fetch(
-      `${window.APP_SETTINGS.robopipeHostname}/cameras/${camera}/streams/${stream}/nn`,
+      `${window.APP_SETTINGS.robopipeHostname}/cameras/${camera.mxid}/streams/${stream.name}/nn`,
       {
         method: "POST",
         body: formData
@@ -138,7 +141,7 @@ export const InferePage = () => {
   const stopModel = useCallback(async () => {
     setLoading(true);
     await fetch(
-      `${window.APP_SETTINGS.robopipeHostname}/cameras/${camera}/streams/${stream}/nn`,
+      `${window.APP_SETTINGS.robopipeHostname}/cameras/${camera.mxid}/streams/${stream.name}/nn`,
       {
         method: "DELETE"
       }
@@ -177,7 +180,7 @@ export const InferePage = () => {
             label="Camera"
           />
           <Select
-            options={Object.keys(streams ?? {})}
+            options={streams?.map(stream => stream.name) || []}
             onChange={e => setStream(e.target.value)}
             label="Stream"
           />

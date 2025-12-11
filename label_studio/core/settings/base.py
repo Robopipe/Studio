@@ -781,7 +781,7 @@ DATA_MANAGER_FILTER_ALLOWLIST = list(
     )
 )
 
-if ENABLE_CSP := get_bool_env("ENABLE_CSP", True):
+if ENABLE_CSP := get_bool_env("ENABLE_CSP", False):
     CSP_DEFAULT_SRC = (
         "'self'",
         "'report-sample'",
