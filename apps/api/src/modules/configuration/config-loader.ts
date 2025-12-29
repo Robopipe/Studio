@@ -14,7 +14,9 @@ const client = new SecretManagerServiceClient();
  */
 export class ConfigLoader {
   public static async getConfig() {
-    const config = load(readFileSync(join(process.cwd(), configFilename), 'utf8')) as Record<string, any>;
+    const config = load(
+      readFileSync(join(process.cwd(), configFilename), 'utf8'),
+    ) as Record<string, any>;
 
     const appliedConfig = await this.applyConfig(config);
 
@@ -28,7 +30,10 @@ export class ConfigLoader {
    * @param project The name of the project in GCP.
    * @returns An object containing the loaded secrets.
    */
-  private static async loadSecrets(secretNames: string[] | undefined, project: string) {
+  private static async loadSecrets(
+    secretNames: string[] | undefined,
+    project: string,
+  ) {
     const secrets = {};
     if (Array.isArray(secretNames))
       for (const secretName of secretNames) {

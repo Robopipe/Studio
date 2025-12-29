@@ -15,12 +15,19 @@
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\""
   },
   "dependencies": {
+    "@google-cloud/secret-manager": "^6.1.1",
     "@nestjs/common": "^11.0.0",
+    "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.0",
     "@nestjs/platform-express": "^11.0.0",
     "@repo/api": "workspace:*",
+    "class-transformer": "^0.5.1",
+    "js-yaml": "^4.1.1",
+    "nestjs-zod": "^5.0.1",
     "reflect-metadata": "^0.2.0",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "zod": "^4.2.1",
+    "zop": "^0.0.0"
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",
