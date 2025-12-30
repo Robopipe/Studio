@@ -1,0 +1,33 @@
+# Example production configuration
+
+secrets:
+  - jwtSecret
+  - databaseUrl
+  - sentryDsn
+
+# Option 1: Using environment variables
+# secretsProviderConfig:
+#   type: env
+#   prefix: prod_be_
+
+# Option 2: Using file-based secrets
+# secretsProviderConfig:
+#   type: file
+#   filename: secrets.yml
+#   prefix: prod_be_
+
+# Option 3: Using GCP Secret Manager
+secretsProviderConfig:
+  type: gcp
+  project: my-gcp-project
+  prefix: prod_be_
+  version: latest
+
+# Option 4: Custom provider (if registered)
+# secretsProviderConfig:
+#   type: aws-secrets-manager
+#   region: us-east-1
+#   prefix: prod/myapp/
+
+# Application defaults
+databaseUrl: postgresql://db.example.com:5432/mydb

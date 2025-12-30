@@ -1,17 +1,54 @@
 {
   "$schema": "https://turborepo.com/schema.json",
   "globalDependencies": ["**/.env.*local"],
+  "globalEnv": [
+    "APP_ENV",
+    "SECRETS_PREFIX",
+    "SECRETS_PROVIDER",
+    "GCP_PROJECT",
+    "CLOUD_PROJECT"
+  ],
   "tasks": {
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "env": [
+        "APP_ENV",
+        "SECRETS_PREFIX",
+        "SECRETS_PROVIDER",
+        "GCP_PROJECT",
+        "CLOUD_PROJECT"
+      ]
     },
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"],
+      "env": [
+        "APP_ENV",
+        "SECRETS_PREFIX",
+        "SECRETS_PROVIDER",
+        "GCP_PROJECT",
+        "CLOUD_PROJECT"
+      ]
     },
-    "lint": {},
-    "test": {},
+    "lint": {
+      "env": [
+        "APP_ENV",
+        "SECRETS_PREFIX",
+        "SECRETS_PROVIDER",
+        "GCP_PROJECT",
+        "CLOUD_PROJECT"
+      ]
+    },
+    "test": {
+      "env": [
+        "APP_ENV",
+        "SECRETS_PREFIX",
+        "SECRETS_PROVIDER",
+        "GCP_PROJECT",
+        "CLOUD_PROJECT"
+      ]
+    },
     "test:e2e": {}
   }
 }

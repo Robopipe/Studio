@@ -1,12 +1,14 @@
-import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 import { readFileSync } from 'fs';
 import { load } from 'js-yaml';
 import { join } from 'path';
+import type {
+  SecretsProvider,
+  SecretsProviderConfig,
+} from './providers/secrets-provider.interface';
+import { SecretsProviderRegistry } from './providers/secrets-provider.registry';
 
 const env = process.env.APP_ENV || 'local';
-const secretPrefix = `${env}_be_`;
 const configFilename = env === 'local' ? 'config.local.yml' : 'config.yml';
-const client = new SecretManagerServiceClient();
 
 /**
  * ConfigLoader
@@ -32,14 +34,14 @@ export class ConfigLoader {
    */
   private static async loadSecrets(
     secretNames: string[] | undefined,
-    project: string,
+    provider: SecretsProvider,
   ) {
-    const secrets = {};
-    if (Array.isArray(secretNames))
+    const secrets: Record<string, string | undefined> = {};
+    if (Array.isArray(secretNames)) {
       for (const secretName of secretNames) {
-        secrets[secretName] = await this.getSecretValue(project, secretName);
+        secrets[secretName] = await provider.getSecret(secretName);
       }
-
+    }
     return secrets;
   }
 
@@ -50,12 +52,57 @@ export class ConfigLoader {
    * @param name The name of the secret.
    * @returns The value of the secret.
    */
-  private static async getSecretValue(project: string, name: string) {
-    const [secretVersion] = await client.accessSecretVersion({
-      name: `projects/${project}/secrets/${secretPrefix}${name}/versions/latest`,
-    });
+  /**
+   * getSecretsProvider
+   * @description Creates a secrets provider based on configuration.
+   * Configuration can come from:
+   * 1. config.secretsProviderConfig in YAML (highest priority)
+   * 2. Environment variables (fallback)
+   * @param config The loaded configuration object
+   * @returns SecretsProvider instance
+   */
+  private static getSecretsProvider(
+    config: Record<string, any>,
+  ): SecretsProvider {
+    // Check if config has explicit secretsProviderConfig
+    if (
+      config.secretsProviderConfig &&
+      typeof config.secretsProviderConfig === 'object'
+    ) {
+      return SecretsProviderRegistry.create(
+        config.secretsProviderConfig as SecretsProviderConfig,
+      );
+    }
 
-    return secretVersion.payload?.data?.toString();
+    // Fallback to environment-based configuration
+    const providerType = (process.env.SECRETS_PROVIDER || 'env').toLowerCase();
+    const secretPrefix = process.env.SECRETS_PREFIX || `${env}_be_`;
+
+    switch (providerType) {
+      case 'env':
+        return SecretsProviderRegistry.create({
+          type: 'env',
+          prefix: secretPrefix,
+        });
+      case 'file':
+        return SecretsProviderRegistry.create({
+          type: 'file',
+          filename: env === 'local' ? 'secrets.local.yml' : 'secrets.yml',
+          prefix: secretPrefix,
+        });
+      case 'gcp':
+        return SecretsProviderRegistry.create({
+          type: 'gcp',
+          prefix: secretPrefix,
+          project: process.env.GCP_PROJECT || process.env.CLOUD_PROJECT || '',
+        });
+      default:
+        // For unknown types, try to create from registry
+        return SecretsProviderRegistry.create({
+          type: providerType,
+          prefix: secretPrefix,
+        });
+    }
   }
 
   /**
@@ -65,10 +112,16 @@ export class ConfigLoader {
    * @returns The configuration object with the secrets loaded.
    */
   private static async applyConfig(config: Record<string, any>) {
-    const secrets = await this.loadSecrets(config.secrets, config.project);
+    const provider = this.getSecretsProvider(config);
+    const secretNames = Array.isArray(config.secrets)
+      ? (config.secrets as string[])
+      : undefined;
+    const secrets = await this.loadSecrets(secretNames, provider);
 
-    //Rewrite config values based on env
-    for (const key in config[env]) config[key] = config[env][key];
+    // Rewrite config values based on env if present
+    if (config[env] && typeof config[env] === 'object') {
+      for (const key in config[env]) config[key] = config[env][key];
+    }
 
     return {
       ...config,

@@ -3,7 +3,7 @@ import { DynamicModule, Module, Provider } from '@nestjs/common';
 import { ConfigurationCoreModuleOptions } from './interfaces/configuration-core-module-options.interface';
 
 import { appConfigSchema } from './app.config';
-import { ZodError } from 'zod';
+import { ZodError, ZodTypeAny } from 'zod';
 
 /**
  * ConfigurationCoreModule
@@ -11,11 +11,13 @@ import { ZodError } from 'zod';
  */
 @Module({})
 export class ConfigurationCoreModule {
-  public static async forRootAsync(options: ConfigurationCoreModuleOptions): Promise<DynamicModule> {
+  public static async forRootAsync(
+    options: ConfigurationCoreModuleOptions,
+  ): Promise<DynamicModule> {
     const config = await options.load;
 
-    const { schema: Config, isGlobal = false } = options;
-    const validatedConfig = this.validate(config);
+    const { schema: Config, isGlobal = false, zodSchema } = options;
+    const validatedConfig = this.validate(config, zodSchema);
     const provider: Provider = {
       provide: Config,
       useValue: validatedConfig,
@@ -35,9 +37,10 @@ export class ConfigurationCoreModule {
    * @param rawConfig - The raw configuration object.
    * @returns The validated configuration object.
    */
-  private static validate(rawConfig: any) {
+  private static validate(rawConfig: unknown, zodSchema?: ZodTypeAny) {
     try {
-      return appConfigSchema.parse(rawConfig);
+      const schema = zodSchema ?? appConfigSchema;
+      return schema.parse(rawConfig as any);
     } catch (error) {
       if (error instanceof ZodError) {
         const errorMessage = 'Config validation failed\n';
@@ -56,7 +59,8 @@ export class ConfigurationCoreModule {
    */
   private static parseValidationErrors(error: ZodError<any>) {
     return error.issues.map(
-      (err) => `Property "${err.path.join('.')}" failed: ${err.message} (received value: ${JSON.stringify(err)})`,
+      (err) =>
+        `Property "${err.path.join('.')}" failed: ${err.message} (received value: ${JSON.stringify(err)})`,
     );
   }
 }

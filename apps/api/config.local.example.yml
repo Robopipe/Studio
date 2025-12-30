@@ -1,0 +1,21 @@
+# Example configuration with inline secrets provider config
+
+# List of secret names to load
+secrets:
+  - jwtSecret
+  - databaseUrl
+
+# Secrets provider configuration (optional)
+# If not provided, falls back to SECRETS_PROVIDER env var
+secretsProviderConfig:
+  type: env
+  prefix: local_be_
+
+# Application configuration
+sentryDsn: https://example.com/sentry
+databaseUrl: postgresql://localhost:5432/mydb
+jwtSecret: local-jwt-secret
+
+# Environment-specific overrides
+local:
+  sentryDsn: ~

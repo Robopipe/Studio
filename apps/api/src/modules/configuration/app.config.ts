@@ -2,8 +2,7 @@ import { createZodDto } from 'nestjs-zod';
 import z from 'zod';
 
 export const appConfigSchema = z.object({
-  project: z.literal('gcpProjectName'),
-  sentryDsn: z.url().optional(),
+  sentryDsn: z.string().url().optional(),
   databaseUrl: z.string(),
   jwtSecret: z.string(),
 });
