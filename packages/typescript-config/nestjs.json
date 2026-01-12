@@ -9,12 +9,12 @@
     "incremental": true,
     "module": "commonjs",
     "moduleResolution": "Node10",
-    "noFallthroughCasesInSwitch": false,
-    "noImplicitAny": false,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitAny": true,
     "removeComments": true,
     "skipLibCheck": true,
     "sourceMap": true,
-    "strictNullChecks": false,
+    "strictNullChecks": true,
     "strictBindCallApply": false
   }
 }

@@ -1,6 +1,8 @@
 {
-  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "@repo/typescript-config/nestjs.json",
   "compilerOptions": {
+    "incremental": false,
+    "allowJs": true,
     "composite": false,
     "declaration": true,
     "declarationMap": true,
@@ -8,13 +10,11 @@
     "forceConsistentCasingInFileNames": true,
     "inlineSources": false,
     "isolatedModules": true,
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
+    "target": "ESNext",
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "preserveWatchOutput": true,
     "skipLibCheck": true,
     "strict": true
-  },
-  "exclude": ["node_modules"]
+  }
 }
