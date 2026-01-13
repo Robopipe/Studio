@@ -1,15 +1,25 @@
-<p align="center">
-  <img src="images/robopipe-cover-text.png" />
-  <h1 align="center">Robopipe Studio</h1>
-</p>
 
-Robopipe Studio is an open-source software designed for capturing and processing image data, labeling images, and training and deploying machine learning models. It provides a user-friendly interface for managing image datasets, annotating images, and building computer vision applications.
+# 🚀 Robopipe Studio: Advanced Industrial Machine Vision & AI Quality Inspection
 
-## Documentation
+**Revolutionizing automated defect detection and smart manufacturing through Deep Learning and Edge AI.**
+
+Robopipe Studio is an open-source software designed for capturing and processing image data, labeling images, and training and deploying offline machine learning models on Edge-Compute hardware (Luxonis). It provides a user-friendly interface for managing image datasets, annotating images, and building offline computer vision applications.
+
+## 📹 Capture, Label, Train and Control
+
+Operators can label and fine-tune datasets using an intuitive interface, specifically engineered to handle complex, non-rigid products where traditional rule-based vision systems fail. Optimized models are deployed via [robopipe API](https://github.com/Robopipe/API/tree/main) to Edge-Compute hardware (Luxonis) for real-time inference in manufacturing processes.
+
+|||
+|:-------------------------:|:-------------------------:|
+|![Capture](https://cdn.prod.website-files.com/676e983aac02b65480d76ae2/691efe40601ae92796e9d44c_CAPTURE2-p-500.jpg) Capture|![Label](https://cdn.prod.website-files.com/676e983aac02b65480d76ae2/690d149215582d7c04bca6e6_label-p-500.png) Label|
+|![Train](https://cdn.prod.website-files.com/676e983aac02b65480d76ae2/690d14abc269afc91d609691_train-p-500.png) Train| ![Inference](https://cdn.prod.website-files.com/676e983aac02b65480d76ae2/690f974b25c665792d6e8e53_control2-p-500.jpg) Control|
+
+
+## 📑 Documentation
 
 To learn more about Robopipe Studio, please visit the [Robopipe Documentation](https://robopipe.gitbook.io/robopipe).
 
-## Running the app
+## 🛠 Running the app
 
 ### Using Docker
 
@@ -93,10 +103,10 @@ To learn more about Robopipe Studio, please visit the [Robopipe Documentation](h
    python3 label_studio/manage.py runserver
    ```
 
-## Feedback
+## 📬 Feedback
 
 Robopipe values all your feedback. If you encounter any problems with the app, please open a [GitHub issue](https://github.com/Robopipe/Studio/issues/new) for anything related to this app - bugs, improvement suggestions, documentation, developer experience, etc.
 
-## Community
+## 👫 Community
 
 Join our [Robopipe subreddit](https://www.reddit.com/r/robopipe/) to share your apps, ask any questions regarding Robopipe, get help debugging your apps, or simply to read more about Robopipe from our users.
