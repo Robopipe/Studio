@@ -1,11 +1,14 @@
+<p align="center">
+  <img src="images/robopipe-cover-text.png" />
+</p>
 
-# 🚀 Robopipe Studio: Advanced Industrial Machine Vision & AI Quality Inspection
+# 🚀 Advanced Industrial Machine Vision & AI Quality Inspection
 
 **Revolutionizing automated defect detection and smart manufacturing through Deep Learning and Edge AI.**
 
 Robopipe Studio is an open-source software designed for capturing and processing image data, labeling images, and training and deploying offline machine learning models on Edge-Compute hardware (Luxonis). It provides a user-friendly interface for managing image datasets, annotating images, and building offline computer vision applications.
 
-## 📹 Capture, Label, Train and Control
+## 📹 Capture, Label, Train and Infer
 
 Operators can label and fine-tune datasets using an intuitive interface, specifically engineered to handle complex, non-rigid products where traditional rule-based vision systems fail. Optimized models are deployed via [robopipe API](https://github.com/Robopipe/API/tree/main) to Edge-Compute hardware (Luxonis) for real-time inference in manufacturing processes.
 
