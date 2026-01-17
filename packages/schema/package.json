@@ -1,5 +1,5 @@
 {
-  "name": "@repo/database",
+  "name": "@repo/schema",
   "version": "0.0.0",
   "private": true,
   "license": "MIT",
@@ -35,14 +35,14 @@
       "require": "./dist/esm/*.js"
     }
   },
+  "dependencies": {
+    "@repo/database": "workspace:*",
+    "drizzle-orm": "^0.45.1",
+    "drizzle-zod": "^0.8.3",
+    "zod": "^4.3.5"
+  },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
-    "@repo/typescript-config": "workspace:*",
-    "@types/pg": "^8.16.0",
-    "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
-  },
-  "dependencies": {
-    "drizzle-orm": "^0.45.1"
+    "@repo/typescript-config": "workspace:*"
   }
 }

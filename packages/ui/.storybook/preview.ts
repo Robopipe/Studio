@@ -1,4 +1,7 @@
+import { CssBaseline, ThemeProvider } from "@mui/material";
+import { withThemeFromJSXProvider } from "@storybook/addon-themes";
 import type { Preview } from "@storybook/react-vite";
+import { lightTheme } from "../src/themes/light/theme";
 
 const preview: Preview = {
   parameters: {
@@ -19,3 +22,14 @@ const preview: Preview = {
 };
 
 export default preview;
+
+export const decorators = [
+  withThemeFromJSXProvider({
+    themes: {
+      light: lightTheme,
+    },
+    defaultTheme: "light",
+    Provider: ThemeProvider,
+    GlobalStyles: CssBaseline,
+  }),
+];

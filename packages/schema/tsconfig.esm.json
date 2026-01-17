@@ -1,0 +1,10 @@
+{
+  "extends": "@repo/typescript-config/shared.json",
+  "compilerOptions": {
+    "baseUrl": "src",
+    "outDir": "./dist/esm",
+    "module": "ESNext"
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "test", "dist", "**/*spec.ts"]
+}
