@@ -60,3 +60,6 @@ pnpm-debug.log*
 # Misc
 .DS_Store
 *.pem
+
+*storybook.log
+storybook-static
