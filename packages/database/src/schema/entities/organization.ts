@@ -1,8 +1,8 @@
-import { pgTable, varchar } from "drizzle-orm/pg-core";
+import * as p from "drizzle-orm/pg-core";
 import { id, timestamps } from "../helpers";
 
-export const organizationTable = pgTable("organization", {
+export const organizationTable = p.pgTable("organization", {
   id,
-  name: varchar({ length: 256 }).notNull(),
+  name: p.varchar({ length: 256 }).notNull(),
   ...timestamps
 })
