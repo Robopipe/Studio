@@ -72,8 +72,8 @@ importers:
         specifier: ^17.2.3
         version: 17.2.3
       drizzle-orm:
-        specifier: ^0.45.1
-        version: 0.45.1(@types/pg@8.16.0)(pg@8.16.3)
+        specifier: 1.0.0-beta.12-a5629fb
+        version: 1.0.0-beta.12-a5629fb(@types/mssql@9.1.9)(@types/pg@8.16.0)(mssql@11.0.1)(pg@8.16.3)
       js-yaml:
         specifier: ^4.1.1
         version: 4.1.1
@@ -245,8 +245,8 @@ importers:
   packages/database:
     dependencies:
       drizzle-orm:
-        specifier: 1.0.0-beta.11-05230d9
-        version: 1.0.0-beta.11-05230d9(@types/mssql@9.1.9)(@types/pg@8.16.0)(mssql@11.0.1)(pg@8.16.3)
+        specifier: 1.0.0-beta.12-a5629fb
+        version: 1.0.0-beta.12-a5629fb(@types/mssql@9.1.9)(@types/pg@8.16.0)(mssql@11.0.1)(pg@8.16.3)
     devDependencies:
       '@repo/eslint-config':
         specifier: workspace:*
@@ -3442,8 +3442,8 @@ packages:
       sqlite3:
         optional: true
 
-  drizzle-orm@1.0.0-beta.11-05230d9:
-    resolution: {integrity: sha512-y6i3AgHqeT5Eu/+7hsF1AWyPZQTxiBx1UOy4snEqljW7Fbpp/fO2zmWYFPvjngwOLq9prrbrn36AwCoTR+J2Bg==}
+  drizzle-orm@1.0.0-beta.12-a5629fb:
+    resolution: {integrity: sha512-wyOAgr9Cy9oEN6z5S0JGhfipLKbRRJtQKgbDO9SXGR9swMBbGNIlXkeMqPRrqYQ8k70mh+7ZJ/eVmJ2F7zR3Vg==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
       '@cloudflare/workers-types': '>=4'
@@ -9401,7 +9401,7 @@ snapshots:
       '@types/pg': 8.16.0
       pg: 8.16.3
 
-  drizzle-orm@1.0.0-beta.11-05230d9(@types/mssql@9.1.9)(@types/pg@8.16.0)(mssql@11.0.1)(pg@8.16.3):
+  drizzle-orm@1.0.0-beta.12-a5629fb(@types/mssql@9.1.9)(@types/pg@8.16.0)(mssql@11.0.1)(pg@8.16.3):
     dependencies:
       '@types/mssql': 9.1.9
       mssql: 11.0.1
