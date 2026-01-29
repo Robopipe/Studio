@@ -9,16 +9,9 @@
     "build:cjs": "tsc -b tsconfig.cjs.json",
     "build:esm": "tsc -b tsconfig.esm.json"
   },
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "typesVersions": {
-    "*": {
-      "*": [
-        "src/*"
-      ]
-    }
-  },
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/cjs/index.d.ts",
   "files": [
     "./dist/**"
   ],
@@ -27,12 +20,25 @@
   },
   "exports": {
     ".": {
-      "import": "./dist/cjs/index.js",
-      "require": "./dist/esm/index.js"
+      "types": "./dist/cjs/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js"
     },
-    "./*": {
-      "import": "./dist/cjs/*.js",
-      "require": "./dist/esm/*.js"
+    "./schema": {
+      "types": "./dist/cjs/schema/index.d.ts",
+      "import": "./dist/esm/schema/index.js",
+      "require": "./dist/cjs/schema/index.js"
+    },
+    "./schema/*": {
+      "types": "./dist/cjs/schema/*.d.ts",
+      "import": "./dist/esm/schema/*.js",
+      "require": "./dist/cjs/schema/*.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "schema": ["./dist/cjs/schema/index.d.ts"],
+      "schema/*": ["./dist/cjs/schema/*.d.ts"]
     }
   },
   "devDependencies": {

@@ -17,6 +17,7 @@ async function bootstrap() {
     .setDescription("The Robopipe Studio API documentation")
     .setVersion("1.0")
     .build();
+
   const document = SwaggerModule.createDocument(app, documentConfig);
   SwaggerModule.setup("api", app, document);
 

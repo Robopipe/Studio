@@ -1,5 +1,5 @@
 namespace Express {
   interface Request {
-    user?: import("@repo/schema/index").User;
+    user?: import('src/modules/user/entities/user.entity').UserEntity;
   }
 }
