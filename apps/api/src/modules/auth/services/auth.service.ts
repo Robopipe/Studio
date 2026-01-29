@@ -19,7 +19,10 @@ export class AuthService {
   ) {}
 
   /**
-   * Authenticate user - used by Passport LocalStrategy
+   * Authenticate user
+   * @param email
+   * @param password
+   * @returns UserEntity or null if not authenticated
    */
   public async validateUser(email: string, password: string): Promise<UserEntity | null> {
     const user = await this.db.query.userTable.findFirst({
@@ -42,6 +45,9 @@ export class AuthService {
 
   /**
    * Login user
+   * @param userEntity
+   * @param res - Express response obj
+   * @returns Acces token
    */
   public login(user: UserEntity, res: Response): Token {
     const payload = { sub: user.id };
@@ -59,6 +65,8 @@ export class AuthService {
 
   /**
    * Refresh authentication token
+   * @param refreshToken
+   * @returns - new access token
    */
   public async refreshLogin(refreshToken: string): Promise<Token> {
     const { sub } = this.jwtService.verify<Jwt>(refreshToken);
@@ -73,11 +81,18 @@ export class AuthService {
 
   /**
    * Logout - clears refresh token cookie
+   * @param res - express response obj
    */
   public logout(res: Response): void {
     this.setRefreshTokenCookie(res, '', 0);
   }
 
+  /**
+   * Set refresh token cookie
+   * @param res - express response
+   * @param token - refresh token
+   * @param maxAge - token max age
+   */
   private setRefreshTokenCookie(res: Response, token: string, maxAge: number) {
     const apiHost = new URL(this.configService.apiHost).hostname;
     const webHost = this.configService.webHost
@@ -95,6 +110,12 @@ export class AuthService {
     });
   }
 
+  /**
+   * Compare user provided and hashed password
+   * @param plain
+   * @param hashed
+   * @returns boolean
+   */
   private checkPassword(plain: string, hashed: string): Promise<boolean> {
     return compare(plain, hashed);
   }
