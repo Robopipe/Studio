@@ -101,9 +101,6 @@ importers:
       zod:
         specifier: ^4.2.1
         version: 4.3.5
-      zop:
-        specifier: ^0.0.0
-        version: 0.0.0
     devDependencies:
       '@jest/globals':
         specifier: ^29.7.0
@@ -330,8 +327,8 @@ importers:
         specifier: ^0.45.1
         version: 0.45.1(@types/pg@8.16.0)(pg@8.16.3)
       drizzle-zod:
-        specifier: ^0.8.3
-        version: 0.8.3(drizzle-orm@0.45.1(@types/pg@8.16.0)(pg@8.16.3))(zod@4.3.5)
+        specifier: 1.0.0-beta.12-a5629fb
+        version: 1.0.0-beta.12-a5629fb(drizzle-orm@0.45.1(@types/pg@8.16.0)(pg@8.16.3))(zod@4.3.5)
       zod:
         specifier: ^4.3.5
         version: 4.3.5
@@ -3548,10 +3545,10 @@ packages:
       sqlite3:
         optional: true
 
-  drizzle-zod@0.8.3:
-    resolution: {integrity: sha512-66yVOuvGhKJnTdiqj1/Xaaz9/qzOdRJADpDa68enqS6g3t0kpNkwNYjUuaeXgZfO/UWuIM9HIhSlJ6C5ZraMww==}
+  drizzle-zod@1.0.0-beta.12-a5629fb:
+    resolution: {integrity: sha512-vVrK6eHnIZrnOv+m3X9hMeEHzW/Dl2VSmTQPhVYLalfArLtusHxbuTfJMhHj3LpU/JOA2+9mm2JsjUcCdCgvBg==}
     peerDependencies:
-      drizzle-orm: '>=0.36.0'
+      drizzle-orm: '>=1.0.0-beta.2'
       zod: ^3.25.0 || ^4.0.0
 
   dunder-proto@1.0.1:
@@ -6213,9 +6210,6 @@ packages:
 
   zod@4.3.5:
     resolution: {integrity: sha512-k7Nwx6vuWx1IJ9Bjuf4Zt1PEllcwe7cls3VNzm4CQ1/hgtFUK2bRNG3rvnpPUhFjmqJKAKtjV576KnUkHocg/g==}
-
-  zop@0.0.0:
-    resolution: {integrity: sha512-Rg5g9I3IPyTTdeTY/8z5dnNfmL0AVvczXHjUqgyvkBpLrDZW4nsbrPBeEvpDPEzfZSrBH3/mTLrxnvLFcY1baA==}
 
 snapshots:
 
@@ -9409,7 +9403,7 @@ snapshots:
       '@types/pg': 8.16.0
       pg: 8.16.3
 
-  drizzle-zod@0.8.3(drizzle-orm@0.45.1(@types/pg@8.16.0)(pg@8.16.3))(zod@4.3.5):
+  drizzle-zod@1.0.0-beta.12-a5629fb(drizzle-orm@0.45.1(@types/pg@8.16.0)(pg@8.16.3))(zod@4.3.5):
     dependencies:
       drizzle-orm: 0.45.1(@types/pg@8.16.0)(pg@8.16.3)
       zod: 4.3.5
@@ -12788,5 +12782,3 @@ snapshots:
       zod: 4.3.5
 
   zod@4.3.5: {}
-
-  zop@0.0.0: {}
