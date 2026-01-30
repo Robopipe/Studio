@@ -11,6 +11,6 @@ export const fileTable = p.pgTable("file", {
   type: fileTypeEnum("type").notNull(),
   path: p.varchar("path", {length: 256}).notNull(),
   // TODO: File metadata??
-  projectId: p.varchar("project_id", {length: 256}).references(() => projectTable.id, {onDelete: 'cascade'}).notNull(),
+  projectId: p.integer("project_id").references(() => projectTable.id, {onDelete: 'cascade'}).notNull(),
   createdAt
 })

@@ -6,7 +6,7 @@ import { taskTable } from './task'
 export const taskCommentTable = p.pgTable("task_comment",{
   id,
   content: p.text("content").notNull(),
-  taskId: p.varchar('task_id', {length: 256}).references(() => taskTable.id, {onDelete: 'cascade'}).notNull(),
-  authorId: p.varchar('author_id', {length: 256}).references(() => userTable.id, {onDelete: 'set null'}),
+  taskId: p.integer('task_id').references(() => taskTable.id, {onDelete: 'cascade'}).notNull(),
+  authorId: p.integer('author_id').references(() => userTable.id, {onDelete: 'set null'}),
   createdAt
 })
