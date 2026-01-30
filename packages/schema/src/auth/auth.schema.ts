@@ -16,3 +16,5 @@ export const jwtSchema = z.object({
   iat: z.int(),
   exp: z.int(),
 });
+
+export const registerSchema = loginSchema

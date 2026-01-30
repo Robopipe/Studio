@@ -1,4 +1,5 @@
 import { userTable } from "@repo/database";
-import { InferSelectModel } from "drizzle-orm";
+import { InferInsertModel, InferSelectModel } from "drizzle-orm";
 
 export type UserSelect = Omit<InferSelectModel<typeof userTable>, 'password'>
+export type UserInsert = InferInsertModel<typeof userTable>
