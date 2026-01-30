@@ -1,124 +1,62 @@
-# Turborepo starter
+<p align="center">
+  <img src="images/robopipe-cover-text.png" />
+</p>
 
-This is a community-maintained example. If you experience a problem, please submit a pull request with a fix. GitHub Issues will be closed.
+# 🚀 Advanced Industrial Machine Vision & AI Quality Inspection
 
-## Using this example
+**Revolutionizing automated defect detection and smart manufacturing through Deep Learning and Edge AI.**
 
-Run the following command:
+Robopipe Studio is an open-source software designed for capturing and processing image data, labeling images, and training and deploying offline machine learning models on Edge-Compute hardware (Luxonis). It provides a user-friendly interface for managing image datasets, annotating images, and building offline computer vision applications.
 
-```bash
-npx create-turbo@latest -e with-nestjs
-```
+## 📹 Capture, Label, Train and Infer
 
-## What's inside?
+Operators can label and fine-tune datasets using an intuitive interface, specifically engineered to handle complex, non-rigid products where traditional rule-based vision systems fail. Optimized models are deployed via [robopipe API](https://github.com/Robopipe/API/tree/main) to Edge-Compute hardware (Luxonis) for real-time inference in manufacturing processes.
 
-This Turborepo includes the following packages & apps:
+| ![Capture](https://cdn.prod.website-files.com/676e983aac02b65480d76ae2/691efe40601ae92796e9d44c_CAPTURE2-p-500.jpg) Capture |    ![Label](https://cdn.prod.website-files.com/676e983aac02b65480d76ae2/690d149215582d7c04bca6e6_label-p-500.png) Label     |
+| :-------------------------------------------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------------------------------------------: |
+|    ![Train](https://cdn.prod.website-files.com/676e983aac02b65480d76ae2/690d14abc269afc91d609691_train-p-500.png) Train     | ![Inference](https://cdn.prod.website-files.com/676e983aac02b65480d76ae2/690f974b25c665792d6e8e53_control2-p-500.jpg) Infer |
 
-### Apps and Packages
+## 📑 Documentation
 
-```shell
-.
-├── apps
-│   ├── api                       # NestJS app (https://nestjs.com).
-│   └── web                       # Next.js app (https://nextjs.org).
-└── packages
-    ├── @repo/api                 # Shared `NestJS` resources.
-    ├── @repo/eslint-config       # `eslint` configurations (includes `prettier`)
-    ├── @repo/jest-config         # `jest` configurations
-    ├── @repo/typescript-config   # `tsconfig.json`s used throughout the monorepo
-    └── @repo/ui                  # Shareable stub React component library.
-```
+To learn more about Robopipe Studio, please visit the [Robopipe Documentation](https://robopipe.gitbook.io/robopipe).
 
-Each package and application are mostly written in [TypeScript](https://www.typescriptlang.org/).
+## 🛠 Running the app
 
-### Utilities
+### From source
 
-This `Turborepo` has some additional tools already set for you:
+#### Prerequisites
 
-- [TypeScript](https://www.typescriptlang.org/) for static type-safety
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-- [Jest](https://prettier.io) & [Playwright](https://playwright.dev/) for testing
+- Pnpm v10.28.0 (or higher)
+- Git
 
-### Commands
+1. Clone the repository:
 
-This `Turborepo` already configured useful commands for all your apps and packages.
+   ```bash
+   git clone https://github.com/Robopipe/Studio.git
+   ```
 
-#### Build
+2. Navigate to the project directory:
 
-```bash
-# Will build all the app & packages with the supported `build` script.
-pnpm run build
+   ```bash
+   cd Studio
+   ```
 
-# ℹ️ If you plan to only build apps individually,
-# Please make sure you've built the packages first.
-```
+3. Install the required dependencies:
 
-#### Develop
+   ```bash
+   pnpm install
+   ```
 
-```bash
-# Will run the development server for all the app & packages with the supported `dev` script.
-pnpm run dev
-```
+4. Run the application:
 
-#### test
+   ```bash
+   pnpm dev
+   ```
 
-```bash
-# Will launch a test suites for all the app & packages with the supported `test` script.
-pnpm run test
+## 📬 Feedback
 
-# You can launch e2e testes with `test:e2e`
-pnpm run test:e2e
+Robopipe values all your feedback. If you encounter any problems with the app, please open a [GitHub issue](https://github.com/Robopipe/Studio/issues/new) for anything related to this app - bugs, improvement suggestions, documentation, developer experience, etc.
 
-# See `@repo/jest-config` to customize the behavior.
-```
+## 👫 Community
 
-#### Lint
-
-```bash
-# Will lint all the app & packages with the supported `lint` script.
-# See `@repo/eslint-config` to customize the behavior.
-pnpm run lint
-```
-
-#### Format
-
-```bash
-# Will format all the supported `.ts,.js,json,.tsx,.jsx` files.
-# See `@repo/eslint-config/prettier-base.js` to customize the behavior.
-pnpm format
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-```bash
-npx turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-```bash
-npx turbo link
-```
-
-## Useful Links
-
-This example take some inspiration the [with-nextjs](https://github.com/vercel/turborepo/tree/main/examples/with-nextjs) `Turbo` example and [01-cats-app](https://github.com/nestjs/nest/tree/master/sample/01-cats-app) `NestJs` sample.
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.com/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.com/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.com/docs/reference/configuration)
-- [CLI Usage](https://turborepo.com/docs/reference/command-line-reference)
+Join our [Robopipe subreddit](https://www.reddit.com/r/robopipe/) to share your apps, ask any questions regarding Robopipe, get help debugging your apps, or simply to read more about Robopipe from our users.
