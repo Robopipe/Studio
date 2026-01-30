@@ -32,7 +32,7 @@ export const relations = defineRelations(schema, (r) => ({
   taskCommentTable: {
     task: r.one.taskTable({
       from: r.taskCommentTable.taskId,
-      to: r.taskCommentTable.id
+      to: r.taskTable.id
     }),
     author: r.one.userTable({
       from: r.taskCommentTable.authorId,
@@ -48,6 +48,12 @@ export const relations = defineRelations(schema, (r) => ({
   modelTable: {
     project: r.one.projectTable({
       from: r.modelTable.projectId,
+      to: r.projectTable.id
+    })
+  },
+  fileTable: {
+    project: r.one.projectTable({
+      from: r.fileTable.projectId,
       to: r.projectTable.id
     })
   }
