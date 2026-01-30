@@ -5,12 +5,14 @@ import styles from "./Heading.module.scss";
 
 export type HeadingVariant = "h1" | "h2" | "h3" | "h4" | "h5";
 export type HeadingWeight = "500" | "600" | "700";
+export type HeadingAlignment = "left" | "center" | "right";
 
 export interface HeadingProps extends ComponentPropsWithoutRef<HeadingVariant> {
   children: ReactNode;
   variant?: HeadingVariant;
   weight?: HeadingWeight;
   color?: TextColor;
+  alignment?: HeadingAlignment;
 }
 
 export const Heading = forwardRef<HTMLHeadingElement, HeadingProps>(
@@ -22,6 +24,7 @@ export const Heading = forwardRef<HTMLHeadingElement, HeadingProps>(
       color,
       style,
       className,
+      alignment = "left",
       ...rest
     } = props;
     const Component = variant;
@@ -34,7 +37,11 @@ export const Heading = forwardRef<HTMLHeadingElement, HeadingProps>(
           styles[`heading--${variant}--${weight}`],
           className,
         )}
-        style={{ ...style, color: color ? `var(--color-${color})` : undefined }}
+        style={{
+          ...style,
+          color: color ? `var(--color-${color})` : undefined,
+          textAlign: alignment,
+        }}
         {...rest}
       >
         {children}

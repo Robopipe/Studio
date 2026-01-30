@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.11.2",
+    "@repo/schema": "workspace:*",
     "@repo/ui": "workspace:*",
     "i18next": "^25.8.0",
     "i18next-browser-languagedetector": "^8.2.0",

@@ -3,7 +3,7 @@ import { ScreenTooNarrow } from "./components";
 
 export interface ScreenAwareLayoutProps extends PropsWithChildren {}
 
-const SCREEN_NARROW_THRESHOLD = 9000;
+const SCREEN_NARROW_THRESHOLD = 900;
 
 export const ScreenAwareLayout = ({ children }: PropsWithChildren) => {
   const [isNarrow, setIsNarrow] = useState(false);

@@ -133,6 +133,9 @@
   // Background colors
   --color-background-default: #ffffff;
   --color-background-paper: #fafafa;
+  --color-background-gradient:
+    linear-gradient(180deg, rgba(67, 196, 125, 0.15) 0%, rgba(0, 0, 0, 0) 40%),
+    #0f0f18;
 
   // Text colors
   --color-text-primary: var(--color-gray-900);

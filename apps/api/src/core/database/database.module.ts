@@ -1,10 +1,9 @@
-import { Global, Module } from '@nestjs/common';
-import { drizzle } from 'drizzle-orm/node-postgres';
-import { Pool } from 'pg';
-import * as schema from '@repo/database/schema';
-import { AppConfig } from 'src/core/configuration/app.config';
-import { DB_CONNECTION } from './database.constant';
-
+import { Global, Module } from "@nestjs/common";
+import * as schema from "@repo/database/schema";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
+import { AppConfig } from "src/core/configuration/app.config";
+import { DB_CONNECTION } from "./database.constant";
 
 @Global()
 @Module({
@@ -16,7 +15,7 @@ import { DB_CONNECTION } from './database.constant';
           connectionString: config.databaseUrl,
         });
 
-        return drizzle({client: pool, schema})
+        return drizzle({ client: pool, schema });
       },
       inject: [AppConfig],
     },

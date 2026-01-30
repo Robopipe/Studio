@@ -1,4 +1,4 @@
-import "@/lib/i18n";
+import "@/core/i18n";
 
 import { Provider } from "./provider";
 

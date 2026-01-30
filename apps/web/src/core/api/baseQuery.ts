@@ -5,6 +5,8 @@ import {
   fetchBaseQuery,
   FetchBaseQueryError,
 } from "@reduxjs/toolkit/query";
+import { Token } from "@repo/schema";
+import { clearCredentials, setCredentials } from "../auth/services/authActions";
 import { ACCESS_TOKEN_KEY } from "./constants";
 
 export const baseQuery = fetchBaseQuery({
@@ -33,12 +35,12 @@ export const baseRefreshingQuery: BaseQueryFn<
   const result = await baseQuery(args, api, extraOptions);
   if (result.error && result.error.status === 401) {
     const refreshResult = await baseQuery(
-      { url: config.api.endpoints.refreshTokens, method: "POST" },
+      { url: appConfig.studioApi.endpoints.auth.refreshToken, method: "POST" },
       api,
       extraOptions,
     );
     if (refreshResult.data) {
-      api.dispatch(setCredentials(refreshResult.data as LoginResponse));
+      api.dispatch(setCredentials(refreshResult.data as Token));
       return baseQuery(args, api, extraOptions);
     } else {
       api.dispatch(clearCredentials());
