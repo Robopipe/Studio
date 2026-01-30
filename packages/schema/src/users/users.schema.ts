@@ -1,5 +1,11 @@
-import { createSelectSchema } from "drizzle-zod";
-import { users } from "@repo/database/schema/entities/users";
+import z from "zod";
 
-const privateUserSchema = createSelectSchema(users);
-export const userSchema = privateUserSchema.omit({ password: true });
+export const userSchema = z.object({
+  id: z.number(),
+  username: z.string(),
+  email: z.email(),
+  fullName: z.string(),
+  organizationId: z.number(),
+  createdAt: z.date(),
+  updatedAt: z.date()
+})
