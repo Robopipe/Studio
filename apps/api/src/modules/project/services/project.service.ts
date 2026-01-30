@@ -1,0 +1,80 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import type { CreateProjectRequest, UpdateProjectRequest } from '@repo/schema';
+import { ProjectEntity } from '../entities/project.entity';
+import { ProjectRepository } from 'src/repository/services/project-repository.service';
+
+@Injectable()
+export class ProjectService {
+  constructor(private readonly projectRepository: ProjectRepository) {}
+
+  /**
+   * Get project
+   * @throws NotFoundException - Project not found
+   * @returns Project entity
+   */
+  public async getProject(id: number, organizationId: number): Promise<ProjectEntity> {
+    const project = await this.projectRepository.getByIdAndOrganizationId(id, organizationId);
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    return project;
+  }
+
+  /**
+   * Get org projects
+   * @param organizationId
+   * @returns Project entities
+   */
+  public async getOrganizationProjects(organizationId: number): Promise<ProjectEntity[]> {
+    return this.projectRepository.getAllByOrganizationId(organizationId);
+  }
+
+  /**
+   * Create project
+   * @param data  - CreateProjectRequest
+   * @param organizationId
+   * @returns Created Project entity
+   */
+  public async create(data: CreateProjectRequest, organizationId: number): Promise<ProjectEntity> {
+    return this.projectRepository.create({ ...data, organizationId });
+  }
+
+  /**
+   * Update project
+   * @param id - project ID
+   * @param data - UpdateProjectRequest
+   * @throws NotFoundException - Project not found
+   * @returns - Updated project entity
+   */
+  public async update(
+    id: number,
+    data: UpdateProjectRequest,
+    organizationId: number,
+  ): Promise<ProjectEntity> {
+    const project = await this.projectRepository.getByIdAndOrganizationId(id, organizationId);
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    return this.projectRepository.update(id, data);
+  }
+
+  /**
+   * Delete project
+   * @param id - project Id
+   * @param organization id
+   * @throws NotFoundException - Project not found
+   */
+  public async delete(id: number, organizationId: number): Promise<void> {
+    const project = await this.projectRepository.getByIdAndOrganizationId(id, organizationId);
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    await this.projectRepository.delete(id);
+  }
+}

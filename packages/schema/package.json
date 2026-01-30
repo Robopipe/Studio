@@ -9,16 +9,9 @@
     "build:cjs": "tsc -b tsconfig.cjs.json",
     "build:esm": "tsc -b tsconfig.esm.json"
   },
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "typesVersions": {
-    "*": {
-      "*": [
-        "src/*"
-      ]
-    }
-  },
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/cjs/index.d.ts",
   "files": [
     "./dist/**"
   ],
@@ -27,18 +20,20 @@
   },
   "exports": {
     ".": {
-      "import": "./dist/cjs/index.js",
-      "require": "./dist/esm/index.js"
+      "types": "./dist/cjs/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js"
     },
     "./*": {
-      "import": "./dist/cjs/*.js",
-      "require": "./dist/esm/*.js"
+      "types": "./dist/cjs/*.d.ts",
+      "import": "./dist/esm/*.js",
+      "require": "./dist/cjs/*.js"
     }
   },
   "dependencies": {
     "@repo/database": "workspace:*",
     "drizzle-orm": "^0.45.1",
-    "drizzle-zod": "^0.8.3",
+    "drizzle-zod": "1.0.0-beta.12-a5629fb",
     "zod": "^4.3.5"
   },
   "devDependencies": {

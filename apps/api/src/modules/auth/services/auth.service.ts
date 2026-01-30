@@ -1,37 +1,56 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
-import { JwtService } from "@nestjs/jwt";
-import { users } from "@repo/database/schema/index";
-import { Jwt, Token, User } from "@repo/schema/index";
-import { compare } from "bcrypt";
-import { eq } from "drizzle-orm";
-import { Response } from "express";
-import { AppConfig } from "src/core/configuration/app.config";
-import { DatabaseService } from "src/core/database/services/database.service";
+import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import type { Jwt, Token } from '@repo/schema';
+import { compare } from 'bcrypt';
+import type { Response } from 'express';
+import { AppConfig } from 'src/core/configuration/app.config';
+import { DB_CONNECTION } from 'src/core/database/database.constant';
+import type { DbConnection } from 'src/core/database/types/database.types';
+import { UserEntity } from 'src/modules/user/entities/user.entity';
+import { UserRepository } from 'src/repository/services/user-repository.service';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly dbService: DatabaseService,
+    @Inject(DB_CONNECTION) private readonly db: DbConnection,
+    private readonly userRepository: UserRepository,
     private readonly jwtService: JwtService,
     private readonly configService: AppConfig,
   ) {}
 
-  async validateUser(email: string, password: string): Promise<User | null> {
-    const user = await this.dbService.db.query.users.findFirst({
-      where: eq(users.email, email),
+  /**
+   * Authenticate user
+   * @param email
+   * @param password
+   * @returns UserEntity or null if not authenticated
+   */
+  public async validateUser(email: string, password: string): Promise<UserEntity | null> {
+    const user = await this.db.query.userTable.findFirst({
+      where: { email },
     });
 
-    if (!user || !(await this.checkPassword(password, user.password))) {
+    if (!user) {
+      return null;
+    }
+
+    const isPasswordValid = await this.checkPassword(password, user.password);
+
+    if (!isPasswordValid) {
       return null;
     }
 
     const { password: _, ...rest } = user;
-
-    return rest;
+    return new UserEntity(rest);
   }
 
-  login(user: User, res: Response): Token {
-    const payload = { sub: user.id.toString() };
+  /**
+   * Login user
+   * @param userEntity
+   * @param res - Express response obj
+   * @returns Acces token
+   */
+  public login(user: UserEntity, res: Response): Token {
+    const payload = { sub: user.id };
     const accessToken = this.jwtService.sign(payload);
     const refreshTokenDuration =
       this.configService.jwt.refreshTokenDuration ?? 7 * 24 * 60 * 60; // 7 days
@@ -41,26 +60,39 @@ export class AuthService {
 
     this.setRefreshTokenCookie(res, refreshToken, refreshTokenDuration * 1000);
 
-    return { accessToken, user };
+    return { accessToken, user: user.toDto() };
   }
 
-  async refreshLogin(refreshToken: string): Promise<Token> {
+  /**
+   * Refresh authentication token
+   * @param refreshToken
+   * @returns - new access token
+   */
+  public async refreshLogin(refreshToken: string): Promise<Token> {
     const { sub } = this.jwtService.verify<Jwt>(refreshToken);
-    const user = await this.dbService.db.query.users.findFirst({
-      where: eq(users.id, sub),
-    });
+    const user = await this.userRepository.getById(sub);
 
     if (!user) {
-      throw new UnauthorizedException();
+      throw new UnauthorizedException('User not found');
     }
 
-    return { accessToken: this.jwtService.sign({ sub }), user };
+    return { accessToken: this.jwtService.sign({ sub }), user: user.toDto() };
   }
 
-  logout(res: Response) {
-    this.setRefreshTokenCookie(res, "", 0);
+  /**
+   * Logout - clears refresh token cookie
+   * @param res - express response obj
+   */
+  public logout(res: Response): void {
+    this.setRefreshTokenCookie(res, '', 0);
   }
 
+  /**
+   * Set refresh token cookie
+   * @param res - express response
+   * @param token - refresh token
+   * @param maxAge - token max age
+   */
   private setRefreshTokenCookie(res: Response, token: string, maxAge: number) {
     const apiHost = new URL(this.configService.apiHost).hostname;
     const webHost = this.configService.webHost
@@ -68,16 +100,22 @@ export class AuthService {
       : null;
     const domain = webHost && apiHost.includes(webHost) ? webHost : apiHost;
 
-    res.cookie("refreshToken", token, {
+    res.cookie('refreshToken', token, {
       httpOnly: true,
-      secure: this.configService.env !== "local",
+      secure: this.configService.env !== 'local',
       signed: true,
-      sameSite: "strict",
+      sameSite: 'strict',
       domain,
       maxAge,
     });
   }
 
+  /**
+   * Compare user provided and hashed password
+   * @param plain
+   * @param hashed
+   * @returns boolean
+   */
   private checkPassword(plain: string, hashed: string): Promise<boolean> {
     return compare(plain, hashed);
   }
