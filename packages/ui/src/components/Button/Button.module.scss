@@ -1,225 +1,164 @@
 @use "sass:map";
 @use "../../themes/common/mixins.scss" as mixins;
 
-$sizes: (
+$size-variants: (
+  xs: (
+    padding: 0.25rem 0.75rem,
+    border-radius: 0.5rem,
+    text: 12,
+    icon-size: 1rem,
+  ),
   sm: (
-    padding: 0.5rem 1rem,
-    font-size: 0.875rem,
-    height: 2rem,
+    padding: 0.5rem 0.875rem,
+    border-radius: 0.5rem,
+    text: 12,
+    icon-size: 1rem,
   ),
   md: (
-    padding: 0.75rem 1.5rem,
-    font-size: 1rem,
-    height: 2.5rem,
+    padding: 0.5rem 1.25rem,
+    border-radius: 0.75rem,
+    text: 16,
+    icon-size: 1.5rem,
   ),
   lg: (
-    padding: 1rem 2rem,
-    font-size: 1.125rem,
-    height: 3rem,
+    padding: 0.75rem 1.5rem,
+    border-radius: 0.75rem,
+    text: 16,
+    icon-size: 1.5rem,
   ),
 );
-
+$color-variants: (
+  filled: (
+    default: (
+      background: var(--color-emerald-700),
+      border: none,
+      color: var(--color-white),
+    ),
+    hover: (
+      background: var(--color-emerald-600),
+      border: none,
+      color: var(--color-white),
+    ),
+    active: (
+      background: var(--color-emerald-700),
+      border: none,
+      color: var(--color-white),
+    ),
+    disabled: (
+      background: var(--color-gray-500),
+      border: none,
+      color: var(--color-white),
+    ),
+  ),
+  outlined: (
+    default: (
+      background: transparent,
+      border: 1px solid var(--color-emerald-700),
+      color: var(--color-emerald-700),
+    ),
+    hover: (
+      background: var(--color-emerald-50),
+      border: 1px solid var(--color-emerald-600),
+      color: var(--color-emerald-600),
+    ),
+    active: (
+      background: transparent,
+      border: 1px solid var(--color-emerald-700),
+      color: var(--color-emerald-700),
+    ),
+    disabled: (
+      background: transparent,
+      border: 1px solid var(--color-gray-500),
+      color: var(--color-gray-500),
+    ),
+  ),
+  text: (
+    default: (
+      background: transparent,
+      border: none,
+      color: var(--color-emerald-700),
+    ),
+    hover: (
+      background: var(--color-emerald-50),
+      border: none,
+      color: var(--color-emerald-600),
+    ),
+    active: (
+      background: var(--color-emerald-400),
+      border: none,
+      color: var(--color-emerald-700),
+    ),
+    disabled: (
+      background: transparent,
+      border: none,
+      color: var(--color-gray-500),
+    ),
+  ),
+);
 .button {
+  @each $size, $props in $size-variants {
+    &--#{$size} {
+      padding: map.get($props, padding);
+      border-radius: map.get($props, border-radius);
+      @include mixins.text(map.get($props, text));
+      font-weight: 500;
+      .button__icon {
+        width: map.get($props, icon-size);
+        height: map.get($props, icon-size);
+      }
+    }
+  }
+  @each $color-variant, $states in $color-variants {
+    &--#{$color-variant} {
+      background: map.get(map.get($states, default), background);
+      border: map.get(map.get($states, default), border);
+      color: map.get(map.get($states, default), color);
+      svg path {
+        fill: map.get(map.get($states, default), color);
+      }
+      &:hover:not([data-disabled]) {
+        background: map.get(map.get($states, hover), background);
+        border: map.get(map.get($states, hover), border);
+        color: map.get(map.get($states, hover), color);
+        svg path {
+          fill: map.get(map.get($states, default), color);
+        }
+      }
+      &:active:not([data-disabled]) {
+        background: map.get(map.get($states, active), background);
+        border: map.get(map.get($states, active), border);
+        color: map.get(map.get($states, active), color);
+        svg path {
+          fill: map.get(map.get($states, default), color);
+        }
+      }
+      &:disabled {
+        background: map.get(map.get($states, disabled), background);
+        border: map.get(map.get($states, disabled), border);
+        color: map.get(map.get($states, disabled), color);
+        cursor: not-allowed;
+        opacity: 0.7;
+        svg path {
+          fill: map.get(map.get($states, default), color);
+        }
+      }
+    }
+  }
+  @include mixins.transition(background, border, color);
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  font-family: var(--font-family-text);
-  font-weight: 600;
-  border: 1px solid transparent;
-  border-radius: 99px;
-  cursor: pointer;
-  transition: all 0.2s ease-in-out;
-  position: relative;
-  white-space: nowrap;
+  outline: none;
 
-  &:focus-visible {
-    outline: 2px solid var(--color-emerald-500);
-    outline-offset: 2px;
-  }
-
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.5;
-  }
-
-  &--full-width {
+  &--fullWidth {
     width: 100%;
   }
 
-  // Sizes
-  @each $size-key, $size-values in $sizes {
-    &--#{$size-key} {
-      padding: map.get($size-values, "padding");
-      font-size: map.get($size-values, "font-size");
-      height: map.get($size-values, "height");
-    }
-  }
-
-  // Variants and Colors - Primary (Emerald)
-  &--filled {
-    &.button--primary {
-      background-color: var(--color-emerald-600);
-      color: var(--color-text-inverse);
-      border-color: var(--color-emerald-600);
-
-      &:hover:not(:disabled) {
-        background-color: var(--color-emerald-700);
-        border-color: var(--color-emerald-700);
-      }
-
-      &:active:not(:disabled) {
-        background-color: var(--color-emerald-800);
-        border-color: var(--color-emerald-800);
-      }
-
-      &:disabled {
-        background-color: var(--color-gray-300);
-        border-color: var(--color-gray-300);
-        color: var(--color-gray-500);
-      }
-    }
-
-    // Gray variant
-    &.button--gray {
-      background-color: var(--color-gray-400);
-      color: var(--color-text-inverse);
-      border-color: var(--color-gray-400);
-
-      &:hover:not(:disabled) {
-        background-color: var(--color-gray-500);
-        border-color: var(--color-gray-500);
-      }
-
-      &:active:not(:disabled) {
-        background-color: var(--color-gray-600);
-        border-color: var(--color-gray-600);
-      }
-
-      &:disabled {
-        background-color: var(--color-gray-300);
-        border-color: var(--color-gray-300);
-        color: var(--color-gray-500);
-      }
-    }
-  }
-
-  &--outlined {
-    background-color: transparent;
-    border-width: 1px;
-
-    &.button--primary {
-      border-color: var(--color-emerald-600);
-      color: var(--color-emerald-600);
-
-      &:hover:not(:disabled) {
-        background-color: var(--color-emerald-50);
-      }
-
-      &:active:not(:disabled) {
-        background-color: var(--color-emerald-100);
-      }
-
-      &:disabled {
-        border-color: var(--color-gray-300);
-        color: var(--color-gray-400);
-      }
-    }
-
-    &.button--gray {
-      border-color: var(--color-gray-400);
-      color: var(--color-gray-600);
-
-      &:hover:not(:disabled) {
-        background-color: var(--color-gray-100);
-      }
-
-      &:active:not(:disabled) {
-        background-color: var(--color-gray-200);
-      }
-
-      &:disabled {
-        border-color: var(--color-gray-300);
-        color: var(--color-gray-400);
-      }
-    }
-  }
-
-  &--text {
-    background-color: transparent;
-    border-color: transparent;
-
-    &.button--primary {
-      color: var(--color-emerald-600);
-
-      &:hover:not(:disabled) {
-        background-color: var(--color-emerald-50);
-      }
-
-      &:active:not(:disabled) {
-        background-color: var(--color-emerald-100);
-      }
-
-      &:disabled {
-        color: var(--color-gray-400);
-      }
-    }
-
-    &.button--gray {
-      color: var(--color-gray-600);
-
-      &:hover:not(:disabled) {
-        background-color: var(--color-gray-100);
-      }
-
-      &:active:not(:disabled) {
-        background-color: var(--color-gray-200);
-      }
-
-      &:disabled {
-        color: var(--color-gray-400);
-      }
-    }
-  }
-
-  // Loading state
-  &--loading {
-    color: transparent;
-
-    &:hover,
-    &:active {
-      cursor: wait;
-    }
-  }
-
-  // Icon styling
-  &__icon--start,
-  &__icon--end {
-    display: inline-flex;
+  &__icon {
+    display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
-  }
-
-  &__text {
-    display: inline-flex;
-    align-items: center;
-  }
-
-  // Loading spinner
-  &__spinner {
-    position: absolute;
-    width: 1.2em;
-    height: 1.2em;
-    border: 2px solid currentColor;
-    border-right-color: transparent;
-    border-radius: 50%;
-    animation: spin 0.6s linear infinite;
-  }
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
   }
 }
