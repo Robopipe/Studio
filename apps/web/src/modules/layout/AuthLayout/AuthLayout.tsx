@@ -15,7 +15,7 @@ export const AuthLayout = ({ children }: AuthLayoutProps) => {
 
   return (
     <ScreenAwareLayout>
-      <Stack className={styles.authLayout} direction="row">
+      <Stack className={styles.authLayout} direction="row" gap={0}>
         <Container
           paddingX="xl"
           paddingY="xl"
