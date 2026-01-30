@@ -1,0 +1,225 @@
+@use "sass:map";
+@use "../../themes/common/mixins.scss" as mixins;
+
+$sizes: (
+  sm: (
+    padding: 0.5rem 1rem,
+    font-size: 0.875rem,
+    height: 2rem,
+  ),
+  md: (
+    padding: 0.75rem 1.5rem,
+    font-size: 1rem,
+    height: 2.5rem,
+  ),
+  lg: (
+    padding: 1rem 2rem,
+    font-size: 1.125rem,
+    height: 3rem,
+  ),
+);
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: var(--font-family-text);
+  font-weight: 600;
+  border: 1px solid transparent;
+  border-radius: 99px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  position: relative;
+  white-space: nowrap;
+
+  &:focus-visible {
+    outline: 2px solid var(--color-emerald-500);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  &--full-width {
+    width: 100%;
+  }
+
+  // Sizes
+  @each $size-key, $size-values in $sizes {
+    &--#{$size-key} {
+      padding: map.get($size-values, "padding");
+      font-size: map.get($size-values, "font-size");
+      height: map.get($size-values, "height");
+    }
+  }
+
+  // Variants and Colors - Primary (Emerald)
+  &--filled {
+    &.button--primary {
+      background-color: var(--color-emerald-600);
+      color: var(--color-text-inverse);
+      border-color: var(--color-emerald-600);
+
+      &:hover:not(:disabled) {
+        background-color: var(--color-emerald-700);
+        border-color: var(--color-emerald-700);
+      }
+
+      &:active:not(:disabled) {
+        background-color: var(--color-emerald-800);
+        border-color: var(--color-emerald-800);
+      }
+
+      &:disabled {
+        background-color: var(--color-gray-300);
+        border-color: var(--color-gray-300);
+        color: var(--color-gray-500);
+      }
+    }
+
+    // Gray variant
+    &.button--gray {
+      background-color: var(--color-gray-400);
+      color: var(--color-text-inverse);
+      border-color: var(--color-gray-400);
+
+      &:hover:not(:disabled) {
+        background-color: var(--color-gray-500);
+        border-color: var(--color-gray-500);
+      }
+
+      &:active:not(:disabled) {
+        background-color: var(--color-gray-600);
+        border-color: var(--color-gray-600);
+      }
+
+      &:disabled {
+        background-color: var(--color-gray-300);
+        border-color: var(--color-gray-300);
+        color: var(--color-gray-500);
+      }
+    }
+  }
+
+  &--outlined {
+    background-color: transparent;
+    border-width: 1px;
+
+    &.button--primary {
+      border-color: var(--color-emerald-600);
+      color: var(--color-emerald-600);
+
+      &:hover:not(:disabled) {
+        background-color: var(--color-emerald-50);
+      }
+
+      &:active:not(:disabled) {
+        background-color: var(--color-emerald-100);
+      }
+
+      &:disabled {
+        border-color: var(--color-gray-300);
+        color: var(--color-gray-400);
+      }
+    }
+
+    &.button--gray {
+      border-color: var(--color-gray-400);
+      color: var(--color-gray-600);
+
+      &:hover:not(:disabled) {
+        background-color: var(--color-gray-100);
+      }
+
+      &:active:not(:disabled) {
+        background-color: var(--color-gray-200);
+      }
+
+      &:disabled {
+        border-color: var(--color-gray-300);
+        color: var(--color-gray-400);
+      }
+    }
+  }
+
+  &--text {
+    background-color: transparent;
+    border-color: transparent;
+
+    &.button--primary {
+      color: var(--color-emerald-600);
+
+      &:hover:not(:disabled) {
+        background-color: var(--color-emerald-50);
+      }
+
+      &:active:not(:disabled) {
+        background-color: var(--color-emerald-100);
+      }
+
+      &:disabled {
+        color: var(--color-gray-400);
+      }
+    }
+
+    &.button--gray {
+      color: var(--color-gray-600);
+
+      &:hover:not(:disabled) {
+        background-color: var(--color-gray-100);
+      }
+
+      &:active:not(:disabled) {
+        background-color: var(--color-gray-200);
+      }
+
+      &:disabled {
+        color: var(--color-gray-400);
+      }
+    }
+  }
+
+  // Loading state
+  &--loading {
+    color: transparent;
+
+    &:hover,
+    &:active {
+      cursor: wait;
+    }
+  }
+
+  // Icon styling
+  &__icon--start,
+  &__icon--end {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  &__text {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  // Loading spinner
+  &__spinner {
+    position: absolute;
+    width: 1.2em;
+    height: 1.2em;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

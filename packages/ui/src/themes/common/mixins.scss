@@ -1,0 +1,45 @@
+// Typography Mixins
+
+// Heading mixins
+@mixin heading($variant, $weight) {
+  font-family: var(--font-family-heading);
+  font-size: var(--typography-#{$variant}-font-size);
+  line-height: var(--typography-#{$variant}-line-height);
+  letter-spacing: var(--typography-#{$variant}-letter-spacing);
+  font-weight: $weight;
+}
+
+// Text mixins
+@mixin text($size) {
+  font-size: var(--typography-text-#{$size}-font-size);
+  line-height: var(--typography-text-#{$size}-line-height);
+  letter-spacing: 0;
+}
+
+// Breakpoint mixins
+@mixin breakpoint-up($breakpoint) {
+  @media (min-width: var(--breakpoint-#{$breakpoint})) {
+    @content;
+  }
+}
+
+@mixin breakpoint-down($breakpoint) {
+  @media (max-width: calc(var(--breakpoint-#{$breakpoint}) - 1px)) {
+    @content;
+  }
+}
+
+// Focus visible styles
+@mixin focus-visible {
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
+
+// Transition mixin
+@mixin transition($properties...) {
+  transition-property: $properties;
+  transition-duration: 0.2s;
+  transition-timing-function: ease-in-out;
+}

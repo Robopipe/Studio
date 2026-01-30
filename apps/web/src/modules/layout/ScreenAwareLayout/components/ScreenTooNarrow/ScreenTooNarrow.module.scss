@@ -1,0 +1,20 @@
+.screenTooNarrow {
+  background:
+    linear-gradient(180deg, rgba(67, 196, 125, 0.15) 0%, rgba(0, 0, 0, 0) 40%),
+    #0f0f18;
+  height: 100vh;
+  padding-bottom: 2rem;
+
+  .content {
+    height: 100%;
+  }
+
+  .icon {
+    margin-top: 2rem;
+  }
+
+  .message {
+    max-width: 48rem;
+    text-align: center;
+  }
+}

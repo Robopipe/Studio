@@ -1,0 +1,107 @@
+@use "sass:map";
+
+$gaps: (
+  xs: 0.25rem,
+  sm: 0.5rem,
+  md: 1rem,
+  lg: 1.5rem,
+  xl: 2rem,
+  2xl: 3rem,
+);
+
+.stack {
+  display: flex;
+  box-sizing: border-box;
+}
+
+// Direction variants
+.stack--direction-row {
+  flex-direction: row;
+}
+
+.stack--direction-column {
+  flex-direction: column;
+}
+
+.stack--direction-row-reverse {
+  flex-direction: row-reverse;
+}
+
+.stack--direction-column-reverse {
+  flex-direction: column-reverse;
+}
+
+// Gap variants
+@each $name, $value in $gaps {
+  .stack--gap-#{$name} {
+    gap: $value;
+  }
+}
+
+// Align variants
+.stack--align-start {
+  align-items: flex-start;
+}
+
+.stack--align-center {
+  align-items: center;
+}
+
+.stack--align-end {
+  align-items: flex-end;
+}
+
+.stack--align-stretch {
+  align-items: stretch;
+}
+
+.stack--align-baseline {
+  align-items: baseline;
+}
+
+// Justify variants
+.stack--justify-start {
+  justify-content: flex-start;
+}
+
+.stack--justify-center {
+  justify-content: center;
+}
+
+.stack--justify-end {
+  justify-content: flex-end;
+}
+
+.stack--justify-space-between {
+  justify-content: space-between;
+}
+
+.stack--justify-space-around {
+  justify-content: space-around;
+}
+
+.stack--justify-space-evenly {
+  justify-content: space-evenly;
+}
+
+// Wrap variants
+.stack--wrap-wrap {
+  flex-wrap: wrap;
+}
+
+.stack--wrap-nowrap {
+  flex-wrap: nowrap;
+}
+
+.stack--wrap-wrap-reverse {
+  flex-wrap: wrap-reverse;
+}
+
+// Utility variants
+.stack--full-width {
+  width: 100%;
+}
+
+.stack--full-height {
+  height: 100%;
+}
