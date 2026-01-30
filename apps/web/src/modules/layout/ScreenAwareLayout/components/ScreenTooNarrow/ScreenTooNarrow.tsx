@@ -33,6 +33,7 @@ export const ScreenTooNarrow = () => {
             weight="500"
             color="text-white-primary"
             className={styles.title}
+            alignment="center"
           >
             Unsupported <br /> screen size
           </Heading>
