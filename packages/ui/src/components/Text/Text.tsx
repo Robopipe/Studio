@@ -31,7 +31,6 @@ export const Text = forwardRef<HTMLElement, TextProps>(
     },
     ref,
   ) => {
-    console.log(styles[`text--text-20`]);
     const Component = as;
 
     return (

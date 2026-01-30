@@ -1,3 +1,4 @@
+export * as bui from "@base-ui/react";
 export * from "./Button";
 export * from "./Container";
 export * from "./Heading";
