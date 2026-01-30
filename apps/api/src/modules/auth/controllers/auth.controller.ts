@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Get,
   Post,
@@ -17,6 +18,7 @@ import { User } from '../decorators/user.decorator';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { LocalAuthGuard } from '../guards/local-auth.guard';
 import { AuthService } from '../services/auth.service';
+import { RegisterDto } from "../dto/auth.dto";
 
 @Controller('auth')
 @Public()
@@ -56,5 +58,10 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   getProfile(@User() user: UserEntity): UserDto {
     return user.toDto();
+  }
+
+  @Post("register")
+  public register(@Body() data: RegisterDto, @Res({passthrough: true}) res: Response): Promise<Token>{
+    return this.authService.register(data, res)
   }
 }
