@@ -1,5 +1,5 @@
 import { Global, Module } from "@nestjs/common";
-import * as drizzleSchema from "@repo/database/schema";
+import * as schema from "@repo/database/schema";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { AppConfig } from "src/core/configuration/app.config";
@@ -15,9 +15,8 @@ import { DB_CONNECTION } from "./database.constant";
           connectionString: config.databaseUrl,
         });
 
-        const {relations, ...schema} = drizzleSchema
-
-        return drizzle({ client: pool, schema, relations });
+        const {relations, ...entities} = schema;
+        return drizzle({ client: pool, schema: {...entities}, relations });
       },
       inject: [AppConfig],
     },
