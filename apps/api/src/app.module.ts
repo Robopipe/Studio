@@ -7,6 +7,9 @@ import { ProjectModule } from "./modules/project/project.module";
 import { RepositoryModule } from "./repository/repository.module";
 import { AssetsModule } from "./modules/assets/assets.module";
 import { TaskModule } from "./modules/task/task.module";
+import { TrainingExternalService } from "./modules/training-external/services/training-external.service";
+import { TrainingExternalModule } from "./modules/training-external/training-external.module";
+import { ModelModule } from "./modules/model/model.module";
 
 @Module({
   imports: [
@@ -17,7 +20,10 @@ import { TaskModule } from "./modules/task/task.module";
     OrganizationModule,
     ProjectModule,
     AssetsModule,
-    TaskModule
+    TaskModule,
+    TrainingExternalService,
+    TrainingExternalModule,
+    ModelModule
   ],
 })
 export class AppModule {}
