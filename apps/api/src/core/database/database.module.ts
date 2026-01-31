@@ -15,7 +15,8 @@ import { DB_CONNECTION } from "./database.constant";
           connectionString: config.databaseUrl,
         });
 
-        return drizzle({ client: pool, schema });
+        const {relations, ...entities} = schema;
+        return drizzle({ client: pool, schema: {...entities}, relations });
       },
       inject: [AppConfig],
     },
