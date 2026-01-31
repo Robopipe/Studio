@@ -3,6 +3,7 @@ import { SelectCamera } from "../SelectCamera";
 import { Orientation, SelectOrientation } from "../SelectOrientation";
 import { SelectStream } from "../SelectStream";
 
+import { useCaptureImageFromCamera } from "../../hooks/useCaptureImageFromCamera";
 import styles from "./CaptureSettings.module.scss";
 
 export interface CaptureSettingsProps {
@@ -22,6 +23,8 @@ export const CaptureSettings = ({
   onSelectStream,
   onSelectOrientation,
 }: CaptureSettingsProps) => {
+  const { handleCaptureImage, isLoading } = useCaptureImageFromCamera();
+
   return (
     <Stack className={styles.settings}>
       <Text variant="text-10" weight="700" className={styles.preTitle}>
@@ -38,7 +41,12 @@ export const CaptureSettings = ({
         value={selectedOrientation}
         onSelect={onSelectOrientation}
       />
-      <Button>Start capturing</Button>
+      <Button
+        onClick={() => handleCaptureImage(selectedCamera!, selectedStream!)}
+        disabled={!selectedCamera || !selectedStream || isLoading}
+      >
+        Capture image
+      </Button>
     </Stack>
   );
 };
