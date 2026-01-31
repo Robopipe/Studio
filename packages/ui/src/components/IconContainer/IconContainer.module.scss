@@ -1,0 +1,62 @@
+@use "sass:map";
+
+$color-variants: (
+  neutral: (
+    border: var(--color-surface-5),
+    bg: var(--color-surface-5),
+    icon: rgba(0, 0, 0, 0.9),
+  ),
+  success: (
+    border: var(--color-emerald-200),
+    bg: var(--color-emerald-100),
+    icon: var(--color-emerald-700),
+  ),
+  danger: (
+    border: var(--color-red-200),
+    bg: var(--color-red-100),
+    icon: var(--color-red-700),
+  ),
+  dark: (
+    border: rgba(255, 255, 255, 0.05),
+    bg: rgba(255, 255, 255, 0.03),
+    icon: var(--color-emerald-400),
+  ),
+);
+.iconContainer {
+  width: 5rem;
+  height: 5rem;
+  padding: 0.5rem;
+  border-radius: 100%;
+  border-width: 1px;
+  border-style: solid;
+
+  @each $color-key, $styles in $color-variants {
+    &--#{$color-key} {
+      border-color: map.get($styles, "border");
+    }
+
+    &__halo--#{$color-key} {
+      border-color: map.get($styles, "border");
+      background-color: map.get($styles, "bg");
+      svg path {
+        fill: map.get($styles, "icon");
+      }
+    }
+  }
+
+  &__halo {
+    width: 100%;
+    height: 100%;
+    border-radius: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-width: 1px;
+    border-style: solid;
+  }
+
+  svg {
+    height: 2rem;
+    width: 2rem;
+  }
+}

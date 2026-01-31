@@ -1,0 +1,73 @@
+@use "sass:map";
+
+// Import fonts
+@forward "@fontsource/barlow/500.css";
+@forward "@fontsource/barlow/600.css";
+@forward "@fontsource/barlow/700.css";
+@forward "@fontsource/inter/400.css";
+@forward "@fontsource/space-grotesk/400.css";
+@forward "@fontsource/space-grotesk/500.css";
+@forward "@fontsource/space-grotesk/700.css";
+@forward "@fontsource/space-mono/400.css";
+
+// Typography CSS Variables
+:root {
+  // Font families
+  --font-family-heading: "Barlow", sans-serif;
+  --font-family-text: "Space Grotesk", sans-serif;
+  --font-family-code: "Space Mono", monospace;
+  --font-family-number: "Inter", sans-serif;
+
+  // Heading sizes - h1
+  --typography-h1-font-size: 3.5rem; // 56px
+  --typography-h1-line-height: 1.25em; // 68px
+  --typography-h1-letter-spacing: -0.075em;
+
+  // Heading sizes - h2
+  --typography-h2-font-size: 2.75rem; // 44px
+  --typography-h2-line-height: 1.25em; // 56px
+  --typography-h2-letter-spacing: -0.06em;
+
+  // Heading sizes - h3
+  --typography-h3-font-size: 2rem; // 32px
+  --typography-h3-line-height: 1.25em; // 40px
+  --typography-h3-letter-spacing: -0.02em;
+
+  // Heading sizes - h4
+  --typography-h4-font-size: 1.5rem; // 24px
+  --typography-h4-line-height: 1.333em; // 32px
+  --typography-h4-letter-spacing: -0.015em;
+
+  // Heading sizes - h5
+  --typography-h5-font-size: 1.25rem; // 20px
+  --typography-h5-line-height: 1.4em; // 28px
+  --typography-h5-letter-spacing: 0;
+
+  $text-variants: (
+    20: (
+      font-size: 1.25rem,
+      line-height: 1.6em,
+    ),
+    16: (
+      font-size: 1rem,
+      line-height: 1.5em,
+    ),
+    14: (
+      font-size: 0.875rem,
+      line-height: 1.4em,
+    ),
+    12: (
+      font-size: 0.75rem,
+      line-height: 1.333em,
+    ),
+    10: (
+      font-size: 0.625rem,
+      line-height: 1.6em,
+    ),
+  );
+
+  @each $size, $props in $text-variants {
+    --typography-text-#{$size}-font-size: #{map.get($props, font-size)};
+    --typography-text-#{$size}-line-height: #{map.get($props, line-height)};
+  }
+}

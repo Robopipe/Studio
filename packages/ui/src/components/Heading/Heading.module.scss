@@ -1,0 +1,16 @@
+@use "../../themes/common/mixins.scss" as mixins;
+
+$variants: h1, h2, h3, h4, h5;
+$weights: 500, 600, 700;
+
+.heading {
+  text-align: center;
+
+  @each $variant in $variants {
+    @each $weight in $weights {
+      &--#{$variant}--#{$weight} {
+        @include mixins.heading($variant, $weight);
+      }
+    }
+  }
+}
