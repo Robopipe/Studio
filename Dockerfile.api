@@ -1,0 +1,39 @@
+FROM node:22-alpine AS pruner
+
+RUN corepack enable && corepack prepare pnpm@10.28.0 --activate
+RUN pnpm add -g turbo
+
+WORKDIR /app
+
+COPY . .
+
+RUN turbo prune api --docker
+
+FROM node:22-alpine AS build
+
+RUN corepack enable && corepack prepare pnpm@10.28.0 --activate
+
+WORKDIR /app
+
+COPY --from=pruner /app/out/json/ .
+RUN pnpm install --frozen-lockfile
+
+COPY --from=pruner /app/out/full/ .
+RUN pnpm turbo run build --filter=api
+
+FROM node:22-alpine AS production
+
+RUN corepack enable && corepack prepare pnpm@10.28.0 --activate
+
+WORKDIR /app
+
+COPY --from=pruner /app/out/json/ .
+RUN pnpm install --frozen-lockfile --prod
+
+COPY --from=build /app/apps/api/dist apps/api/dist
+COPY --from=build /app/packages/database packages/database
+COPY --from=build /app/packages/schema packages/schema
+
+EXPOSE 3000
+
+CMD ["node", "apps/api/dist/main"]
