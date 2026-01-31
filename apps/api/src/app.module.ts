@@ -5,6 +5,8 @@ import { AuthModule } from "./modules/auth/auth.module";
 import { OrganizationModule } from "./modules/organization/organization.module";
 import { ProjectModule } from "./modules/project/project.module";
 import { RepositoryModule } from "./repository/repository.module";
+import { AssetsModule } from "./modules/assets/assets.module";
+import { TaskModule } from "./modules/task/task.module";
 
 @Module({
   imports: [
@@ -14,6 +16,8 @@ import { RepositoryModule } from "./repository/repository.module";
     RepositoryModule,
     OrganizationModule,
     ProjectModule,
+    AssetsModule,
+    TaskModule
   ],
 })
 export class AppModule {}
