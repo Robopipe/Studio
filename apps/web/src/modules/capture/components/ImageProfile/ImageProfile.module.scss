@@ -1,0 +1,11 @@
+.preTitle {
+  letter-spacing: 0.0625rem;
+  text-transform: uppercase;
+  color: #000000;
+}
+
+.twoColumnLayout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
