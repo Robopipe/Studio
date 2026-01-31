@@ -3,20 +3,20 @@ import {
   Controller,
   Delete,
   Get,
-  Patch,
   Post,
   Put,
   UseGuards,
 } from "@nestjs/common";
-import type {
-  CreateProjectRequest,
-  UpdateProjectRequest,
-} from '@repo/schema';
 import { User } from 'src/modules/auth/decorators/user.decorator';
 import { ProjectService } from '../services/project.service';
 import { ProjectGuard } from "../../auth/guards/project-guard";
 import { ProjectId } from "../../auth/decorators/project-id.decorator";
-import { ProjectListResponse, ProjectResponse } from "../dto/project.dto";
+import {
+  ProjectCreateRequest,
+  ProjectListResponse,
+  ProjectResponse,
+  ProjectUpdateRequest,
+} from "../dto/project.dto";
 
 @Controller('projects')
 export class ProjectController {
@@ -31,7 +31,7 @@ export class ProjectController {
   @Post()
   public async create(
     @User('organizationId') organizationId: number,
-    @Body() body: CreateProjectRequest,
+    @Body() body: ProjectCreateRequest,
   ): Promise<ProjectResponse> {
     const project = await this.projectService.create(body, organizationId);
     return project.toResponse();
@@ -51,7 +51,7 @@ export class ProjectController {
   @UseGuards(ProjectGuard)
   public async update(
     @ProjectId() projectId: number,
-    @Body() body: UpdateProjectRequest,
+    @Body() body: ProjectUpdateRequest,
   ): Promise<ProjectResponse> {
     const project = await this.projectService.update(projectId, body);
     return project.toResponse();
