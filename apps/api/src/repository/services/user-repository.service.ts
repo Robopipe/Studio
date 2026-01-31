@@ -44,7 +44,12 @@ export class UserRepository {
    */
   public async getAllByOrganizationId(organizationId: number): Promise<UserEntity[]> {
     const users = await this.db.query.userTable.findMany({
-      where: { organizationId },
+      where: {
+        organizationId,
+        deletedAt: {
+          isNull: true
+        }
+      },
       columns: { password: false },
     });
 

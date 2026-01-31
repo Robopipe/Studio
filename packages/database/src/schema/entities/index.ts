@@ -7,3 +7,6 @@ export * from './project-label';
 export * from './rectangle-annotation';
 export * from './polygon-annotation';
 export * from './classification-annotation';
+export * from './model-label'
+export * from './model-log'
+export * from './model-output'

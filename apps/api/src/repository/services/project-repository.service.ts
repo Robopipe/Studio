@@ -44,7 +44,12 @@ export class ProjectRepository {
    */
   public async getAllByOrganizationId(organizationId: number): Promise<ProjectEntity[]> {
     const projects = await this.db.query.projectTable.findMany({
-      where: { organizationId },
+      where: {
+        organizationId,
+        deletedAt: {
+          isNull: true
+        }
+      },
     });
 
     return projects.map((p) => new ProjectEntity(p));
@@ -92,6 +97,8 @@ export class ProjectRepository {
    * @param id
    */
   public async delete(id: number): Promise<void> {
-    await this.db.delete(projectTable).where(eq(projectTable.id, id));
+    await this.db.update(projectTable).set({
+      deletedAt: new Date()
+    }).where(eq(projectTable.id, id))
   }
 }
