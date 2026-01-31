@@ -16,7 +16,7 @@ const publicRoutes: RouteObject = {
 };
 const authenticatedRoutes: RouteObject = {
   element: <Authenticated />,
-  children: [{ path: "ahoj", element: <div>AHOJ</div> }],
+  children: [{ path: "/", element: <div>Projects Page</div> }],
 };
 
 export const router = createBrowserRouter([publicRoutes, authenticatedRoutes]);
