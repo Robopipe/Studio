@@ -16,7 +16,7 @@ export const appConfigSchema = z.object({
     accessTokenDuration: z.int().optional(),
     refreshTokenDuration: z.int().optional(),
   }),
-  apiHost: z.url(),
+  apiHost: z.url().default("http://localhost:4000"),
   webHost: z.url().optional(),
   cookie: z.object({
     secret: z.string(),

@@ -1,19 +1,22 @@
-import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import type { Jwt, Token } from '@repo/schema';
-import { compare } from 'bcrypt';
+import { compare, hash } from 'bcrypt';
 import type { Response } from 'express';
 import { AppConfig } from 'src/core/configuration/app.config';
 import { DB_CONNECTION } from 'src/core/database/database.constant';
 import type { DbConnection } from 'src/core/database/types/database.types';
 import { UserEntity } from 'src/modules/user/entities/user.entity';
 import { UserRepository } from 'src/repository/services/user-repository.service';
+import { RegisterDto } from "../dto/auth.dto";
+import { OrganizationRepository } from "../../../repository/services/organization-repository.service";
 
 @Injectable()
 export class AuthService {
   constructor(
     @Inject(DB_CONNECTION) private readonly db: DbConnection,
     private readonly userRepository: UserRepository,
+    private readonly organizationRepository: OrganizationRepository,
     private readonly jwtService: JwtService,
     private readonly configService: AppConfig,
   ) {}
@@ -45,9 +48,9 @@ export class AuthService {
 
   /**
    * Login user
-   * @param userEntity
+   * @param user
    * @param res - Express response obj
-   * @returns Acces token
+   * @returns Access token
    */
   public login(user: UserEntity, res: Response): Token {
     const payload = { sub: user.id };
@@ -87,6 +90,36 @@ export class AuthService {
     this.setRefreshTokenCookie(res, '', 0);
   }
 
+
+  /**
+   * Register user
+   * @param data - RegisterDto
+   * @param res - Express response for cookies
+   * @returns Token
+   */
+  public async register(data: RegisterDto, res: Response) : Promise<Token> {
+    const existingUser = await this.userRepository.getByEmail(data.email)
+
+    if(existingUser){
+      throw new ConflictException("User with this email already exists");
+    }
+
+    const hashedPassword = await this.hashPassword(data.password)
+    const organization = await this.organizationRepository.create({
+      name: `${data.email}'s organization`,
+    })
+
+    const user = await this.userRepository.create({
+      email: data.email,
+      username: data.email,
+      fullName: data.email, // TODO?
+      password: hashedPassword,
+      organizationId: organization.id
+    })
+
+    return this.login(user, res)
+  }
+
   /**
    * Set refresh token cookie
    * @param res - express response
@@ -118,5 +151,14 @@ export class AuthService {
    */
   private checkPassword(plain: string, hashed: string): Promise<boolean> {
     return compare(plain, hashed);
+  }
+
+  /**
+   * Hash password using bcrypt
+   * @param password - plain password
+   * @returns hashed password
+   */
+  private hashPassword(password: string): Promise<string>{
+    return hash(password, 10)
   }
 }

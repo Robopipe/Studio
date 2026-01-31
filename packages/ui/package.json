@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "exports": {
+    ".": "./src/index.ts",
     "./*": "./src/*.tsx"
   },
   "scripts": {
@@ -29,14 +30,18 @@
     "eslint": "^9.31.0",
     "eslint-plugin-storybook": "^10.1.11",
     "playwright": "^1.57.0",
+    "sass": "^1.97.3",
     "storybook": "^10.1.11",
     "typescript": "5.8.2",
     "vitest": "^4.0.17"
   },
   "dependencies": {
-    "@emotion/react": "^11.14.0",
-    "@emotion/styled": "^11.14.1",
-    "@mui/material": "^7.3.7",
+    "@base-ui/react": "^1.1.0",
+    "@fontsource/barlow": "^5.2.8",
+    "@fontsource/inter": "^5.2.8",
+    "@fontsource/space-grotesk": "^5.2.10",
+    "@fontsource/space-mono": "^5.2.9",
+    "clsx": "^2.1.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   }

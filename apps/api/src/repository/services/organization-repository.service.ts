@@ -4,7 +4,10 @@ import { organizationTable } from '@repo/database/schema';
 import { DB_CONNECTION } from 'src/core/database/database.constant';
 import type { DbConnection } from 'src/core/database/types/database.types';
 import { OrganizationEntity } from 'src/modules/organization/entities/organization.entity';
-import type { OrganizationUpdate } from '../types/organization';
+import type {
+  OrganizationInsert,
+  OrganizationUpdate,
+} from "../types/organization";
 
 @Injectable()
 export class OrganizationRepository {
@@ -42,5 +45,22 @@ export class OrganizationRepository {
     }
 
     return new OrganizationEntity(updated)
+  }
+
+
+  /**
+   * Create organization
+   * @param organization - Organization insert
+   * @throws InternalServerErrorException - Failed creating organization
+   * @returns Created org
+   */
+  public async create(organization: OrganizationInsert): Promise<OrganizationEntity> {
+    const [createdOrg] = await this.db.insert(organizationTable).values(organization).returning()
+
+    if(!createdOrg){
+      throw new InternalServerErrorException("Failed creating organization")
+    }
+
+    return new OrganizationEntity(createdOrg)
   }
 }
