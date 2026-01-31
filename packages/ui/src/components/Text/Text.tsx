@@ -7,7 +7,7 @@ type TextSize = "10" | "12" | "14" | "16" | "20";
 type TextStyle = "text" | "code" | "number";
 
 export type TextVariant = `${TextStyle}-${TextSize}`;
-export type TextWeight = "400" | "500" | "700";
+export type TextWeight = "400" | "500" | "600" | "700";
 
 export interface TextProps extends ComponentPropsWithoutRef<"span"> {
   variant?: TextVariant;
@@ -40,7 +40,7 @@ export const Text = forwardRef<HTMLElement, TextProps>(
         className={clsx(
           styles.text,
           styles[`text--${variant}`],
-          styles[`text--${weight}`],
+          styles[`text--weight-${weight}`],
           className,
         )}
         style={{ ...style, color: color ? `var(--color-${color})` : undefined }}

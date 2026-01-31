@@ -56,7 +56,7 @@ export class AuthService {
     const payload = { sub: user.id };
     const accessToken = this.jwtService.sign(payload);
     const refreshTokenDuration =
-      this.configService.jwt.refreshTokenDuration ?? 7 * 24 * 60 * 60; // 7 days
+      this.configService.jwtRefreshTokenDuration ?? 7 * 24 * 60 * 60; // 7 days
     const refreshToken = this.jwtService.sign(payload, {
       expiresIn: refreshTokenDuration,
     });

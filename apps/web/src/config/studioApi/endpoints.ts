@@ -6,4 +6,8 @@ export const studioApiEndpoints = {
     profile: "auth/profile",
     logout: "auth/logout",
   },
+  tasks: {
+    tasks: (projectId: number) => `task/${projectId}`,
+    task: (projectId: number, taskId: number) => `task/${projectId}/${taskId}`,
+  },
 } as const;

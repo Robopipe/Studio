@@ -3,5 +3,6 @@
     {
       "mode": "auto"
     }
-  ]
+],
+"prettier.configPath": "./apps/web/prettierrc.config.js"
 }

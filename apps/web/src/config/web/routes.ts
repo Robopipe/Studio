@@ -7,4 +7,5 @@ export const webRoutes = {
     projects: "/projects",
     project: "/projects/:id",
   },
+  capture: '/capture'
 } as const;
