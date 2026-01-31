@@ -7,12 +7,22 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY apps/web/package.json apps/web/
 COPY packages/ui/package.json packages/ui/
+COPY packages/database/package.json packages/database/
 COPY packages/schema/package.json packages/schema/
 COPY packages/typescript-config/package.json packages/typescript-config/
 COPY packages/eslint-config/package.json packages/eslint-config/
+COPY packages/jest-config/package.json packages/jest-config/
 
 RUN pnpm install --frozen-lockfile
 
 COPY . .
+
+ARG VITE_CAMERA_API_BASE_URL
+ARG VITE_STUDIO_API_BASE_URL
+ARG VITE_WEB_BASE_URL
+
+ENV VITE_CAMERA_API_BASE_URL=$VITE_CAMERA_API_BASE_URL
+ENV VITE_STUDIO_API_BASE_URL=$VITE_STUDIO_API_BASE_URL
+ENV VITE_WEB_BASE_URL=$VITE_WEB_BASE_URL
 
 RUN pnpm turbo run build --filter=web

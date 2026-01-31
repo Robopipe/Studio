@@ -1,7 +1,5 @@
 secretsProviderConfig:
 databaseUrl: postgres://user:password@localhost:5432/robopipe
-jwt:
-  secret: b93F46fB11Vl53WZuvdVCL6pjX8jNRB3
-cookie:
-  secret: Wrwy6Y9jdnYS94446xDCnya4vMDUttSI
+jwtSecret: b93F46fB11Vl53WZuvdVCL6pjX8jNRB3
+cookieSecret: Wrwy6Y9jdnYS94446xDCnya4vMDUttSI
 webHost: http://localhost:5173
