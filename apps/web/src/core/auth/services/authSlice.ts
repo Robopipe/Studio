@@ -5,7 +5,7 @@ import { AuthState } from "../types";
 import { authApi } from "./authApi";
 
 const initialState: AuthState = {
-  isAuthenticated: false,
+  isAuthenticated: null,
   user: null,
 };
 
