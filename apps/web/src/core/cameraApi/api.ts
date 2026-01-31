@@ -122,19 +122,6 @@ export const cameraApi = cameraApiBase.injectEndpoints({
         { type: CameraApiTagType.StreamControl, id: `${mxid}-${streamName}` },
       ],
     }),
-
-    // Capture still image
-    captureStillImage: builder.query<
-      Blob,
-      { mxid: string; streamName: string; format?: string | null }
-    >({
-      query: ({ mxid, streamName, format = "jpeg" }) => ({
-        url: `/cameras/${mxid}/streams/${streamName}/still`,
-        method: HttpMethod.GET,
-        params: { format },
-        responseHandler: (response) => response.blob(),
-      }),
-    }),
   }),
   overrideExisting: true,
 });
@@ -153,6 +140,4 @@ export const {
   useDeactivateStreamMutation,
   useGetStreamControlQuery,
   useUpdateStreamControlMutation,
-  useCaptureStillImageQuery,
-  useLazyCaptureStillImageQuery,
 } = cameraApi;
