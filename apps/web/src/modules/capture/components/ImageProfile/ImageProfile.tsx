@@ -56,7 +56,7 @@ export const ImageProfile = ({
         Image Profile
       </Text>
 
-      {streamControl && <pre>{JSON.stringify(streamControl, null, 2)}</pre>}
+      {/* {streamControl && <pre>{JSON.stringify(streamControl, null, 2)}</pre>} */}
 
       <Text variant="text-16" weight="500">
         Profile setup

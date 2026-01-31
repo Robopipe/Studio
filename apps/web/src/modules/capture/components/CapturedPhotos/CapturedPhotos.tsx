@@ -1,6 +1,9 @@
 import { AnnotateIcon, DeleteIcon, DownloadIcon, Stack, Text } from "@repo/ui";
 import { format } from "date-fns";
-import { useGetTasksQuery } from "../../services/captureApi";
+import {
+  useDeleteTaskMutation,
+  useGetTasksQuery,
+} from "../../services/captureApi";
 
 import styles from "./CapturedPhotos.module.scss";
 
@@ -10,6 +13,7 @@ export const PROJECT_ID = 4;
 export interface CapturedPhotosProps {}
 
 export const CapturedPhotos = ({}: CapturedPhotosProps) => {
+  const [deleteTask] = useDeleteTaskMutation();
   const { data: tasks } = useGetTasksQuery({ projectId: PROJECT_ID });
 
   return (
@@ -30,7 +34,11 @@ export const CapturedPhotos = ({}: CapturedPhotosProps) => {
           <div className={styles.actions}>
             <AnnotateIcon />
             <DownloadIcon />
-            <DeleteIcon />
+            <DeleteIcon
+              onClick={() =>
+                deleteTask({ projectId: PROJECT_ID, taskId: task.id })
+              }
+            />
           </div>
         </div>
       ))}
