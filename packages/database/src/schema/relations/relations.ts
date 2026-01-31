@@ -64,6 +64,21 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.modelTable.projectId,
       to: r.projectTable.id,
     }),
+    labels: r.many.projectLabelTable({
+      from: r.modelTable.id.through(r.modelLabelTable.modelId),
+      to: r.projectLabelTable.id.through(r.modelLabelTable.labelId),
+    }),
+    outputs: r.many.modelOutputTable()
+  },
+  modelLabelTable: {
+    model: r.one.modelTable({
+      from: r.modelLabelTable.modelId,
+      to: r.modelTable.id
+    }),
+    label: r.one.projectLabelTable({
+      from: r.modelLabelTable.labelId,
+      to: r.projectLabelTable.id
+    })
   },
   projectLabelTable: {
     project: r.one.projectTable({
@@ -74,4 +89,10 @@ export const relations = defineRelations(schema, (r) => ({
     rectangleAnnotations: r.many.rectangleAnnotationTable(),
     classificationAnnotations: r.many.classificationAnnotationTable(),
   },
+  modelOutputTable: {
+    model: r.one.modelTable({
+      from: r.modelOutputTable.modelId,
+      to: r.modelTable.id
+    })
+  }
 }));

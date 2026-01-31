@@ -1,10 +1,18 @@
 import * as p from 'drizzle-orm/pg-core'
-import { createdAt, id } from '../helpers'
+import { createdAt, id, timestamps } from '../helpers'
 import { projectTable } from './project'
+import { ModelStatusEnum } from "@repo/schema";
+
+export const modelStatusEnum = p.pgEnum("model_status_enum", [ModelStatusEnum.DRAFT, ModelStatusEnum.TRAINING, ModelStatusEnum.DONE])
 
 export const modelTable = p.pgTable("model", {
   id,
   name: p.varchar("name", {length: 256}).notNull(),
+  epochs: p.integer("epochs").notNull(),
+  splitTrain: p.integer('split_train').notNull(),
+  splitValidate: p.integer('split_validate').notNull(),
+  splitTest: p.integer('split_test').notNull(),
+  status: modelStatusEnum("status").notNull(),
   projectId: p.integer("project_id").references(() => projectTable.id, {onDelete: 'cascade'}).notNull(),
-  createdAt,
+  ...timestamps
 })

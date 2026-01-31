@@ -19,6 +19,10 @@ export const appConfigSchema = z.object({
   storage: z.object({
     bucketName: z.string()
   }),
+  ml: z.object({
+    host: z.string(),
+    apiKey: z.string(),
+  }),
   apiHost: z.url().default("http://localhost:4000"),
   webHost: z.url().optional(),
   cookie: z.object({

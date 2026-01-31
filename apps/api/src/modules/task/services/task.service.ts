@@ -28,7 +28,7 @@ export class TaskService {
    */
   public async createTask(projectId: number, file: Express.Multer.File): Promise<TaskEntity>{
     const assetMetadata = await sharp(file.buffer).metadata()
-    const assetName = this.assetsService.getAssetName(file.filename, projectId)
+    const assetName = this.assetsService.getAssetName(file.originalname, projectId)
     const filePublicUrl = await this.assetsService.saveFile(file, assetName)
 
     return this.taskRepository.create({

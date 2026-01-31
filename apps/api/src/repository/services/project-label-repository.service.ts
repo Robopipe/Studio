@@ -36,6 +36,9 @@ export class ProjectLabelRepository {
     const labels = await this.db.query.projectLabelTable.findMany({
       where: {
         projectId,
+        deletedAt: {
+          isNull: true,
+        },
       }
     })
 
@@ -78,6 +81,8 @@ export class ProjectLabelRepository {
    * @param id - project label id
    */
   public async delete(id: number): Promise<void>{
-    await this.db.delete(projectLabelTable).where(eq(projectLabelTable.id, id))
+    await this.db.update(projectLabelTable).set({
+      deletedAt: new Date()
+    }).where(eq(projectLabelTable.id, id))
   }
 }
