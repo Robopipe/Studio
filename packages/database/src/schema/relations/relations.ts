@@ -5,56 +5,73 @@ export const relations = defineRelations(schema, (r) => ({
   userTable: {
     organization: r.one.organizationTable({
       from: r.userTable.organizationId,
-      to: r.organizationTable.id
+      to: r.organizationTable.id,
     }),
-    comments: r.many.taskCommentTable(),
   },
   organizationTable: {
     users: r.many.userTable(),
-    projects: r.many.projectTable()
+    projects: r.many.projectTable(),
   },
   projectTable: {
     organization: r.one.organizationTable({
       from: r.projectTable.organizationId,
-      to: r.organizationTable.id
+      to: r.organizationTable.id,
     }),
     tasks: r.many.taskTable(),
-    files: r.many.fileTable()
+    labels: r.many.projectLabelTable(),
   },
   taskTable: {
     project: r.one.projectTable({
       from: r.taskTable.projectId,
-      to: r.projectTable.id
+      to: r.projectTable.id,
     }),
-    comments: r.many.taskCommentTable(),
-    annotations: r.many.annotationTable()
+    rectangleAnnotations: r.many.rectangleAnnotationTable(),
+    polygonAnnotations: r.many.polygonAnnotationTable(),
+    classificationAnnotations: r.many.classificationAnnotationTable(),
   },
-  taskCommentTable: {
+  rectangleAnnotationTable: {
     task: r.one.taskTable({
-      from: r.taskCommentTable.taskId,
-      to: r.taskTable.id
+      from: r.rectangleAnnotationTable.taskId,
+      to: r.taskTable.id,
     }),
-    author: r.one.userTable({
-      from: r.taskCommentTable.authorId,
-      to: r.userTable.id
-    })
+    label: r.one.projectLabelTable({
+      from: r.rectangleAnnotationTable.labelId,
+      to: r.projectLabelTable.id,
+    }),
   },
-  annotationTable: {
+  polygonAnnotationTable: {
     task: r.one.taskTable({
-      from: r.annotationTable.taskId,
-      to: r.taskTable.id
-    })
+      from: r.polygonAnnotationTable.taskId,
+      to: r.taskTable.id,
+    }),
+    label: r.one.projectLabelTable({
+      from: r.polygonAnnotationTable.labelId,
+      to: r.projectLabelTable.id,
+    }),
+  },
+  classificationAnnotationTable: {
+    task: r.one.taskTable({
+      from: r.classificationAnnotationTable.taskId,
+      to: r.taskTable.id,
+    }),
+    label: r.one.projectLabelTable({
+      from: r.classificationAnnotationTable.labelId,
+      to: r.projectLabelTable.id,
+    }),
   },
   modelTable: {
     project: r.one.projectTable({
       from: r.modelTable.projectId,
-      to: r.projectTable.id
-    })
+      to: r.projectTable.id,
+    }),
   },
-  fileTable: {
+  projectLabelTable: {
     project: r.one.projectTable({
-      from: r.fileTable.projectId,
-      to: r.projectTable.id
-    })
-  }
-}))
+      from: r.projectLabelTable.projectId,
+      to: r.projectTable.id,
+    }),
+    polygonAnnotations: r.many.polygonAnnotationTable(),
+    rectangleAnnotations: r.many.rectangleAnnotationTable(),
+    classificationAnnotations: r.many.classificationAnnotationTable(),
+  },
+}));

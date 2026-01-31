@@ -12,8 +12,8 @@ export class ProjectService {
    * @throws NotFoundException - Project not found
    * @returns Project entity
    */
-  public async getProject(id: number, organizationId: number): Promise<ProjectEntity> {
-    const project = await this.projectRepository.getByIdAndOrganizationId(id, organizationId);
+  public async getProject(id: number): Promise<ProjectEntity> {
+    const project = await this.projectRepository.getById(id);
 
     if (!project) {
       throw new NotFoundException('Project not found');
@@ -51,9 +51,8 @@ export class ProjectService {
   public async update(
     id: number,
     data: UpdateProjectRequest,
-    organizationId: number,
   ): Promise<ProjectEntity> {
-    const project = await this.projectRepository.getByIdAndOrganizationId(id, organizationId);
+    const project = await this.projectRepository.getById(id);
 
     if (!project) {
       throw new NotFoundException('Project not found');
@@ -65,11 +64,10 @@ export class ProjectService {
   /**
    * Delete project
    * @param id - project Id
-   * @param organization id
    * @throws NotFoundException - Project not found
    */
-  public async delete(id: number, organizationId: number): Promise<void> {
-    const project = await this.projectRepository.getByIdAndOrganizationId(id, organizationId);
+  public async delete(id: number): Promise<void> {
+    const project = await this.projectRepository.getById(id);
 
     if (!project) {
       throw new NotFoundException('Project not found');
