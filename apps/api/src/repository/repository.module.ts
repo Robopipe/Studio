@@ -5,6 +5,9 @@ import { ProjectRepository } from './services/project-repository.service';
 import { TaskRepository } from './services/task-repository.service';
 import { UserRepository } from './services/user-repository.service';
 import { ProjectLabelRepository } from "./services/project-label-repository.service";
+import {
+  ModelOutputRepository,
+} from "./services/model-output-repository.service";
 
 
 @Global()
@@ -16,6 +19,7 @@ import { ProjectLabelRepository } from "./services/project-label-repository.serv
     TaskRepository,
     UserRepository,
     ProjectLabelRepository,
+    ModelOutputRepository,
   ],
   exports: [
     ModelRepository,
@@ -23,7 +27,8 @@ import { ProjectLabelRepository } from "./services/project-label-repository.serv
     ProjectRepository,
     TaskRepository,
     UserRepository,
-    ProjectLabelRepository
+    ProjectLabelRepository,
+    ModelOutputRepository,
   ],
 })
 export class RepositoryModule {}

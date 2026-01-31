@@ -19,6 +19,7 @@
   "dependencies": {
     "@google-cloud/secret-manager": "^6.1.1",
     "@google-cloud/storage": "^7.18.0",
+    "@nestjs/axios": "^4.0.1",
     "@nestjs/common": "^11.0.0",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.0",
@@ -28,6 +29,7 @@
     "@nestjs/swagger": "^11.2.4",
     "@repo/database": "workspace:*",
     "@repo/schema": "workspace:*",
+    "axios": "^1.13.4",
     "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.3",
