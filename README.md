@@ -27,6 +27,10 @@ To learn more about Robopipe Studio, please visit the [Robopipe Documentation](h
 #### Prerequisites
 
 - Pnpm v10.28.0 (or higher)
+- Running PostgreSQL server v16 (or higher), with created database
+  ```bash
+  psql -c "create database robopipe;"
+  ```
 - Git
 
 1. Clone the repository:
@@ -47,11 +51,31 @@ To learn more about Robopipe Studio, please visit the [Robopipe Documentation](h
    pnpm install
    ```
 
-4. Run the application:
+4. Set up environment variables:
+
+   ```bash
+   cp apps/api/config.local.example.yml apps/api/config.local.yml
+   cp apps/api/.env.example apps/api/.env
+   cp apps/web/.env.example apps/web/.env.local
+   ```
+
+   Then configure DATABASE_URL in app/api/.env and apps/api/config.local.yml according to your environment
+
+5. Run the database migrations:
+
+   ```bash
+   pnpm -F api drizzle:push
+   ```
+
+6. Run the application:
 
    ```bash
    pnpm dev
    ```
+
+7. Observe the app
+   - The web is available at [localhost:5173](http://localhost:5173)
+   - API docs are available at [localhost:3000/api](http://localhost:3000/api)
 
 ## 📬 Feedback
 
