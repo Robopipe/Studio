@@ -10,10 +10,15 @@ export class ProjectEntity {
   readonly deletedAt: Date | null;
 
   constructor(data: ProjectSelect) {
-    Object.assign(this, data);
+    this.id = data.id;
+    this.name = data.name;
+    this.organizationId = data.organizationId;
+    this.createdAt = data.createdAt;
+    this.updatedAt = data.updatedAt;
+    this.deletedAt = data.deletedAt
   }
 
-  public toDto(): Project {
+  public toResponse(): Project {
     return {
       id: this.id,
       name: this.name,

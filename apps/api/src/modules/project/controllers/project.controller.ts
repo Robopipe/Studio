@@ -3,19 +3,19 @@ import {
   Controller,
   Delete,
   Get,
-  Param,
-  ParseIntPipe,
   Patch,
   Post,
-} from '@nestjs/common';
+  UseGuards,
+} from "@nestjs/common";
 import type {
   CreateProjectRequest,
-  Project,
-  ProjectListResponse,
   UpdateProjectRequest,
 } from '@repo/schema';
 import { User } from 'src/modules/auth/decorators/user.decorator';
 import { ProjectService } from '../services/project.service';
+import { ProjectGuard } from "../../auth/guards/project-guard";
+import { ProjectId } from "../../auth/decorators/project-id.decorator";
+import { ProjectListResponse, ProjectResponse } from "../dto/project.dto";
 
 @Controller('projects')
 export class ProjectController {
@@ -24,42 +24,43 @@ export class ProjectController {
   @Get()
   public async list(@User('organizationId') organizationId: number): Promise<ProjectListResponse> {
     const projects = await this.projectService.getOrganizationProjects(organizationId);
-    return { projects: projects.map((p) => p.toDto()) };
-  }
-
-  @Get(':id')
-  public async get(
-    @User('organizationId') organizationId: number,
-    @Param('id', ParseIntPipe) id: number,
-  ): Promise<Project> {
-    const project = await this.projectService.getProject(id, organizationId);
-    return project.toDto();
+    return { projects: projects.map((p) => p.toResponse()) };
   }
 
   @Post()
   public async create(
     @User('organizationId') organizationId: number,
     @Body() body: CreateProjectRequest,
-  ): Promise<Project> {
+  ): Promise<ProjectResponse> {
     const project = await this.projectService.create(body, organizationId);
-    return project.toDto();
+    return project.toResponse();
   }
 
-  @Patch(':id')
+  @Get(':projectId')
+  @UseGuards(ProjectGuard)
+  public async get(
+    @ProjectId() projectId: number,
+  ): Promise<ProjectResponse> {
+    const project = await this.projectService.getProject(projectId);
+    return project.toResponse();
+  }
+
+
+  @Patch(':projectId')
+  @UseGuards(ProjectGuard)
   public async update(
-    @User('organizationId') organizationId: number,
-    @Param('id', ParseIntPipe) id: number,
+    @ProjectId() projectId: number,
     @Body() body: UpdateProjectRequest,
-  ): Promise<Project> {
-    const project = await this.projectService.update(id, body, organizationId);
-    return project.toDto();
+  ): Promise<ProjectResponse> {
+    const project = await this.projectService.update(projectId, body);
+    return project.toResponse();
   }
 
-  @Delete(':id')
+  @Delete(':projectId')
+  @UseGuards(ProjectGuard)
   public async delete(
-    @User('organizationId') organizationId: number,
-    @Param('id', ParseIntPipe) id: number,
+    @ProjectId() projectId: number,
   ): Promise<void> {
-    await this.projectService.delete(id, organizationId);
+    await this.projectService.delete(projectId);
   }
 }

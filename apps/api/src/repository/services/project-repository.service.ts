@@ -24,27 +24,6 @@ export class ProjectRepository {
   }
 
   /**
-   * Get project by id and org id
-   * Use this if possible instead of get by id
-   * @param projectId
-   * @param organizationId
-   * @returns Project entity or null
-   */
-  public async getByIdAndOrganizationId(
-    projectId: number,
-    organizationId: number,
-  ): Promise<ProjectEntity | null> {
-    const project = await this.db.query.projectTable.findFirst({
-      where: {
-        id: projectId,
-        organizationId,
-      },
-    });
-
-    return project ? new ProjectEntity(project) : null;
-  }
-
-  /**
    * Get all projects by org id
    * @param organizationId
    * @returns Project entities

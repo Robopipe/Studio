@@ -4,6 +4,7 @@ import { OrganizationRepository } from './services/organization-repository.servi
 import { ProjectRepository } from './services/project-repository.service';
 import { TaskRepository } from './services/task-repository.service';
 import { UserRepository } from './services/user-repository.service';
+import { ProjectLabelRepository } from "./services/project-label-repository.service";
 
 
 @Global()
@@ -13,14 +14,16 @@ import { UserRepository } from './services/user-repository.service';
     OrganizationRepository,
     ProjectRepository,
     TaskRepository,
-    UserRepository
+    UserRepository,
+    ProjectLabelRepository,
   ],
   exports: [
     ModelRepository,
     OrganizationRepository,
     ProjectRepository,
     TaskRepository,
-    UserRepository
+    UserRepository,
+    ProjectLabelRepository
   ],
 })
 export class RepositoryModule {}

@@ -3,7 +3,6 @@ import type { Label } from "@repo/schema";
 
 export class ProjectLabelEntity {
   readonly id: number;
-  readonly title: string;
   readonly name: string;
   readonly color: string;
   readonly projectId: number;
@@ -13,7 +12,6 @@ export class ProjectLabelEntity {
 
   constructor(data: ProjectLabelSelect) {
     this.id = data.id;
-    this.title = data.title;
     this.name = data.name;
     this.color = data.color;
     this.projectId = data.projectId;
@@ -25,7 +23,6 @@ export class ProjectLabelEntity {
   public toResponse(): Label {
     return {
       id: this.id,
-      title: this.title,
       name: this.name,
       color: this.color,
       createdAt: this.createdAt.toISOString(),
