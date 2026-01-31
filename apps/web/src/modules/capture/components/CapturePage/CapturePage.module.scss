@@ -1,0 +1,13 @@
+.page {
+  display: grid;
+  grid-template-columns: minmax(250px, 1fr) minmax(500px, 2fr) minmax(
+      250px,
+      1fr
+    );
+  gap: 1rem;
+
+  // TODO: Remove after layout is implemented
+  height: 100vh;
+
+  background: rgba(255, 255, 255, 1);
+}
