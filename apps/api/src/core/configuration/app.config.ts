@@ -21,9 +21,7 @@ export const appConfigSchema = z.object({
   }),
   apiHost: z.url().default("http://localhost:3000"),
   webHost: z.url().optional(),
-  cookie: z.object({
-    secret: z.string(),
-  }),
+  cookieSecret: z.string(),
 });
 
 export class AppConfig extends createZodDto(appConfigSchema) {}

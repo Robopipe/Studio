@@ -1,0 +1,10 @@
+project_id              = "io-robopipe"
+region                  = "europe-west4"
+environment             = "prod"
+cloud_sql_tier          = "db-custom-2-4096"
+cloud_run_min_instances = 1
+cloud_run_max_instances = 10
+secrets_prefix                = "prod_be_"
+cloud_sql_deletion_protection = true
+domain                        = "app.robopipe.io"
+api_domain                    = "api.robopipe.io"

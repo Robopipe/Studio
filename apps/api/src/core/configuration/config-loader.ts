@@ -69,9 +69,12 @@ export class ConfigLoader {
       config.secretsProviderConfig &&
       typeof config.secretsProviderConfig === 'object'
     ) {
-      return SecretsProviderRegistry.create(
-        config.secretsProviderConfig as SecretsProviderConfig,
-      );
+      const providerConfig = {
+        prefix: process.env.SECRETS_PREFIX || `${env}_be_`,
+        project: process.env.GCP_PROJECT || process.env.CLOUD_PROJECT || '',
+        ...config.secretsProviderConfig,
+      } as SecretsProviderConfig;
+      return SecretsProviderRegistry.create(providerConfig);
     }
 
     // Fallback to environment-based configuration
@@ -123,9 +126,15 @@ export class ConfigLoader {
       for (const key in config[env]) config[key] = config[env][key];
     }
 
+    // Environment variable overrides (highest priority)
+    const envOverrides: Record<string, string> = {};
+    if (process.env.WEB_HOST) envOverrides.webHost = process.env.WEB_HOST;
+    if (process.env.API_HOST) envOverrides.apiHost = process.env.API_HOST;
+
     return {
       ...config,
       ...secrets,
+      ...envOverrides,
     };
   }
 }
