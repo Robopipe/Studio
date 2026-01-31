@@ -11,11 +11,9 @@ export const appConfigSchema = z.object({
     })
     .default({ port: 3000, host: "localhost" }),
   databaseUrl: z.string(),
-  jwt: z.object({
-    secret: z.string(),
-    accessTokenDuration: z.int().optional(),
-    refreshTokenDuration: z.int().optional(),
-  }),
+  jwtSecret: z.string(),
+  jwtAccessTokenDuration: z.number().int().optional(),
+  jwtRefreshTokenDuration: z.number().int().optional(),
   storage: z.object({
     bucketName: z.string(),
   }),
