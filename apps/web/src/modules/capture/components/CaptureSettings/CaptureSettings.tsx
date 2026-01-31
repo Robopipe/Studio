@@ -1,9 +1,9 @@
-import { Button, Stack, Text } from "@repo/ui";
+import { Stack, Text } from "@repo/ui";
 import { SelectCamera } from "../SelectCamera";
 import { Orientation, SelectOrientation } from "../SelectOrientation";
 import { SelectStream } from "../SelectStream";
 
-import { useCaptureImageFromCamera } from "../../hooks/useCaptureImageFromCamera";
+import { CaptureStillImage } from "../CaptureStillImage";
 import styles from "./CaptureSettings.module.scss";
 
 export interface CaptureSettingsProps {
@@ -23,8 +23,6 @@ export const CaptureSettings = ({
   onSelectStream,
   onSelectOrientation,
 }: CaptureSettingsProps) => {
-  const { handleCaptureImage, isLoading } = useCaptureImageFromCamera();
-
   return (
     <Stack className={styles.settings}>
       <Text variant="text-10" weight="700" className={styles.preTitle}>
@@ -36,17 +34,18 @@ export const CaptureSettings = ({
         value={selectedStream}
         onSelect={onSelectStream}
       />
-      Name pattern
+      {/* TODO: File name pattern */}
       <SelectOrientation
         value={selectedOrientation}
         onSelect={onSelectOrientation}
       />
-      <Button
-        onClick={() => handleCaptureImage(selectedCamera!, selectedStream!)}
-        disabled={!selectedCamera || !selectedStream || isLoading}
-      >
-        Capture image
-      </Button>
+
+      {selectedCamera && selectedStream && (
+        <CaptureStillImage
+          selectedCamera={selectedCamera}
+          selectedStream={selectedStream}
+        />
+      )}
     </Stack>
   );
 };

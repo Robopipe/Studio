@@ -8,7 +8,7 @@
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--color-text-secondary);
-  width: 80px; 
+  width: 80px;
   flex-shrink: 0;
   white-space: nowrap;
   margin-right: 1rem;
@@ -31,6 +31,7 @@
   font-size: 0.875rem;
   color: var(--color-text-primary);
   transition: all 0.2s ease;
+  font-family: inherit;
 
   &::placeholder {
     color: var(--color-text-disabled);
