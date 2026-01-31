@@ -9,6 +9,7 @@ import type { DbConnection } from "../../../core/database/types/database.types";
 import { classificationAnnotationTable, rectangleAnnotationTable, polygonAnnotationTable } from "@repo/database";
 import { eq } from "drizzle-orm";
 import { ProjectRepository } from "../../../repository/services/project-repository.service";
+import sharp from 'sharp'
 
 @Injectable()
 export class TaskService {
@@ -26,6 +27,7 @@ export class TaskService {
    * @returns Task Entity
    */
   public async createTask(projectId: number, file: Express.Multer.File): Promise<TaskEntity>{
+    const assetMetadata = await sharp(file.buffer).metadata()
     const assetName = this.assetsService.getAssetName(file.filename, projectId)
     const filePublicUrl = await this.assetsService.saveFile(file, assetName)
 
@@ -34,6 +36,8 @@ export class TaskService {
       fileType: TaskFileTypeEnum.GS,
       filePath: filePublicUrl,
       status: TaskStatusEnum.TODO,
+      width: assetMetadata.width,
+      height: assetMetadata.height,
     })
   }
 

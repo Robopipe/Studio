@@ -10,6 +10,8 @@ export class TaskEntity {
   readonly projectId: number;
   readonly fileType: TaskFileTypeEnum;
   readonly filePath: string;
+  readonly width: number;
+  readonly height: number;
   readonly status: TaskStatusEnum;
   readonly createdAt: Date;
   readonly updatedAt: Date;
@@ -21,6 +23,8 @@ export class TaskEntity {
     this.fileType = data.fileType;
     this.filePath = data.filePath;
     this.status = data.status;
+    this.width = data.width;
+    this.height = data.height;
     this.createdAt = data.createdAt;
     this.updatedAt = data.updatedAt;
     this.deletedAt = data.deletedAt
@@ -32,6 +36,8 @@ export class TaskEntity {
       fileType: this.fileType,
       filePath: this.filePath,
       status: this.status,
+      width: this.width,
+      height: this.height,
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),
       deletedAt: this.deletedAt ? this.deletedAt.toISOString() : null,

@@ -15,6 +15,8 @@ export const taskTable = p.pgTable("task", {
     .notNull(),
   fileType: taskFileTypeEnum("file_type").notNull(),
   filePath: p.varchar("file_path", {length: 256}).notNull(),
+  width: p.integer("width").notNull(),
+  height: p.integer("height").notNull(),
   status: taskStatusEnum("status").notNull(),
   ...timestamps,
 });
