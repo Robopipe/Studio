@@ -1,4 +1,5 @@
 import z from "zod";
+import { timestampsSchema } from "../helpers";
 
 export const userSchema = z.object({
   id: z.number(),
@@ -6,6 +7,5 @@ export const userSchema = z.object({
   email: z.email(),
   fullName: z.string(),
   organizationId: z.number(),
-  createdAt: z.date(),
-  updatedAt: z.date()
+  ...timestampsSchema
 })
