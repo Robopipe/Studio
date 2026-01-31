@@ -15,6 +15,8 @@ import { DB_CONNECTION } from "../../../core/database/database.constant";
 import type { DbConnection } from "../../../core/database/types/database.types";
 import { modelLabelTable } from "@repo/database";
 import { eq } from "drizzle-orm";
+import { ModelLogRepository } from "../../../repository/services/model-log-repository.service";
+import { ModelLogEntity } from "../entity/model-log.entity";
 
 @Injectable()
 export class ModelService{
@@ -23,6 +25,7 @@ export class ModelService{
     private readonly modelRepository: ModelRepository,
     private readonly modelOutputRepository: ModelOutputRepository,
     private readonly projectLabelRepository: ProjectLabelRepository,
+    private readonly modelLogRepository: ModelLogRepository,
   ) {}
 
 
@@ -60,8 +63,7 @@ export class ModelService{
    * @returns ModelOutputEntity[]
    */
   public async getModelOutputs(id: number, projectId: number): Promise<ModelOutputEntity[]>{
-    await this.getModelById(id, projectId); // Access check
-
+    await this.checkModelAccess(id, projectId)
     return this.modelOutputRepository.getAllByModelId(id)
   }
 
@@ -131,6 +133,17 @@ export class ModelService{
   }
 
   /**
+   * Get model logs
+   * @param id
+   * @param projectId
+   * @retur ModelLogEntity[]
+   */
+  public async getModelLogs(id: number, projectId: number): Promise<ModelLogEntity[]>{
+    await this.checkModelAccess(id, projectId)
+    return this.modelLogRepository.getAllByModelId(id)
+  }
+
+  /**
    * Delete model
    * @param id - model id
    * @param projectId
@@ -140,6 +153,19 @@ export class ModelService{
     await this.modelRepository.delete(id)
   }
 
+
+  /**
+   * Check model access
+   * @param id
+   * @param projectId
+   * @throws NotFoundException - Model not found
+   */
+  private async checkModelAccess(id: number, projectId: number): Promise<void>{
+    const hasAccess = await this.modelRepository.existsByIdAndProjectId(id, projectId);
+    if(!hasAccess){
+      throw new NotFoundException("Model not found")
+    }
+  }
 
   /**
    * Get valid labels from label Ids by project

@@ -3,8 +3,8 @@ import {
   Injectable,
   InternalServerErrorException,
 } from "@nestjs/common";
-import { modelTable } from '@repo/database/schema';
-import { eq } from "drizzle-orm";
+import { modelTable } from '@repo/database';
+import { and, eq } from "drizzle-orm";
 import { DB_CONNECTION } from 'src/core/database/database.constant';
 import type { DbConnection } from 'src/core/database/types/database.types';
 import { ModelEntity } from "../../modules/model/entity/model.entity";
@@ -92,6 +92,17 @@ export class ModelRepository {
     const labels = modelLabels.map((modelLabel) => modelLabel.label).filter((l) => !!l)
 
     return new ModelEntity({...updatedModel, labels})
+  }
+
+  /**
+   * Check if model exists by ID and project ID
+   * @param id
+   * @param projectId
+   * @return boolean
+   */
+  public async existsByIdAndProjectId(id: number, projectId: number): Promise<boolean>{
+    const modelCount = await this.db.$count(modelTable, and(eq(modelTable.id, id), eq(modelTable.projectId, projectId)))
+    return modelCount > 0
   }
 
   /**

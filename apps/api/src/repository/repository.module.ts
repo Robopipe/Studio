@@ -8,6 +8,7 @@ import { ProjectLabelRepository } from "./services/project-label-repository.serv
 import {
   ModelOutputRepository,
 } from "./services/model-output-repository.service";
+import { ModelLogRepository } from "./services/model-log-repository.service";
 
 
 @Global()
@@ -20,6 +21,7 @@ import {
     UserRepository,
     ProjectLabelRepository,
     ModelOutputRepository,
+    ModelLogRepository
   ],
   exports: [
     ModelRepository,
@@ -29,6 +31,7 @@ import {
     UserRepository,
     ProjectLabelRepository,
     ModelOutputRepository,
+    ModelLogRepository
   ],
 })
 export class RepositoryModule {}
