@@ -36,7 +36,7 @@ To learn more about Robopipe Studio, please visit the [Robopipe Documentation](h
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/Robopipe/Studio.git
+   git clone -b rewrite --single-branch https://github.com/Robopipe/Studio.git
    ```
 
 2. Navigate to the project directory:
@@ -64,7 +64,7 @@ To learn more about Robopipe Studio, please visit the [Robopipe Documentation](h
 5. Run the database migrations:
 
    ```bash
-   pnpm -F api drizzle:push
+   pnpm build && pnpm -F api drizzle:push
    ```
 
 6. Run the application:
