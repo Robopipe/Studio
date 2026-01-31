@@ -19,9 +19,9 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, documentConfig);
-  SwaggerModule.setup("api", app, document);
+  SwaggerModule.setup("doc", app, document);
 
-  app.use(cookieParser(config.cookie.secret));
+  app.use(cookieParser(config.cookieSecret));
   app.enableCors({
     origin: [config.webHost, config.apiHost],
     credentials: true,

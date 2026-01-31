@@ -1,14 +1,21 @@
 import { authApi, authSlice } from "@/core/auth/services";
+import { cameraApi } from "@/core/cameraApi";
+import { captureApi } from "@/modules/capture/services/captureApi";
 import { configureStore } from "@reduxjs/toolkit";
 
 const slices = {
-  [authApi.reducerPath]: authApi.reducer,
   [authSlice.name]: authSlice.reducer,
 };
 const apis = {
   [authApi.reducerPath]: authApi.reducer,
+  [cameraApi.reducerPath]: cameraApi.reducer,
+  [captureApi.reducerPath]: captureApi.reducer,
 };
-const middlewares = [authApi.middleware];
+const middlewares = [
+  authApi.middleware,
+  cameraApi.middleware,
+  captureApi.middleware,
+];
 const mainReducer = {
   ...slices,
   ...apis,

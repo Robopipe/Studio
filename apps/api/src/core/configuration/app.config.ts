@@ -11,23 +11,19 @@ export const appConfigSchema = z.object({
     })
     .default({ port: 3000, host: "localhost" }),
   databaseUrl: z.string(),
-  jwt: z.object({
-    secret: z.string(),
-    accessTokenDuration: z.int().optional(),
-    refreshTokenDuration: z.int().optional(),
-  }),
+  jwtSecret: z.string(),
+  jwtAccessTokenDuration: z.number().int().optional(),
+  jwtRefreshTokenDuration: z.number().int().optional(),
   storage: z.object({
-    bucketName: z.string()
+    bucketName: z.string(),
   }),
   ml: z.object({
     host: z.string(),
     apiKey: z.string(),
   }),
-  apiHost: z.url().default("http://localhost:4000"),
+  apiHost: z.url().default("http://localhost:3000"),
   webHost: z.url().optional(),
-  cookie: z.object({
-    secret: z.string(),
-  }),
+  cookieSecret: z.string(),
 });
 
 export class AppConfig extends createZodDto(appConfigSchema) {}

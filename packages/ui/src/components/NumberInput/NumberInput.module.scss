@@ -1,0 +1,68 @@
+.InlineField {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.Label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  width: 80px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  margin-right: 1rem;
+}
+
+.InputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.Input {
+  width: 100%;
+  height: 2.25rem;
+  padding: 0 0.75rem;
+  background-color: var(--color-surface-3);
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+  transition: all 0.2s ease;
+  font-family: inherit;
+
+  &::placeholder {
+    color: var(--color-text-disabled);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    background-color: var(--color-white);
+  }
+
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+}
+
+.InputWithSuffix {
+  padding-right: 2.75rem;
+}
+
+.InputError {
+  border-color: var(--color-error);
+  background-color: var(--color-red-50);
+}
+
+.Suffix {
+  position: absolute;
+  right: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  pointer-events: none;
+}

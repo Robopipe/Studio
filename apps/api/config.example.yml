@@ -3,7 +3,6 @@
 secrets:
   - jwtSecret
   - databaseUrl
-  - sentryDsn
 
 # Option 1: Using environment variables
 # secretsProviderConfig:
