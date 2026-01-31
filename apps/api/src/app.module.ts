@@ -7,7 +7,6 @@ import { ProjectModule } from "./modules/project/project.module";
 import { RepositoryModule } from "./repository/repository.module";
 import { AssetsModule } from "./modules/assets/assets.module";
 import { TaskModule } from "./modules/task/task.module";
-import { TrainingExternalService } from "./modules/training-external/services/training-external.service";
 import { TrainingExternalModule } from "./modules/training-external/training-external.module";
 import { ModelModule } from "./modules/model/model.module";
 
@@ -21,7 +20,6 @@ import { ModelModule } from "./modules/model/model.module";
     ProjectModule,
     AssetsModule,
     TaskModule,
-    TrainingExternalService,
     TrainingExternalModule,
     ModelModule
   ],
