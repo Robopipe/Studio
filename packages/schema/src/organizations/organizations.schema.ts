@@ -1,11 +1,11 @@
 import z from "zod";
 import { userSchema } from "../users";
+import { timestampsSchema } from "../helpers";
 
 export const organizationSchema = z.object({
   id: z.number(),
   name: z.string(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
+  ...timestampsSchema
 });
 
 export const updateOrganizationRequestSchema = z.object({

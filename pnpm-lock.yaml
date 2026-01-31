@@ -283,6 +283,9 @@ importers:
 
   packages/database:
     dependencies:
+      '@repo/schema':
+        specifier: workspace:*
+        version: link:../schema
       drizzle-orm:
         specifier: 1.0.0-beta.12-a5629fb
         version: 1.0.0-beta.12-a5629fb(@types/mssql@9.1.9)(@types/pg@8.16.0)(mssql@11.0.1)(pg@8.16.3)

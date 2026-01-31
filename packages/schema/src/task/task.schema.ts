@@ -1,0 +1,83 @@
+import z from "zod";
+import { labelSchema } from "../label";
+import { timestampsSchema } from "../helpers";
+
+export enum TaskStatusEnum {
+  TODO = "TODO",
+  DONE = "DONE"
+}
+
+
+export enum TaskFileTypeEnum {
+  GS = "GS"
+  // Add local and other adapters in the future
+}
+
+/**
+ * Rectangle annotations
+ */
+export const rectangleAnnotationSchema = z.object({
+  id: z.number(),
+  label: labelSchema,
+  x: z.number(),
+  y: z.number(),
+  width: z.number(),
+  height: z.number(),
+})
+
+export const createRectangleAnnotationSchema = z.object({
+  labelId: z.number(),
+  x: z.number(),
+  y: z.number(),
+  width: z.number(),
+  height: z.number(),
+})
+
+/**
+ * Polygon annotations
+ */
+export const polygonAnnotationSchema = z.object({
+  id: z.number(),
+  label: labelSchema,
+  values: z.tuple([z.number(), z.number()]).array(),
+})
+
+export const createPolygonAnnotationSchema = z.object({
+  labelId: z.number(),
+  values: z.tuple([z.number(), z.number()]).array(),
+});
+
+/**
+ * Classification annotations
+ */
+export const classificationAnnotationSchema = z.object({
+  id: z.number(),
+  label: labelSchema,
+})
+
+export const createClassificationAnnotationSchema = z.object({
+  labelId: z.number()
+})
+
+
+/**
+ * Task schemas
+ */
+export const taskSchema = z.object({
+  id: z.number(),
+  fileType: z.enum(TaskFileTypeEnum),
+  filePath: z.string(),
+  status: z.enum(TaskStatusEnum),
+  rectangleAnnotations: rectangleAnnotationSchema.array().nullable(),
+  polygonAnnotations: polygonAnnotationSchema.array().nullable(),
+  classificationAnnotations: classificationAnnotationSchema.array().nullable(),
+  ...timestampsSchema
+})
+
+export const updateTaskSchema = z.object({
+  rectangleAnnotations: createRectangleAnnotationSchema.array().nullish(),
+  polygonAnnotations: createPolygonAnnotationSchema.array().nullish(),
+  classificationAnnotations: createClassificationAnnotationSchema.array().nullish(),
+});
+
+
