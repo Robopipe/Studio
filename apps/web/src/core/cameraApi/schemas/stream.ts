@@ -45,15 +45,17 @@ export const sensorControlSchema = z.object({
     .number()
     .int()
     .min(1)
-    .max(33000)
+    .max(33_000)
     .optional()
     .describe("Exposure time in microseconds"),
-  sensitivity_iso: z.number().int().min(100).max(5000).optional(),
+  sensitivity_iso: z.number().int().min(100).max(5_000).optional(),
   auto_exposure_enable: z.boolean().optional(),
   auto_exposure_compensation: z.number().int().min(-9).max(9).optional(),
   auto_exposure_limit: z
     .number()
     .int()
+    .min(-1_000_000)
+    .max(1_000_000)
     .optional()
     .describe("Maximum exposure time limit for auto-exposure in microseconds"),
   auto_exposure_lock: z.boolean().optional(),

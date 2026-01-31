@@ -1,0 +1,16 @@
+.infoIcon {
+  color: rgba(0, 0, 0, 0.38);
+}
+
+.parameter {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.label {
+  width: calc(100% - 8.25rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
