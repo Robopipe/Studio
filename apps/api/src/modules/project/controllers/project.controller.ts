@@ -5,6 +5,7 @@ import {
   Get,
   Patch,
   Post,
+  Put,
   UseGuards,
 } from "@nestjs/common";
 import type {
@@ -46,7 +47,7 @@ export class ProjectController {
   }
 
 
-  @Patch(':projectId')
+  @Put(':projectId')
   @UseGuards(ProjectGuard)
   public async update(
     @ProjectId() projectId: number,

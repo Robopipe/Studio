@@ -1,9 +1,11 @@
 import {
+  Body,
   Controller,
   Get,
   Param,
   ParseIntPipe,
   Post,
+  Put,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -12,7 +14,11 @@ import { FileInterceptor } from "@nestjs/platform-express";
 import { TaskService } from "../services/task.service";
 import { ProjectGuard } from "../../auth/guards/project-guard";
 import { ProjectId } from "../../auth/decorators/project-id.decorator";
-import { TaskDetailResponse, TaskResponse } from "../dto/task.dto";
+import {
+  TaskDetailResponse,
+  TaskResponse,
+  TaskUpdateRequest,
+} from "../dto/task.dto";
 
 @Controller("task/:projectId")
 @UseGuards(ProjectGuard)
@@ -38,5 +44,12 @@ export class TaskController {
   public async getTask(@ProjectId() projectId: number, @Param("taskId", ParseIntPipe) taskId: number): Promise<TaskDetailResponse> {
     const task = await this.taskService.getTask(taskId, projectId);
     return task.toDetailResponse()
+  }
+
+
+  @Put(":taskId")
+  public async updateTask(@ProjectId() projectId: number, @Param("taskId", ParseIntPipe) taskId: number, @Body() data: TaskUpdateRequest): Promise<TaskDetailResponse> {
+    const updatedTask = await this.taskService.updateTask(taskId, projectId, data)
+    return updatedTask.toDetailResponse()
   }
 }

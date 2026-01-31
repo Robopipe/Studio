@@ -1,4 +1,9 @@
-import { Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from "@nestjs/common";
 import { taskTable } from '@repo/database/schema';
 import { DB_CONNECTION } from 'src/core/database/database.constant';
 import type { DbConnection } from 'src/core/database/types/database.types';
@@ -50,6 +55,22 @@ export class TaskRepository {
   }
 
   /**
+   *Get task by ID and project id or throw
+   * @param id
+   * @param projectId
+   * @throws NotFoundException - Task not found
+   * @returns TaskDetailEntity
+   */
+  public async getByIdAndProjectIdOrThrow(id: number, projectId: number): Promise<TaskDetailEntity> {
+    const task = await this.getByIdAndProjectId(id, projectId);
+    if(!task){
+      throw new NotFoundException('Task not found');
+    }
+
+    return task
+  }
+
+  /**
    * Create task
    * @param data - TaskInsert
    * @throws - InternalServerErrorException - Failed creating task
@@ -92,5 +113,13 @@ export class TaskRepository {
     })
 
     return tasks.map((t) => new TaskEntity(t))
+  }
+
+  /**
+   * Delete task by id
+   * @param id
+   */
+  public async delete(id: number): Promise<void>{
+    await this.db.delete(taskTable).where(eq(taskTable.id, id))
   }
 }

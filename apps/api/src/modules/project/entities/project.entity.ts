@@ -1,10 +1,11 @@
-import type { Project } from '@repo/schema';
+import type { Project, ProjectTypeEnum } from '@repo/schema';
 import type { ProjectSelect } from 'src/repository/types/project';
 
 export class ProjectEntity {
   readonly id: number;
   readonly name: string;
   readonly organizationId: number;
+  readonly type: ProjectTypeEnum;
   readonly createdAt: Date;
   readonly updatedAt: Date;
   readonly deletedAt: Date | null;
@@ -12,6 +13,7 @@ export class ProjectEntity {
   constructor(data: ProjectSelect) {
     this.id = data.id;
     this.name = data.name;
+    this.type = data.type;
     this.organizationId = data.organizationId;
     this.createdAt = data.createdAt;
     this.updatedAt = data.updatedAt;
