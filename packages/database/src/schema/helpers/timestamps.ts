@@ -10,7 +10,10 @@ export const updatedAt = timestamp("updated_at", { withTimezone: true })
   .defaultNow()
   .$onUpdate(() => sql`NOW()`);
 
+export const deletedAt = timestamp("deleted_at",{ withTimezone: true })
+
 export const timestamps = {
   createdAt,
   updatedAt,
+  deletedAt
 };

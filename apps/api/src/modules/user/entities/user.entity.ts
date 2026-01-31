@@ -9,6 +9,7 @@ export class UserEntity {
   readonly organizationId: number;
   readonly createdAt: Date;
   readonly updatedAt: Date;
+  readonly deletedAt: Date | null;
 
   constructor(data: UserSelect) {
     Object.assign(this, data);
@@ -21,8 +22,9 @@ export class UserEntity {
       email: this.email,
       fullName: this.fullName,
       organizationId: this.organizationId,
-      createdAt: this.createdAt,
-      updatedAt: this.updatedAt,
+      createdAt: this.createdAt.toISOString(),
+      updatedAt: this.updatedAt.toISOString(),
+      deletedAt: this.deletedAt ? this.deletedAt.toISOString() : null,
     };
   }
 }

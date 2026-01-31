@@ -1,4 +1,4 @@
-import { Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Inject, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 import { projectTable } from '@repo/database/schema';
 import { DB_CONNECTION } from 'src/core/database/database.constant';
@@ -24,24 +24,17 @@ export class ProjectRepository {
   }
 
   /**
-   * Get project by id and org id
-   * Use this if possible instead of get by id
-   * @param projectId
-   * @param organizationId
-   * @returns Project entity or null
+   * Get project by id or throw
+   * @param id
+   * @throws NotFoundException - Project not found
+   * @returns ProjectEntity
    */
-  public async getByIdAndOrganizationId(
-    projectId: number,
-    organizationId: number,
-  ): Promise<ProjectEntity | null> {
-    const project = await this.db.query.projectTable.findFirst({
-      where: {
-        id: projectId,
-        organizationId,
-      },
-    });
-
-    return project ? new ProjectEntity(project) : null;
+  public async getByIdOrThrow(id: number): Promise<ProjectEntity> {
+    const project = await this.getById(id);
+    if(!project){
+      throw new NotFoundException("Project not found")
+    }
+    return project
   }
 
   /**
