@@ -1,10 +1,18 @@
 import * as p from 'drizzle-orm/pg-core'
 import { id, timestamps } from '../helpers'
 import { organizationTable } from './organization'
+import { ProjectTypeEnum } from '@repo/schema'
+
+export const projectTypeEnum = p.pgEnum("project_type_enum", [
+  ProjectTypeEnum.DETECTION,
+  ProjectTypeEnum.CLASSIFICATION,
+  ProjectTypeEnum.SEGMENTATION
+])
 
 export const projectTable = p.pgTable("project", {
   id,
   name: p.varchar("name", {length:256}).notNull(),
   organizationId: p.integer("organization_id").references(() => organizationTable.id, {onDelete: 'cascade'}).notNull(),
+  robopipeApiUrl: p.varchar("robopipe_api_url", { length: 255 }),
   ...timestamps
 })
