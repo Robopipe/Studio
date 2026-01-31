@@ -6,6 +6,7 @@ export class OrganizationEntity {
   readonly name: string;
   readonly createdAt: Date;
   readonly updatedAt: Date;
+  readonly deletedAt: Date | null;
 
   constructor(data: OrganizationSelect) {
     Object.assign(this, data);
@@ -15,8 +16,9 @@ export class OrganizationEntity {
     return {
       id: this.id,
       name: this.name,
-      createdAt: this.createdAt,
-      updatedAt: this.updatedAt,
+      createdAt: this.createdAt.toISOString(),
+      updatedAt: this.updatedAt.toISOString(),
+      deletedAt: this.deletedAt ? this.deletedAt.toISOString() : null,
     };
   }
 }

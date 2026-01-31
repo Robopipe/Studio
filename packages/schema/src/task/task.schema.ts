@@ -39,12 +39,12 @@ export const createRectangleAnnotationSchema = z.object({
 export const polygonAnnotationSchema = z.object({
   id: z.number(),
   label: labelSchema,
-  values: z.tuple([z.number(), z.number()]).array(),
+  value: z.tuple([z.number(), z.number()]).array(),
 })
 
 export const createPolygonAnnotationSchema = z.object({
   labelId: z.number(),
-  values: z.tuple([z.number(), z.number()]).array(),
+  value: z.tuple([z.number(), z.number()]).array(),
 });
 
 /**
@@ -68,10 +68,13 @@ export const taskSchema = z.object({
   fileType: z.enum(TaskFileTypeEnum),
   filePath: z.string(),
   status: z.enum(TaskStatusEnum),
+  ...timestampsSchema
+})
+
+export const taskDetailSchema = taskSchema.extend({
   rectangleAnnotations: rectangleAnnotationSchema.array().nullable(),
   polygonAnnotations: polygonAnnotationSchema.array().nullable(),
   classificationAnnotations: classificationAnnotationSchema.array().nullable(),
-  ...timestampsSchema
 })
 
 export const updateTaskSchema = z.object({
