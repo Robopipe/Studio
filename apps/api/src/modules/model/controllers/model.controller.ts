@@ -16,6 +16,7 @@ import {
   ModelUpdateRequest,
 } from "../dto/model.dto";
 import { ModelOutputResponse } from "../dto/model-output.dto";
+import { ModelLogResponse } from "../dto/model-log.dto";
 
 @Controller("model/:projectId")
 @UseGuards(ProjectGuard)
@@ -66,6 +67,16 @@ export class ModelController {
   ): Promise<ModelOutputResponse[]>{
     const modelOutputs = await this.modelService.getModelOutputs(modelId, projectId)
     return modelOutputs.map((modelOutput) => modelOutput.toResponse())
+  }
+
+
+  @Get(":modelId/logs")
+  public async getModelLogs(
+    @ProjectId() projectId: number,
+    @Param("modelId", ParseIntPipe) modelId: number,
+  ): Promise<ModelLogResponse[]>{
+    const modelLogs = await this.modelService.getModelLogs(modelId, projectId)
+    return modelLogs.map((log) => log.toResponse())
   }
 
 
