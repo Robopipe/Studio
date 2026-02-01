@@ -1,7 +1,29 @@
-import { Heading, Spinner, Stack, Text } from "@repo/ui";
+import {
+  Button,
+  Heading,
+  Spinner,
+  Stack,
+  Text,
+  TextInput,
+  bui,
+} from "@repo/ui";
+import { FormEvent } from "react";
 import { useParams } from "react-router";
 import z from "zod";
-import { useGetProjectQuery } from "../../services/projectApi";
+import {
+  useCreateProjectLabelMutation,
+  useDeleteProjectLabelMutation,
+  useGetProjectLabelsQuery,
+  useGetProjectQuery,
+} from "../../services/projectApi";
+
+import { LabelChip } from "../LabelChip";
+import styles from "./ProjectPage.module.scss";
+
+// Only bright colors
+function randomHsl() {
+  return "hsl(" + Math.random() * 360 + ", 100%, 50%)";
+}
 
 export interface ProjectPageProps {}
 
@@ -9,6 +31,9 @@ export const ProjectPage = ({}: ProjectPageProps) => {
   const { id } = useParams();
   const projectId = z.coerce.number().parse(id);
   const { data: project, isLoading } = useGetProjectQuery({ projectId });
+  const [createProjectLabel] = useCreateProjectLabelMutation();
+  const { data: labels } = useGetProjectLabelsQuery({ projectId });
+  const [deleteProjectLabel] = useDeleteProjectLabelMutation();
 
   if (isLoading) {
     return <Spinner />;
@@ -16,6 +41,18 @@ export const ProjectPage = ({}: ProjectPageProps) => {
   if (!project) {
     throw new Error("Project not found");
   }
+
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const labelName = formData.get("labelName") as string;
+
+    createProjectLabel({
+      projectId,
+      name: labelName,
+      color: randomHsl(),
+    });
+  };
 
   return (
     <Stack fullWidth gap="md">
@@ -27,9 +64,33 @@ export const ProjectPage = ({}: ProjectPageProps) => {
         Add Label Names
       </Text>
 
-      <Text variant="text-14" weight="500">
-        Use new line as a separator to add multiple labels
-      </Text>
+      <Stack gap="md" direction="row">
+        <bui.Form onSubmit={handleSubmit} className={styles.form}>
+          <TextInput
+            label="Label Name"
+            name="labelName"
+            type="text"
+            placeholder="Label name"
+            helperText="Enter a label name"
+            required
+          />
+          <Button type="submit">Add Labels</Button>
+        </bui.Form>
+        <Stack gap="md">
+          <Text variant="text-16" weight="700">
+            Labels ({labels?.length})
+          </Text>
+          {labels?.map((label) => (
+            <LabelChip
+              key={label.id}
+              label={label}
+              onRemove={() =>
+                deleteProjectLabel({ projectId, labelId: label.id })
+              }
+            />
+          ))}
+        </Stack>
+      </Stack>
     </Stack>
   );
 };

@@ -1,0 +1,35 @@
+.labelChip {
+  display: flex;
+  padding: 0.25rem;
+  align-items: center;
+
+  position: relative;
+}
+
+.backgroundColor {
+  background: var(--color);
+  opacity: 0.15;
+  border-radius: var(--Border-radius---radius-8, 0.5rem);
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+
+.mainColor {
+  width: 0.5rem;
+  height: 1.5rem;
+  border-radius: var(--Border-radius---radius-4, 0.25rem);
+  background: var(--color);
+}
+
+.labelName {
+  padding: 0.125rem 0.5rem;
+  flex: 2;
+}
+
+.closeIcon {
+  cursor: pointer;
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-text-secondary);
+}
