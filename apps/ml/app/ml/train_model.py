@@ -13,6 +13,23 @@ from .model_conversion import convert_model
 from .callbacks import *
 
 
+def __upload_model(url: str, file_path: str, api_key: str) -> None:
+    """Upload a model file to the webhook URL with proper error handling."""
+    try:
+        with open(file_path, "rb") as f:
+            response = requests.post(
+                url,
+                files={"file": f},
+                headers={"Authorization": api_key},
+            )
+            response.raise_for_status()
+            print(f"Successfully uploaded model to {url}")
+    except FileNotFoundError:
+        print(f"Failed to upload model: file not found at {file_path}")
+    except requests.exceptions.RequestException as e:
+        print(f"Failed to upload model to {url}: {e}")
+
+
 def __train(config: ModelConfig):
     ONNX_PATH = f"export/{config.id}.onnx"
     with tempfile.TemporaryDirectory() as dir:
@@ -26,24 +43,36 @@ def __train(config: ModelConfig):
         output_dir = next(filter(lambda x: x.startswith("0-"), os.listdir(dir)))
 
         output_types = config.training_config.output_types
+        webhook_url = get_config().webhook_url
+        api_key = get_config().api_key
+
+        if webhook_url is None:
+            print("No webhook_url configured, skipping model upload")
+            return
+
         if ModelOutputType.RAW in output_types:
-            requests.post(
-                f"{get_config().webhook_url}/upload/{config.id}/raw",
-                files={"file": open(f"{dir}/{output_dir}/{ONNX_PATH}", "rb")},
-                headers={"Authorization": get_config().api_key},
+            __upload_model(
+                f"{webhook_url}/upload/{config.id}/raw",
+                f"{dir}/{output_dir}/{ONNX_PATH}",
+                api_key,
             )
 
         for output_type in filter(lambda x: x != ModelOutputType.RAW, output_types):
-            res = convert_model(
-                path=f"{dir}/{output_dir}/{ONNX_PATH}",
-                output_dir=f"{dir}/converted/{output_type.value}",
-                target_format=output_type,
-            )
-            requests.post(
-                f"{get_config().webhook_url}/upload/{config.id}/{output_type.value}",
-                files={"file": open(res.downloaded_path, "rb")},
-                headers={"Authorization": get_config().api_key},
-            )
+            try:
+                print(f"Converting model to {output_type.value}...")
+                res = convert_model(
+                    path=f"{dir}/{output_dir}/{ONNX_PATH}",
+                    output_dir=f"{dir}/converted/{output_type.value}",
+                    target_format=output_type,
+                )
+                print(f"Conversion complete, uploading {output_type.value}...")
+                __upload_model(
+                    f"{webhook_url}/upload/{config.id}/{output_type.value}",
+                    res.downloaded_path,
+                    api_key,
+                )
+            except Exception as e:
+                print(f"Failed to convert/upload {output_type.value}: {e}")
 
 
 def train_model(config: ModelConfig):
