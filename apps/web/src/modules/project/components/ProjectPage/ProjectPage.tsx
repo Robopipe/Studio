@@ -24,8 +24,8 @@ import { getRandomHex } from '../LabelingSetup';
 export interface ProjectPageProps {}
 
 export const ProjectPage = ({}: ProjectPageProps) => {
-  const { id } = useParams();
-  const projectId = z.coerce.number().parse(id);
+  const { projectId: projectIdRaw } = useParams();
+  const projectId = z.coerce.number().parse(projectIdRaw);
   const { data: project, isLoading } = useGetProjectQuery({ projectId });
   const [createProjectLabel] = useCreateProjectLabelMutation();
   const { data: labels } = useGetProjectLabelsQuery({ projectId });
