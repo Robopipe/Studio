@@ -1,7 +1,9 @@
-from pydantic import BaseModel, field_validator
+from pydantic import field_validator
+
+from .base_schema import BaseSchema
 
 
-class DatasetConfig(BaseModel):
+class DatasetConfig(BaseSchema):
     dataset_split: tuple[int, int, int]  # (train, val, test)
     labels: list[int]
 

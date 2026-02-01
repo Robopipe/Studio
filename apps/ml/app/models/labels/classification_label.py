@@ -1,9 +1,8 @@
-from pydantic import BaseModel
-
+from ..base_schema import BaseSchema
 from .label import Label
 
 
-class ClassificationLabel(BaseModel):
+class ClassificationLabel(BaseSchema):
     label: Label
 
     def to_str(self, width: int, height: int) -> str:

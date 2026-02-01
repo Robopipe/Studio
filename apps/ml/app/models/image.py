@@ -1,12 +1,12 @@
 from typing import Union
 
-from pydantic import BaseModel
+from .base_schema import BaseSchema
 from .labels.classification_label import ClassificationLabel
 from .labels.polygon_label import PolygonLabel
 from .labels.rectangle_label import RectangleLabel
 
 
-class Image(BaseModel):
+class Image(BaseSchema):
     file_url: str
     width: int
     height: int

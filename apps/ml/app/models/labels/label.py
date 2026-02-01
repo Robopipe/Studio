@@ -1,5 +1,5 @@
-from pydantic import BaseModel
+from ..base_schema import BaseSchema
 
 
-class Label(BaseModel):
+class Label(BaseSchema):
     label_number: int
