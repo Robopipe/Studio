@@ -56,6 +56,7 @@ export const LabelPage = () => {
   }, []);
 
   const history = useHistory({
+    annotations,
     setAnnotations: setAnnotationsAndDirty,
     setSelectedAnnotationId,
   });
@@ -73,6 +74,7 @@ export const LabelPage = () => {
       setAnnotations(taskDetailToAnnotations(taskDetail));
       setSelectedAnnotationId(null);
       setIsDirty(false);
+      history.reset();
     }
   }, [taskDetail]);
 
@@ -129,6 +131,9 @@ export const LabelPage = () => {
         selectedAnnotationId={selectedAnnotationId}
         onSelectAnnotation={setSelectedAnnotationId}
         onDeleteAnnotation={history.deleteAnnotation}
+        historyEntries={history.entries}
+        historyIndex={history.currentIndex}
+        onJumpTo={history.jumpTo}
       />
       <div className={styles.canvasArea}>
         <div className={styles.canvasRow}>

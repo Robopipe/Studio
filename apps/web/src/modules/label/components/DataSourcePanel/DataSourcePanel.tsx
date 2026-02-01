@@ -33,9 +33,21 @@ export const DataSourcePanel = ({
               alt={task.filePath.split("/").pop() ?? "task"}
               className={styles.thumbnail}
             />
-            <span className={styles.count}>
-              {task.id === selectedTaskId ? annotationCount : "—"}
-            </span>
+            <div className={styles.meta}>
+              <span className={styles.taskId}>#{task.id}</span>
+              <span className={styles.date}>
+                {new Date(task.createdAt).toLocaleString(undefined, {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                  hour: "numeric",
+                  minute: "2-digit",
+                })}
+              </span>
+              <span className={styles.count}>
+                {task.id === selectedTaskId ? annotationCount : (task.annotationCount ?? 0)} annotations
+              </span>
+            </div>
           </button>
         ))}
       </div>
