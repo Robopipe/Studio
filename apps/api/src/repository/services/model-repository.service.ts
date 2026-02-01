@@ -4,7 +4,7 @@ import {
   InternalServerErrorException,
 } from "@nestjs/common";
 import { modelTable } from '@repo/database';
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { DB_CONNECTION } from 'src/core/database/database.constant';
 import type { DbConnection } from 'src/core/database/types/database.types';
 import { ModelEntity } from "../../modules/model/entity/model.entity";
@@ -19,17 +19,39 @@ export class ModelRepository {
    * @param projectId
    * @returns ModelEntity[]
    */
-  public async getAllByProjectId(projectId: number): Promise<any> {
+  public async getAllByProjectId(projectId: number): Promise<ModelEntity[]> {
     const models = await this.db.query.modelTable.findMany({
       where: {
-        projectId
+        projectId,
       },
       with: {
-        labels: true
-      }
-    })
+        labels: {
+          orderBy: (l) => asc(l.id),
+        },
+      },
+    });
 
     return models.map((model) => new ModelEntity(model))
+  }
+
+  /**
+   * Get by id
+   * @param id
+   * @returns ModelEntity or null if not found
+   */
+  public async getById(id: number): Promise<ModelEntity | null>{
+    const foundModel = await this.db.query.modelTable.findFirst({
+      where: {
+        id,
+      },
+      with: {
+        labels: {
+          orderBy: (l) => asc(l.id),
+        },
+      },
+    });
+
+    return foundModel ? new ModelEntity(foundModel) : null;
   }
 
   /**
@@ -45,7 +67,9 @@ export class ModelRepository {
         projectId
       },
       with: {
-        labels: true
+        labels: {
+          orderBy: (l) => asc(l.id)
+        }
       }
     })
 
@@ -87,7 +111,8 @@ export class ModelRepository {
       },
       with: {
         label: true
-      }
+      },
+      orderBy: (p) => asc(p.labelId)
     })
     const labels = modelLabels.map((modelLabel) => modelLabel.label).filter((l) => !!l)
 

@@ -17,6 +17,7 @@ import { modelLabelTable } from "@repo/database";
 import { eq } from "drizzle-orm";
 import { ModelLogRepository } from "../../../repository/services/model-log-repository.service";
 import { ModelLogEntity } from "../entity/model-log.entity";
+import { TrainingExternalService } from "../../training-external/services/training-external.service";
 
 @Injectable()
 export class ModelService{
@@ -26,6 +27,7 @@ export class ModelService{
     private readonly modelOutputRepository: ModelOutputRepository,
     private readonly projectLabelRepository: ProjectLabelRepository,
     private readonly modelLogRepository: ModelLogRepository,
+    private readonly trainingExternalService: TrainingExternalService
   ) {}
 
 
@@ -151,6 +153,20 @@ export class ModelService{
   public async deleteModel(id: number, projectId: number): Promise<void>{
     await this.getModelById(id, projectId);
     await this.modelRepository.delete(id)
+  }
+
+
+  /**
+   * Train model
+   * @param id - model ID
+   * @param projectId
+   */
+  public async trainModel(id: number, projectId: number): Promise<ModelEntity>{
+    const model = await this.getModelById(id, projectId)
+    await this.trainingExternalService.train(model)
+    return this.modelRepository.update(id, {
+      status: ModelStatusEnum.TRAINING
+    })
   }
 
 
