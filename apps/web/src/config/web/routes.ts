@@ -8,10 +8,10 @@ export const webRoutes = {
     project: "/projects/:id",
   },
   model: {
-    modelList: "/projects/:projectId/models",
-    modelDetail: "/projects/:projectId/models/:modelId",
-    modelNew: "/projects/:projectId/models/new",
+    modelList: "/projects/:id/models",
+    modelDetail: "/projects/:id/models/:modelId",
+    modelNew: "/projects/:id/models/new",
   },
-  capture: "/capture",
-  label: "/label",
+  capture: "/projects/:id/capture",
+  label: "/projects/:id/label",
 } as const;

@@ -12,7 +12,7 @@ import {
   Stack,
   SupportIcon,
 } from "@repo/ui";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate, matchPath } from "react-router";
 
 import styles from "./Navbar.module.scss";
 import { NavDropdown } from "./components/NavDropdown";
@@ -20,9 +20,15 @@ import { NavItem } from "./components/NavItem";
 
 export const Navbar = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+
   const [logout] = useLogoutMutation();
   const { data: projects } = useGetProjectsQuery();
   const [activeProject, setActiveProject] = useActiveProject();
+
+  const match = matchPath({ path: "/projects/:id/*" }, location.pathname);
+  const activeId = match?.params.id;
+  const isProjectRoute = !!activeId;
 
   const handleLogout = async () => {
     try {
@@ -49,26 +55,31 @@ export const Navbar = () => {
             items={
               projects?.map((p) => ({
                 label: p.name,
-                onClick: () => setActiveProject(p),
+                onClick: () => {
+                  setActiveProject(p);
+                  navigate(`/projects/${p.id}/label`);
+                },
               })) ?? []
             }
           />
         </Stack>
       </Stack>
 
-      {/* Center: Absolute Tabs */}
-      <Stack
-        direction="row"
-        align="center"
-        gap={4}
-        className={styles.centerStack}
-      >
-        <NavItem to="/capture" label="Capture" icon={<CameraIcon />} />
-        <NavItem to="/label" label="Label" icon={<AnnotateIcon />} />
-        <NavItem to="/train" label="Train" icon={<AiPowerIcon />} />
-        <NavItem to="/run" label="Run" icon={<RunIcon />} />
-        <NavItem to="/analytics" label="Analytics" icon={<ChartIcon />} />
-      </Stack>
+      {/* Center: Tabs */}
+      {isProjectRoute && (
+        <Stack
+          direction="row"
+          align="center"
+          gap={4}
+          className={styles.centerStack}
+        >
+          <NavItem to={`/projects/${activeId}/capture`} label="Capture" icon={<CameraIcon />} />
+          <NavItem to={`/projects/${activeId}/label`} label="Label" icon={<AnnotateIcon />} />
+          <NavItem to={`/projects/${activeId}/models`} label="Train" icon={<AiPowerIcon />} />
+          <NavItem to={`/projects/${activeId}/run`} label="Run" icon={<RunIcon />} />
+          <NavItem to={`/projects/${activeId}/analytics`} label="Analytics" icon={<ChartIcon />} />
+        </Stack>
+      )}
 
       {/* Right: User Actions */}
       <Stack direction="row" align="center" gap={12} className={styles.right}>
