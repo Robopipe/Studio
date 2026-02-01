@@ -19,11 +19,7 @@ import {
 
 import { LabelChip } from "../LabelChip";
 import styles from "./ProjectPage.module.scss";
-
-// Only bright colors
-function randomHsl() {
-  return "hsl(" + Math.random() * 360 + ", 100%, 50%)";
-}
+import { getRandomHex } from '../LabelingSetup';
 
 export interface ProjectPageProps {}
 
@@ -50,7 +46,7 @@ export const ProjectPage = ({}: ProjectPageProps) => {
     createProjectLabel({
       projectId,
       name: labelName,
-      color: randomHsl(),
+      color: getRandomHex(),
     });
   };
 

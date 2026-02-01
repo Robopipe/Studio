@@ -1,74 +1,114 @@
+import { Button, Stack } from "@repo/ui";
 import { useState } from "react";
-import { Button } from '@repo/ui';
-import { Modal, ModalTab } from '../Modal';
-import { ProjectDetailsForm } from '../ProjectDetailsForm';
-import { useCreateProjectMutation } from "../../services/projectApi";
+import {
+  useCreateProjectLabelMutation,
+  useCreateProjectMutation,
+} from "../../services/projectApi";
+import { LabelingSetup, LocalLabel } from "../LabelingSetup/LabelingSetup";
+import { Modal, ModalTab } from "../Modal";
+import { ProjectDetailsForm } from "../ProjectDetailsForm";
 
 export const CreateProjectModal = ({ onClose }: { onClose: () => void }) => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  
-  const [createProject, { isLoading }] = useCreateProjectMutation();
+  const [localLabels, setLocalLabels] = useState<LocalLabel[]>([]);
+
+  const [createProject, { isLoading: isCreatingProject }] =
+    useCreateProjectMutation();
+  const [createLabel] = useCreateProjectLabelMutation();
 
   const handleSave = async () => {
     if (!name.trim()) return;
+
     try {
-      await createProject({
+      const project = await createProject({
         name,
         description,
         // type: ProjectTypeEnum.SEGMENTATION,
         // @ts-ignore
         type: "SEGMENTATION",
       }).unwrap();
+
+      if (localLabels.length > 0) {
+        await Promise.all(
+          localLabels.map((label) =>
+            createLabel({
+              projectId: project.id,
+              name: label.name,
+              color: label.color,
+            }).unwrap(),
+          ),
+        );
+      }
+
       onClose();
     } catch (error) {
-      console.error("Save failed:", error);
+      console.error("Project creation failed:", error);
     }
   };
 
+  const handleAddLocalLabel = (label: LocalLabel) => {
+    setLocalLabels((prev) => [...prev, label]);
+  };
+
+  const handleRemoveLocalLabel = (labelName: string) => {
+    setLocalLabels((prev) => prev.filter((l) => l.name !== labelName));
+  };
+
   const tabs: ModalTab[] = [
-    { 
-      id: "details", 
-      label: "Projects Details", 
+    {
+      id: "details",
+      label: "Projects Details",
       content: (
-        <ProjectDetailsForm 
-          name={name} 
-          setName={setName} 
-          description={description} 
-          setDescription={setDescription} 
+        <ProjectDetailsForm
+          name={name}
+          setName={setName}
+          description={description}
+          setDescription={setDescription}
         />
-      ) 
+      ),
     },
-    { 
-      id: "labeling", 
-      label: "Labeling Setup", 
-      content: <div>Labeling logic here...</div> 
+    {
+      id: "labeling",
+      label: "Labeling Setup",
+      content: (
+        <LabelingSetup
+          labels={localLabels}
+          onAddLabel={handleAddLocalLabel}
+          onRemoveLabel={handleRemoveLocalLabel}
+        />
+      ),
     },
   ];
 
   const buttons = (
-    <>
-      <Button variant="danger" size="md" onClick={onClose} disabled={isLoading}>
+    <Stack direction="row" gap={12}>
+      <Button
+        variant="danger"
+        size="sm"
+        onClick={onClose}
+        disabled={isCreatingProject}
+      >
         Delete
       </Button>
-      <Button 
-        variant="filled" 
-        size="md" 
-        onClick={handleSave} 
-        disabled={isLoading}
+      <Button
+        variant="filled"
+        size="sm"
+        onClick={handleSave}
+        disabled={isCreatingProject || !name.trim()}
       >
-        {isLoading ? "Saving..." : "Save"}
+        {isCreatingProject ? "Saving..." : "Save"}
       </Button>
-    </>
+    </Stack>
   );
 
   return (
-    <Modal 
-      title="Create Project" 
-      tabs={tabs} 
-      buttons={buttons} 
+    <Modal
+      title="Create Project"
+      tabs={tabs}
       closeButton={false}
-      onClose={onClose} 
+      buttons={buttons}
+      onClose={onClose}
     />
   );
 };
