@@ -161,8 +161,9 @@ export class TaskService {
    * @throws NotFoundException - Task not found
    */
   public async deleteTask(id: number, projectId: number): Promise<void>{
-    await this.taskRepository.getByIdAndProjectIdOrThrow(id, projectId)
+    const task = await this.taskRepository.getByIdAndProjectIdOrThrow(id, projectId)
 
-    await this.taskRepository.delete(id)
+    await this.taskRepository.delete(task.id)
+    await this.assetsService.deleteFile(task.filePath)
   }
 }
