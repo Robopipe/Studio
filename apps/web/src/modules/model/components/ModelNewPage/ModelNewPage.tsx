@@ -1,7 +1,8 @@
 import { useGetProjectLabelsQuery } from "@/modules/project/services/projectApi";
+import { ModelOutputTypeEnum } from "@repo/schema";
 import { Button, NumberInput, Stack, Text, TextInput } from "@repo/ui";
 import { useState } from "react";
-import { redirect, useParams } from "react-router";
+import { useParams } from "react-router";
 import { useCreateModelMutation, useTrainModelMutation } from "../../services";
 import { ModelLayout } from "../ModelLayout/ModelLayout";
 import { SettingsCard } from "../SettingsCard";
@@ -23,24 +24,23 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
   const saveModel = async () => {
     const newModel = await createModel({
       epochs,
-      labelIds: [0, 1],
+      labelIds: labels?.map((label) => label.id) || [],
       name,
       projectId: parseInt(projectId!),
       splitTest: 10,
       splitTrain: 70,
       splitValidate: 20,
+      outputTypes: ["RVC2"] as ModelOutputTypeEnum[],
     }).unwrap();
     return newModel;
   };
 
   const saveAndTrain = async () => {
     const newModel = await saveModel();
-    const aa = await trainModel({
+    await trainModel({
       projectId: parseInt(projectId!),
       modelId: newModel.id,
     }).unwrap();
-    console.log(aa);
-    redirect(`/projects/${projectId}/models/${newModel.id}`);
   };
 
   return (
@@ -74,7 +74,11 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
           />
         </Stack>
         <SettingsCard state="complete" stepNumber={1} title="source images">
-          <SourceImagesSettings labels={labels ?? []} setLabels={() => {}} />
+          <SourceImagesSettings
+            labels={labels ?? []}
+            setActiveLabels={() => {}}
+            activeLabels={[]}
+          />
         </SettingsCard>
         <SettingsCard state="complete" stepNumber={1} title="train/test split">
           <div></div>
