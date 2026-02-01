@@ -83,6 +83,7 @@ export class ModelService{
       name: data.name,
       epochs: data.epochs,
       status: ModelStatusEnum.DRAFT,
+      outputTypes: data.outputTypes,
       projectId,
       splitTrain: data.splitTrain,
       splitValidate: data.splitValidate,
@@ -117,6 +118,7 @@ export class ModelService{
     await this.modelRepository.update(model.id, {
       name: data.name,
       epochs: data.epochs,
+      outputTypes: data.outputTypes,
       splitTrain: data.splitTrain,
       splitValidate: data.splitValidate,
       splitTest: data.splitTest,
