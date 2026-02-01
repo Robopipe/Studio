@@ -1,2 +1,18 @@
 .settingsCard {
+  background-color: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 12px;
+
+  .icon {
+    border-radius: 100%;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--color-emerald-600);
+
+    svg path {
+      fill: var(--color-white);
+    }
+  }
 }
