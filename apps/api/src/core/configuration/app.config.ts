@@ -4,25 +4,17 @@ import { appEnvSchema } from "./schema/app-env.schema";
 
 export const appConfigSchema = z.object({
   env: appEnvSchema.default("local"),
-  server: z
-    .object({
-      host: z.string(),
-      port: z.number(),
-    })
-    .default({ port: 3000, host: "localhost" }),
+  host: z.string(),
+  port: z.string(),
   databaseUrl: z.string(),
   jwtSecret: z.string(),
   jwtAccessTokenDuration: z.number().int().optional(),
   jwtRefreshTokenDuration: z.number().int().optional(),
-  storage: z.object({
-    bucketName: z.string(),
-  }),
-  ml: z.object({
-    host: z.string(),
-    apiKey: z.string(),
-  }),
-  apiHost: z.url().default("http://localhost:3000"),
-  webHost: z.url().optional(),
+  bucketName: z.string(),
+  mlSecret: z.string(),
+  webHost: z.string(),
+  apiHost: z.string(),
+  mlHost: z.string(),
   cookieSecret: z.string(),
 });
 

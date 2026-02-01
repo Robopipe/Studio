@@ -10,7 +10,7 @@ export class AssetsService {
 
   constructor(config: AppConfig) {
     this.storage = new Storage();
-    this.bucket = this.storage.bucket(config.storage.bucketName)
+    this.bucket = this.storage.bucket(config.bucketName)
   }
 
   /**
