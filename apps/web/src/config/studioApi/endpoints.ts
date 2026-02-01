@@ -16,5 +16,8 @@ export const studioApiEndpoints = {
     projectLabels: (projectId: number) => `project-labels/${projectId}`,
     projectLabel: (projectId: number, labelId: number) =>
       `project-labels/${projectId}/${labelId}`,
+    models: {
+      models: (projectId: number) => `model/${projectId}`,
+    },
   },
 } as const;

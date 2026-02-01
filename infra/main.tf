@@ -70,7 +70,7 @@ module "cloud_sql" {
   depends_on = [google_project_service.apis]
 }
 
-# Service account for Cloud Run (created here to avoid circular dependency)
+# Service account for Cloud Run API (created here to avoid circular dependency)
 resource "google_service_account" "api" {
   project      = var.project_id
   account_id   = "${local.name_prefix}-api"
@@ -79,12 +79,22 @@ resource "google_service_account" "api" {
   depends_on = [google_project_service.apis]
 }
 
+# Service account for Cloud Run ML
+resource "google_service_account" "ml" {
+  project      = var.project_id
+  account_id   = "${local.name_prefix}-ml"
+  display_name = "Cloud Run ML service account"
+
+  depends_on = [google_project_service.apis]
+}
+
 module "secrets" {
   source = "./modules/secrets"
 
-  project_id   = var.project_id
-  database_url = module.cloud_sql.connection_string
-  cloud_run_sa   = google_service_account.api.email
+  project_id      = var.project_id
+  database_url    = module.cloud_sql.connection_string
+  cloud_run_sa    = google_service_account.api.email
+  cloud_run_ml_sa = google_service_account.ml.email
 
   depends_on = [google_project_service.apis]
 }
@@ -105,7 +115,29 @@ module "cloud_run" {
   bucket_name          = module.storage.assets_bucket_name
   web_host             = var.domain != "" ? "https://${var.domain}" : ""
   api_host             = var.api_domain != "" ? "https://${var.api_domain}" : ""
-  ml_host              = var.ml_host
+  ml_host              = module.cloud_run_ml.url
+
+  depends_on = [google_project_service.apis, module.secrets]
+}
+
+module "cloud_run_ml" {
+  source = "./modules/cloud-run-ml"
+
+  project_id      = var.project_id
+  region          = var.ml_region
+  name_prefix     = local.name_prefix
+  service_account = google_service_account.ml.email
+  image           = var.ml_image != "" ? var.ml_image : "us-docker.pkg.dev/cloudrun/container/hello:latest"
+  environment     = var.environment
+  min_instances   = var.ml_min_instances
+  max_instances   = var.ml_max_instances
+  secret_ids      = module.secrets.secret_ids
+  api_host        = "https://${var.api_domain}"
+  gpu_type        = var.ml_gpu_type
+  gpu_count       = var.ml_gpu_count
+  memory          = var.ml_memory
+  cpu             = var.ml_cpu
+  timeout         = var.ml_timeout
 
   depends_on = [google_project_service.apis, module.secrets]
 }
@@ -201,5 +233,37 @@ resource "google_cloudbuild_trigger" "web" {
     _VITE_CAMERA_API_BASE_URL = "https://robopipe-1.local"
     _VITE_STUDIO_API_BASE_URL = var.api_domain != "" ? "https://${var.api_domain}/v1" : "${module.cloud_run.url}/v1"
     _VITE_WEB_BASE_URL        = var.domain != "" ? "https://${var.domain}" : "http://${module.load_balancer.ip_address}"
+  }
+}
+
+resource "google_cloudbuild_trigger" "ml" {
+  project  = var.project_id
+  name     = "${local.name_prefix}-ml-build"
+  location = "global"
+
+  service_account = "projects/${var.project_id}/serviceAccounts/${data.google_project.current.number}-compute@developer.gserviceaccount.com"
+
+  github {
+    owner = "Robopipe"
+    name  = "Studio"
+
+    push {
+      branch = var.environment == "prod" ? "^master$" : "^dev$"
+    }
+  }
+
+  include_build_logs = "INCLUDE_BUILD_LOGS_WITH_STATUS"
+
+  included_files = [
+    "apps/ml/**",
+  ]
+
+  filename = "cloudbuild-ml.yaml"
+
+  substitutions = {
+    _REGION       = var.ml_region
+    _PROJECT_ID   = var.project_id
+    _REPO_NAME    = module.artifact_registry.repository_id
+    _SERVICE_NAME = module.cloud_run_ml.service_name
   }
 }

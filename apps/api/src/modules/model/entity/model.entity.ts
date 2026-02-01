@@ -1,4 +1,4 @@
-import { ModelStatusEnum } from "@repo/schema";
+import { ModelStatusEnum, ModelOutputTypeEnum } from "@repo/schema";
 import { ProjectLabelEntity } from "../../project/entities/project-label.entity";
 import { ModelSelect } from "../../../repository/types/model";
 import { ModelResponse } from "../dto/model.dto";
@@ -9,6 +9,7 @@ export class ModelEntity {
   readonly projectId: number;
   readonly epochs: number;
   readonly status: ModelStatusEnum;
+  readonly outputTypes: ModelOutputTypeEnum[];
   readonly splitTrain: number;
   readonly splitValidate: number;
   readonly splitTest: number;
@@ -23,6 +24,7 @@ export class ModelEntity {
     this.epochs = data.epochs;
     this.projectId = data.projectId;
     this.status = data.status;
+    this.outputTypes = data.outputTypes;
     this.splitTrain = data.splitTrain;
     this.splitValidate = data.splitValidate;
     this.splitTest = data.splitTest;
@@ -39,6 +41,7 @@ export class ModelEntity {
       epochs: this.epochs,
       labels: this.labels.map((label) => label.toResponse()),
       status: this.status,
+      outputTypes: this.outputTypes,
       splitTrain: this.splitTrain,
       splitValidate: this.splitValidate,
       splitTest: this.splitTest,

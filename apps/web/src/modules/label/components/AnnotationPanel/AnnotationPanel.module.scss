@@ -1,0 +1,53 @@
+.panel {
+  background: var(--surface-surface-3, rgba(0, 0, 0, 0.03));
+  border-right: 1px solid var(--border-border-12, rgba(0, 0, 0, 0.12));
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.placeholder {
+  padding: 2rem 0;
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+.infoTab {
+  padding: 0.5rem 0;
+}
+
+.sectionTitle {
+  letter-spacing: 0.0625rem;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+.classList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.classRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+}
+
+.colorDot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.className {
+  flex: 1;
+  font-size: 0.875rem;
+}
+
+.classCount {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}

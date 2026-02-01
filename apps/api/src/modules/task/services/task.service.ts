@@ -62,7 +62,8 @@ export class TaskService {
    * @returns Task entities
    */
   public async getTasks(projectId: number): Promise<TaskEntity[]>{
-    return this.taskRepository.getAllByProjectId(projectId)
+    const project = await this.projectRepository.getByIdOrThrow(projectId)
+    return this.taskRepository.getAllByProjectId(projectId, project.type)
   }
 
   /**
@@ -160,8 +161,9 @@ export class TaskService {
    * @throws NotFoundException - Task not found
    */
   public async deleteTask(id: number, projectId: number): Promise<void>{
-    await this.taskRepository.getByIdAndProjectIdOrThrow(id, projectId)
+    const task = await this.taskRepository.getByIdAndProjectIdOrThrow(id, projectId)
 
-    await this.taskRepository.delete(id)
+    await this.taskRepository.delete(task.id)
+    await this.assetsService.deleteFile(task.filePath)
   }
 }

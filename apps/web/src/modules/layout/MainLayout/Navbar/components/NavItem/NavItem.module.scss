@@ -1,0 +1,32 @@
+.navItem {
+  text-decoration: none;
+  display: block;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.5rem;
+  color: var(--color-gray-400);
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+
+  .navIcon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: inherit;
+
+    svg {
+      width: 1.25rem;
+      height: 1.25rem;
+      display: block;
+    }
+  }
+
+  &:hover {
+    color: var(--color-white);
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  &.active {
+    color: var(--color-emerald-400);
+    background-color: rgba(16, 185, 129, 0.1);
+  }
+}

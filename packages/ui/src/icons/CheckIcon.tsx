@@ -6,10 +6,10 @@ export const CheckIcon = (props: CheckIconProps) => {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      width="12"
-      height="8"
+      width="9"
+      height="7"
       fill="none"
-      viewBox="0 0 12 8"
+      viewBox="0 0 9 7"
       {...props}
     >
       <path
