@@ -4,10 +4,10 @@
       250px,
       1fr
     );
-  gap: 1rem;
-
-  // TODO: Remove after layout is implemented
-  height: 100vh;
+  grid-template-rows: minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+  margin: -1.5rem;
 
   background: rgba(255, 255, 255, 1);
 }
