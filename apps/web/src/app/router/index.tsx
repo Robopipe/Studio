@@ -6,6 +6,7 @@ import { CapturePage } from "@/modules/capture/components/CapturePage";
 import { AuthLayout } from "@/modules/layout";
 import { ProjectsPage } from "@/modules/project";
 import { ProjectPage } from "@/modules/project/components/ProjectPage";
+import { TrainDetailPage, TrainNewPage } from "@/modules/train/components";
 import { createBrowserRouter, RouteObject } from "react-router";
 
 const { auth } = appConfig.web.routes;
@@ -24,6 +25,18 @@ const authenticatedRoutes: RouteObject = {
     { path: webRoutes.main.projects, element: <ProjectsPage /> },
     { path: webRoutes.main.project, element: <ProjectPage /> },
     { path: webRoutes.capture, element: <CapturePage /> },
+    {
+      path: webRoutes.train.trainList,
+      element: <Navigate to="new" replace />,
+    },
+    {
+      path: webRoutes.train.trainNew,
+      element: <TrainNewPage />,
+    },
+    {
+      path: webRoutes.train.trainDetail,
+      element: <TrainDetailPage />,
+    },
   ],
 };
 

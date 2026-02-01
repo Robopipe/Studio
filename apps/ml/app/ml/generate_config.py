@@ -7,7 +7,7 @@ from .dataset import DATASET_DIR
 
 def generate_model_config(model_config: ModelConfig) -> dict:
     config = {
-        "name": model_config.id,
+        "name": str(model_config.id),
         "predefined_model": {
             "name": model_config.type.to_luxonis_model_type().value,
             "variant": "light",
