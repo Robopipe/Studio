@@ -1,6 +1,6 @@
 import {
   Body,
-  Controller,
+  Controller, Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -51,5 +51,10 @@ export class TaskController {
   public async updateTask(@ProjectId() projectId: number, @Param("taskId", ParseIntPipe) taskId: number, @Body() data: TaskUpdateRequest): Promise<TaskDetailResponse> {
     const updatedTask = await this.taskService.updateTask(taskId, projectId, data)
     return updatedTask.toDetailResponse()
+  }
+
+  @Delete(":taskId")
+  public async deleteTask(@ProjectId() projectId: number, @Param("taskId", ParseIntPipe) taskId: number): Promise<void>{
+    await this.taskService.deleteTask(taskId, projectId)
   }
 }
