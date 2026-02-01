@@ -13,7 +13,7 @@ export const CheckIcon = (props: CheckIconProps) => {
       {...props}
     >
       <path
-        stroke="#fff"
+        stroke="currentColor"
         d="M10.274.75 4.08 6.944a.5.5 0 0 1-.708 0L.75 4.322"
         strokeLinecap="round"
         strokeWidth="1.5"
