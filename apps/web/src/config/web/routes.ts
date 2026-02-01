@@ -8,4 +8,5 @@ export const webRoutes = {
     project: "/projects/:id",
   },
   capture: "/capture",
+  label: "/label",
 } as const;

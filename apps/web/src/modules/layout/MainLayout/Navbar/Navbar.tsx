@@ -11,12 +11,12 @@ import {
   RunIcon,
   Stack,
   SupportIcon,
-  Text,
 } from "@repo/ui";
-import clsx from "clsx";
-import { ReactNode, useEffect, useRef, useState } from "react";
-import { NavLink, useNavigate } from "react-router";
+import { useNavigate } from "react-router";
+
 import styles from "./Navbar.module.scss";
+import { NavDropdown } from "./components/NavDropdown";
+import { NavItem } from "./components/NavItem";
 
 export const Navbar = () => {
   const navigate = useNavigate();
@@ -31,18 +31,13 @@ export const Navbar = () => {
       localStorage.removeItem("refreshToken");
       navigate("/login");
     } catch (error) {
-      console.error("Logout failed:", error);
       navigate("/login");
     }
   };
 
-  const handleSupport = () => {
-    window.open("https://docs.robopipe.ai", "_blank");
-  };
-
   return (
     <nav className={styles.navbar}>
-      {/* Left: Home + Projects Dropdown */}
+      {/* Left: Logo & Dropdown */}
       <Stack direction="row" align="center" gap={24}>
         <div className={styles.logoWrapper} onClick={() => navigate("/")}>
           <Logo height={20} width={"100%"} />
@@ -52,17 +47,22 @@ export const Navbar = () => {
           <NavDropdown
             label={activeProject?.name ?? "Select a project..."}
             items={
-              projects?.map((project) => ({
-                label: project.name,
-                onClick: () => setActiveProject(project),
+              projects?.map((p) => ({
+                label: p.name,
+                onClick: () => setActiveProject(p),
               })) ?? []
             }
           />
         </Stack>
       </Stack>
 
-      {/* Center: Navigation Tabs */}
-      <Stack direction="row" align="center" gap={4}>
+      {/* Center: Absolute Tabs */}
+      <Stack
+        direction="row"
+        align="center"
+        gap={4}
+        className={styles.centerStack}
+      >
         <NavItem to="/capture" label="Capture" icon={<CameraIcon />} />
         <NavItem to="/label" label="Label" icon={<AnnotateIcon />} />
         <NavItem to="/train" label="Train" icon={<AiPowerIcon />} />
@@ -70,110 +70,20 @@ export const Navbar = () => {
         <NavItem to="/analytics" label="Analytics" icon={<ChartIcon />} />
       </Stack>
 
-      {/* Right: User & Actions */}
+      {/* Right: User Actions */}
       <Stack direction="row" align="center" gap={12} className={styles.right}>
         <div className={styles.userAvatar}>FM</div>
         <button
           className={styles.iconBtn}
-          onClick={handleSupport}
-          aria-label="Help"
+          onClick={() => window.open("https://docs.robopipe.ai", "_blank")}
         >
           <SupportIcon />
           <span className={styles.btnText}>Help</span>
         </button>
-        <button
-          className={styles.iconBtn}
-          onClick={handleLogout}
-          aria-label="Logout"
-        >
+        <button className={styles.iconBtn} onClick={handleLogout}>
           <LogoutIcon />
         </button>
       </Stack>
     </nav>
   );
 };
-
-const NavDropdown = ({
-  label,
-  items = [],
-}: {
-  label: string;
-  items?: { label: string; onClick?: () => void }[];
-}) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isOpen]);
-
-  return (
-    <div className={styles.dropdownContainer} ref={dropdownRef}>
-      <div
-        className={clsx(styles.navDropdown, isOpen && styles.active)}
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        <Stack direction="row" align="center" gap={8}>
-          <Text variant="text-14" weight="500" color="text-white-primary">
-            {label}
-          </Text>
-          <span className={clsx(styles.chevron, isOpen && styles.open)} />
-        </Stack>
-      </div>
-
-      {isOpen && (
-        <div className={styles.dropdownMenu}>
-          {items.map((item) => (
-            <div
-              key={item.label}
-              className={styles.dropdownItem}
-              onClick={() => {
-                setIsOpen(false);
-                item.onClick?.();
-              }}
-            >
-              <Text variant="text-14">{item.label}</Text>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
-interface NavItemProps {
-  label: string;
-  icon?: ReactNode;
-  to: string;
-}
-
-const NavItem = ({ label, icon, to }: NavItemProps) => (
-  <NavLink
-    to={to}
-    className={({ isActive }) =>
-      clsx(styles.navItem, isActive && styles.active)
-    }
-  >
-    <Stack direction="row" align="center" gap={8}>
-      {icon && <span className={styles.navIcon}>{icon}</span>}
-      <Text variant="text-14" weight="500">
-        {label}
-      </Text>
-    </Stack>
-  </NavLink>
-);
