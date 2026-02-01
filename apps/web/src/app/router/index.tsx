@@ -5,6 +5,7 @@ import { Authenticated } from "@/core/auth/components/Authenticated/Authenticate
 import { CapturePage } from "@/modules/capture/components/CapturePage";
 import { AuthLayout } from "@/modules/layout";
 import { ProjectsPage } from "@/modules/project";
+import { ProjectPage } from "@/modules/project/components/ProjectPage";
 import { createBrowserRouter, RouteObject } from "react-router";
 
 const { auth } = appConfig.web.routes;
@@ -21,6 +22,7 @@ const authenticatedRoutes: RouteObject = {
   element: <Authenticated />,
   children: [
     { path: webRoutes.main.projects, element: <ProjectsPage /> },
+    { path: webRoutes.main.project, element: <ProjectPage /> },
     { path: webRoutes.capture, element: <CapturePage /> },
   ],
 };
