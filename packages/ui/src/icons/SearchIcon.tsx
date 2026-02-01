@@ -13,7 +13,7 @@ export const SearchIcon = (props: SearchIconProps) => {
       {...props}
     >
       <path
-        fill="#000"
+        fill="currentColor"
         d="M3.75 11.5a7.75 7.75 0 1 1 15.5 0 7.75 7.75 0 0 1-15.5 0m7.75-9.25a9.25 9.25 0 0 0 0 18.5 9.2 9.2 0 0 0 5.989-2.2l2.98 2.98a.75.75 0 1 0 1.061-1.06l-2.98-2.981a9.2 9.2 0 0 0 2.2-5.989 9.25 9.25 0 0 0-9.25-9.25"
         clipRule="evenodd"
         fillOpacity=".9"
