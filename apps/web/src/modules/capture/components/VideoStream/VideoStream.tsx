@@ -20,11 +20,7 @@ export const VideoStream = ({
   return (
     <div>
       <video ref={videoRef} controls className={styles.video} muted />
-      {isStreaming ? (
-        <div className={styles.liveCaptureLabel}>Live capture</div>
-      ) : (
-        <Button onClick={seekToLive}>Seek to live</Button>
-      )}
+      {!isStreaming && <Button onClick={seekToLive}>Seek to live</Button>}
     </div>
   );
 };
