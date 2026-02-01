@@ -1,7 +1,8 @@
 import { Tabs, Text } from "@repo/ui";
 import { Label } from "@repo/schema";
-import { Annotation } from "../../types/annotations";
+import { Annotation, HistoryEntry } from "../../types/annotations";
 import { LabelsTab } from "../LabelsTab";
+import { HistoryTab } from "../HistoryTab";
 import styles from "./AnnotationPanel.module.scss";
 
 export interface AnnotationPanelProps {
@@ -10,6 +11,9 @@ export interface AnnotationPanelProps {
   selectedAnnotationId: string | null;
   onSelectAnnotation: (id: string) => void;
   onDeleteAnnotation: (id: string) => void;
+  historyEntries: HistoryEntry[];
+  historyIndex: number;
+  onJumpTo: (index: number) => void;
 }
 
 export const AnnotationPanel = ({
@@ -18,6 +22,9 @@ export const AnnotationPanel = ({
   selectedAnnotationId,
   onSelectAnnotation,
   onDeleteAnnotation,
+  historyEntries,
+  historyIndex,
+  onJumpTo,
 }: AnnotationPanelProps) => {
   const classCounts = labels.map((label) => ({
     ...label,
@@ -63,9 +70,11 @@ export const AnnotationPanel = ({
         {
           label: "History",
           render: () => (
-            <div className={styles.placeholder}>
-              <Text variant="text-14">History panel coming soon</Text>
-            </div>
+            <HistoryTab
+              entries={historyEntries}
+              currentIndex={historyIndex}
+              onJumpTo={onJumpTo}
+            />
           ),
         },
       ]}

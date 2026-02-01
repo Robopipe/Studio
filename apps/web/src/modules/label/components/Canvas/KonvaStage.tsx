@@ -1,10 +1,14 @@
-import { useCallback, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { Image as KonvaImage, Layer, Stage } from "react-konva";
 import Konva from "konva";
 import { Annotation, ToolMode } from "../../types/annotations";
 import { BoundingBox } from "./BoundingBox";
 import { PolygonRegion } from "./PolygonRegion";
 import { DrawingRegion } from "./DrawingRegion";
+
+export interface KonvaStageHandle {
+  cancelDrawing: () => void;
+}
 
 interface KonvaStageProps {
   width: number;
@@ -25,7 +29,7 @@ interface KonvaStageProps {
 
 const CLOSE_THRESHOLD = 10;
 
-export const KonvaStage = ({
+export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
   width,
   height,
   image,
@@ -40,7 +44,7 @@ export const KonvaStage = ({
   onUpdateAnnotation,
   onZoomAtPoint,
   onSetPosition,
-}: KonvaStageProps) => {
+}, ref) => {
   const stageRef = useRef<Konva.Stage>(null);
   const [drawingBBox, setDrawingBBox] = useState<{
     startX: number;
@@ -52,6 +56,36 @@ export const KonvaStage = ({
   } | null>(null);
   const [polygonPoints, setPolygonPoints] = useState<[number, number][]>([]);
   const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null);
+
+  const cancelDrawing = useCallback(() => {
+    setPolygonPoints([]);
+    setCursorPos(null);
+    setDrawingBBox(null);
+  }, []);
+
+  useImperativeHandle(ref, () => ({ cancelDrawing }), [cancelDrawing]);
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && polygonPoints.length > 0) {
+        e.preventDefault();
+        cancelDrawing();
+      }
+    };
+    const handleClick = (e: MouseEvent) => {
+      if (polygonPoints.length === 0) return;
+      const container = stageRef.current?.container();
+      if (container && !container.contains(e.target as Node)) {
+        cancelDrawing();
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    window.addEventListener("mousedown", handleClick);
+    return () => {
+      window.removeEventListener("keydown", handleKey);
+      window.removeEventListener("mousedown", handleClick);
+    };
+  }, [polygonPoints.length, cancelDrawing]);
 
   const imgW = image.width;
   const imgH = image.height;
@@ -269,5 +303,5 @@ export const KonvaStage = ({
       </Layer>
     </Stage>
   );
-};
+});
 
