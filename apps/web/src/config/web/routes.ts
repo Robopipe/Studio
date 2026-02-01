@@ -7,5 +7,10 @@ export const webRoutes = {
     projects: "/projects",
     project: "/projects/:id",
   },
-  capture: '/capture'
+  train: {
+    trainList: "/projects/:id/train",
+    trainDetail: "/projects/:id/train/:modelId",
+    trainNew: "/projects/:id/train/new",
+  },
+  capture: "/capture",
 } as const;
