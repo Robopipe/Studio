@@ -16,7 +16,7 @@ class Image(BaseSchema):
         result = []
         for label in self.labels:
             if isinstance(label, ClassificationLabel):
-                result.append(label.to_str())
+                result.append(label.to_str(self.width, self.height))
             elif isinstance(label, PolygonLabel):
                 result.append(label.to_str(self.width, self.height))
             elif isinstance(label, RectangleLabel):

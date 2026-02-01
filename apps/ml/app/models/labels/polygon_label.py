@@ -15,4 +15,4 @@ class PolygonLabel(BaseSchema):
     def to_str(self, width: int, height: int) -> str:
         normalized_points = self.__get_normalized_points(width, height)
         points_str = " ".join(f"{x:.6f} {y:.6f}" for x, y in normalized_points)
-        return f"{self.label.id} {points_str}"
+        return f"{self.label.label_number} {points_str}"
