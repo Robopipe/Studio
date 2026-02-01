@@ -1,0 +1,104 @@
+.LoginPane {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  padding: 4rem 2rem;
+  position: relative;
+}
+
+.FormWidth {
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+}
+
+.Header {
+  margin-bottom: 2.5rem;
+  text-align: center;
+
+  h2 {
+    font-size: 2.25rem;
+    color: var(--color-gray-900);
+    letter-spacing: -0.02em;
+  }
+}
+
+.ErrorBox {
+  margin-bottom: 2rem;
+  border: 1px solid var(--color-red-200);
+  background-color: var(--color-red-50);
+  border-radius: 4px;
+  overflow: hidden;
+
+  .ErrorTag {
+    background: var(--color-red-600);
+    color: var(--color-white);
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 2px 8px;
+    width: fit-content;
+    text-transform: uppercase;
+  }
+
+  .ErrorMessage {
+    padding: 1rem;
+    color: var(--color-red-900);
+    font-size: 0.875rem;
+    line-height: 1.4;
+  }
+}
+
+.Checkbox {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.SubmitBtn {
+  height: 3rem;
+  font-weight: 600;
+  font-size: 1rem;
+  margin-top: 0.5rem;
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--color-emerald-600);
+  }
+}
+
+.FooterLinks {
+  margin-top: 2rem;
+  
+  .GreenLink {
+    color: var(--color-primary);
+    font-weight: 600;
+    text-decoration: none;
+    font-size: 0.875rem;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+.Copyright {
+  position: absolute;
+  bottom: 2rem;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--color-gray-400);
+  border-top: 1px solid var(--color-gray-100);
+  padding-top: 1.5rem;
+  margin: 0 4rem;
+}
