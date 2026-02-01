@@ -117,3 +117,56 @@
     min-height: 120px;
   }
 }
+
+.labelInputRow {
+  margin-top: 24px;
+  
+  input {
+    flex: 1;
+    background: var(--color-gray-50);
+    border: 1px solid var(--color-gray-100);
+    border-radius: 12px;
+    padding: 12px 16px;
+    outline: none;
+    &:focus { border-color: var(--color-emerald-600); }
+  }
+}
+
+.addLabelBtn {
+  background: var(--color-gray-900);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.labelsGrid {
+  margin-top: 24px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.labelTag {
+  background: var(--color-gray-50);
+  border: 1px solid var(--color-gray-100);
+  padding: 8px 12px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  button {
+    background: none;
+    border: none;
+    color: var(--color-gray-400);
+    cursor: pointer;
+    display: flex;
+    &:hover { color: var(--color-red-600); }
+  }
+}

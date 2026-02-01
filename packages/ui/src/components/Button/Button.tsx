@@ -6,7 +6,7 @@ import clsx from "clsx";
 import { ReactNode } from "react";
 import styles from "./Button.module.scss";
 
-export type ButtonVariant = "filled" | "outlined" | "text";
+export type ButtonVariant = "filled" | "outlined" | "text" | "danger";
 export type ButtonSize = "xs" | "sm" | "md" | "lg";
 
 export interface ButtonProps extends BaseButtonProps {

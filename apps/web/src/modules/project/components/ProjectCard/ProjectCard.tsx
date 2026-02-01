@@ -33,7 +33,7 @@ export const ProjectCard = ({ project, onClick }: ProjectCardProps) => {
             {project.name}
           </Text>
           <Stack direction="row" gap={8}>
-            <SettingsIcon />
+            <SettingsIcon className={styles.editIcon} />
             <DeleteIcon className={styles.deleteIcon} />
           </Stack>
         </Stack>

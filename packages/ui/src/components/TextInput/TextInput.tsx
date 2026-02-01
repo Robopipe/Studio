@@ -11,12 +11,13 @@ import styles from "./TextInput.module.scss";
 
 export interface TextInputProps extends BaseInputProps {
   label: string;
+  boldLabel?: boolean;
   helperText?: string;
   error?: boolean;
 }
 
 export const TextInput = (props: TextInputProps) => {
-  const { label, type, helperText, error, className, id, ...rest } = props;
+  const { label, boldLabel, type, helperText, error, className, id, ...rest } = props;
   const [showPassword, setShowPassword] = useState(false);
 
   const isPassword = type === "password";
@@ -25,7 +26,7 @@ export const TextInput = (props: TextInputProps) => {
   return (
     <bui.Field.Root>
       <div className={styles.FieldRoot}>
-        <label htmlFor={id} className={styles.Label}>
+        <label htmlFor={id} className={clsx(styles.Label, boldLabel && styles.LabelBold)}>
           {label}
         </label>
 
