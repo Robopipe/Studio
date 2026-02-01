@@ -20,7 +20,4 @@ export const studioApiEndpoints = {
       models: (projectId: number) => `model/${projectId}`,
     },
   },
-  models: {
-    models: (projectId: number) => `model/${projectId}`,
-  },
 } as const;

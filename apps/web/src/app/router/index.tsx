@@ -5,9 +5,9 @@ import { Authenticated } from "@/core/auth/components/Authenticated/Authenticate
 import { RegisterForm } from "@/core/auth/components/RegisterForm/RegisterForm";
 import { CapturePage } from "@/modules/capture/components/CapturePage";
 import { AuthLayout } from "@/modules/layout";
+import { ModelDetailPage, ModelNewPage } from "@/modules/model/components";
 import { ProjectsPage } from "@/modules/project";
 import { ProjectPage } from "@/modules/project/components/ProjectPage";
-import { TrainDetailPage, TrainNewPage } from "@/modules/train/components";
 import { createBrowserRouter, Navigate, RouteObject } from "react-router";
 
 const { auth } = appConfig.web.routes;
@@ -31,16 +31,16 @@ const authenticatedRoutes: RouteObject = {
     { path: webRoutes.main.project, element: <ProjectPage /> },
     { path: webRoutes.capture, element: <CapturePage /> },
     {
-      path: webRoutes.train.trainList,
+      path: webRoutes.model.modelList,
       element: <Navigate to="new" replace />,
     },
     {
-      path: webRoutes.train.trainNew,
-      element: <TrainNewPage />,
+      path: webRoutes.model.modelNew,
+      element: <ModelNewPage />,
     },
     {
-      path: webRoutes.train.trainDetail,
-      element: <TrainDetailPage />,
+      path: webRoutes.model.modelDetail,
+      element: <ModelDetailPage />,
     },
   ],
 };
