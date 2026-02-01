@@ -37,7 +37,6 @@ export const Button = (props: ButtonProps) => {
         fullWidth && styles["button--fullWidth"],
         className,
       )}
-      focusableWhenDisabled
       {...rest}
     >
       {iconStart && <span className={styles.button__icon}>{iconStart}</span>}

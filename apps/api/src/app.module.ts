@@ -9,6 +9,8 @@ import { AssetsModule } from "./modules/assets/assets.module";
 import { TaskModule } from "./modules/task/task.module";
 import { TrainingExternalModule } from "./modules/training-external/training-external.module";
 import { ModelModule } from "./modules/model/model.module";
+import { APP_PIPE } from "@nestjs/core";
+import { ZodValidationPipe } from "nestjs-zod";
 
 @Module({
   imports: [
@@ -23,5 +25,11 @@ import { ModelModule } from "./modules/model/model.module";
     TrainingExternalModule,
     ModelModule
   ],
+  providers: [
+    {
+      provide: APP_PIPE,
+      useClass: ZodValidationPipe
+    }
+  ]
 })
 export class AppModule {}

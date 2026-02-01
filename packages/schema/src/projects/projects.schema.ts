@@ -11,6 +11,7 @@ export const projectSchema = z.object({
   id: z.number(),
   name: z.string(),
   description: z.string(),
+  type: z.enum(ProjectTypeEnum),
   organizationId: z.number(),
   ...timestampsSchema
 });

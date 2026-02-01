@@ -1,0 +1,24 @@
+@use "sass:map";
+
+$color_variants: (
+  neutral: (
+    bg: var(--color-surface-5),
+    text: var(--color-text-secondary),
+  ),
+  success: (
+    bg: var(--color-emerald-400),
+    text: var(--color-emerald-700),
+  ),
+);
+
+.badge {
+  padding: 0px 10px;
+  border-radius: 1000px;
+
+  @each $variant, $colors in $color_variants {
+    &--#{$variant} {
+      background-color: map.get($colors, bg);
+      color: map.get($colors, text);
+    }
+  }
+}

@@ -54,6 +54,14 @@ export const authSlice = createSlice({
           authSlice.caseReducers.clearCredentials(state);
           sessionStorage.removeItem(ACCESS_TOKEN_KEY);
         },
+      )
+      .addMatcher(
+        authApi.endpoints.register.matchFulfilled,
+        (state, { payload: { user, accessToken } }: PayloadAction<Token>) => {
+          state.user = user;
+          state.isAuthenticated = true;
+          sessionStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+        },
       );
   },
 });

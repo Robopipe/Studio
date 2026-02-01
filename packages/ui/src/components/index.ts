@@ -1,8 +1,10 @@
 export * as bui from "@base-ui/react";
+export * from "./Badge";
 export * from "./Button";
 export * from "./Container";
 export * from "./Heading";
 export * from "./IconContainer";
+export * from "./NumberInput";
 export * from "./Select";
 export * from "./Spinner";
 export * from "./Stack";
@@ -11,4 +13,3 @@ export * from "./Tabs";
 export * from "./Text";
 export * from "./TextArea";
 export * from "./TextInput";
-export * from "./NumberInput";
