@@ -1,0 +1,37 @@
+steps:
+  - name: "gcr.io/cloud-builders/docker"
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - |
+        docker build -t web-build -f Dockerfile.web \
+          --build-arg VITE_CAMERA_API_BASE_URL=${_VITE_CAMERA_API_BASE_URL} \
+          --build-arg VITE_STUDIO_API_BASE_URL=${_VITE_STUDIO_API_BASE_URL} \
+          --build-arg VITE_WEB_BASE_URL=${_VITE_WEB_BASE_URL} \
+          .
+
+  - name: "gcr.io/cloud-builders/docker"
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - |
+        docker create --name web-extract web-build
+        docker cp web-extract:/app/apps/web/dist /workspace/web-dist
+        docker rm web-extract
+
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - |
+        gsutil -m rsync -r -d /workspace/web-dist gs://${_BUCKET_NAME}
+
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - |
+        gcloud compute url-maps invalidate-cdn-cache ${_URL_MAP_NAME} --path "/*"
+
+options:
+  logging: CLOUD_LOGGING_ONLY

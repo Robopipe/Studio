@@ -64,3 +64,6 @@ pnpm-debug.log*
 
 *storybook.log
 storybook-static
+infra/terraform.tfstate
+infra/terraform.tfstate.backup
+infra/.terraform

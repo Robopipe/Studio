@@ -8,6 +8,7 @@ export const projectTypeEnum = p.pgEnum("project_type_enum", [ProjectTypeEnum.CL
 export const projectTable = p.pgTable("project", {
   id,
   name: p.varchar("name", {length:256}).notNull(),
+  description: p.text("description").notNull(),
   type: projectTypeEnum("type").notNull(),
   organizationId: p.integer("organization_id").references(() => organizationTable.id, {onDelete: 'cascade'}).notNull(),
   ...timestamps

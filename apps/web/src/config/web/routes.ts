@@ -4,8 +4,8 @@ export const webRoutes = {
     login: "/login",
   },
   main: {
-    projects: "/projects",
+    projects: "/",
     project: "/projects/:id",
   },
-  capture: '/capture'
+  capture: "/capture",
 } as const;

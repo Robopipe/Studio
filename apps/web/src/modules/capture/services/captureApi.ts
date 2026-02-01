@@ -46,8 +46,21 @@ export const captureApi = captureApiBase.injectEndpoints({
         { type: CaptureApiTagType.Tasks, id: projectId },
       ],
     }),
+    deleteTask: builder.mutation<void, { projectId: number; taskId: number }>({
+      query: ({ projectId, taskId }) => ({
+        url: tasks.task(projectId, taskId),
+        method: HttpMethod.DELETE,
+      }),
+      invalidatesTags: (_result, _error, { projectId }) => [
+        { type: CaptureApiTagType.Tasks, id: projectId },
+      ],
+    }),
   }),
   overrideExisting: true,
 });
 
-export const { useCreateTaskMutation, useGetTasksQuery } = captureApi;
+export const {
+  useCreateTaskMutation,
+  useGetTasksQuery,
+  useDeleteTaskMutation,
+} = captureApi;

@@ -28,7 +28,10 @@ export class TaskRepository {
     const foundTask = await this.db.query.taskTable.findFirst({
       where: {
         id,
-        projectId
+        projectId,
+        deletedAt: {
+          isNull: true
+        }
       },
       with: {
         rectangleAnnotations: {
@@ -85,20 +88,6 @@ export class TaskRepository {
     return new TaskEntity(createdTask)
   }
 
-  /**
-   * Update task
-   * @param id
-   * @param data - TaskUpdate
-   */
-  public async update(id: number, data: TaskUpdate): Promise<TaskEntity> {
-    const [updatedTask] = await this.db.update(taskTable).set(data).where(eq(taskTable.id, id)).returning()
-    if(!updatedTask){
-      throw new InternalServerErrorException("Failed updating task")
-    }
-
-    return new TaskEntity(updatedTask)
-  }
-
 
   /**
    * Get all tasks by project ID
@@ -120,6 +109,8 @@ export class TaskRepository {
    * @param id
    */
   public async delete(id: number): Promise<void>{
-    await this.db.delete(taskTable).where(eq(taskTable.id, id))
+    await this.db.update(taskTable).set({
+      deletedAt: new Date(),
+    }).where(eq(taskTable.id, id))
   }
 }

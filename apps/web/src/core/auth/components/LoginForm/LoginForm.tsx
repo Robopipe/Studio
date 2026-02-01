@@ -15,7 +15,6 @@ import { useAuth } from "../../hooks";
 import { useLoginMutation } from "../../services";
 import styles from "./LoginForm.module.scss";
 
-
 export const LoginForm = () => {
   const [login, { isError, isLoading }] = useLoginMutation();
   const { isAuthenticated } = useAuth();

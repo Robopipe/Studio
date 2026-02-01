@@ -4,7 +4,7 @@ import type { DbConnection } from "../../core/database/types/database.types";
 import { ProjectLabelEntity } from "../../modules/project/entities/project-label.entity";
 import { ProjectLabelInsert, ProjectLabelUpdate } from "../types/project-label";
 import { projectLabelTable } from "@repo/database";
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 
 @Injectable()
 export class ProjectLabelRepository {
@@ -36,7 +36,11 @@ export class ProjectLabelRepository {
     const labels = await this.db.query.projectLabelTable.findMany({
       where: {
         projectId,
-      }
+        deletedAt: {
+          isNull: true,
+        },
+      },
+      orderBy: (p) => asc(p.id)
     })
 
     return labels.map((label) => new ProjectLabelEntity(label))
@@ -78,6 +82,8 @@ export class ProjectLabelRepository {
    * @param id - project label id
    */
   public async delete(id: number): Promise<void>{
-    await this.db.delete(projectLabelTable).where(eq(projectLabelTable.id, id))
+    await this.db.update(projectLabelTable).set({
+      deletedAt: new Date()
+    }).where(eq(projectLabelTable.id, id))
   }
 }
