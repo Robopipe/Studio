@@ -28,8 +28,8 @@ async function bootstrap() {
   });
 
   await app.listen(
-    config.server?.port ?? 3000,
-    config.server?.host ?? "localhost",
+    config.port ?? 3000,
+    config.host ?? "localhost",
   );
 }
 
