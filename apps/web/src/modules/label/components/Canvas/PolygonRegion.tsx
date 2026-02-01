@@ -46,7 +46,7 @@ export const PolygonRegion = ({
 
   const isInteractive = toolMode === ToolMode.SELECT;
 
-  const handleLineClick = (e: Konva.KonvaEventObject<MouseEvent>) => {
+  const handleLineClick = () => {
     if (!isInteractive || !isSelected) return;
     const line = lineRef.current;
     if (!line) return;
