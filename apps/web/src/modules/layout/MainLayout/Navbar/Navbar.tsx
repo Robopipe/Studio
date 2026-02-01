@@ -40,13 +40,8 @@ export const Navbar = () => {
     }
   };
 
-  const handleSupport = () => {
-    window.open("https://docs.robopipe.ai", "_blank");
-  };
-
   return (
     <nav className={styles.navbar}>
-      {/* Left: Home + Projects Dropdown */}
       <Stack direction="row" align="center" gap={24}>
         <div className={styles.logoWrapper} onClick={() => navigate("/")}>
           <Logo height={20} width={"100%"} />
@@ -65,7 +60,6 @@ export const Navbar = () => {
         </Stack>
       </Stack>
 
-      {/* Center: Navigation Tabs */}
       <Stack direction="row" align="center" gap={4} className={styles.centerStack}>
         <NavItem to="/capture" label="Capture" icon={<CameraIcon />} />
         <NavItem to="/label" label="Label" icon={<AnnotateIcon />} />
@@ -74,12 +68,11 @@ export const Navbar = () => {
         <NavItem to="/analytics" label="Analytics" icon={<ChartIcon />} />
       </Stack>
 
-      {/* Right: User & Actions */}
       <Stack direction="row" align="center" gap={12} className={styles.right}>
         <div className={styles.userAvatar}>FM</div>
         <button
           className={styles.iconBtn}
-          onClick={handleSupport}
+          onClick={() => window.open("https://docs.robopipe.ai", "_blank")}
           aria-label="Help"
         >
           <SupportIcon />
@@ -138,7 +131,6 @@ const NavDropdown = ({
 
       {isOpen && (
         <div className={styles.dropdownMenu}>
-          {/* Header with Create and Close */}
           <Stack direction="row" align="center" justify="space-between" className={styles.menuHeader}>
             <Text variant="text-14" weight="600" color='text-white-primary'>PROJECTS</Text>
             <Stack direction="row" align="center" gap={12}>
@@ -151,7 +143,6 @@ const NavDropdown = ({
             </Stack>
           </Stack>
 
-          {/* Search Bar */}
           <div className={styles.searchContainer}>
             <SearchIcon className={styles.searchIcon} />
             <input 
@@ -163,7 +154,6 @@ const NavDropdown = ({
             />
           </div>
 
-          {/* Items List */}
           <div className={styles.itemsList}>
             {filteredItems.map((item) => (
               <div
@@ -187,13 +177,7 @@ const NavDropdown = ({
   );
 };
 
-interface NavItemProps {
-  label: string;
-  icon?: ReactNode;
-  to: string;
-}
-
-const NavItem = ({ label, icon, to }: NavItemProps) => (
+const NavItem = ({ label, icon, to }: { label: string; icon?: ReactNode; to: string }) => (
   <NavLink
     to={to}
     className={({ isActive }) =>

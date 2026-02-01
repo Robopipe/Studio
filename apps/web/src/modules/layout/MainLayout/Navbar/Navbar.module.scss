@@ -10,13 +10,6 @@
   position: relative;
 }
 
-.projectSelectorText {
-  max-width: 200px; 
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .menuHeader {
   padding: 4px 8px 12px 8px;
   
@@ -34,7 +27,6 @@
 }
 
 .searchContainer {
-  position: relative;
   margin-bottom: 8px;
   display: flex;
   align-items: center;
@@ -167,13 +159,11 @@
   &:hover {
     color: var(--color-white);
     background-color: rgba(255, 255, 255, 0.05);
-    text-decoration: none;
   }
 
   &.active {
     color: var(--color-emerald-400);
     background-color: rgba(16, 185, 129, 0.1);
-    text-decoration: none;
   }
 }
 
@@ -197,7 +187,6 @@
     font-size: 0.75rem;
     font-weight: 600;
     margin-right: 0.5rem;
-    cursor: default;
   }
 
   .iconBtn {
@@ -216,7 +205,6 @@
     .btnText {
       font-size: 0.875rem;
       font-weight: 500;
-      color: inherit;
     }
 
     &:hover {
