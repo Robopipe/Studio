@@ -18,8 +18,8 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
   });
   const [name, setName] = useState("");
   const [epochs, setEpochs] = useState(10);
-  const [createModel, { isLoading: isCreating }] = useCreateModelMutation();
-  const [trainModel, { isLoading: isTraining }] = useTrainModelMutation();
+  const [createModel] = useCreateModelMutation();
+  const [trainModel] = useTrainModelMutation();
 
   const saveModel = async () => {
     const newModel = await createModel({
