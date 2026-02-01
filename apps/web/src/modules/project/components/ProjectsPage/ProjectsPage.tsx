@@ -1,14 +1,17 @@
+import { useState } from "react";
 import { webRoutes } from "@/config/web/routes";
 import { AddSmallIcon, Button, Heading, Stack } from "@repo/ui";
 import { useNavigate } from "react-router";
 import { useGetProjectsQuery } from "../../services/projectApi";
 import { ProjectCard } from "../ProjectCard";
+import { CreateProjectModal } from '../CreateProjectModal';
 
 export interface ProjectsPageProps {}
 
 export const ProjectsPage = ({}: ProjectsPageProps) => {
   const { data: projects } = useGetProjectsQuery();
   const navigate = useNavigate();
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
     <Stack fullWidth gap="md">
@@ -16,7 +19,12 @@ export const ProjectsPage = ({}: ProjectsPageProps) => {
         <Heading variant="h5" weight="600">
           Projects
         </Heading>
-        <Button iconStart={<AddSmallIcon />}>New project</Button>
+        <Button 
+          iconStart={<AddSmallIcon />} 
+          onClick={() => setIsModalOpen(true)}
+        >
+          New project
+        </Button>
       </Stack>
       {projects?.map((project) => (
         <ProjectCard
@@ -29,6 +37,10 @@ export const ProjectsPage = ({}: ProjectsPageProps) => {
           }}
         />
       ))}
+
+      {isModalOpen && (
+        <CreateProjectModal onClose={() => setIsModalOpen(false)} />
+      )}
     </Stack>
   );
 };
