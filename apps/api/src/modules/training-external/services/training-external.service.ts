@@ -247,6 +247,8 @@ export class TrainingExternalService {
     switch (type.toUpperCase()) {
       case ModelOutputTypeEnum.RAW.valueOf():
         return ModelOutputTypeEnum.RAW;
+      case ModelOutputTypeEnum.RVC2.valueOf():
+        return ModelOutputTypeEnum.RVC2;
       case ModelOutputTypeEnum.RVC3.valueOf():
         return ModelOutputTypeEnum.RVC3;
       case ModelOutputTypeEnum.RVC4.valueOf():
