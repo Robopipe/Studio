@@ -27,6 +27,7 @@ export class ProjectEntity {
       id: this.id,
       name: this.name,
       description: this.description,
+      type: this.type,
       organizationId: this.organizationId,
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),
