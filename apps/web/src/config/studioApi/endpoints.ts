@@ -10,4 +10,7 @@ export const studioApiEndpoints = {
     tasks: (projectId: number) => `task/${projectId}`,
     task: (projectId: number, taskId: number) => `task/${projectId}/${taskId}`,
   },
+  models: {
+    models: (projectId: number) => `model/${projectId}`,
+  },
 } as const;
