@@ -1,0 +1,77 @@
+.tab {
+  padding: 0.5rem 0;
+}
+
+.sectionTitle {
+  letter-spacing: 0.0625rem;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+.regionList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.regionRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.375rem;
+  font-size: 0.875rem;
+  border-radius: 0.25rem;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.04);
+  }
+
+  &.selected {
+    background: rgba(99, 102, 241, 0.1);
+  }
+}
+
+.regionIndex {
+  width: 1.25rem;
+  color: var(--color-text-secondary);
+}
+
+.regionColorDot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.regionLabel {
+  flex: 1;
+}
+
+.deleteButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.125rem;
+  border-radius: 0.25rem;
+  color: var(--color-text-secondary);
+  opacity: 0;
+
+  .regionRow:hover &,
+  .regionRow.selected & {
+    opacity: 1;
+  }
+
+  &:hover {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+  }
+
+  svg {
+    width: 1rem;
+    height: 1rem;
+  }
+}
