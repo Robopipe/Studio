@@ -10,17 +10,20 @@ export enum ProjectTypeEnum {
 export const projectSchema = z.object({
   id: z.number(),
   name: z.string(),
+  description: z.string(),
   organizationId: z.number(),
   ...timestampsSchema
 });
 
 export const createProjectRequestSchema = z.object({
   name: z.string().min(1).max(256),
+  description: z.string(),
   type: z.enum(ProjectTypeEnum)
 });
 
 export const updateProjectRequestSchema = z.object({
   name: z.string().min(1).max(256),
+  description: z.string(),
 });
 
 export const projectListResponseSchema = z.object({
