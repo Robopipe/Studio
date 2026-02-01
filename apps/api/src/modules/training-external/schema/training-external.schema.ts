@@ -1,7 +1,23 @@
 import z from "zod";
 import { ProjectTypeEnum } from "@repo/schema";
+import { modelLogMetricsSchema } from "@repo/schema";
+
+/**
+ * Training updates
+ * ML Service -> Backend
+ */
 
 
+export const trainingProgressRequestSchema = z.object({
+  epoch: z.number(),
+  metrics: modelLogMetricsSchema
+})
+
+
+/**
+ * Training payload
+ * Backend -> ML service
+ */
 export const trainingSharedLabelSchema = {
   label: z.object({
     label_number: z.number()

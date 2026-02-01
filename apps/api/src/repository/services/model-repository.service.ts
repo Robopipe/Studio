@@ -19,7 +19,7 @@ export class ModelRepository {
    * @param projectId
    * @returns ModelEntity[]
    */
-  public async getAllByProjectId(projectId: number): Promise<any> {
+  public async getAllByProjectId(projectId: number): Promise<ModelEntity[]> {
     const models = await this.db.query.modelTable.findMany({
       where: {
         projectId,
@@ -32,6 +32,26 @@ export class ModelRepository {
     });
 
     return models.map((model) => new ModelEntity(model))
+  }
+
+  /**
+   * Get by id
+   * @param id
+   * @returns ModelEntity or null if not found
+   */
+  public async getById(id: number): Promise<ModelEntity | null>{
+    const foundModel = await this.db.query.modelTable.findFirst({
+      where: {
+        id,
+      },
+      with: {
+        labels: {
+          orderBy: (l) => asc(l.id),
+        },
+      },
+    });
+
+    return foundModel ? new ModelEntity(foundModel) : null;
   }
 
   /**

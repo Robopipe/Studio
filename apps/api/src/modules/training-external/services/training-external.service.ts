@@ -1,13 +1,25 @@
-import { Inject, Injectable, Logger } from "@nestjs/common";
+import { BadRequestException, ConflictException, Inject, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { DB_CONNECTION } from "../../../core/database/database.constant";
 import type { DbConnection } from "../../../core/database/types/database.types";
 import {
-  TrainingBasePayload, TrainingPayload,
+  TrainingBasePayload,
+  TrainingPayload,
 } from "../schema/training-external.schema";
 import { ProjectRepository } from "../../../repository/services/project-repository.service";
 import { ModelEntity } from "../../model/entity/model.entity";
-import { TaskStatusEnum, ProjectTypeEnum } from "@repo/schema";
+import {
+  ProjectTypeEnum,
+  TaskStatusEnum,
+  ModelOutputTypeEnum,
+  TaskFileTypeEnum,
+  ModelStatusEnum,
+} from "@repo/schema";
 import { HttpService } from "@nestjs/axios";
+import { TrainingProgressRequest } from "../dto/training-external.dto";
+import { ModelLogRepository } from "../../../repository/services/model-log-repository.service";
+import { ModelOutputRepository } from "../../../repository/services/model-output-repository.service";
+import { ModelRepository } from "../../../repository/services/model-repository.service";
+import { AssetsService } from "../../assets/services/assets.service";
 
 @Injectable()
 export class TrainingExternalService {
@@ -16,24 +28,104 @@ export class TrainingExternalService {
   constructor(
     @Inject(DB_CONNECTION) private readonly db: DbConnection,
     private readonly http: HttpService,
+    private readonly assetsService: AssetsService,
+    private readonly modelRepository: ModelRepository,
     private readonly projectRepository: ProjectRepository,
+    private readonly modelLogRepository: ModelLogRepository,
+    private readonly modelOutputRepository: ModelOutputRepository,
   ) {}
 
+  /**
+   * Upload model output
+   * @param modelId
+   * @param type
+   * @param file
+   * @throws NotFoundException - Model not found
+   */
+  public async uploadModelOutput(
+    modelId: number,
+    type: string,
+    file: Express.Multer.File,
+  ): Promise<void> {
+    const modelOutputType = this.parseModelOutputType(type)
+    if(!modelOutputType){
+      throw new BadRequestException(`Invalid model output type: ${type}`)
+    }
+
+    const model = await this.modelRepository.getById(modelId);
+    if(!model){
+      throw new NotFoundException("Model not found")
+    }
+
+    const modelOutputs = await this.modelOutputRepository.getAllByModelId(modelId)
+    const foundExistingOutput = modelOutputs.some((modelOutput) => modelOutput.type === modelOutputType)
+    if(foundExistingOutput){
+      throw new ConflictException("Model output with this type already exists")
+    }
+
+    const assetPath = this.assetsService.getModelOutputName(file.originalname, model.projectId, model.id, modelOutputType)
+    const assetPublicUrl = await this.assetsService.saveFile(file, assetPath)
+
+    await this.modelOutputRepository.create({
+      modelId: model.id,
+      type: modelOutputType,
+      filePath: assetPublicUrl,
+      fileType: TaskFileTypeEnum.GS
+    })
+
+    if(modelOutputType === ModelOutputTypeEnum.RAW){
+      await this.modelRepository.update(model.id, {
+        status: ModelStatusEnum.CONVERTING
+      })
+    }
+
+    // Check if this is the last model to be uploaded
+    if(modelOutputs.length === 2) {
+      await this.modelRepository.update(model.id, {
+        status: ModelStatusEnum.DONE
+      })
+    }
+  }
+
+  /**
+   * Update training progress
+   * @param modelId
+   * @param data - TrainingProgressRequest
+   * @throws NotFoundException - Model not found
+   */
+  public async updateTrainingProgress(
+    modelId: number,
+    data: TrainingProgressRequest,
+  ): Promise<void> {
+    const model = await this.modelRepository.getById(modelId);
+    if(!model){
+      throw new NotFoundException("Model not found")
+    }
+
+    await this.modelLogRepository.create({
+      modelId,
+      epoch: data.epoch,
+      metrics: data.metrics,
+    });
+  }
 
   /**
    * Train
    * @param model - Model entity
    */
-  public async train(model: ModelEntity): Promise<void>{
-    const trainingPayload = await this.getTrainingPayload(model)
+  public async train(model: ModelEntity): Promise<void> {
+    const trainingPayload = await this.getTrainingPayload(model);
 
     try {
-      await this.http.axiosRef.post('/train', {
-        body: trainingPayload
-      })
-    } catch(e){
-      this.logger.error(`Failed starting training on machine learning service`, e)
-      throw e
+      await this.http.axiosRef.post("/train", {
+        body: trainingPayload,
+      });
+    } catch (e) {
+      this.logger.error(
+        `Failed starting training on machine learning service`,
+        e,
+      );
+      throw e;
     }
   }
 
@@ -84,7 +176,7 @@ export class TrainingExternalService {
       },
     };
 
-    switch (project.type){
+    switch (project.type) {
       case ProjectTypeEnum.CLASSIFICATION: {
         const data = tasks.map((task) => ({
           file_url: task.filePath,
@@ -112,9 +204,9 @@ export class TrainingExternalService {
             label: {
               label_number: labelsIndexMap[annotation.labelId],
             },
-            points: annotation.value
-          }))
-        }))
+            points: annotation.value,
+          })),
+        }));
 
         return {
           ...basePayload,
@@ -134,7 +226,7 @@ export class TrainingExternalService {
             x: annotation.x,
             y: annotation.y,
             width: annotation.width,
-            height: annotation.height
+            height: annotation.height,
           })),
         }));
 
@@ -144,6 +236,24 @@ export class TrainingExternalService {
           data,
         };
       }
+    }
+  }
+
+  /**
+   * Parse model output type from string
+   * @param type
+   * @return ModelOutputTypeEnum or null if doesn't match
+   */
+  private parseModelOutputType(type: string): ModelOutputTypeEnum | null {
+    switch (type.toUpperCase()) {
+      case ModelOutputTypeEnum.RAW.valueOf():
+        return ModelOutputTypeEnum.RAW;
+      case ModelOutputTypeEnum.RVC3.valueOf():
+        return ModelOutputTypeEnum.RVC3;
+      case ModelOutputTypeEnum.RVC4.valueOf():
+        return ModelOutputTypeEnum.RVC4;
+      default:
+        return null
     }
   }
 }

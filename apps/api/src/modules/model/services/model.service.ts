@@ -161,9 +161,12 @@ export class ModelService{
    * @param id - model ID
    * @param projectId
    */
-  public async trainModel(id: number, projectId: number): Promise<void>{
+  public async trainModel(id: number, projectId: number): Promise<ModelEntity>{
     const model = await this.getModelById(id, projectId)
     await this.trainingExternalService.train(model)
+    return this.modelRepository.update(id, {
+      status: ModelStatusEnum.TRAINING
+    })
   }
 
 
