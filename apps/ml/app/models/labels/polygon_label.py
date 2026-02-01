@@ -1,9 +1,9 @@
-from pydantic import BaseModel
+from ..base_schema import BaseSchema
 
 from .label import Label
 
 
-class PolygonLabel(BaseModel):
+class PolygonLabel(BaseSchema):
     label: Label
     points: list[tuple[int, int]]
 

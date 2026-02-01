@@ -1,9 +1,9 @@
-from pydantic import BaseModel
+from ..base_schema import BaseSchema
 
 from .label import Label
 
 
-class RectangleLabel(BaseModel):
+class RectangleLabel(BaseSchema):
     label: Label
     x: int
     y: int

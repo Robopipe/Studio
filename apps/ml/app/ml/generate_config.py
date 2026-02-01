@@ -34,14 +34,20 @@ def generate_trainer_config(model_config: ModelConfig) -> dict:
         "batch_size": model_config.training_config.batch_size,
         "epochs": model_config.training_config.epochs,
         "n_workers": 8,
-        "callbacks": [{"name": "ExportOnTrainEnd"}, {"name": "LearningRateMonitor"}],
+        "callbacks": [
+            {"name": "ExportOnTrainEnd"},
+            {"name": "LearningRateMonitor", "params": {"logging_interval": "step"}},
+        ],
     }
 
     if webhook_url is not None:
         config["callbacks"].append(
             {
                 "name": "WebhookStats",
-                "params": {"url": webhook_url, "id": model_config.id},
+                "params": {
+                    "url": f"{webhook_url}/progress/{model_config.id}",
+                    "id": model_config.id,
+                },
             }
         )
 
