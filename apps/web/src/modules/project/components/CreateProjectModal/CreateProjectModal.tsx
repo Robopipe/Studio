@@ -7,6 +7,7 @@ import {
 import { LabelingSetup, LocalLabel } from "../LabelingSetup/LabelingSetup";
 import { Modal, ModalTab } from "../Modal";
 import { ProjectDetailsForm } from "../ProjectDetailsForm";
+import { ProjectTypeEnum } from '@repo/schema';
 
 export const CreateProjectModal = ({ onClose }: { onClose: () => void }) => {
   const [name, setName] = useState("");
@@ -24,9 +25,7 @@ export const CreateProjectModal = ({ onClose }: { onClose: () => void }) => {
       const project = await createProject({
         name,
         description,
-        // type: ProjectTypeEnum.SEGMENTATION,
-        // @ts-ignore
-        type: "SEGMENTATION",
+        type: ProjectTypeEnum.SEGMENTATION,
       }).unwrap();
 
       if (localLabels.length > 0) {

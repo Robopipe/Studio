@@ -1,6 +1,6 @@
 import { bui } from "@repo/ui";
 import clsx from "clsx";
-import styles from "./TextArea.module.scss"; // Pointing to new file
+import styles from "./TextArea.module.scss";
 
 export interface TextAreaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   label: string;
