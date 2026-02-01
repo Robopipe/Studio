@@ -15,7 +15,7 @@ export const SettingsCard = (props: SettingsCardProps) => {
   const { title, children, state, stepNumber } = props;
 
   return (
-    <Container size="sm" className={styles.settingsCard}>
+    <Container size="full" className={styles.settingsCard}>
       <Stack direction="row">
         <Stack direction="row" align="center">
           <div>
@@ -24,7 +24,13 @@ export const SettingsCard = (props: SettingsCardProps) => {
                 <CheckIcon />
               </div>
             ) : (
-              stepNumber
+              <Text
+                variant="text-12"
+                weight="500"
+                className={styles.stepNumber}
+              >
+                {stepNumber}
+              </Text>
             )}
           </div>
           <Text weight="500" variant="text-14">
