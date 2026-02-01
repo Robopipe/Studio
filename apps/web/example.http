@@ -8,7 +8,7 @@ Content-Type: application/json
 
 ###
 
-@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImlhdCI6MTc2OTg4OTE4NiwiZXhwIjoxNzY5ODkwMDg2fQ.UuieyBYS2Y0zd18UwgtzdqTL5UFNRRP9lEuuC6D3R00
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImlhdCI6MTc2OTkwNTAxNCwiZXhwIjoxNzY5OTA1OTE0fQ.TrZcWll64mfrL5GGygbU8XXwWFHXIMCQ4xBGOcR1uZc
 
 
 POST http://localhost:3000/v1/projects
@@ -16,12 +16,30 @@ Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
-    "name": "Test Project",
+    "name": "Test Project 2",
     "type": "SEGMENTATION"
 }
 
 ###
 
 GET http://localhost:3000/v1/task/4
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+###
+
+GET http://localhost:3000/v1/organizations/current
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+###
+
+GET http://localhost:3000/v1/projects
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+###
+
+GET http://localhost:3000/v1/projects/5
 Authorization: Bearer {{accessToken}}
 Content-Type: application/json

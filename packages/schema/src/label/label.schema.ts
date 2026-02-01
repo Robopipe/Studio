@@ -6,13 +6,11 @@ export const labelSchema = z.object({
   name: z.string(), // unique across project
   color: z.string(),
   ...timestampsSchema,
-})
-
-
+});
 
 export const createLabelSchema = labelSchema.pick({
   name: true,
-  color: true
-})
+  color: true,
+});
 
-export const updateLabelSchema = createLabelSchema
+export const updateLabelSchema = createLabelSchema;

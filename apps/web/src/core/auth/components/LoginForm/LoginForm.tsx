@@ -1,15 +1,22 @@
 import { appConfig } from "@/config";
 import { Login } from "@repo/schema";
-import { Button, Container, Heading, Stack, Text, bui } from "@repo/ui";
+import {
+  Button,
+  Container,
+  Heading,
+  Stack,
+  Text,
+  TextInput,
+  bui,
+} from "@repo/ui";
 import { FormEvent } from "react";
 import { Link, Navigate } from "react-router";
 import { useAuth } from "../../hooks";
 import { useLoginMutation } from "../../services";
+import styles from "./LoginForm.module.scss";
 
-export interface LoginFormProps {}
-
-export const LoginForm = ({}: LoginFormProps) => {
-  const [login] = useLoginMutation();
+export const LoginForm = () => {
+  const [login, { isError, isLoading }] = useLoginMutation();
   const { isAuthenticated } = useAuth();
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -29,30 +36,72 @@ export const LoginForm = ({}: LoginFormProps) => {
   }
 
   return (
-    <Container>
-      <Stack>
-        <Heading variant="h3" weight="500">
-          Welcome back
-        </Heading>
-        <Text>Log in to the Robopipe app</Text>
+    <Container className={styles.LoginPane}>
+      <div className={styles.FormWidth}>
+        <Stack align="center" gap={8} className={styles.Header}>
+          <Heading variant="h2" weight="600">
+            Welcome back
+          </Heading>
+          <Text color="text-secondary">Log in to the Robopipe app</Text>
+        </Stack>
+
+        {isError && (
+          <div className={styles.ErrorBox}>
+            <div className={styles.ErrorTag}>ERROR</div>
+            <div className={styles.ErrorMessage}>
+              The username or password you entered is incorrect. Please check
+              your credentials and try again.
+            </div>
+          </div>
+        )}
+
         <bui.Form onSubmit={handleSubmit}>
-          <bui.Field.Root>
-            <bui.Field.Label>Email</bui.Field.Label>
-            <bui.Input type="email" name="email" />
-            <bui.Field.Error />
-          </bui.Field.Root>
-          <bui.Field.Root>
-            <bui.Field.Label>Password</bui.Field.Label>
-            <bui.Input type="password" name="password" />
-            <bui.Field.Error />
-          </bui.Field.Root>
-          <Button type="submit">Log in</Button>
+          <Stack gap={20}>
+            <TextInput
+              label="Email"
+              name="email"
+              type="email"
+              placeholder="Email"
+              helperText="Enter your email address"
+              error={isError}
+              required
+            />
+            <TextInput
+              label="Password"
+              name="password"
+              type="password"
+              placeholder="Password"
+              helperText="Enter your password"
+              error={isError}
+              required
+            />
+            <Button
+              type="submit"
+              fullWidth
+              disabled={isLoading}
+              className={styles.SubmitBtn}
+            >
+              Log In
+            </Button>
+          </Stack>
         </bui.Form>
-        <Text>
-          Don't have an account? <Link to="register">Sign Up</Link>
-        </Text>
-        <Link to="help">Need help?</Link>
-      </Stack>
+
+        <Stack align="center" gap={16} className={styles.FooterLinks}>
+          <Text variant="text-14">
+            Don't have an account?{" "}
+            <Link to="/register" className={styles.GreenLink}>
+              Sign Up
+            </Link>
+          </Text>
+          <Link to="/help" className={styles.GreenLink}>
+            Need help?
+          </Link>
+        </Stack>
+      </div>
+
+      <div className={styles.Copyright}>
+        Powered by Robopipe | © All rights reserved
+      </div>
     </Container>
   );
 };
