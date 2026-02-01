@@ -5,13 +5,13 @@ export const webRoutes = {
   },
   main: {
     projects: "/",
-    project: "/projects/:id",
+    project: "/projects/:projectId",
   },
   model: {
-    modelList: "/projects/:id/models",
-    modelDetail: "/projects/:id/models/:modelId",
-    modelNew: "/projects/:id/models/new",
+    modelList: "/projects/:projectId/models",
+    modelDetail: "/projects/:projectId/models/:modelId",
+    modelNew: "/projects/:projectId/models/new",
   },
-  capture: "/projects/:id/capture",
-  label: "/projects/:id/label",
+  capture: "/projects/:projectId/capture",
+  label: "/projects/:projectId/label",
 } as const;
