@@ -1,7 +1,7 @@
 import { Stack, Text } from "@repo/ui";
-import { VideoStream } from "../VideoStream";
-
+import { CameraDisplay } from "../CameraDisplay";
 import { ImageProfile } from "../ImageProfile";
+
 import styles from "./LiveCapture.module.scss";
 
 export interface LiveCaptureProps {
@@ -15,13 +15,13 @@ export const LiveCapture = ({
 }: LiveCaptureProps) => {
   return (
     <Stack gap="md" className={styles.liveCapture}>
-      <Text variant="text-20" weight="600">
+      <Text variant="text-20" weight="700">
         Capture images live
       </Text>
 
       {selectedCamera && selectedStream && (
         <>
-          <VideoStream
+          <CameraDisplay
             selectedMxid={selectedCamera}
             selectedSensorName={selectedStream}
           />
