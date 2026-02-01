@@ -22,3 +22,8 @@ output "artifact_registry" {
   description = "Artifact Registry repository"
   value       = module.artifact_registry.repository_id
 }
+
+output "ml_url" {
+  description = "Cloud Run ML service URL"
+  value       = module.cloud_run_ml.url
+}
