@@ -3,7 +3,7 @@ import { createdAt, id, timestamps } from '../helpers'
 import { projectTable } from './project'
 import { ModelStatusEnum } from "@repo/schema";
 
-export const modelStatusEnum = p.pgEnum("model_status_enum", [ModelStatusEnum.DRAFT, ModelStatusEnum.TRAINING, ModelStatusEnum.DONE])
+export const modelStatusEnum = p.pgEnum("model_status_enum", [ModelStatusEnum.DRAFT, ModelStatusEnum.TRAINING, ModelStatusEnum.CONVERTING, ModelStatusEnum.DONE])
 
 export const modelTable = p.pgTable("model", {
   id,

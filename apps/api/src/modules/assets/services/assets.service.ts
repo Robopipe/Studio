@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { Bucket, Storage } from "@google-cloud/storage";
 import { AppConfig } from "../../../core/configuration/app.config";
 import {v4 as uuidv4} from 'uuid'
+import { ModelOutputTypeEnum } from "@repo/schema";
 
 @Injectable()
 export class AssetsService {
@@ -20,6 +21,19 @@ export class AssetsService {
    */
   public getAssetName(fileName: string, projectId: number): string {
     return `${projectId}/${uuidv4()}_${fileName}`
+  }
+
+  /**
+   * Get model output file name
+   * @param fileName - for extension
+   * @param projectId
+   * @param modelId
+   * @param type - ModelOutputTypeEnum
+   * @returns google cloud storage  model path
+   */
+  public getModelOutputName(fileName: string, projectId: number, modelId: number, type: ModelOutputTypeEnum): string {
+    const [_, ...parts] = fileName.split('.')
+    return `${projectId}/model/${modelId}/${type.toLowerCase()}/${uuidv4()}.${parts.join('.')}`
   }
 
   /**

@@ -3,17 +3,21 @@ import { HttpModule } from "@nestjs/axios";
 import { AppConfig } from "../../core/configuration/app.config";
 import { TrainingExternalService } from "./services/training-external.service";
 import { TrainingExternalController } from "./controllers/training-external.controller";
+import { AssetsModule } from "../assets/assets.module";
 
 @Module({
-  imports: [HttpModule.registerAsync({
-    inject: [AppConfig],
-    useFactory: (config: AppConfig) => ({
-      baseURL: config.ml.host,
-      headers: {
-        Authorization: config.ml.apiKey
-      }
-    })
-  })],
+  imports: [
+    HttpModule.registerAsync({
+      inject: [AppConfig],
+      useFactory: (config: AppConfig) => ({
+        baseURL: config.ml.host,
+        headers: {
+          Authorization: config.ml.apiKey
+        }
+      })
+    }),
+    AssetsModule
+  ],
   providers: [TrainingExternalService],
   controllers: [TrainingExternalController],
   exports: [TrainingExternalService]

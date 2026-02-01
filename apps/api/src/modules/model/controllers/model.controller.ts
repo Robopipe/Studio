@@ -53,8 +53,9 @@ export class ModelController {
   public async trainModel(
     @ProjectId() projectId: number,
     @Param("modelId", ParseIntPipe) modelId: number,
-  ): Promise<void>{
-    await this.modelService.trainModel(modelId, projectId)
+  ): Promise<ModelResponse>{
+    const updatedModel = await this.modelService.trainModel(modelId, projectId)
+    return updatedModel.toResponse()
   }
 
 

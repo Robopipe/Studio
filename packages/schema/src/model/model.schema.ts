@@ -6,6 +6,7 @@ import { TaskFileTypeEnum } from "../task";
 export enum ModelStatusEnum {
   DRAFT = "DRAFT",
   TRAINING = "TRAINING",
+  CONVERTING = "CONVERTING",
   DONE = "DONE",
 }
 
