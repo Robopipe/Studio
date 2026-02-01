@@ -19,7 +19,7 @@ export const VideoStream = ({
 
   return (
     <div>
-      <video ref={videoRef} controls className={styles.video} />
+      <video ref={videoRef} controls className={styles.video} muted />
       {isStreaming ? (
         <div className={styles.liveCaptureLabel}>Live capture</div>
       ) : (

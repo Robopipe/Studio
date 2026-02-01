@@ -4,6 +4,7 @@ import type { ProjectSelect } from 'src/repository/types/project';
 export class ProjectEntity {
   readonly id: number;
   readonly name: string;
+  readonly description: string;
   readonly organizationId: number;
   readonly type: ProjectTypeEnum;
   readonly createdAt: Date;
@@ -13,6 +14,7 @@ export class ProjectEntity {
   constructor(data: ProjectSelect) {
     this.id = data.id;
     this.name = data.name;
+    this.description = data.description;
     this.type = data.type;
     this.organizationId = data.organizationId;
     this.createdAt = data.createdAt;
@@ -24,6 +26,7 @@ export class ProjectEntity {
     return {
       id: this.id,
       name: this.name,
+      description: this.description,
       organizationId: this.organizationId,
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),

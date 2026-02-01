@@ -151,6 +151,7 @@ $color-variants: (
   justify-content: center;
   gap: 0.5rem;
   outline: none;
+  font-family: inherit;
 
   &--fullWidth {
     width: 100%;

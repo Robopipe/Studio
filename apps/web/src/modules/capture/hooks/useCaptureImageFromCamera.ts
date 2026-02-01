@@ -1,6 +1,6 @@
 import { appConfig } from "@/config";
+import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import { useState } from "react";
-import { PROJECT_ID } from "../components/CapturedPhotos";
 import { useCreateTaskMutation } from "../services/captureApi";
 
 const getFilename = () => {
@@ -9,6 +9,7 @@ const getFilename = () => {
 
 export const useCaptureImageFromCamera = () => {
   const [createTask] = useCreateTaskMutation();
+  const [activeProject] = useActiveProject();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleCaptureImage = async (mxid: string, streamName: string) => {
@@ -20,7 +21,10 @@ export const useCaptureImageFromCamera = () => {
     }
     const blob = await response.blob();
     var file = new File([blob], getFilename(), { type: blob.type });
-    await createTask({ file: file, projectId: PROJECT_ID });
+    if (!activeProject) {
+      throw new Error("No active project");
+    }
+    await createTask({ file: file, projectId: activeProject.id });
     setIsLoading(false);
   };
 

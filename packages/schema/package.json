@@ -31,13 +31,11 @@
     }
   },
   "dependencies": {
-    "drizzle-orm": "^0.45.1",
-    "drizzle-zod": "1.0.0-beta.12-a5629fb",
     "zod": "^4.3.5"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
-    "typescript": "^5.9.3"
+    "typescript": "~5.9.3"
   }
 }

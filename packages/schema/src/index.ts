@@ -5,3 +5,4 @@ export * from "./projects";
 export * from './task'
 export * from './label'
 export * from './helpers'
+export * from './model'

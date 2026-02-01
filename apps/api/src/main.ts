@@ -19,17 +19,17 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, documentConfig);
-  SwaggerModule.setup("api", app, document);
+  SwaggerModule.setup("doc", app, document);
 
-  app.use(cookieParser(config.cookie.secret));
+  app.use(cookieParser(config.cookieSecret));
   app.enableCors({
     origin: [config.webHost, config.apiHost],
     credentials: true,
   });
 
   await app.listen(
-    config.server?.port ?? 3000,
-    config.server?.host ?? "localhost",
+    config.port ?? 3000,
+    config.host ?? "localhost",
   );
 }
 

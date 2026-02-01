@@ -1,0 +1,16 @@
+.projectCard {
+  display: flex;
+  width: 21rem;
+  padding: 1.25rem;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--Spacing-p-16, 1rem);
+
+  border-radius: 0.5rem;
+  border: 1px solid var(--Gray-300, #d1d5db);
+  background: var(--Gray-50, #f9fafb);
+  box-shadow: 0 0 12px 0 rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(8px);
+
+  cursor: pointer;
+}

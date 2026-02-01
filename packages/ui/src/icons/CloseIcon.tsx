@@ -13,7 +13,7 @@ export const CloseIcon = (props: CloseIconProps) => {
       {...props}
     >
       <path
-        fill="#000"
+        fill="currentColor"
         d="M5.53 4.47a.75.75 0 0 0-1.06 1.06L10.94 12l-6.47 6.47a.75.75 0 1 0 1.06 1.06L12 13.06l6.47 6.47a.75.75 0 1 0 1.06-1.06L13.06 12l6.47-6.47a.75.75 0 0 0-1.06-1.06L12 10.94z"
         clipRule="evenodd"
         fillOpacity=".9"

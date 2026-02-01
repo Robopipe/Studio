@@ -77,6 +77,37 @@ To learn more about Robopipe Studio, please visit the [Robopipe Documentation](h
    - The web is available at [localhost:5173](http://localhost:5173)
    - API docs are available at [localhost:3000/api](http://localhost:3000/api)
 
+### With Docker
+
+#### Prerequisites
+
+- Docker and Docker Compose
+
+1. Clone the repository:
+
+   ```bash
+   git clone -b rewrite --single-branch https://github.com/Robopipe/Studio.git
+   cd Studio
+   ```
+
+2. Start all services (PostgreSQL, API, Web):
+
+   ```bash
+   docker compose up --build
+   ```
+
+3. In a separate terminal, run the database migrations:
+
+   ```bash
+   docker compose exec api pnpm -F api drizzle:push
+   ```
+
+4. Observe the app
+   - The web is available at [localhost:5173](http://localhost:5173)
+   - API docs are available at [localhost:3000/api](http://localhost:3000/api)
+
+Source code is volume-mounted, so changes trigger hot-reload automatically.
+
 ## 📬 Feedback
 
 Robopipe values all your feedback. If you encounter any problems with the app, please open a [GitHub issue](https://github.com/Robopipe/Studio/issues/new) for anything related to this app - bugs, improvement suggestions, documentation, developer experience, etc.
