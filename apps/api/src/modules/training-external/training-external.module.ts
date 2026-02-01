@@ -14,7 +14,7 @@ import { AssetsModule } from "../assets/assets.module";
         Authorization: config.mlSecret
       }
     })
-  })],
+  }), AssetsModule],
   providers: [TrainingExternalService],
   controllers: [TrainingExternalController],
   exports: [TrainingExternalService]
