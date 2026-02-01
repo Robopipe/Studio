@@ -3,6 +3,7 @@ import { webRoutes } from "@/config/web/routes";
 import { LoginForm } from "@/core/auth/components";
 import { Authenticated } from "@/core/auth/components/Authenticated/Authenticated";
 import { CapturePage } from "@/modules/capture/components/CapturePage";
+import { LabelPage } from "@/modules/label/components/LabelPage";
 import { AuthLayout } from "@/modules/layout";
 import { ProjectsPage } from "@/modules/project";
 import { ProjectPage } from "@/modules/project/components/ProjectPage";
@@ -24,6 +25,7 @@ const authenticatedRoutes: RouteObject = {
     { path: webRoutes.main.projects, element: <ProjectsPage /> },
     { path: webRoutes.main.project, element: <ProjectPage /> },
     { path: webRoutes.capture, element: <CapturePage /> },
+    { path: webRoutes.label, element: <LabelPage /> },
   ],
 };
 
