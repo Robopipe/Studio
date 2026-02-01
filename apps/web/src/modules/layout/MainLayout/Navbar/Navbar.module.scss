@@ -7,6 +7,63 @@
   justify-content: space-between;
   padding: 0 1.5rem;
   flex-shrink: 0;
+  position: relative;
+}
+
+.projectSelectorText {
+  max-width: 200px; 
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.menuHeader {
+  padding: 4px 8px 12px 8px;
+  
+  .actionBtn {
+    background: none;
+    border: none;
+    color: var(--color-gray-400);
+    cursor: pointer;
+    display: flex;
+    padding: 2px;
+    transition: color 0.2s;
+
+    &:hover { color: var(--color-white); }
+  }
+}
+
+.searchContainer {
+  position: relative;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  background-color: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  border: 1px solid var(--color-gray-800);
+  padding: 0 10px;
+
+  .searchIcon { color: var(--color-gray-500); }
+
+  .searchInput {
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--color-white);
+    font-size: 0.875rem;
+    padding: 8px;
+    width: 100%;
+
+    &::placeholder { color: var(--color-gray-600); }
+  }
+}
+
+.itemsList {
+  max-height: 200px;
+  overflow-y: auto;
+  
+  &::-webkit-scrollbar { width: 4px; }
+  &::-webkit-scrollbar-thumb { background: var(--color-gray-700); border-radius: 10px; }
 }
 
 .dropdownContainer {
@@ -43,24 +100,25 @@
   position: absolute;
   top: calc(100% + 8px);
   left: 0;
-  min-width: 180px;
+  width: 260px;
   background-color: #1c1c1f;
   border: 1px solid var(--color-gray-800);
-  border-radius: 0.5rem;
-  padding: 4px;
+  border-radius: 0.75rem;
+  padding: 8px;
   z-index: 1000;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 .dropdownItem {
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.25rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.5rem;
   color: var(--color-gray-300);
   cursor: pointer;
+  transition: all 0.2s;
 
   &:hover {
     background-color: rgba(255, 255, 255, 0.05);
-    color: var(--color-white);
+    color: var(--color-emerald-400);
   }
 }
 
@@ -117,6 +175,13 @@
     background-color: rgba(16, 185, 129, 0.1);
     text-decoration: none;
   }
+}
+
+.centerStack {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
 }
 
 .right {

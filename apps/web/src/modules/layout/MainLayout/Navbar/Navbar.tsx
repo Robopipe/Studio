@@ -3,12 +3,16 @@ import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import { useGetProjectsQuery } from "@/modules/project/services/projectApi";
 import { Logo } from "@/modules/ui";
 import {
+  AddLargeIcon,
   AiPowerIcon,
   AnnotateIcon,
+  BoxIcon,
   CameraIcon,
   ChartIcon,
+  CloseIcon,
   LogoutIcon,
   RunIcon,
+  SearchIcon,
   Stack,
   SupportIcon,
   Text,
@@ -62,7 +66,7 @@ export const Navbar = () => {
       </Stack>
 
       {/* Center: Navigation Tabs */}
-      <Stack direction="row" align="center" gap={4}>
+      <Stack direction="row" align="center" gap={4} className={styles.centerStack}>
         <NavItem to="/capture" label="Capture" icon={<CameraIcon />} />
         <NavItem to="/label" label="Label" icon={<AnnotateIcon />} />
         <NavItem to="/train" label="Train" icon={<AiPowerIcon />} />
@@ -101,26 +105,22 @@ const NavDropdown = ({
   items?: { label: string; onClick?: () => void }[];
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
-
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    if (isOpen) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen]);
+
+  const filteredItems = items.filter(item => 
+    item.label.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div className={styles.dropdownContainer} ref={dropdownRef}>
@@ -138,18 +138,49 @@ const NavDropdown = ({
 
       {isOpen && (
         <div className={styles.dropdownMenu}>
-          {items.map((item) => (
-            <div
-              key={item.label}
-              className={styles.dropdownItem}
-              onClick={() => {
-                setIsOpen(false);
-                item.onClick?.();
-              }}
-            >
-              <Text variant="text-14">{item.label}</Text>
-            </div>
-          ))}
+          {/* Header with Create and Close */}
+          <Stack direction="row" align="center" justify="space-between" className={styles.menuHeader}>
+            <Text variant="text-14" weight="600" color='text-white-primary'>PROJECTS</Text>
+            <Stack direction="row" align="center" gap={12}>
+              <button className={styles.actionBtn} aria-label="Create project">
+                <AddLargeIcon /> 
+              </button>
+              <button className={styles.actionBtn} onClick={() => setIsOpen(false)}>
+                <CloseIcon />
+              </button>
+            </Stack>
+          </Stack>
+
+          {/* Search Bar */}
+          <div className={styles.searchContainer}>
+            <SearchIcon className={styles.searchIcon} />
+            <input 
+              autoFocus
+              className={styles.searchInput}
+              placeholder="Search or create projects"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+
+          {/* Items List */}
+          <div className={styles.itemsList}>
+            {filteredItems.map((item) => (
+              <div
+                key={item.label}
+                className={styles.dropdownItem}
+                onClick={() => {
+                  item.onClick?.();
+                  setIsOpen(false);
+                }}
+              >
+                <Stack direction="row" align="center" gap={10}>
+                  <BoxIcon />
+                  <Text variant="text-14">{item.label}</Text>
+                </Stack>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
