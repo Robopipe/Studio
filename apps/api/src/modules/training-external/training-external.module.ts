@@ -6,18 +6,15 @@ import { TrainingExternalController } from "./controllers/training-external.cont
 import { AssetsModule } from "../assets/assets.module";
 
 @Module({
-  imports: [
-    HttpModule.registerAsync({
-      inject: [AppConfig],
-      useFactory: (config: AppConfig) => ({
-        baseURL: config.ml.host,
-        headers: {
-          Authorization: config.ml.apiKey
-        }
-      })
-    }),
-    AssetsModule
-  ],
+  imports: [HttpModule.registerAsync({
+    inject: [AppConfig],
+    useFactory: (config: AppConfig) => ({
+      baseURL: config.mlHost,
+      headers: {
+        Authorization: config.mlSecret
+      }
+    })
+  })],
   providers: [TrainingExternalService],
   controllers: [TrainingExternalController],
   exports: [TrainingExternalService]

@@ -32,7 +32,6 @@ COPY --from=pruner /app/out/json/ .
 RUN pnpm install --frozen-lockfile
 
 COPY --from=build /app/apps/api/dist apps/api/dist
-COPY --from=build /app/apps/api/config.yml config.yml
 COPY --from=build /app/apps/api/drizzle.config.ts apps/api/drizzle.config.ts
 COPY --from=build /app/apps/api/src/core/database/schema apps/api/src/core/database/schema
 COPY --from=build /app/packages/database packages/database

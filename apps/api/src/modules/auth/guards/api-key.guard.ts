@@ -32,7 +32,7 @@ export function ApiKeyGuard(apiKeyType: ApiKeyType): Type<CanActivate> {
     private getApiKey(type: ApiKeyType): string {
       switch(type){
         case ApiKeyType.TRAINING_EXTERNAL:
-          return this.config.ml.apiKey
+          return this.config.mlSecret
       }
     }
   }
