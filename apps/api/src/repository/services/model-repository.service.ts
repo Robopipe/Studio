@@ -4,7 +4,7 @@ import {
   InternalServerErrorException,
 } from "@nestjs/common";
 import { modelTable } from '@repo/database';
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { DB_CONNECTION } from 'src/core/database/database.constant';
 import type { DbConnection } from 'src/core/database/types/database.types';
 import { ModelEntity } from "../../modules/model/entity/model.entity";
@@ -22,12 +22,14 @@ export class ModelRepository {
   public async getAllByProjectId(projectId: number): Promise<any> {
     const models = await this.db.query.modelTable.findMany({
       where: {
-        projectId
+        projectId,
       },
       with: {
-        labels: true
-      }
-    })
+        labels: {
+          orderBy: (l) => asc(l.id),
+        },
+      },
+    });
 
     return models.map((model) => new ModelEntity(model))
   }
@@ -45,7 +47,9 @@ export class ModelRepository {
         projectId
       },
       with: {
-        labels: true
+        labels: {
+          orderBy: (l) => asc(l.id)
+        }
       }
     })
 
@@ -87,7 +91,8 @@ export class ModelRepository {
       },
       with: {
         label: true
-      }
+      },
+      orderBy: (p) => asc(p.labelId)
     })
     const labels = modelLabels.map((modelLabel) => modelLabel.label).filter((l) => !!l)
 

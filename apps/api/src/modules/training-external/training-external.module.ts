@@ -15,6 +15,7 @@ import { TrainingExternalController } from "./controllers/training-external.cont
     })
   })],
   providers: [TrainingExternalService],
-  controllers: [TrainingExternalController]
+  controllers: [TrainingExternalController],
+  exports: [TrainingExternalService]
 })
 export class TrainingExternalModule {}
