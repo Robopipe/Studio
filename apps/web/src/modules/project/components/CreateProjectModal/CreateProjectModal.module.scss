@@ -1,0 +1,119 @@
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 40px;
+}
+
+.modalContent {
+  background: #ffffff;
+  width: 100%;
+  max-width: 1472px;
+  height: 932px;
+  border-radius: 24px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 40px;
+  border-bottom: 1px solid var(--color-gray-300);
+}
+
+.tabWrapper {
+  .tabItem {
+    background: none;
+    border: none;
+    padding: 8px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--color-gray-500);
+    cursor: pointer;
+    position: relative;
+
+    &.active {
+      color: var(--color-emerald-600);
+      &::after {
+        content: "";
+        position: absolute;
+        bottom: -25px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: var(--color-emerald-600);
+      }
+    }
+  }
+}
+
+.saveBtn {
+  background: var(--color-emerald-700);
+  color: white;
+  padding: 8px 24px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.deleteBtn {
+  background: white;
+  border: 1.5px solid var(--color-red-800);
+  color: var(--color-red-800);
+  padding: 8px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: var(--color-red-600);
+    border-color: var(--color-red-600);
+    color: white;
+  }
+}
+
+.modalBody {
+  padding: 60px 200px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.inputGroup {
+  margin-top: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  label {
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  input, textarea {
+    background: var(--color-gray-50);
+    border: 1px solid var(--color-gray-200);
+    border-radius: 12px;
+    padding: 16px;
+    font-size: 14px;
+    width: 100%;
+    color: var(--color-grey-900);
+    
+    &::placeholder {
+      color: var(--color-gray-400);
+    }
+  }
+
+  textarea {
+    resize: none;
+    min-height: 120px;
+  }
+}
