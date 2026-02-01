@@ -1,6 +1,7 @@
 import os
 import tempfile
 import requests
+import threading
 
 from ..config import get_config
 from ..models.model_config import ModelConfig
@@ -47,5 +48,6 @@ def __train(config: ModelConfig):
 
 
 def train_model(config: ModelConfig):
-    __train(config)
+    thread = threading.Thread(target=__train, args=(config,))
+    thread.start()
     return {"status": "Training started"}
