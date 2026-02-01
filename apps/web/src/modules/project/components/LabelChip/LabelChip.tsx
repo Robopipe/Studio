@@ -8,8 +8,6 @@ export interface LabelChipProps {
   onRemove: () => void;
 }
 
-// TODO: colors to hex
-
 export const LabelChip = ({ label, onRemove }: LabelChipProps) => {
   return (
     <div
