@@ -5,7 +5,7 @@
   max-height: 100%;
   background: var(--surface-surface-3, rgba(0, 0, 0, 0.03));
   border-right: 1px solid var(--border-border-12, rgba(0, 0, 0, 0.12));
-  padding: 1rem;
+  padding: 1rem 0 1rem 1rem;
   overflow: hidden;
 }
 
@@ -13,6 +13,7 @@
   letter-spacing: 0.0625rem;
   text-transform: uppercase;
   margin-bottom: 0.75rem;
+  padding-right: 1rem;
 }
 
 .list {
@@ -21,6 +22,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  padding-right: 0.5rem;
 }
 
 .item {
@@ -45,15 +47,32 @@
 }
 
 .thumbnail {
-  width: 4rem;
+  width: 5.5rem;
   aspect-ratio: 4/3;
   object-fit: cover;
   border-radius: 0.25rem;
   background: var(--color-text-secondary);
 }
 
+.meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.taskId {
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.date {
+  font-size: 0.6875rem;
+  color: var(--color-text-secondary);
+}
+
 .count {
-  font-size: 0.875rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   color: var(--color-text-secondary);
 }
