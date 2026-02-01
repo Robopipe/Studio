@@ -1,4 +1,6 @@
 import { useLogoutMutation } from "@/core/auth/services";
+import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
+import { useGetProjectsQuery } from "@/modules/project/services/projectApi";
 import { Logo } from "@/modules/ui";
 import {
   AiPowerIcon,
@@ -12,14 +14,15 @@ import {
   Text,
 } from "@repo/ui";
 import clsx from "clsx";
-import { ReactNode } from "react";
-import { useState, useRef, useEffect } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import { NavLink, useNavigate } from "react-router";
 import styles from "./Navbar.module.scss";
 
 export const Navbar = () => {
   const navigate = useNavigate();
   const [logout] = useLogoutMutation();
+  const { data: projects } = useGetProjectsQuery();
+  const [activeProject, setActiveProject] = useActiveProject();
 
   const handleLogout = async () => {
     try {
@@ -46,7 +49,15 @@ export const Navbar = () => {
         </div>
         <Stack direction="row" align="center" gap={12}>
           <div className={styles.divider} />
-          <NavDropdown label="Production Sandwich" />
+          <NavDropdown
+            label={activeProject?.name ?? "Select a project..."}
+            items={
+              projects?.map((project) => ({
+                label: project.name,
+                onClick: () => setActiveProject(project),
+              })) ?? []
+            }
+          />
         </Stack>
       </Stack>
 
@@ -62,11 +73,19 @@ export const Navbar = () => {
       {/* Right: User & Actions */}
       <Stack direction="row" align="center" gap={12} className={styles.right}>
         <div className={styles.userAvatar}>FM</div>
-        <button className={styles.iconBtn} onClick={handleSupport} aria-label="Help">
+        <button
+          className={styles.iconBtn}
+          onClick={handleSupport}
+          aria-label="Help"
+        >
           <SupportIcon />
           <span className={styles.btnText}>Help</span>
         </button>
-        <button className={styles.iconBtn} onClick={handleLogout} aria-label="Logout">
+        <button
+          className={styles.iconBtn}
+          onClick={handleLogout}
+          aria-label="Logout"
+        >
           <LogoutIcon />
         </button>
       </Stack>
@@ -74,15 +93,22 @@ export const Navbar = () => {
   );
 };
 
-
-
-const NavDropdown = ({ label, items = ["Project 1", "Project 2"] }: { label: string, items?: string[] }) => {
+const NavDropdown = ({
+  label,
+  items = [],
+}: {
+  label: string;
+  items?: { label: string; onClick?: () => void }[];
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
@@ -98,8 +124,8 @@ const NavDropdown = ({ label, items = ["Project 1", "Project 2"] }: { label: str
 
   return (
     <div className={styles.dropdownContainer} ref={dropdownRef}>
-      <div 
-        className={clsx(styles.navDropdown, isOpen && styles.active)} 
+      <div
+        className={clsx(styles.navDropdown, isOpen && styles.active)}
         onClick={() => setIsOpen(!isOpen)}
       >
         <Stack direction="row" align="center" gap={8}>
@@ -112,9 +138,16 @@ const NavDropdown = ({ label, items = ["Project 1", "Project 2"] }: { label: str
 
       {isOpen && (
         <div className={styles.dropdownMenu}>
-          {items.map((item, index) => (
-            <div key={index} className={styles.dropdownItem} onClick={() => setIsOpen(false)}>
-              <Text variant="text-14">{item}</Text>
+          {items.map((item) => (
+            <div
+              key={item.label}
+              className={styles.dropdownItem}
+              onClick={() => {
+                setIsOpen(false);
+                item.onClick?.();
+              }}
+            >
+              <Text variant="text-14">{item.label}</Text>
             </div>
           ))}
         </div>
@@ -132,11 +165,15 @@ interface NavItemProps {
 const NavItem = ({ label, icon, to }: NavItemProps) => (
   <NavLink
     to={to}
-    className={({ isActive }) => clsx(styles.navItem, isActive && styles.active)}
+    className={({ isActive }) =>
+      clsx(styles.navItem, isActive && styles.active)
+    }
   >
     <Stack direction="row" align="center" gap={8}>
       {icon && <span className={styles.navIcon}>{icon}</span>}
-      <Text variant="text-14" weight="500">{label}</Text>
+      <Text variant="text-14" weight="500">
+        {label}
+      </Text>
     </Stack>
   </NavLink>
 );
