@@ -1,0 +1,27 @@
+.formSection {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.formFields {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+:global(.bui-Field-Root) {
+  width: 100%;
+}
+
+.inputGroup {
+  input, textarea {
+    background-color: var(--color-gray-50);
+    
+    &:focus {
+      background-color: var(--color-white);
+      border-color: var(--color-emerald-500);
+    }
+  }
+}

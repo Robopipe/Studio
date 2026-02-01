@@ -51,6 +51,14 @@
   }
 }
 
+.editIcon {
+  color: var(--color-gray-800);
+
+  &:hover {
+    color: var(--color-gray-600);
+  }
+}
+
 .statItem {
   display: flex;
   align-items: center;

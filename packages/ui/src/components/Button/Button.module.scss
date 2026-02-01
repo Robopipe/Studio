@@ -31,66 +31,88 @@ $color-variants: (
   filled: (
     default: (
       background: var(--color-emerald-700),
-      border: none,
+      border: 1.5px solid transparent,
       color: var(--color-white),
     ),
     hover: (
       background: var(--color-emerald-600),
-      border: none,
+      border: 1.5px solid transparent,
       color: var(--color-white),
     ),
     active: (
       background: var(--color-emerald-700),
-      border: none,
+      border: 1.5px solid transparent,
       color: var(--color-white),
     ),
     disabled: (
       background: var(--color-gray-500),
-      border: none,
+      border: 1.5px solid transparent,
       color: var(--color-white),
     ),
   ),
   outlined: (
     default: (
       background: transparent,
-      border: 1px solid var(--color-emerald-700),
+      border: 1.5px solid var(--color-emerald-700),
       color: var(--color-emerald-700),
     ),
     hover: (
       background: var(--color-emerald-50),
-      border: 1px solid var(--color-emerald-600),
+      border: 1.5px solid var(--color-emerald-600),
       color: var(--color-emerald-600),
     ),
     active: (
       background: transparent,
-      border: 1px solid var(--color-emerald-700),
+      border: 1.5px solid var(--color-emerald-700),
       color: var(--color-emerald-700),
     ),
     disabled: (
       background: transparent,
-      border: 1px solid var(--color-gray-500),
+      border: 1.5px solid var(--color-gray-500),
       color: var(--color-gray-500),
     ),
   ),
   text: (
     default: (
       background: transparent,
-      border: none,
+     border: 1.5px solid transparent,
       color: var(--color-emerald-700),
     ),
     hover: (
       background: var(--color-emerald-50),
-      border: none,
+     border: 1.5px solid transparent,
       color: var(--color-emerald-600),
     ),
     active: (
       background: var(--color-emerald-400),
-      border: none,
+     border: 1.5px solid transparent,
       color: var(--color-emerald-700),
     ),
     disabled: (
       background: transparent,
-      border: none,
+     border: 1.5px solid transparent,
+      color: var(--color-gray-500),
+    ),
+  ),
+  danger: (
+    default: (
+      background: transparent,
+      border: 1.5px solid var(--color-red-800),
+      color: var(--color-red-800),
+    ),
+    hover: (
+      background: var(--color-red-600),
+      border: 1.5px solid var(--color-red-600),
+      color: var(--color-white),
+    ),
+    active: (
+      background: var(--color-red-800),
+      border: 1.5px solid var(--color-red-800),
+      color: var(--color-white),
+    ),
+    disabled: (
+      background: transparent,
+      border: 1.5px solid var(--color-gray-500),
       color: var(--color-gray-500),
     ),
   ),
