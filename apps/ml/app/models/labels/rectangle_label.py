@@ -23,4 +23,4 @@ class RectangleLabel(BaseSchema):
         x_center, y_center, norm_width, norm_height = self.__get_normalized_coordinates(
             image_width, image_height
         )
-        return f"{self.label.id} {x_center:.6f} {y_center:.6f} {norm_width:.6f} {norm_height:.6f}"
+        return f"{self.label.label_number} {x_center:.6f} {y_center:.6f} {norm_width:.6f} {norm_height:.6f}"

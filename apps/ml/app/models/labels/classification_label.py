@@ -6,4 +6,4 @@ class ClassificationLabel(BaseSchema):
     label: Label
 
     def to_str(self, width: int, height: int) -> str:
-        return f"{self.label.id}"
+        return f"{self.label.label_number}"

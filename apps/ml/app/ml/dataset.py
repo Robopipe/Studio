@@ -1,3 +1,4 @@
+import requests
 import shutil
 import yaml
 import os
@@ -16,8 +17,19 @@ VAL_DIR = "val"
 TEST_DIR = "test"
 
 
-def copy_images(images: list[str], dest: str):
-    for image_path in images:
+def copy_image(image: Image, dest: str):
+    image_path = image.file_url
+    if image_path.startswith("http://") or image_path.startswith("https://"):
+        print("Downloading image from URL:", image_path)
+        response = requests.get(image_path, stream=True)
+        if response.status_code == 200:
+            filename = os.path.basename(image_path)
+            dest_path = os.path.join(dest, filename)
+            with open(dest_path, "wb") as out_file:
+                shutil.copyfileobj(response.raw, out_file)
+        else:
+            raise Exception(f"Failed to download image from {image_path}")
+    else:
         shutil.copy(image_path, dest)
 
 
@@ -39,11 +51,6 @@ def prepare_dataset_config(config: DatasetConfig, dir: str):
         yaml.dump(labels, f)
 
 
-def copy_image(image: Image, dest: str):
-    # TODO: handle http(s) urls, s3, etc.
-    shutil.copy(image.file_url, dest)
-
-
 def prepare_dataset(dir: str, images: list[Image], config: DatasetConfig):
     dir = f"{dir}/{DATASET_DIR}"
     image_dir = f"{dir}/{IMAGE_DIR}"
@@ -63,7 +70,6 @@ def prepare_dataset(dir: str, images: list[Image], config: DatasetConfig):
             curr_dir = VAL_DIR
 
         label_filename = f"{os.path.splitext(os.path.basename(image.file_url))[0]}.txt"
-        print(os.path.splitext(image.file_url))
         copy_image(image, f"{image_dir}/{curr_dir}")
         with open(f"{label_dir}/{curr_dir}/{label_filename}", "w") as f:
             f.write("\n".join(image.labels_str()))
