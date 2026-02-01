@@ -70,6 +70,7 @@ export const taskSchema = z.object({
   width: z.number(),
   height: z.number(),
   status: z.enum(TaskStatusEnum),
+  annotationCount: z.number().nullable(),
   ...timestampsSchema
 })
 

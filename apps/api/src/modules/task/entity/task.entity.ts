@@ -16,6 +16,7 @@ export class TaskEntity {
   readonly createdAt: Date;
   readonly updatedAt: Date;
   readonly deletedAt: Date | null;
+  readonly annotationCount: number | null;
 
   constructor(data: TaskSelect) {
     this.id = data.id;
@@ -25,6 +26,7 @@ export class TaskEntity {
     this.status = data.status;
     this.width = data.width;
     this.height = data.height;
+    this.annotationCount = data.annotationCount ?? null;
     this.createdAt = data.createdAt;
     this.updatedAt = data.updatedAt;
     this.deletedAt = data.deletedAt
@@ -38,6 +40,7 @@ export class TaskEntity {
       status: this.status,
       width: this.width,
       height: this.height,
+      annotationCount: this.annotationCount,
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),
       deletedAt: this.deletedAt ? this.deletedAt.toISOString() : null,
@@ -51,7 +54,9 @@ export class TaskDetailEntity extends TaskEntity {
   readonly classificationAnnotations: ClassificationAnnotationEntity[];
 
   constructor(data: TaskDetailSelect) {
-    super(data);
+    const annotationCount = Math.max(data.rectangleAnnotations.length, data.polygonAnnotations.length, data.classificationAnnotations.length)
+    super({...data, annotationCount});
+
     this.rectangleAnnotations = data.rectangleAnnotations.map((rA) => new RectangleAnnotationEntity(rA))
     this.polygonAnnotations = data.polygonAnnotations.map(
       (pA) => new PolygonAnnotationEntity(pA),
