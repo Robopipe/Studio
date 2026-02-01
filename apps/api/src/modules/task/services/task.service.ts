@@ -62,7 +62,8 @@ export class TaskService {
    * @returns Task entities
    */
   public async getTasks(projectId: number): Promise<TaskEntity[]>{
-    return this.taskRepository.getAllByProjectId(projectId)
+    const project = await this.projectRepository.getByIdOrThrow(projectId)
+    return this.taskRepository.getAllByProjectId(projectId, project.type)
   }
 
   /**
