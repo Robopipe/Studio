@@ -1,3 +1,4 @@
+import { useGetProjectsQuery } from "@/modules/project/services/projectApi";
 import { ScreenAwareLayout } from "../ScreenAwareLayout";
 
 export interface MainLayoutProps {
@@ -5,5 +6,7 @@ export interface MainLayoutProps {
 }
 
 export const MainLayout = ({ children }: MainLayoutProps) => {
+  useGetProjectsQuery();
+
   return <ScreenAwareLayout>{children}</ScreenAwareLayout>;
 };
