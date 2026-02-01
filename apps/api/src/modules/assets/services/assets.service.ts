@@ -49,7 +49,7 @@ export class AssetsService {
     })
     await blob.makePublic()
 
-    return blob.publicUrl()
+    return decodeURIComponent(blob.publicUrl())
   }
 
   /**
@@ -59,8 +59,7 @@ export class AssetsService {
   public async deleteFile(fileUrl: string): Promise<void>{
     try {
       const url = new URL(fileUrl);
-      const pathParts =
-        url.pathname.split('/').filter(Boolean);
+      const pathParts = url.pathname.split('/').filter(Boolean);
       const filePath = pathParts.slice(1).join('/');
 
       await this.bucket.file(filePath).delete();
