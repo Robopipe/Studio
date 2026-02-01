@@ -5,16 +5,18 @@ import {
   useGetTasksQuery,
 } from "../../services/captureApi";
 
+import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import styles from "./CapturedPhotos.module.scss";
-
-// TODO: Change project id
-export const PROJECT_ID = 4;
 
 export interface CapturedPhotosProps {}
 
 export const CapturedPhotos = ({}: CapturedPhotosProps) => {
   const [deleteTask] = useDeleteTaskMutation();
-  const { data: tasks } = useGetTasksQuery({ projectId: PROJECT_ID });
+  const [activeProject] = useActiveProject();
+  const { data: tasks } = useGetTasksQuery(
+    { projectId: activeProject?.id! },
+    { skip: !activeProject?.id },
+  );
 
   return (
     <Stack fullWidth gap="md">
@@ -35,9 +37,10 @@ export const CapturedPhotos = ({}: CapturedPhotosProps) => {
             <AnnotateIcon />
             <DownloadIcon />
             <DeleteIcon
-              onClick={() =>
-                deleteTask({ projectId: PROJECT_ID, taskId: task.id })
-              }
+              onClick={() => {
+                if (activeProject)
+                  deleteTask({ projectId: activeProject.id, taskId: task.id });
+              }}
             />
           </div>
         </div>
