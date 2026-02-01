@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { DropdownMenuIcon, Text } from "@repo/ui";
+import { Text } from "@repo/ui";
 import { Task } from "@repo/schema";
 import { Annotation, ToolMode } from "../../types/annotations";
 import { useImageLoader } from "../../hooks/useImageLoader";
-import { KonvaStage } from "./KonvaStage";
+import { KonvaStage, KonvaStageHandle } from "./KonvaStage";
 import styles from "./Canvas.module.scss";
 
 export interface CanvasProps {
@@ -50,6 +50,7 @@ export const Canvas = ({
   onSave,
 }: CanvasProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const stageHandle = useRef<KonvaStageHandle>(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const { image, loading, error } = useImageLoader(task?.filePath);
 
@@ -84,6 +85,7 @@ export const Canvas = ({
         }
       }
       if (e.key === "Escape") {
+        stageHandle.current?.cancelDrawing();
         onSelect(null);
       }
       if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
@@ -124,9 +126,6 @@ export const Canvas = ({
             {isSaving ? "Saving..." : "Save"}
           </button>
         )}
-        <button className={styles.menuButton}>
-          <DropdownMenuIcon />
-        </button>
       </div>
 
       <div className={styles.stageContainer} ref={containerRef}>
@@ -143,6 +142,7 @@ export const Canvas = ({
         {image && containerSize.width > 0 && (
           <div className={styles.stageWrapper}>
             <KonvaStage
+              ref={stageHandle}
               width={containerSize.width}
               height={containerSize.height}
               image={image}
