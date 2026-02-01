@@ -1,5 +1,6 @@
-import { Container, Stack, Text } from "@repo/ui";
+import { CheckIcon, Container, Stack, Text } from "@repo/ui";
 import { ReactNode } from "react";
+import styles from "./SettingsCard.module.scss";
 
 export type StepState = "pending" | "complete";
 
@@ -11,14 +12,24 @@ export interface SettingsCardProps {
 }
 
 export const SettingsCard = (props: SettingsCardProps) => {
-  const { stepNumber, state, title, children } = props;
+  const { title, children, state, stepNumber } = props;
 
   return (
-    <Container size="sm">
+    <Container size="sm" className={styles.settingsCard}>
       <Stack direction="row">
-        <Stack>
-            {state === "complete" ? ""}
-          <Text>{title}</Text>
+        <Stack direction="row" align="center">
+          <div>
+            {state === "complete" ? (
+              <div className={styles.icon}>
+                <CheckIcon />
+              </div>
+            ) : (
+              stepNumber
+            )}
+          </div>
+          <Text weight="500" variant="text-14">
+            {title.toUpperCase()}
+          </Text>
         </Stack>
         {children}
       </Stack>

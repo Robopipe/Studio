@@ -1,6 +1,7 @@
-import { Container, Stack } from "@repo/ui";
+import { Stack } from "@repo/ui";
 import { ReactNode } from "react";
 import { ModelList } from "../ModelList/ModelList";
+import styles from "./TrainLayout.module.scss";
 
 export interface TrainLayoutProps {
   children?: ReactNode;
@@ -8,11 +9,13 @@ export interface TrainLayoutProps {
 
 export const TrainLayout = ({ children }: TrainLayoutProps) => {
   return (
-    <Container size="full">
-      <Stack direction="row" justify="space-between">
-        <ModelList />
-        {children}
-      </Stack>
-    </Container>
+    <Stack
+      direction="row"
+      justify="space-between"
+      className={styles.trainLayout}
+    >
+      <ModelList className={styles.leftPanel} />
+      <div className={styles.rightPanel}>{children}</div>
+    </Stack>
   );
 };

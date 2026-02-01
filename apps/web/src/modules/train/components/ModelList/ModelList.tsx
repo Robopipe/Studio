@@ -1,18 +1,22 @@
-import { Button, Stack, Text } from "@repo/ui";
-import { useParams } from "react-router";
+import { Button, Container, Stack, Text } from "@repo/ui";
+import styles from "./ModelList.module.scss";
 
-export interface ModelListProps {}
+export interface ModelListProps {
+  className?: string;
+}
 
-export const ModelList = ({}: ModelListProps) => {
-  const { projectId } = useParams();
+export const ModelList = ({ className }: ModelListProps) => {
+  // const { projectId } = useParams();
 
   return (
-    <Stack>
-      <Text>VERSIONS</Text>
-      <Button variant="outlined" size="sm" fullWidth>
-        Create new version
-      </Button>
-      {}
-    </Stack>
+    <Container size="full" className={`${styles.modelList} ${className}`}>
+      <Stack>
+        <Text>VERSIONS</Text>
+        <Button variant="outlined" size="sm" fullWidth>
+          Create new version
+        </Button>
+        {}
+      </Stack>
+    </Container>
   );
 };
