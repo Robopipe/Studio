@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     gcc \
     g++ \
+    cmake \
     libsm6 \
     libxext6 \
     libxrender-dev \

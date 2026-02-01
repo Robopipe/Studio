@@ -71,8 +71,56 @@ variable "cloud_run_max_instances" {
   default     = 10
 }
 
-variable "ml_host" {
-  description = "ML service URL"
+variable "ml_region" {
+  description = "Region for ML service (must support GPUs: us-central1, europe-west4, asia-southeast1)"
+  type        = string
+  default     = "europe-west4"
+}
+
+variable "ml_gpu_type" {
+  description = "GPU type for ML service"
+  type        = string
+  default     = "nvidia-l4"
+}
+
+variable "ml_gpu_count" {
+  description = "Number of GPUs per ML instance"
+  type        = number
+  default     = 1
+}
+
+variable "ml_memory" {
+  description = "Memory for ML service (e.g., 16Gi, 32Gi)"
+  type        = string
+  default     = "16Gi"
+}
+
+variable "ml_cpu" {
+  description = "CPU for ML service"
+  type        = string
+  default     = "4"
+}
+
+variable "ml_min_instances" {
+  description = "Minimum ML instances (0 = scale to zero)"
+  type        = number
+  default     = 0
+}
+
+variable "ml_max_instances" {
+  description = "Maximum ML instances"
+  type        = number
+  default     = 3
+}
+
+variable "ml_timeout" {
+  description = "ML request timeout in seconds (max 3600)"
+  type        = number
+  default     = 3600
+}
+
+variable "ml_image" {
+  description = "Docker image for ML service. Leave empty to use a placeholder on first deploy."
   type        = string
   default     = ""
 }
