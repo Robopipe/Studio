@@ -4,6 +4,7 @@ import { LoginForm } from "@/core/auth/components";
 import { Authenticated } from "@/core/auth/components/Authenticated/Authenticated";
 import { RegisterForm } from "@/core/auth/components/RegisterForm/RegisterForm";
 import { CapturePage } from "@/modules/capture/components/CapturePage";
+import { LabelPage } from "@/modules/label/components/LabelPage";
 import { AuthLayout } from "@/modules/layout";
 import { ModelDetailPage, ModelNewPage } from "@/modules/model/components";
 import { ProjectsPage } from "@/modules/project";
@@ -42,6 +43,7 @@ const authenticatedRoutes: RouteObject = {
       path: webRoutes.model.modelDetail,
       element: <ModelDetailPage />,
     },
+    { path: webRoutes.label, element: <LabelPage /> },
   ],
 };
 

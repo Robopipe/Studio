@@ -9,6 +9,12 @@ export enum ModelStatusEnum {
   CONVERTING = "CONVERTING",
   DONE = "DONE",
 }
+export enum ModelOutputTypeEnum {
+  RAW = "RAW",
+  RVC4 = "RVC4",
+  RVC3 = "RVC3",
+  RVC2 = "RVC2",
+}
 
 export const modelSchema = z.object({
   id: z.number(),
@@ -16,12 +22,13 @@ export const modelSchema = z.object({
   status: z.enum(ModelStatusEnum),
   epochs: z.number(),
   labels: labelSchema.array(),
+  outputTypes: z.enum(ModelOutputTypeEnum).array(),
   // Train, validate and test should add to 1
   splitTrain: z.number(),
   splitValidate: z.number(),
   splitTest: z.number(),
-  ...timestampsSchema
-})
+  ...timestampsSchema,
+});
 
 export const modelLogMetricsSchema = z.object({
   accuracy: z.number(),
@@ -32,13 +39,15 @@ export const modelLogSchema = z.object({
   id: z.number(),
   epoch: z.number(),
   metrics: modelLogMetricsSchema,
-  createdAt: z.iso.datetime()
+  createdAt: z.iso.datetime(),
 })
+
 
 
 export const createModelSchema = modelSchema.pick({
   name: true,
   epochs: true,
+  outputTypes: true,
   splitTrain: true,
   splitValidate: true,
   splitTest: true,
@@ -48,12 +57,6 @@ export const createModelSchema = modelSchema.pick({
 
 export const updateModelSchema = createModelSchema
 
-
-export enum ModelOutputTypeEnum {
-  RAW = "RAW",
-  RVC4 = "RVC4",
-  RVC3 = "RVC3",
-}
 
 export const modelOutputSchema = z.object({
   id: z.number(),

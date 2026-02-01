@@ -1,6 +1,6 @@
 import z from "zod";
 import { ProjectTypeEnum } from "@repo/schema";
-import { modelLogMetricsSchema } from "@repo/schema";
+import { modelLogMetricsSchema, ModelOutputTypeEnum } from "@repo/schema";
 
 /**
  * Training updates
@@ -42,6 +42,7 @@ export const trainingRectangleLabelSchema = z.object({
 });
 
 export const trainingConfigSchema = z.object({
+  output_types: z.enum(ModelOutputTypeEnum).array(),
   epochs: z.number(),
   dataset_config: z.object({
     dataset_split: z.tuple([z.number(), z.number(), z.number()]),
