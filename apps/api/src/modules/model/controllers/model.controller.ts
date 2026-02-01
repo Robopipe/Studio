@@ -49,6 +49,15 @@ export class ModelController {
   }
 
 
+  @Post(":modelId/train")
+  public async trainModel(
+    @ProjectId() projectId: number,
+    @Param("modelId", ParseIntPipe) modelId: number,
+  ): Promise<void>{
+    await this.modelService.trainModel(modelId, projectId)
+  }
+
+
   @Put(":modelId")
   public async updateModel(
     @ProjectId() projectId: number,
