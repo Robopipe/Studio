@@ -135,7 +135,6 @@ export const KonvaStage = ({
           labelId: activeLabel.id,
           labelName: activeLabel.name,
           color: activeLabel.color,
-          confidence: 1,
           type: "bbox",
           bbox: {
             x: (drawingBBox.x / imgW) * 100,
@@ -176,7 +175,6 @@ export const KonvaStage = ({
           labelId: activeLabel.id,
           labelName: activeLabel.name,
           color: activeLabel.color,
-          confidence: 1,
           type: "polygon",
           points: polygonPoints.map(([px, py]) => [
             (px / imgW) * 100,

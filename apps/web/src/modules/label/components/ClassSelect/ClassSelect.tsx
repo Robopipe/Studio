@@ -1,20 +1,20 @@
-import { mockLabels } from "../../mocks/data";
-import styles from "./ClassFilter.module.scss";
+import { Label } from "@repo/schema";
+import styles from "./ClassSelect.module.scss";
 
-const drawingLabels = mockLabels.filter((l) => l.id !== "any");
-
-export interface ClassFilterProps {
-  activeLabelId: string;
-  onSelectLabel: (labelId: string) => void;
+export interface ClassSelectProps {
+  labels: Label[];
+  activeLabelId: number;
+  onSelectLabel: (labelId: number) => void;
 }
 
-export const ClassFilter = ({
+export const ClassSelect = ({
+  labels,
   activeLabelId,
   onSelectLabel,
-}: ClassFilterProps) => {
+}: ClassSelectProps) => {
   return (
     <div className={styles.bar}>
-      {drawingLabels.map((label) => (
+      {labels.map((label) => (
         <button
           key={label.id}
           className={`${styles.chip} ${activeLabelId === label.id ? styles.active : ""}`}

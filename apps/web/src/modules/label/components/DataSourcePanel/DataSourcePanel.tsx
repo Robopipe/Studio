@@ -1,13 +1,15 @@
-import { Text, UploadIcon } from "@repo/ui";
-import { mockTasks } from "../../mocks/data";
+import { Text } from "@repo/ui";
+import { Task } from "@repo/schema";
 import styles from "./DataSourcePanel.module.scss";
 
 export interface DataSourcePanelProps {
-  selectedTaskId: string;
-  onSelectTask: (taskId: string) => void;
+  tasks: Task[];
+  selectedTaskId: number | null;
+  onSelectTask: (taskId: number) => void;
 }
 
 export const DataSourcePanel = ({
+  tasks,
   selectedTaskId,
   onSelectTask,
 }: DataSourcePanelProps) => {
@@ -18,26 +20,21 @@ export const DataSourcePanel = ({
       </Text>
 
       <div className={styles.list}>
-        {mockTasks.map((task) => (
+        {tasks.map((task) => (
           <button
             key={task.id}
             className={`${styles.item} ${task.id === selectedTaskId ? styles.selected : ""}`}
             onClick={() => onSelectTask(task.id)}
           >
             <img
-              src={task.thumbnailUrl}
-              alt={task.fileName}
+              src={task.filePath}
+              alt={task.filePath.split("/").pop() ?? "task"}
               className={styles.thumbnail}
             />
-            <span className={styles.count}>{task.annotations.length}</span>
+            <span className={styles.count}>—</span>
           </button>
         ))}
       </div>
-
-      <button className={styles.uploadButton}>
-        <UploadIcon />
-        <span>Upload manually</span>
-      </button>
     </div>
   );
 };

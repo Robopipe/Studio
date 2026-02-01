@@ -1,7 +1,21 @@
-import { Circle, Group, Line } from "react-konva";
+import { useRef } from "react";
+import { Circle, Line } from "react-konva";
 import Konva from "konva";
 import { Annotation } from "../../types/annotations";
 import { ToolMode } from "../../types/annotations";
+
+function distToSegment(px: number, py: number, ax: number, ay: number, bx: number, by: number) {
+  const dx = bx - ax;
+  const dy = by - ay;
+  const lenSq = dx * dx + dy * dy;
+  let t = lenSq === 0 ? 0 : ((px - ax) * dx + (py - ay) * dy) / lenSq;
+  t = Math.max(0, Math.min(1, t));
+  const projX = ax + t * dx;
+  const projY = ay + t * dy;
+  const ex = px - projX;
+  const ey = py - projY;
+  return Math.sqrt(ex * ex + ey * ey);
+}
 
 interface PolygonRegionProps {
   annotation: Annotation;
@@ -27,10 +41,66 @@ export const PolygonRegion = ({
     (px / 100) * imageWidth,
     (py / 100) * imageHeight,
   ]);
+  const lineRef = useRef<Konva.Line>(null);
+  const circleRefs = useRef<(Konva.Circle | null)[]>([]);
 
   const isInteractive = toolMode === ToolMode.SELECT;
 
-  const handlePointDrag = (index: number, e: Konva.KonvaEventObject<DragEvent>) => {
+  const handleLineClick = (e: Konva.KonvaEventObject<MouseEvent>) => {
+    if (!isInteractive || !isSelected) return;
+    const line = lineRef.current;
+    if (!line) return;
+    const stage = line.getStage();
+    if (!stage) return;
+    const pointer = stage.getPointerPosition();
+    if (!pointer) return;
+
+    const transform = line.getAbsoluteTransform().copy().invert();
+    const localPos = transform.point(pointer);
+
+    // Find closest edge to insert the new point
+    let bestDist = Infinity;
+    let insertAfter = 0;
+    for (let i = 0; i < pts.length; i++) {
+      const ax = (pts[i][0] / 100) * imageWidth;
+      const ay = (pts[i][1] / 100) * imageHeight;
+      const next = (i + 1) % pts.length;
+      const bx = (pts[next][0] / 100) * imageWidth;
+      const by = (pts[next][1] / 100) * imageHeight;
+      const dist = distToSegment(localPos.x, localPos.y, ax, ay, bx, by);
+      if (dist < bestDist) {
+        bestDist = dist;
+        insertAfter = i;
+      }
+    }
+
+    // Only insert when clicking near an edge (within 10 screen pixels)
+    const absTransform = line.getAbsoluteTransform();
+    const origin = absTransform.point({ x: 0, y: 0 });
+    const unit = absTransform.point({ x: 1, y: 0 });
+    const scaleX = Math.sqrt((unit.x - origin.x) ** 2 + (unit.y - origin.y) ** 2);
+    if (bestDist * scaleX > 10) return;
+
+    const newPt: [number, number] = [
+      (localPos.x / imageWidth) * 100,
+      (localPos.y / imageHeight) * 100,
+    ];
+    const newPts = [...pts];
+    newPts.splice(insertAfter + 1, 0, newPt);
+    onUpdate(annotation.id, { points: newPts });
+  };
+
+  const handlePointDragMove = (index: number, e: Konva.KonvaEventObject<DragEvent>) => {
+    const node = e.target;
+    const line = lineRef.current;
+    if (!line) return;
+    const currentPoints = [...line.points()];
+    currentPoints[index * 2] = node.x();
+    currentPoints[index * 2 + 1] = node.y();
+    line.points(currentPoints);
+  };
+
+  const handlePointDragEnd = (index: number, e: Konva.KonvaEventObject<DragEvent>) => {
     const node = e.target;
     const newPts = pts.map((p, i) =>
       i === index
@@ -40,10 +110,25 @@ export const PolygonRegion = ({
     onUpdate(annotation.id, { points: newPts });
   };
 
-  const handleGroupDrag = (e: Konva.KonvaEventObject<DragEvent>) => {
-    const dx = e.target.x();
-    const dy = e.target.y();
-    e.target.position({ x: 0, y: 0 });
+  const handleLineDragMove = () => {
+    const line = lineRef.current;
+    if (!line) return;
+    const dx = line.x();
+    const dy = line.y();
+    circleRefs.current.forEach((circle, i) => {
+      if (!circle) return;
+      const baseX = (pts[i][0] / 100) * imageWidth;
+      const baseY = (pts[i][1] / 100) * imageHeight;
+      circle.x(baseX + dx);
+      circle.y(baseY + dy);
+    });
+  };
+
+  const handleLineDragEnd = (e: Konva.KonvaEventObject<DragEvent>) => {
+    const node = e.target;
+    const dx = node.x();
+    const dy = node.y();
+    node.position({ x: 0, y: 0 });
     const newPts = pts.map(
       ([px, py]) =>
         [
@@ -55,45 +140,53 @@ export const PolygonRegion = ({
   };
 
   return (
-    <Group
-      draggable={isInteractive}
-      onDragEnd={handleGroupDrag}
-      onMouseDown={(e) => {
-        if (isInteractive) {
-          e.cancelBubble = true;
-          onSelect(annotation.id);
-        }
-      }}
-      onTouchStart={(e) => {
-        if (isInteractive) {
-          e.cancelBubble = true;
-          onSelect(annotation.id);
-        }
-      }}
-    >
+    <>
       <Line
+        ref={lineRef}
         points={flatPoints}
         closed
         stroke={annotation.color}
         strokeWidth={2}
         fill={annotation.color + "33"}
         hitStrokeWidth={20}
+        draggable={isInteractive}
+        onDragMove={handleLineDragMove}
+        onDragEnd={handleLineDragEnd}
+        onClick={handleLineClick}
+        onTap={handleLineClick}
+        onMouseDown={(e) => {
+          if (isInteractive) {
+            e.cancelBubble = true;
+            onSelect(annotation.id);
+          }
+        }}
+        onTouchStart={(e) => {
+          if (isInteractive) {
+            e.cancelBubble = true;
+            onSelect(annotation.id);
+          }
+        }}
       />
       {isSelected &&
         isInteractive &&
         pts.map(([px, py], i) => (
           <Circle
             key={i}
+            ref={(node) => { circleRefs.current[i] = node; }}
             x={(px / 100) * imageWidth}
             y={(py / 100) * imageHeight}
-            radius={5}
+            radius={4}
+            hitRadius={40}
             fill="white"
             stroke={annotation.color}
             strokeWidth={2}
             draggable
-            onDragMove={(e) => handlePointDrag(i, e)}
+            onDragMove={(e) => handlePointDragMove(i, e)}
+            onDragEnd={(e) => handlePointDragEnd(i, e)}
+            onMouseDown={(e) => { e.cancelBubble = true; }}
+            onTouchStart={(e) => { e.cancelBubble = true; }}
           />
         ))}
-    </Group>
+    </>
   );
 };

@@ -1,7 +1,10 @@
 .page {
   display: grid;
   grid-template-columns: 250px 350px 1fr;
-  height: 100vh;
+  grid-template-rows: minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+  margin: -1.5rem;
   background: rgba(255, 255, 255, 1);
 }
 

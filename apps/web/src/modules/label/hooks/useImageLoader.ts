@@ -11,24 +11,27 @@ export const useImageLoader = (url: string | undefined) => {
       return;
     }
 
+    let cancelled = false;
     setLoading(true);
     setError(null);
 
     const img = new window.Image();
-    img.crossOrigin = "anonymous";
     img.onload = () => {
-      setImage(img);
-      setLoading(false);
+      if (!cancelled) {
+        setImage(img);
+        setLoading(false);
+      }
     };
     img.onerror = () => {
-      setError("Failed to load image");
-      setLoading(false);
+      if (!cancelled) {
+        setError("Failed to load image");
+        setLoading(false);
+      }
     };
     img.src = url;
 
     return () => {
-      img.onload = null;
-      img.onerror = null;
+      cancelled = true;
     };
   }, [url]);
 

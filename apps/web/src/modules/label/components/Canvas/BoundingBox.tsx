@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Rect, Text, Transformer } from "react-konva";
+import { Rect, Transformer } from "react-konva";
 import Konva from "konva";
 import { Annotation } from "../../types/annotations";
 import { ToolMode } from "../../types/annotations";
@@ -96,14 +96,6 @@ export const BoundingBox = ({
         }}
         onDragEnd={handleDragEnd}
         onTransformEnd={handleTransformEnd}
-      />
-      <Text
-        x={x}
-        y={y - 16}
-        text={annotation.labelName}
-        fontSize={12}
-        fill={annotation.color}
-        listening={false}
       />
       {isSelected && isInteractive && (
         <Transformer
