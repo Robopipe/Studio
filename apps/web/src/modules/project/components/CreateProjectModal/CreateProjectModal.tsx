@@ -1,3 +1,4 @@
+import { ProjectTypeEnum } from "@repo/schema";
 import { Button, Stack } from "@repo/ui";
 import { useState } from "react";
 import {
@@ -7,10 +8,17 @@ import {
 import { LabelingSetup, LocalLabel } from "../LabelingSetup/LabelingSetup";
 import { Modal, ModalTab } from "../Modal";
 import { ProjectDetailsForm } from "../ProjectDetailsForm";
-import { ProjectTypeEnum } from '@repo/schema';
 
-export const CreateProjectModal = ({ onClose }: { onClose: () => void }) => {
-  const [name, setName] = useState("");
+interface CreateProjectModalProps {
+  onClose: () => void;
+  initialName?: string;
+}
+
+export const CreateProjectModal = ({
+  onClose,
+  initialName,
+}: CreateProjectModalProps) => {
+  const [name, setName] = useState(initialName ?? "");
   const [description, setDescription] = useState("");
   const [localLabels, setLocalLabels] = useState<LocalLabel[]>([]);
 
