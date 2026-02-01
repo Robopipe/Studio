@@ -23,5 +23,6 @@ class ModelType(str, Enum):
 
 class ModelOutputType(str, Enum):
     RAW = "RAW"
+    RVC2 = "RVC2"
     RVC3 = "RVC3"
     RVC4 = "RVC4"
