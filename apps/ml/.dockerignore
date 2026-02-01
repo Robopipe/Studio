@@ -1,0 +1,41 @@
+# Virtual environment
+venv/
+.venv/
+env/
+.env
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Distribution
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local files
+*.log
+.DS_Store
+
+# Export and dataset directories (mounted as volumes)
+export/
+dataset/
+
+# Git
+.git/
+.gitignore
