@@ -1,30 +1,48 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Label } from "@repo/schema";
+import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
+import { useGetTasksQuery } from "@/modules/capture/services/captureApi";
+import { useGetProjectLabelsQuery } from "@/modules/project/services/projectApi";
+import { useGetTaskQuery, useUpdateTaskMutation } from "../../services/labelApi";
 import { useSelectedTask } from "../../hooks/useSelectedTask";
 import { useToolMode } from "../../hooks/useToolMode";
 import { useHistory } from "../../hooks/useHistory";
 import { useCanvasState } from "../../hooks/useCanvasState";
 import { Annotation } from "../../types/annotations";
-import { mockLabels } from "../../mocks/data";
+import { taskDetailToAnnotations, annotationsToUpdatePayload } from "../../utils/mapAnnotations";
 import { AnnotationPanel } from "../AnnotationPanel";
 import { Canvas } from "../Canvas";
-import { ClassFilter } from "../ClassFilter";
+import { ClassSelect } from "../ClassSelect";
 import { DataSourcePanel } from "../DataSourcePanel";
 import { Toolbar } from "../Toolbar";
 import styles from "./LabelPage.module.scss";
 
-const drawingLabels = mockLabels.filter((l) => l.id !== "any");
-
-const toAnnotation = (mock: any): Annotation => ({
-  ...mock,
-  color: mockLabels.find((l) => l.id === mock.labelId)?.color ?? "#6366f1",
-});
-
 export const LabelPage = () => {
-  const { selectedTaskId, setSelectedTaskId, selectedTask } = useSelectedTask();
+  const [activeProject] = useActiveProject();
+  const projectId = activeProject?.id;
+
+  const { data: tasks = [] } = useGetTasksQuery(
+    { projectId: projectId! },
+    { skip: !projectId },
+  );
+  const { data: labels = [] } = useGetProjectLabelsQuery(
+    { projectId: projectId! },
+    { skip: !projectId },
+  );
+
+  const { selectedTaskId, setSelectedTaskId, selectedTask } = useSelectedTask(tasks);
+
+  const { data: taskDetail } = useGetTaskQuery(
+    { projectId: projectId!, taskId: selectedTaskId! },
+    { skip: !projectId || selectedTaskId === null },
+  );
+
+  const [updateTask] = useUpdateTaskMutation();
+
   const { toolMode, setToolMode } = useToolMode();
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [selectedAnnotationId, setSelectedAnnotationId] = useState<string | null>(null);
-  const [activeLabel, setActiveLabel] = useState(drawingLabels[0]);
+  const [activeLabel, setActiveLabel] = useState<Label | null>(null);
   const canvasState = useCanvasState();
 
   const history = useHistory({
@@ -32,12 +50,20 @@ export const LabelPage = () => {
     setSelectedAnnotationId,
   });
 
+  // Set default active label when labels load
   useEffect(() => {
-    if (selectedTask) {
-      setAnnotations(selectedTask.annotations.map(toAnnotation));
+    if (labels.length > 0 && !activeLabel) {
+      setActiveLabel(labels[0]);
+    }
+  }, [labels, activeLabel]);
+
+  // Sync annotations from task detail
+  useEffect(() => {
+    if (taskDetail) {
+      setAnnotations(taskDetailToAnnotations(taskDetail));
       setSelectedAnnotationId(null);
     }
-  }, [selectedTask?.id]);
+  }, [taskDetail]);
 
   const handleClear = useCallback(() => {
     if (selectedAnnotationId) {
@@ -45,19 +71,43 @@ export const LabelPage = () => {
     }
   }, [selectedAnnotationId, history]);
 
-  const handleSelectLabel = useCallback((labelId: string) => {
-    const label = drawingLabels.find((l) => l.id === labelId);
-    if (label) setActiveLabel(label);
-  }, []);
+  const handleSelectLabel = useCallback(
+    (labelId: number) => {
+      const label = labels.find((l) => l.id === labelId);
+      if (label) setActiveLabel(label);
+    },
+    [labels],
+  );
+
+  const handleSave = useCallback(async () => {
+    if (!projectId || selectedTaskId === null) return;
+    const payload = annotationsToUpdatePayload(annotations);
+    await updateTask({
+      projectId,
+      taskId: selectedTaskId,
+      body: payload,
+    });
+  }, [projectId, selectedTaskId, annotations, updateTask]);
+  void handleSave;
+
+  const activeLabelForCanvas = useMemo(
+    () =>
+      activeLabel
+        ? { id: String(activeLabel.id), name: activeLabel.name, color: activeLabel.color }
+        : null,
+    [activeLabel],
+  );
 
   return (
     <div className={styles.page}>
       <DataSourcePanel
+        tasks={tasks}
         selectedTaskId={selectedTaskId}
         onSelectTask={setSelectedTaskId}
       />
       <AnnotationPanel
         annotations={annotations}
+        labels={labels}
         selectedAnnotationId={selectedAnnotationId}
         onSelectAnnotation={setSelectedAnnotationId}
         onDeleteAnnotation={history.deleteAnnotation}
@@ -69,7 +119,7 @@ export const LabelPage = () => {
             annotations={annotations}
             selectedAnnotationId={selectedAnnotationId}
             toolMode={toolMode}
-            activeLabel={activeLabel}
+            activeLabel={activeLabelForCanvas}
             scale={canvasState.scale}
             position={canvasState.position}
             onSelect={setSelectedAnnotationId}
@@ -95,8 +145,9 @@ export const LabelPage = () => {
             hasSelection={selectedAnnotationId !== null}
           />
         </div>
-        <ClassFilter
-          activeLabelId={activeLabel.id}
+        <ClassSelect
+          labels={labels}
+          activeLabelId={activeLabel?.id ?? 0}
           onSelectLabel={handleSelectLabel}
         />
       </div>

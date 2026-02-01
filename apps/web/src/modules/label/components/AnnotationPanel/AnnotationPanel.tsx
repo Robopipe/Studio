@@ -1,11 +1,12 @@
 import { Tabs, Text } from "@repo/ui";
+import { Label } from "@repo/schema";
 import { Annotation } from "../../types/annotations";
-import { mockLabels } from "../../mocks/data";
 import { LabelsTab } from "../LabelsTab";
 import styles from "./AnnotationPanel.module.scss";
 
 export interface AnnotationPanelProps {
   annotations: Annotation[];
+  labels: Label[];
   selectedAnnotationId: string | null;
   onSelectAnnotation: (id: string) => void;
   onDeleteAnnotation: (id: string) => void;
@@ -13,13 +14,14 @@ export interface AnnotationPanelProps {
 
 export const AnnotationPanel = ({
   annotations,
+  labels,
   selectedAnnotationId,
   onSelectAnnotation,
   onDeleteAnnotation,
 }: AnnotationPanelProps) => {
-  const classCounts = mockLabels.map((label) => ({
+  const classCounts = labels.map((label) => ({
     ...label,
-    count: annotations.filter((a) => a.labelId === label.id).length,
+    count: annotations.filter((a) => a.labelId === String(label.id)).length,
   }));
 
   return (

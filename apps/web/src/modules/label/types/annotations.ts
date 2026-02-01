@@ -16,10 +16,10 @@ export enum ToolMode {
 
 export interface Annotation {
   id: string;
+  apiId?: number;
   labelId: string;
   labelName: string;
   color: string;
-  confidence: number;
   type: RegionType;
   bbox?: BBox;
   points?: [number, number][];

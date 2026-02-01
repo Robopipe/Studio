@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { CheckIcon, DropdownMenuIcon, Text } from "@repo/ui";
+import { DropdownMenuIcon, Text } from "@repo/ui";
+import { Task } from "@repo/schema";
 import { Annotation, ToolMode } from "../../types/annotations";
 import { useImageLoader } from "../../hooks/useImageLoader";
 import { KonvaStage } from "./KonvaStage";
-import { MockTask } from "../../mocks/data";
 import styles from "./Canvas.module.scss";
 
 export interface CanvasProps {
-  task: MockTask | undefined;
+  task: Task | undefined;
   annotations: Annotation[];
   selectedAnnotationId: string | null;
   toolMode: ToolMode;
@@ -45,7 +45,7 @@ export const Canvas = ({
 }: CanvasProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
-  const { image, loading } = useImageLoader(task?.imageUrl);
+  const { image, loading, error } = useImageLoader(task?.filePath);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -61,7 +61,7 @@ export const Canvas = ({
     });
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [task]);
 
   useEffect(() => {
     if (image && containerSize.width > 0 && containerSize.height > 0) {
@@ -107,14 +107,8 @@ export const Canvas = ({
     <div className={styles.canvas}>
       <div className={styles.header}>
         <Text variant="text-14" weight="500">
-          {task.fileName}
+          {task.filePath.split("/").pop() ?? "Task"}
         </Text>
-        {task.saved && (
-          <span className={styles.savedBadge}>
-            <CheckIcon />
-            SAVED
-          </span>
-        )}
         <button className={styles.menuButton}>
           <DropdownMenuIcon />
         </button>
@@ -124,6 +118,11 @@ export const Canvas = ({
         {loading && (
           <div className={styles.empty}>
             <Text variant="text-14">Loading image...</Text>
+          </div>
+        )}
+        {error && (
+          <div className={styles.empty}>
+            <Text variant="text-14">{error}</Text>
           </div>
         )}
         {image && containerSize.width > 0 && (
