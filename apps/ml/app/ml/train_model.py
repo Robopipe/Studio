@@ -1,7 +1,7 @@
+from multiprocessing import Process
 import os
 import tempfile
 import requests
-import threading
 
 from ..config import get_config
 from ..models.model_config import ModelConfig
@@ -25,16 +25,15 @@ def __train(config: ModelConfig):
         model.train()
         output_dir = next(filter(lambda x: x.startswith("0-"), os.listdir(dir)))
 
-        if ModelOutputType.RAW in config.output_types:
+        output_types = config.training_config.output_types
+        if ModelOutputType.RAW in output_types:
             requests.post(
                 f"{get_config().webhook_url}/upload/{config.id}/raw",
                 files={"file": open(f"{dir}/{output_dir}/{ONNX_PATH}", "rb")},
                 headers={"Authorization": get_config().api_key},
             )
 
-        for output_type in filter(
-            lambda x: x != ModelOutputType.RAW, config.output_types
-        ):
+        for output_type in filter(lambda x: x != ModelOutputType.RAW, output_types):
             res = convert_model(
                 path=f"{dir}/{output_dir}/{ONNX_PATH}",
                 output_dir=f"{dir}/converted/{output_type.value}",
@@ -48,6 +47,6 @@ def __train(config: ModelConfig):
 
 
 def train_model(config: ModelConfig):
-    thread = threading.Thread(target=__train, args=(config,))
-    thread.start()
+    process = Process(target=__train, args=(config,))
+    process.start()
     return {"status": "Training started"}

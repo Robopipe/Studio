@@ -12,6 +12,7 @@ def convert_model(
     api_key = os.getenv("HUBAI_API_KEY")
     client = HubAIClient(api_key=api_key)
     conv_fn_map = {
+        ModelOutputType.RVC2: client.convert.RVC2,
         ModelOutputType.RVC3: client.convert.RVC3,
         ModelOutputType.RVC4: client.convert.RVC4,
     }
