@@ -47,5 +47,25 @@ services:
     depends_on:
       - api
 
+  ml:
+    build:
+      context: ./apps/ml
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      HOST: 0.0.0.0
+      PORT: 8000
+      WEBHOOK_URL: http://api:3000/models/
+    env_file:
+      - ./apps/ml/.env
+    volumes:
+      - ml-export:/app/export
+      - ml-dataset:/app/dataset
+    depends_on:
+      - api
+
 volumes:
   pgdata:
+  ml-export:
+  ml-dataset:

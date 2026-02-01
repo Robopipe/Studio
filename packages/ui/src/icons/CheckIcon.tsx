@@ -6,17 +6,17 @@ export const CheckIcon = (props: CheckIconProps) => {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      width="12"
-      height="8"
+      width="9"
+      height="7"
       fill="none"
-      viewBox="0 0 12 8"
+      viewBox="0 0 9 7"
       {...props}
     >
       <path
-        stroke="#fff"
-        d="M10.274.75 4.08 6.944a.5.5 0 0 1-.708 0L.75 4.322"
-        strokeLinecap="round"
-        strokeWidth="1.5"
+        fill="#fff"
+        d="M8.28.22a.75.75 0 0 1 0 1.06L3.422 6.14a.95.95 0 0 1-1.344 0L.22 4.28a.75.75 0 1 1 1.06-1.06l1.47 1.47L7.22.22a.75.75 0 0 1 1.06 0"
+        clipRule="evenodd"
+        fillRule="evenodd"
       />
     </svg>
   );
