@@ -55,6 +55,16 @@ export const Navbar = () => {
     }
   }, [isProjectRoute, activeId, isError, isLoading, navigate]);
 
+  useEffect(() => {
+  if (activeId && projects) {
+    const matchingProject = projects.find((p) => String(p.id) === String(activeId));
+    
+    if (matchingProject && matchingProject.id !== activeProject?.id) {
+      setActiveProject(matchingProject);
+    }
+  }
+}, [activeId, projects, setActiveProject, activeProject?.id]);
+
   const handleLogout = async () => {
     try {
       await logout().unwrap();
