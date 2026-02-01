@@ -49,6 +49,7 @@ export * from "./LinkIcon";
 export * from "./LockIcon";
 export * from "./LogoutIcon";
 export * from "./MailIcon";
+export * from "./MinusIcon";
 export * from "./ModelIcon";
 export * from "./MotorIcon";
 export * from "./NoCameraIcon";
