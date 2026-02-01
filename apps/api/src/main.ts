@@ -1,4 +1,4 @@
-import { ValidationPipe, VersioningType } from "@nestjs/common";
+import { VersioningType } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import cookieParser from "cookie-parser";
@@ -8,7 +8,6 @@ import { AppConfig } from "./core/configuration/app.config";
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  app.useGlobalPipes(new ValidationPipe());
   app.enableVersioning({ type: VersioningType.URI, defaultVersion: "1" });
 
   const config = app.get(AppConfig);
