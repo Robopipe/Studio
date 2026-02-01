@@ -22,7 +22,7 @@ async function bootstrap() {
 
   app.use(cookieParser(config.cookieSecret));
   app.enableCors({
-    origin: [config.webHost, config.apiHost],
+    origin: [config.webHost, config.apiHost, 'http://localhost:5173'],
     credentials: true,
   });
 
