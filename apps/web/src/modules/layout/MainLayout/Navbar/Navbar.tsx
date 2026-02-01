@@ -26,8 +26,8 @@ export const Navbar = () => {
   const { data: projects } = useGetProjectsQuery();
   const [activeProject, setActiveProject] = useActiveProject();
 
-  const match = matchPath({ path: "/projects/:id/*" }, location.pathname);
-  const activeId = match?.params.id;
+  const match = matchPath({ path: "/projects/:projectId/*" }, location.pathname);
+  const activeId = match?.params.projectId;
   const isProjectRoute = !!activeId;
 
   const handleLogout = async () => {
