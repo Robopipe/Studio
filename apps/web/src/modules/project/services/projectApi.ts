@@ -3,7 +3,9 @@ import { baseQuery } from "@/core/api/baseQuery";
 import { HttpMethod } from "@/types";
 import { createApi } from "@reduxjs/toolkit/query/react";
 import {
+  CreateLabel,
   CreateProjectRequest,
+  Label,
   Project,
   ProjectListResponse,
 } from "@repo/schema";
@@ -12,6 +14,7 @@ import { setActiveProject } from "./projectActions";
 
 export enum ProjectApiTagType {
   Projects = "Projects",
+  ProjectLabels = "ProjectLabels",
 }
 
 const { projects } = appConfig.studioApi.endpoints;
@@ -71,6 +74,52 @@ export const projectApi = projectApiBase.injectEndpoints({
         { type: ProjectApiTagType.Projects },
       ],
     }),
+    createProjectLabel: builder.mutation<
+      Label,
+      CreateLabel & { projectId: number }
+    >({
+      query: ({ projectId, ...payload }) => ({
+        url: projects.projectLabels(projectId),
+        method: HttpMethod.POST,
+        body: payload,
+      }),
+      invalidatesTags: (_result, _error, { projectId }) => [
+        {
+          type: ProjectApiTagType.Projects,
+          id: projectId,
+          subType: ProjectApiTagType.ProjectLabels,
+        },
+      ],
+    }),
+    getProjectLabels: builder.query<Label[], { projectId: number }>({
+      query: ({ projectId }) => ({
+        url: projects.projectLabels(projectId),
+        method: HttpMethod.GET,
+      }),
+      providesTags: (_result, _error, { projectId }) => [
+        {
+          type: ProjectApiTagType.Projects,
+          id: projectId,
+          subType: ProjectApiTagType.ProjectLabels,
+        },
+      ],
+    }),
+    deleteProjectLabel: builder.mutation<
+      void,
+      { projectId: number; labelId: number }
+    >({
+      query: ({ projectId, labelId }) => ({
+        url: projects.projectLabel(projectId, labelId),
+        method: HttpMethod.DELETE,
+      }),
+      invalidatesTags: (_result, _error, { projectId }) => [
+        {
+          type: ProjectApiTagType.Projects,
+          id: projectId,
+          subType: ProjectApiTagType.ProjectLabels,
+        },
+      ],
+    }),
   }),
   overrideExisting: true,
 });
@@ -80,4 +129,7 @@ export const {
   useGetProjectsQuery,
   useGetProjectQuery,
   useDeleteProjectMutation,
+  useCreateProjectLabelMutation,
+  useGetProjectLabelsQuery,
+  useDeleteProjectLabelMutation,
 } = projectApi;
