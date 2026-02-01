@@ -37,13 +37,8 @@ resource "google_cloud_run_v2_service" "api" {
       }
 
       env {
-        name  = "SECRETS_PREFIX"
-        value = var.secrets_prefix
-      }
-
-      env {
-        name  = "GCP_PROJECT"
-        value = var.project_id
+        name  = "HOST"
+        value = "0.0.0.0"
       }
 
       env {
@@ -57,10 +52,50 @@ resource "google_cloud_run_v2_service" "api" {
       }
 
       env {
+        name  = "ML_HOST"
+        value = var.ml_host
+      }
+
+      env {
+        name  = "BUCKET_NAME"
+        value = var.bucket_name
+      }
+
+      env {
         name = "DATABASE_URL"
         value_source {
           secret_key_ref {
-            secret  = var.database_url_secret
+            secret  = var.secret_ids["databaseUrl"]
+            version = "latest"
+          }
+        }
+      }
+
+      env {
+        name = "JWT_SECRET"
+        value_source {
+          secret_key_ref {
+            secret  = var.secret_ids["jwtSecret"]
+            version = "latest"
+          }
+        }
+      }
+
+      env {
+        name = "COOKIE_SECRET"
+        value_source {
+          secret_key_ref {
+            secret  = var.secret_ids["cookieSecret"]
+            version = "latest"
+          }
+        }
+      }
+
+      env {
+        name = "ML_SECRET"
+        value_source {
+          secret_key_ref {
+            secret  = var.secret_ids["mlSecret"]
             version = "latest"
           }
         }

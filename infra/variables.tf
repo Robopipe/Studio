@@ -71,8 +71,9 @@ variable "cloud_run_max_instances" {
   default     = 10
 }
 
-variable "secrets_prefix" {
-  description = "Prefix for secret names in Secret Manager"
+variable "ml_host" {
+  description = "ML service URL"
   type        = string
-  default     = "prod_be_"
+  default     = ""
 }
+

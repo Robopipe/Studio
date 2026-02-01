@@ -8,9 +8,9 @@ import { TrainingExternalController } from "./controllers/training-external.cont
   imports: [HttpModule.registerAsync({
     inject: [AppConfig],
     useFactory: (config: AppConfig) => ({
-      baseURL: config.ml.host,
+      baseURL: config.mlHost,
       headers: {
-        Authorization: config.ml.apiKey
+        Authorization: config.mlSecret
       }
     })
   })],

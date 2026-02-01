@@ -1,16 +1,16 @@
 locals {
-  # Secret names matching the app's expected format: {prefix}{camelCaseName}
   secrets = {
     databaseUrl  = var.database_url
     jwtSecret    = null # manually set after creation
     cookieSecret = null # manually set after creation
+    mlSecret     = null # manually set after creation
   }
 }
 
 resource "google_secret_manager_secret" "secrets" {
   for_each  = local.secrets
   project   = var.project_id
-  secret_id = "${var.secrets_prefix}${each.key}"
+  secret_id = each.key
 
   replication {
     auto {}
