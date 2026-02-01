@@ -117,7 +117,7 @@ export class TrainingExternalService {
     const trainingPayload = await this.getTrainingPayload(model);
 
     try {
-      await this.http.axiosRef.post("/train", trainingPayload);
+      await this.http.axiosRef.post("/train/", trainingPayload);
     } catch (e) {
       this.logger.error(
         `Failed starting training on machine learning service`,
