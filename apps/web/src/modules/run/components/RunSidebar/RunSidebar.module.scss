@@ -1,0 +1,45 @@
+.sidebar {
+  background: var(--surface-surface-3, rgba(0, 0, 0, 0.03));
+  border-right: 1px solid var(--border-border-12, rgba(0, 0, 0, 0.12));
+  padding: 1.5rem;
+  gap: 1rem;
+  overflow-y: auto;
+}
+
+.fieldRow {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+
+  > *:last-child {
+    flex: 1;
+  }
+}
+
+.fieldLabel {
+  min-width: 60px;
+  flex-shrink: 0;
+  color: rgba(0, 0, 0, 0.8);
+}
+
+.selectItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+  }
+}
+
+.deployButton {
+  margin-top: 0.5rem;
+  align-self: flex-end;
+
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+}

@@ -9,6 +9,7 @@ import { AuthLayout } from "@/modules/layout";
 import { ModelDetailPage, ModelNewPage } from "@/modules/model/components";
 import { ProjectsPage } from "@/modules/project";
 import { ProjectPage } from "@/modules/project/components/ProjectPage";
+import { RunPage } from "@/modules/run";
 import { createBrowserRouter, Navigate, RouteObject } from "react-router";
 
 const { auth } = appConfig.web.routes;
@@ -44,6 +45,7 @@ const authenticatedRoutes: RouteObject = {
       element: <ModelDetailPage />,
     },
     { path: webRoutes.label, element: <LabelPage /> },
+    { path: webRoutes.run, element: <RunPage /> },
   ],
 };
 
