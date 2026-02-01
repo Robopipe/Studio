@@ -6,7 +6,7 @@ from .image import Image
 
 
 class ModelConfig(BaseModel):
-    id: str
+    id: int
     type: ModelType
     training_config: TrainingConfig
     data: list[Image]

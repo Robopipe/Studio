@@ -3,7 +3,7 @@ from pydantic import BaseModel, field_validator
 
 class DatasetConfig(BaseModel):
     dataset_split: tuple[int, int, int]  # (train, val, test)
-    labels: list[str]
+    labels: list[int]
 
     @field_validator("dataset_split")
     @classmethod
