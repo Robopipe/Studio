@@ -10,7 +10,9 @@ export interface SourceImagesSettingsProps {
 export const SourceImagesSettings = (props: SourceImagesSettingsProps) => {
   return (
     <div>
-      <Stack direction="row"></Stack>
+      <Stack direction="row">
+        {JSON.stringify(props)}
+      </Stack>
     </div>
   );
 };
