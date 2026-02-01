@@ -21,9 +21,13 @@ export const LabelPage = () => {
   const [activeProject] = useActiveProject();
   const projectId = activeProject?.id;
 
-  const { data: tasks = [] } = useGetTasksQuery(
+  const { data: rawTasks = [] } = useGetTasksQuery(
     { projectId: projectId! },
     { skip: !projectId },
+  );
+  const tasks = useMemo(
+    () => [...rawTasks].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
+    [rawTasks],
   );
   const { data: labels = [] } = useGetProjectLabelsQuery(
     { projectId: projectId! },
@@ -41,12 +45,18 @@ export const LabelPage = () => {
 
   const { toolMode, setToolMode } = useToolMode();
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
+  const [isDirty, setIsDirty] = useState(false);
   const [selectedAnnotationId, setSelectedAnnotationId] = useState<string | null>(null);
   const [activeLabel, setActiveLabel] = useState<Label | null>(null);
   const canvasState = useCanvasState();
 
+  const setAnnotationsAndDirty: typeof setAnnotations = useCallback((value) => {
+    setAnnotations(value);
+    setIsDirty(true);
+  }, []);
+
   const history = useHistory({
-    setAnnotations,
+    setAnnotations: setAnnotationsAndDirty,
     setSelectedAnnotationId,
   });
 
@@ -62,6 +72,7 @@ export const LabelPage = () => {
     if (taskDetail) {
       setAnnotations(taskDetailToAnnotations(taskDetail));
       setSelectedAnnotationId(null);
+      setIsDirty(false);
     }
   }, [taskDetail]);
 
@@ -79,16 +90,22 @@ export const LabelPage = () => {
     [labels],
   );
 
+  const [isSaving, setIsSaving] = useState(false);
   const handleSave = useCallback(async () => {
     if (!projectId || selectedTaskId === null) return;
-    const payload = annotationsToUpdatePayload(annotations);
-    await updateTask({
-      projectId,
-      taskId: selectedTaskId,
-      body: payload,
-    });
+    setIsSaving(true);
+    try {
+      const payload = annotationsToUpdatePayload(annotations);
+      await updateTask({
+        projectId,
+        taskId: selectedTaskId,
+        body: payload,
+      }).unwrap();
+      setIsDirty(false);
+    } finally {
+      setIsSaving(false);
+    }
   }, [projectId, selectedTaskId, annotations, updateTask]);
-  void handleSave;
 
   const activeLabelForCanvas = useMemo(
     () =>
@@ -103,6 +120,7 @@ export const LabelPage = () => {
       <DataSourcePanel
         tasks={tasks}
         selectedTaskId={selectedTaskId}
+        annotationCount={annotations.length}
         onSelectTask={setSelectedTaskId}
       />
       <AnnotationPanel
@@ -122,6 +140,9 @@ export const LabelPage = () => {
             activeLabel={activeLabelForCanvas}
             scale={canvasState.scale}
             position={canvasState.position}
+            isDirty={isDirty}
+            isSaving={isSaving}
+            onSave={handleSave}
             onSelect={setSelectedAnnotationId}
             onAddAnnotation={history.addAnnotation}
             onUpdateAnnotation={history.updateAnnotation}

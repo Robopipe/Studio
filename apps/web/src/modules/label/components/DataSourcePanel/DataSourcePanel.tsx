@@ -5,12 +5,14 @@ import styles from "./DataSourcePanel.module.scss";
 export interface DataSourcePanelProps {
   tasks: Task[];
   selectedTaskId: number | null;
+  annotationCount: number;
   onSelectTask: (taskId: number) => void;
 }
 
 export const DataSourcePanel = ({
   tasks,
   selectedTaskId,
+  annotationCount,
   onSelectTask,
 }: DataSourcePanelProps) => {
   return (
@@ -31,7 +33,9 @@ export const DataSourcePanel = ({
               alt={task.filePath.split("/").pop() ?? "task"}
               className={styles.thumbnail}
             />
-            <span className={styles.count}>—</span>
+            <span className={styles.count}>
+              {task.id === selectedTaskId ? annotationCount : "—"}
+            </span>
           </button>
         ))}
       </div>

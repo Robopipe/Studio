@@ -23,6 +23,9 @@ export interface CanvasProps {
   onZoomAtPoint: (pointer: { x: number; y: number }, direction: number) => void;
   onSetPosition: (pos: { x: number; y: number }) => void;
   onFitImage: (iw: number, ih: number, cw: number, ch: number) => void;
+  isDirty: boolean;
+  isSaving: boolean;
+  onSave: () => void;
 }
 
 export const Canvas = ({
@@ -42,6 +45,9 @@ export const Canvas = ({
   onZoomAtPoint,
   onSetPosition,
   onFitImage,
+  isDirty,
+  isSaving,
+  onSave,
 }: CanvasProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
@@ -109,6 +115,15 @@ export const Canvas = ({
         <Text variant="text-14" weight="500">
           {task.filePath.split("/").pop() ?? "Task"}
         </Text>
+        {isDirty && (
+          <button
+            className={styles.saveButton}
+            onClick={onSave}
+            disabled={isSaving}
+          >
+            {isSaving ? "Saving..." : "Save"}
+          </button>
+        )}
         <button className={styles.menuButton}>
           <DropdownMenuIcon />
         </button>
