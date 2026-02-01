@@ -1,18 +1,11 @@
-import {
-  Inject,
-  Injectable,
-  InternalServerErrorException,
-  NotFoundException,
-} from "@nestjs/common";
-import { taskTable } from '@repo/database/schema';
-import { DB_CONNECTION } from 'src/core/database/database.constant';
-import type { DbConnection } from 'src/core/database/types/database.types';
-import {
-  TaskDetailEntity,
-  TaskEntity,
-} from "../../modules/task/entity/task.entity";
-import { TaskInsert, TaskUpdate } from "../types/task";
+import { Inject, Injectable, InternalServerErrorException, NotFoundException } from "@nestjs/common";
+import { taskTable, rectangleAnnotationTable, polygonAnnotationTable, classificationAnnotationTable } from "@repo/database/schema";
+import { DB_CONNECTION } from "src/core/database/database.constant";
+import type { DbConnection } from "src/core/database/types/database.types";
+import { TaskDetailEntity, TaskEntity } from "../../modules/task/entity/task.entity";
+import { TaskInsert } from "../types/task";
 import { eq } from "drizzle-orm";
+import { ProjectTypeEnum } from "@repo/schema";
 
 @Injectable()
 export class TaskRepository {
@@ -92,13 +85,26 @@ export class TaskRepository {
   /**
    * Get all tasks by project ID
    * @param projectId
+   * @param projectType - Project type enum for relations
    * @returns TaskEntity[]
    */
-  public async getAllByProjectId(projectId: number): Promise<TaskEntity[]> {
+  public async getAllByProjectId(projectId: number, projectType: ProjectTypeEnum): Promise<TaskEntity[]> {
     const tasks = await this.db.query.taskTable.findMany({
       where: {
         projectId
       },
+      extras: {
+        annotationCount: (table) => {
+          switch (projectType){
+            case ProjectTypeEnum.DETECTION:
+              return this.db.$count(rectangleAnnotationTable, eq(rectangleAnnotationTable.taskId, table.id))
+            case ProjectTypeEnum.CLASSIFICATION:
+              return this.db.$count(classificationAnnotationTable, eq(classificationAnnotationTable.taskId, table.id))
+            case ProjectTypeEnum.SEGMENTATION:
+              return this.db.$count(polygonAnnotationTable, eq(polygonAnnotationTable.taskId, table.id))
+          }
+        }
+      }
     })
 
     return tasks.map((t) => new TaskEntity(t))

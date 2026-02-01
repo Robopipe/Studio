@@ -13,4 +13,5 @@ export const webRoutes = {
     modelNew: "/projects/:projectId/models/new",
   },
   capture: "/capture",
+  label: "/label",
 } as const;
