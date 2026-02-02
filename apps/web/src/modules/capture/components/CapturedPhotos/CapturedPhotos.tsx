@@ -33,7 +33,7 @@ export const CapturedPhotos = ({}: CapturedPhotosProps) => {
 
   return (
     <Stack fullWidth gap="md">
-      {tasks?.map((task) => (
+      {tasks?.filter(task => task.deletedAt === null).map((task) => (
         <div className={styles.photo} key={task.id}>
           <div className={styles.photoHeader}>
             <img src={task.filePath} alt={`#${task.id}`} />
