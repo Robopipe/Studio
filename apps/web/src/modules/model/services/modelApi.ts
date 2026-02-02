@@ -6,7 +6,7 @@ import {
   CreateModel,
   Model,
   ModelLog,
-  ModelOutputTypeEnum,
+  ModelOutput,
 } from "@repo/schema";
 
 export enum ModelApiTagType {
@@ -81,7 +81,7 @@ export const modelApi = modelApiBase.injectEndpoints({
       }),
     }),
     getModelOutputs: builder.query<
-      ModelOutputTypeEnum[],
+      ModelOutput[],
       { projectId: number; modelId: number }
     >({
       query: ({ projectId, modelId }) => ({
