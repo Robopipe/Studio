@@ -1,5 +1,13 @@
 .modelList {
   background-color: rgba(0, 0, 0, 0.03);
   border-right: 1px solid rgba(0, 0, 0, 0.12);
-  min-height: 100vh;
+  overflow-y: scroll;
+
+  .header {
+    position: sticky;
+    top: 0;
+    background-color: #f3f3f3;
+    z-index: 1;
+    border-radius: 8px;
+  }
 }

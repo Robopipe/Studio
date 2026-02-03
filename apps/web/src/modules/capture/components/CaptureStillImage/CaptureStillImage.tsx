@@ -29,9 +29,32 @@ const stringToNumber = z.string().transform((val, ctx) => {
   return parsed;
 });
 
+const stringToFloat = z.string().transform((val, ctx) => {
+  const parsed = parseFloat(val);
+  if (isNaN(parsed)) {
+    ctx.addIssue({
+      code: "invalid_type",
+      expected: "number",
+      message: "Not a number",
+    });
+    return z.NEVER;
+  }
+  if (parsed < 0.1) {
+    ctx.addIssue({
+      code: "too_small",
+      minimum: 0.1,
+      inclusive: true,
+      origin: "string",
+      message: "Must be greater than or equal to 0.1",
+    });
+    return z.NEVER;
+  }
+  return parsed;
+});
+
 const intervalShootingConfigSchema = z.object({
   numberOfImages: stringToNumber,
-  intervalSeconds: stringToNumber,
+  intervalSeconds: stringToFloat,
 });
 
 type IntervalShootingConfigInput = z.input<typeof intervalShootingConfigSchema>;

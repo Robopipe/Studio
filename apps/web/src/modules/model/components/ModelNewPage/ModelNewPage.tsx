@@ -1,46 +1,52 @@
-import { useGetProjectLabelsQuery } from "@/modules/project/services/projectApi";
-import { ModelOutputTypeEnum } from "@repo/schema";
+import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
+import { Label, ModelOutputTypeEnum } from "@repo/schema";
 import { Button, NumberInput, Stack, Text, TextInput } from "@repo/ui";
 import { useState } from "react";
-import { useParams } from "react-router";
+import { useNavigate } from "react-router";
 import { useCreateModelMutation, useTrainModelMutation } from "../../services";
+import { DatasetSplit, DatasetSplitSettings } from "../DatasetSplitSettings";
 import { ModelLayout } from "../ModelLayout/ModelLayout";
-import { SettingsCard } from "../SettingsCard";
+import { OutputSettings } from "../OutputSettings";
 import { SourceImagesSettings } from "../SourceImagesSettings";
 import styles from "./ModelNewPage.module.scss";
 
 export interface ModelNewPageProps {}
 
 export const ModelNewPage = ({}: ModelNewPageProps) => {
-  const { projectId } = useParams();
-  const { data: labels } = useGetProjectLabelsQuery({
-    projectId: Number(projectId),
-  });
+  const navigate = useNavigate();
+  const [activeProject] = useActiveProject();
   const [name, setName] = useState("");
   const [epochs, setEpochs] = useState(10);
   const [createModel] = useCreateModelMutation();
   const [trainModel] = useTrainModelMutation();
+  const [outputs, setOutputs] = useState<ModelOutputTypeEnum[]>([
+    ModelOutputTypeEnum.RAW,
+  ]);
+  const [activeLabels, setActiveLabels] = useState<Label[]>([]);
+  const [datasetSplit, setDatasetSplit] = useState<DatasetSplit>({
+    train: 70,
+    validation: 20,
+    test: 10,
+  });
 
-  const saveModel = async () => {
+  const saveModel = async (train = false) => {
     const newModel = await createModel({
       epochs,
-      labelIds: labels?.map((label) => label.id) || [],
+      labelIds: activeLabels?.map((label) => label.id) || [],
       name,
-      projectId: parseInt(projectId!),
-      splitTest: 10,
-      splitTrain: 70,
-      splitValidate: 20,
-      outputTypes: ["RVC2"] as ModelOutputTypeEnum[],
+      projectId: activeProject?.id!,
+      splitTest: datasetSplit.test,
+      splitTrain: datasetSplit.train,
+      splitValidate: datasetSplit.validation,
+      outputTypes: outputs,
     }).unwrap();
-    return newModel;
-  };
-
-  const saveAndTrain = async () => {
-    const newModel = await saveModel();
-    await trainModel({
-      projectId: parseInt(projectId!),
-      modelId: newModel.id,
-    }).unwrap();
+    if (train) {
+      await trainModel({
+        projectId: activeProject?.id!,
+        modelId: newModel.id,
+      }).unwrap();
+    }
+    navigate(`/projects/${activeProject?.id}/models/${newModel.id}`);
   };
 
   return (
@@ -64,7 +70,6 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
               className={styles.input}
             />
           </Stack>
-          {/* <NumberInput label="Version number" min={1} value={1} /> */}
           <NumberInput
             label="Epochs"
             value={epochs}
@@ -73,32 +78,15 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
             style={{ width: "30%" }}
           />
         </Stack>
-        <SettingsCard state="complete" stepNumber={1} title="source images">
-          <SourceImagesSettings
-            labels={labels ?? []}
-            setActiveLabels={() => {}}
-            activeLabels={[]}
-          />
-        </SettingsCard>
-        <SettingsCard state="complete" stepNumber={1} title="train/test split">
-          <div></div>
-        </SettingsCard>
-        <SettingsCard
-          state="pending"
-          stepNumber={3}
-          title="image preprocessing"
-        ></SettingsCard>
-        <SettingsCard
-          state="pending"
-          stepNumber={4}
-          title="augmentations"
-        ></SettingsCard>
+        <SourceImagesSettings
+          setActiveLabels={setActiveLabels}
+          activeLabels={activeLabels}
+        />
+        <DatasetSplitSettings split={datasetSplit} onChange={setDatasetSplit} />
+        <OutputSettings outputs={outputs} setOutputs={setOutputs} />
         <Stack direction="row" justify="end">
-          <Button variant="outlined" disabled>
-            Duplicate
-          </Button>
-          <Button onClick={saveModel}>Save</Button>
-          <Button onClick={saveAndTrain}>Save & Train</Button>
+          <Button onClick={() => saveModel()}>Save</Button>
+          <Button onClick={() => saveModel(true)}>Save & Train</Button>
         </Stack>
       </Stack>
     </ModelLayout>

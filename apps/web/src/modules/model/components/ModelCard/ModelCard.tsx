@@ -2,6 +2,7 @@ import { Model } from "@repo/schema";
 import { Badge, BadgeVariant, Container, Stack, Text } from "@repo/ui";
 import { Link, useParams } from "react-router";
 import styles from "./ModelCard.module.scss";
+import clsx from "clsx";
 
 export interface ModelCardProps {
   model: Model;
@@ -9,7 +10,7 @@ export interface ModelCardProps {
 }
 
 export const ModelCard = ({ model, order }: ModelCardProps) => {
-  const { projectId } = useParams();
+  const { projectId, modelId } = useParams();
   const getBadgeVariant = (status: Model["status"]): BadgeVariant => {
     switch (status) {
       case "TRAINING":
@@ -28,7 +29,7 @@ export const ModelCard = ({ model, order }: ModelCardProps) => {
       to={`/projects/${projectId}/models/${model.id}`}
       style={{ textDecoration: "none", color: "inherit" }}
     >
-      <Container className={styles.modelCard} paddingX="sm" paddingY="sm">
+      <Container className={clsx([styles.modelCard, model.id.toString() === modelId && styles["modelCard--active"]])} paddingX="sm" paddingY="sm">
         <Stack gap={8}>
           <Stack direction="row">
             <Badge variant={getBadgeVariant(model.status)}>v{order}</Badge>
