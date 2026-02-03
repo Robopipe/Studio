@@ -36,8 +36,10 @@ def generate_trainer_config(model_config: ModelConfig) -> dict:
         "n_workers": 8,
         "callbacks": [
             {"name": "ExportOnTrainEnd"},
-            {"name": "LearningRateMonitor", "params": {"logging_interval": "step"}},
+            {"name": "LearningRateMonitor", "params": {"logging_interval": "epoch"}},
         ],
+        "validation_interval": 1,
+        "log_sub_losses": False,
     }
 
     if webhook_url is not None:

@@ -9,6 +9,9 @@ from ..config import get_config
 
 @CALLBACKS.register()
 class WebhookStats(pl.Callback):
+    LOSS_KEY = "val/loss"
+    ACC_KEY = "train/accuracy"
+
     def __init__(self, url: str, id: str, **kwargs):
         super().__init__()
         self.url = url
@@ -18,20 +21,14 @@ class WebhookStats(pl.Callback):
     def on_train_epoch_end(
         self, trainer: pl.Trainer, pl_module: LuxonisLightningModule
     ):
-        metrics = trainer.callback_metrics
-        keys = list(metrics.keys())
-        acc_key, loss_key = None, None
-        for key in keys:
-            if key.endswith("Accuracy"):
-                acc_key = key
-            if key.endswith("Loss"):
-                loss_key = key
-
-        acc, loss = 0, 0
-        if acc_key is not None:
-            acc = metrics[acc_key].item()
-        if loss_key is not None:
-            loss = metrics[loss_key].item()
+        print(trainer.callback_metrics, trainer.logged_metrics)
+        if (self.LOSS_KEY not in trainer.callback_metrics or
+            self.LOSS_KEY not in trainer.callback_metrics
+        ):
+            return
+        
+        loss = trainer.logged_metrics[self.LOSS_KEY].item()
+        acc = trainer.logged_metrics[self.LOSS_KEY].item()
 
         data = {
             "epoch": trainer.current_epoch,
