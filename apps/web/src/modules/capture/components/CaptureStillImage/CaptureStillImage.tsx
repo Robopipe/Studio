@@ -82,7 +82,6 @@ export const CaptureStillImage = ({
   const intervalShootingConfigResult = intervalShootingConfigSchema.safeDecode(
     intervalShootingConfig,
   );
-  console.log(intervalShootingConfigResult);
 
   return (
     <Stack>

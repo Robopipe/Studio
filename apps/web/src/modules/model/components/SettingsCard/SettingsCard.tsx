@@ -33,7 +33,7 @@ export const SettingsCard = (props: SettingsCardProps) => {
               </Text>
             )}
           </div>
-          <Text weight="500" variant="text-14">
+          <Text weight="500" variant="text-14" className={styles.title}>
             {title.toUpperCase()}
           </Text>
         </Stack>

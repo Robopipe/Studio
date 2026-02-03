@@ -15,14 +15,16 @@ export const ModelList = ({ className }: ModelListProps) => {
   return (
     <Container size="full" className={`${styles.modelList} ${className}`}>
       <Stack>
-        <Text>VERSIONS</Text>
-        <Link to={`/projects/${projectId}/models/new`}>
-          <Button variant="outlined" size="sm" fullWidth>
-            Create new version
-          </Button>
-        </Link>
-        {models?.map((model, i) => (
-          <ModelCard key={model.id} model={model} order={i + 1} />
+        <Stack className={styles.header}>
+          <Text>VERSIONS</Text>
+          <Link to={`/projects/${projectId}/models/new`}>
+            <Button variant="outlined" size="sm" fullWidth>
+              Create new version
+            </Button>
+          </Link>
+        </Stack>
+        {models?.toReversed().map((model, i) => (
+          <ModelCard key={model.id} model={model} order={models.length - i} />
         ))}
       </Stack>
     </Container>
