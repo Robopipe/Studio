@@ -1,8 +1,10 @@
-import { Stack, Text } from "@repo/ui";
+import { ModelStatusEnum } from "@repo/schema";
+import { Button, Stack, Text } from "@repo/ui";
 import { useEffect } from "react";
 import { useParams } from "react-router";
 import { useGetModelLogsQuery, useGetModelQuery } from "../../services";
 import { ModelLayout } from "../ModelLayout";
+import { ModelLogs } from "../ModelLogs";
 import { TrainingChart } from "../TrainingChart";
 import styles from "./ModelDetailPage.module.scss";
 
@@ -38,12 +40,15 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
       if (logsInterval) {
         clearInterval(logsInterval);
       }
+      if (modelInterval) {
+        clearInterval(modelInterval);
+      }
     };
   }, [model]);
 
   return (
     <ModelLayout className={styles.modelDetailPage}>
-      <Text weight="700" className={styles.title} as="p">
+      <Text weight="700" className={styles.title} as="p" variant="text-20">
         {model?.name}
       </Text>
       <Stack direction="row">
@@ -65,6 +70,11 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
             })) ?? []
           }
         />
+      </Stack>
+      <ModelLogs />
+      <Stack direction="row" justify="end">
+        <Button variant="danger">Delete</Button>
+        {model?.status === ModelStatusEnum.DRAFT && <Button>Train</Button>}
       </Stack>
     </ModelLayout>
   );

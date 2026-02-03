@@ -1,0 +1,39 @@
+.Control {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  width: 14rem;
+  padding-block: 0.75rem;
+  // offset thumb
+  padding-inline: 0.5rem;
+  touch-action: none;
+  user-select: none;
+}
+
+.Track {
+  width: 100%;
+  height: 0.75rem;
+  border-radius: var(--Border-radius---radius-rounded, 62.5rem);
+  background: var(--surface-surface-5, rgba(0, 0, 0, 0.05));
+  //   box-shadow: inset 0 0 0 1px var(--color-gray-200);
+  user-select: none;
+}
+
+.Indicator {
+  border-radius: var(--Border-radius---radius-rounded, 62.5rem);
+  background: var(--emerald-40015, rgba(67, 196, 125, 0.15));
+  user-select: none;
+}
+
+.Thumb {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 100%;
+  background-color: white;
+  outline: 1px solid var(--color-gray-300);
+  user-select: none;
+
+  &:has(:focus-visible) {
+    outline: 2px solid var(--color-blue);
+  }
+}
