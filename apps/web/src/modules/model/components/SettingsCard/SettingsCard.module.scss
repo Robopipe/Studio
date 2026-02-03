@@ -27,4 +27,9 @@
     align-items: center;
     justify-content: center;
   }
+
+  .title {
+    white-space: nowrap;
+    min-width: 12.5rem;
+  }
 }
