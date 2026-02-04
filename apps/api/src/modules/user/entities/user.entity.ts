@@ -6,6 +6,7 @@ export class UserEntity {
   readonly username: string;
   readonly email: string;
   readonly fullName: string;
+  readonly cameraApiUrl: string;
   readonly organizationId: number;
   readonly createdAt: Date;
   readonly updatedAt: Date;
@@ -22,6 +23,7 @@ export class UserEntity {
       email: this.email,
       fullName: this.fullName,
       organizationId: this.organizationId,
+      cameraApiUrl: this.cameraApiUrl,
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),
       deletedAt: this.deletedAt ? this.deletedAt.toISOString() : null,
