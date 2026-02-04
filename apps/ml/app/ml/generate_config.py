@@ -11,6 +11,7 @@ def generate_model_config(model_config: ModelConfig) -> dict:
         "predefined_model": {
             "name": model_config.type.to_luxonis_model_type().value,
             "variant": "light",
+            "task": "multiclass"
         },
     }
 
