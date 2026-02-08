@@ -1,12 +1,31 @@
 steps:
-  - name: "gcr.io/kaniko-project/executor:latest"
+  - name: "gcr.io/cloud-builders/docker"
+    entrypoint: "bash"
     args:
-      - "--dockerfile=Dockerfile"
-      - "--context=/workspace/apps/ml"
-      - "--destination=${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPO_NAME}/ml:${SHORT_SHA}"
-      - "--destination=${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPO_NAME}/ml:latest"
-      - "--cache=true"
-      - "--cache-ttl=168h"
+      - "-c"
+      - |
+        docker pull ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPO_NAME}/ml:latest || true
+
+  - name: "gcr.io/cloud-builders/docker"
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - |
+        docker build \
+          --build-arg BUILDKIT_INLINE_CACHE=1 \
+          --cache-from ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPO_NAME}/ml:latest \
+          -t ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPO_NAME}/ml:${SHORT_SHA} \
+          -t ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPO_NAME}/ml:latest \
+          -f apps/ml/Dockerfile apps/ml
+    env:
+      - "DOCKER_BUILDKIT=1"
+
+  - name: "gcr.io/cloud-builders/docker"
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - |
+        docker push --all-tags ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPO_NAME}/ml
 
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     entrypoint: "bash"
@@ -19,3 +38,4 @@ steps:
 
 options:
   logging: CLOUD_LOGGING_ONLY
+  machineType: E2_HIGHCPU_8
