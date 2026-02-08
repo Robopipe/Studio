@@ -21,13 +21,13 @@ import { ModelOutputRepository } from "../../../repository/services/model-output
 import { ModelRepository } from "../../../repository/services/model-repository.service";
 import { AssetsService } from "../../assets/services/assets.service";
 import { AppConfig } from "../../../core/configuration/app.config";
-import { CLOUD_RUN_JOBS_CLIENT } from "../training-external.module";
 import { Storage } from "@google-cloud/storage";
 import { JobsClient } from "@google-cloud/run";
 
 @Injectable()
 export class TrainingExternalService {
   private readonly logger = new Logger(TrainingExternalService.name);
+  private readonly jobsClient = new JobsClient()
 
   constructor(
     @Inject(DB_CONNECTION) private readonly db: DbConnection,
@@ -38,7 +38,6 @@ export class TrainingExternalService {
     private readonly projectRepository: ProjectRepository,
     private readonly modelLogRepository: ModelLogRepository,
     private readonly modelOutputRepository: ModelOutputRepository,
-    @Inject(CLOUD_RUN_JOBS_CLIENT) private readonly jobsClient: JobsClient,
   ) {}
 
   /**
