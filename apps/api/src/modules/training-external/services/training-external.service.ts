@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Inject, Injectable, InternalServerErrorException, Logger, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Inject, Injectable, InternalServerErrorException, Logger, NotFoundException, Optional } from "@nestjs/common";
 import { DB_CONNECTION } from "../../../core/database/database.constant";
 import type { DbConnection } from "../../../core/database/types/database.types";
 import {
@@ -23,7 +23,7 @@ import { AssetsService } from "../../assets/services/assets.service";
 import { AppConfig } from "../../../core/configuration/app.config";
 import { CLOUD_RUN_JOBS_CLIENT } from "../training-external.module";
 import { Storage } from "@google-cloud/storage";
-import type { JobsClient } from "@google-cloud/run";
+import { JobsClient } from "@google-cloud/run";
 
 @Injectable()
 export class TrainingExternalService {
@@ -38,7 +38,7 @@ export class TrainingExternalService {
     private readonly projectRepository: ProjectRepository,
     private readonly modelLogRepository: ModelLogRepository,
     private readonly modelOutputRepository: ModelOutputRepository,
-    @Inject(CLOUD_RUN_JOBS_CLIENT) private readonly jobsClient: JobsClient | null,
+    @Optional() @Inject(CLOUD_RUN_JOBS_CLIENT) private readonly jobsClient: JobsClient | null,
   ) {}
 
   /**
