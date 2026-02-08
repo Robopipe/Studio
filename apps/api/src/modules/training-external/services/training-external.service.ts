@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Inject, Injectable, Logger, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Inject, Injectable, InternalServerErrorException, Logger, NotFoundException } from "@nestjs/common";
 import { DB_CONNECTION } from "../../../core/database/database.constant";
 import type { DbConnection } from "../../../core/database/types/database.types";
 import {
@@ -20,6 +20,10 @@ import { ModelLogRepository } from "../../../repository/services/model-log-repos
 import { ModelOutputRepository } from "../../../repository/services/model-output-repository.service";
 import { ModelRepository } from "../../../repository/services/model-repository.service";
 import { AssetsService } from "../../assets/services/assets.service";
+import { AppConfig } from "../../../core/configuration/app.config";
+import { CLOUD_RUN_JOBS_CLIENT } from "../training-external.module";
+import { Storage } from "@google-cloud/storage";
+import type { JobsClient } from "@google-cloud/run";
 
 @Injectable()
 export class TrainingExternalService {
@@ -29,10 +33,12 @@ export class TrainingExternalService {
     @Inject(DB_CONNECTION) private readonly db: DbConnection,
     private readonly http: HttpService,
     private readonly assetsService: AssetsService,
+    private readonly config: AppConfig,
     private readonly modelRepository: ModelRepository,
     private readonly projectRepository: ProjectRepository,
     private readonly modelLogRepository: ModelLogRepository,
     private readonly modelOutputRepository: ModelOutputRepository,
+    @Inject(CLOUD_RUN_JOBS_CLIENT) private readonly jobsClient: JobsClient | null,
   ) {}
 
   /**
@@ -116,6 +122,16 @@ export class TrainingExternalService {
   public async train(model: ModelEntity): Promise<void> {
     const trainingPayload = await this.getTrainingPayload(model);
 
+    if (this.config.mlJobName && this.jobsClient) {
+      await this.trainViaJob(trainingPayload);
+    } else if (this.config.mlHost) {
+      await this.trainViaHttp(trainingPayload);
+    } else {
+      throw new InternalServerErrorException("No ML training backend configured. Set either ML_HOST or ML_JOB_NAME.");
+    }
+  }
+
+  private async trainViaHttp(trainingPayload: TrainingPayload): Promise<void> {
     try {
       await this.http.axiosRef.post("/train/", trainingPayload);
     } catch (e) {
@@ -123,6 +139,48 @@ export class TrainingExternalService {
         `Failed starting training on machine learning service`,
         e,
       );
+      throw e;
+    }
+  }
+
+  private async trainViaJob(trainingPayload: TrainingPayload): Promise<void> {
+    if (!this.jobsClient) {
+      return
+    }
+
+    const { mlJobName, mlRegion, gcpProject, bucketName } = this.config;
+
+    try {
+      const storage = new Storage();
+      const bucket = storage.bucket(bucketName);
+      const configPath = `training-configs/${trainingPayload.id}/${Date.now()}.json`;
+      const file = bucket.file(configPath);
+
+      await file.save(JSON.stringify(trainingPayload), {
+        contentType: "application/json",
+      });
+
+      const [signedUrl] = await file.getSignedUrl({
+        action: "read",
+        expires: Date.now() + 2 * 60 * 60 * 1000, // 2 hours
+      });
+
+      const jobName = `projects/${gcpProject}/locations/${mlRegion}/jobs/${mlJobName}`;
+
+      await this.jobsClient.runJob({
+        name: jobName,
+        overrides: {
+          containerOverrides: [
+            {
+              env: [{ name: "CONFIG_URL", value: signedUrl }],
+            },
+          ],
+        },
+      });
+
+      this.logger.log(`Cloud Run Job triggered for model ${trainingPayload.id}`);
+    } catch (e) {
+      this.logger.error(`Failed triggering Cloud Run Job for model ${trainingPayload.id}`, e);
       throw e;
     }
   }
