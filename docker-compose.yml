@@ -51,6 +51,7 @@ services:
     build:
       context: ./apps/ml
       dockerfile: Dockerfile
+    command: ["python", "-m", "app"]
     ports:
       - "8000:8000"
     environment:

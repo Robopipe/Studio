@@ -10,6 +10,7 @@ class Config(BaseSettings):
     hubai_api_key: str
     webhook_url: Optional[str] = None
     api_key: str
+    config_url: Optional[str] = None
 
     class Config:
         env_file = ".env"
