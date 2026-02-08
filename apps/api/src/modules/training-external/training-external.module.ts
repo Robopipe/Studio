@@ -22,13 +22,7 @@ export const CLOUD_RUN_JOBS_CLIENT = "CLOUD_RUN_JOBS_CLIENT";
     TrainingExternalService,
     {
       provide: CLOUD_RUN_JOBS_CLIENT,
-      inject: [AppConfig],
-      useFactory: (config: AppConfig) => {
-        if (config.mlJobName) {
-          return new JobsClient();
-        }
-        return null;
-      },
+      useValue: new JobsClient(),
     },
   ],
   controllers: [TrainingExternalController],

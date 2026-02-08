@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Inject, Injectable, InternalServerErrorException, Logger, NotFoundException, Optional } from "@nestjs/common";
+import { BadRequestException, ConflictException, Inject, Injectable, InternalServerErrorException, Logger, NotFoundException } from "@nestjs/common";
 import { DB_CONNECTION } from "../../../core/database/database.constant";
 import type { DbConnection } from "../../../core/database/types/database.types";
 import {
@@ -38,7 +38,7 @@ export class TrainingExternalService {
     private readonly projectRepository: ProjectRepository,
     private readonly modelLogRepository: ModelLogRepository,
     private readonly modelOutputRepository: ModelOutputRepository,
-    @Optional() @Inject(CLOUD_RUN_JOBS_CLIENT) private readonly jobsClient: JobsClient | null,
+    @Inject(CLOUD_RUN_JOBS_CLIENT) private readonly jobsClient: JobsClient,
   ) {}
 
   /**
@@ -122,7 +122,8 @@ export class TrainingExternalService {
   public async train(model: ModelEntity): Promise<void> {
     const trainingPayload = await this.getTrainingPayload(model);
 
-    if (this.config.mlJobName && this.jobsClient) {
+    this.logger.log(`Train config: mlJobName=${this.config.mlJobName}, mlHost=${this.config.mlHost}`);
+    if (this.config.mlJobName) {
       await this.trainViaJob(trainingPayload);
     } else if (this.config.mlHost) {
       await this.trainViaHttp(trainingPayload);
@@ -144,10 +145,6 @@ export class TrainingExternalService {
   }
 
   private async trainViaJob(trainingPayload: TrainingPayload): Promise<void> {
-    if (!this.jobsClient) {
-      return
-    }
-
     const { mlJobName, mlRegion, gcpProject, bucketName } = this.config;
 
     try {
