@@ -4,10 +4,21 @@ steps:
     args:
       - "-c"
       - |
+        docker pull ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPO_NAME}/api:latest || true
+
+  - name: "gcr.io/cloud-builders/docker"
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - |
         docker build \
+          --build-arg BUILDKIT_INLINE_CACHE=1 \
+          --cache-from ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPO_NAME}/api:latest \
           -t ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPO_NAME}/api:${SHORT_SHA} \
           -t ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPO_NAME}/api:latest \
           -f Dockerfile.api .
+    env:
+      - "DOCKER_BUILDKIT=1"
 
   - name: "gcr.io/cloud-builders/docker"
     entrypoint: "bash"
