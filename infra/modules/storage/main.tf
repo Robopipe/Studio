@@ -35,6 +35,16 @@ resource "google_storage_bucket" "assets" {
     response_header = ["Content-Type", "Content-Length"]
     max_age_seconds = 3600
   }
+
+  lifecycle_rule {
+    condition {
+      age                = 7
+      matches_prefix     = ["training-configs/"]
+    }
+    action {
+      type = "Delete"
+    }
+  }
 }
 
 resource "google_storage_bucket_iam_member" "assets_public_read" {

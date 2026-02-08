@@ -101,18 +101,6 @@ variable "ml_cpu" {
   default     = "4"
 }
 
-variable "ml_min_instances" {
-  description = "Minimum ML instances (0 = scale to zero)"
-  type        = number
-  default     = 0
-}
-
-variable "ml_max_instances" {
-  description = "Maximum ML instances"
-  type        = number
-  default     = 3
-}
-
 variable "ml_timeout" {
   description = "ML request timeout in seconds (max 3600)"
   type        = number

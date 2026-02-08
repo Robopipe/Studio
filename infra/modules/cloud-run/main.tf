@@ -52,8 +52,18 @@ resource "google_cloud_run_v2_service" "api" {
       }
 
       env {
-        name  = "ML_HOST"
-        value = var.ml_host
+        name  = "ML_JOB_NAME"
+        value = var.ml_job_name
+      }
+
+      env {
+        name  = "ML_REGION"
+        value = var.ml_region
+      }
+
+      env {
+        name  = "GCP_PROJECT"
+        value = var.gcp_project
       }
 
       env {
