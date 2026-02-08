@@ -16,9 +16,8 @@ resource "google_cloud_run_v2_job" "ml" {
 
         resources {
           limits = {
-            cpu              = var.cpu
-            memory           = var.memory
-            "nvidia.com/gpu" = var.gpu_count
+            cpu    = var.cpu
+            memory = var.memory
           }
         }
 
@@ -56,6 +55,10 @@ resource "google_cloud_run_v2_job" "ml" {
   }
 
   lifecycle {
-    ignore_changes = [template[0].template[0].containers[0].image]
+    ignore_changes = [
+      template[0].template[0].containers[0].image,
+      template[0].template[0].containers[0].resources,
+      template[0].annotations,
+    ]
   }
 }
