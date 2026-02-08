@@ -33,10 +33,8 @@ COPY --from=build /app/apps/api/dist apps/api/dist
 COPY --from=build /app/apps/api/package.json apps/api/package.json
 COPY --from=build /app/apps/api/drizzle.config.ts apps/api/drizzle.config.ts
 COPY --from=build /app/apps/api/src/core/database/schema apps/api/src/core/database/schema
-COPY --from=build /app/packages/database/dist packages/database/dist
-COPY --from=build /app/packages/database/package.json packages/database/package.json
-COPY --from=build /app/packages/schema/dist packages/schema/dist
-COPY --from=build /app/packages/schema/package.json packages/schema/package.json
+COPY --from=build /app/packages/database packages/database
+COPY --from=build /app/packages/schema packages/schema
 COPY --from=build /app/package.json package.json
 
 EXPOSE 3000
