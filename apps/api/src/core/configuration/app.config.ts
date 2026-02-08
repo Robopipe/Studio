@@ -14,7 +14,10 @@ export const appConfigSchema = z.object({
   mlSecret: z.string(),
   webHost: z.string(),
   apiHost: z.string(),
-  mlHost: z.string(),
+  mlHost: z.string().optional(),
+  mlJobName: z.string().optional(),
+  mlRegion: z.string().optional(),
+  gcpProject: z.string().optional(),
   cookieSecret: z.string(),
 });
 
