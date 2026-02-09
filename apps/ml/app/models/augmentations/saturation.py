@@ -17,9 +17,10 @@ class Saturation(Augmentation, A_TYPE="HueSaturationValue"):
             {
                 "name": self.A_TYPE,
                 "params": {
-                    "hue_shift_limit": (0, 0),
-                    "sat_shift_limit": (self.params.min, self.params.max),
-                    "val_shift_limit": (0, 0),
+                    "hue_shift_limit": [0, 0],
+                    "sat_shift_limit": [self.params.min, self.params.max],
+                    "val_shift_limit": [0, 0],
+                    "p": self.params.p,
                 },
             }
         ]

@@ -6,14 +6,17 @@ $color_variants: (
     text: var(--color-text-secondary),
   ),
   success: (
-    bg: var(--color-emerald-400),
+    bg: var(--color-emerald-100),
     text: var(--color-emerald-700),
   ),
 );
 
 .badge {
-  padding: 0px 10px;
+  padding: 4px 10px;
   border-radius: 1000px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 
   @each $variant, $colors in $color_variants {
     &--#{$variant} {

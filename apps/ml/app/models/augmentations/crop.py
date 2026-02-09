@@ -17,8 +17,8 @@ class Crop(Augmentation, A_TYPE="RandomResizedCrop"):
             {
                 "name": self.A_TYPE,
                 "params": {
-                    "size": ("*width", "*height"),
-                    "scale": (self.params.scale_min, self.params.scale_max),
+                    "size": ["*width", "*height"],
+                    "scale": [self.params.scale_min, self.params.scale_max],
                 },
             }
         ]
