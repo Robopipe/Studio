@@ -17,8 +17,8 @@ class Mosaic(Augmentation, A_TYPE="Mosaic"):
             {
                 "name": self.A_TYPE,
                 "params": {
-                    "grid_yx": (self.params.rows, self.params.cols),
-                    "target_size": ("*height", "*width"),
+                    "grid_yx": [self.params.rows, self.params.cols],
+                    "target_size": ["*height", "*width"],
                     "p": self.params.p,
                 },
             }

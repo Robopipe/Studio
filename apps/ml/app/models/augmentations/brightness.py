@@ -17,11 +17,11 @@ class Brightness(Augmentation, A_TYPE="RandomBrightnessContrast"):
             {
                 "name": self.A_TYPE,
                 "params": {
-                    "brightness_limit": (
+                    "brightness_limit": [
                         self.params.brightness_limit_min,
                         self.params.brightness_limit_max,
-                    ),
-                    "contrast_limit": (0, 0),
+                    ],
+                    "contrast_limit": [0, 0],
                     "p": self.params.p,
                 },
             }

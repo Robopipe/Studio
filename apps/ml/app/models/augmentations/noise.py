@@ -20,8 +20,8 @@ class Noise(Augmentation, A_TYPE="GaussNoise"):
             {
                 "name": self.A_TYPE,
                 "params": {
-                    "std_range": (self.params.std_min, self.params.std_max),
-                    "mean_range": (self.params.mean_min, self.params.mean_max),
+                    "std_range": [self.params.std_min, self.params.std_max],
+                    "mean_range": [self.params.mean_min, self.params.mean_max],
                     "per_channel": self.params.per_channel,
                     "p": self.params.p,
                 },

@@ -17,7 +17,7 @@ class Shear(Augmentation, A_TYPE="Affine"):
             {
                 "name": self.A_TYPE,
                 "params": {
-                    "shear": (self.params.min, self.params.max),
+                    "shear": [self.params.min, self.params.max],
                     "p": self.params.p,
                 },
             }
