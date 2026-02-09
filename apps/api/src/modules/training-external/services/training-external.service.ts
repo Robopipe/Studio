@@ -159,6 +159,12 @@ export class TrainingExternalService {
       {},
     );
 
+    const augmentations = await this.db.query.modelAugmentationTable.findMany({
+      where: {
+        modelId: model.id,
+      }
+    })
+
     const basePayload: TrainingBasePayload = {
       id: model.id,
       training_config: {
@@ -171,6 +177,7 @@ export class TrainingExternalService {
             model.splitTest,
           ],
           labels: model.labels.map((_, index) => index),
+          augmentations
         },
       },
     };
