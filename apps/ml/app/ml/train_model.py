@@ -36,6 +36,7 @@ def __train(config: ModelConfig):
         luxonis_config = generate_luxonis_config(config, dir)
         config_path = f"{dir}/config.yml"
         prepare_dataset(dir, config.data, config.training_config.dataset_config)
+        print(luxonis_config)
         with open(config_path, "w") as f:
             f.write(luxonis_config)
         model = Model(config_path, debug_mode=True)

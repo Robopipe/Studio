@@ -7,8 +7,4 @@ class TrainingConfig(BaseSchema):
     epochs: int
     batch_size: int = 8
     dataset_config: DatasetConfig
-    output_types: list[ModelOutputType] = [
-        ModelOutputType.RAW,
-        ModelOutputType.RVC3,
-        ModelOutputType.RVC4,
-    ]
+    output_types: list[ModelOutputType]
