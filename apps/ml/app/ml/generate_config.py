@@ -11,7 +11,6 @@ def generate_model_config(model_config: ModelConfig) -> dict:
         "predefined_model": {
             "name": model_config.type.to_luxonis_model_type().value,
             "variant": "light",
-            "task": "multiclass"
         },
     }
 
@@ -31,6 +30,11 @@ def generate_loader_config(model_config: ModelConfig, dir: str) -> dict:
 
 def generate_trainer_config(model_config: ModelConfig) -> dict:
     webhook_url = get_config().webhook_url
+    augmentations_config = [
+        aug
+        for aug_list in model_config.training_config.dataset_config.augmentations
+        for aug in aug_list.to_config()
+    ]
     config = {
         "batch_size": model_config.training_config.batch_size,
         "epochs": model_config.training_config.epochs,
@@ -41,6 +45,7 @@ def generate_trainer_config(model_config: ModelConfig) -> dict:
         ],
         "validation_interval": 1,
         "log_sub_losses": False,
+        "preprocessing": {"augmentations": augmentations_config},
     }
 
     if webhook_url is not None:

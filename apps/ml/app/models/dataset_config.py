@@ -1,11 +1,24 @@
-from pydantic import field_validator
+from pydantic import field_validator, Field
 
+from typing import Annotated, Union
+
+from .augmentations.augmentation import AUG_REGISTRY
 from .base_schema import BaseSchema
 
 
 class DatasetConfig(BaseSchema):
     dataset_split: tuple[int, int, int]  # (train, val, test)
     labels: list[int]
+    augmentations: list[
+        Annotated[
+            Union[
+                tuple(
+                    x for x in AUG_REGISTRY.values() for x in x
+                )  # pyright: ignore[reportInvalidTypeForm]
+            ],
+            Field(discriminator="type"),
+        ]
+    ]
 
     @field_validator("dataset_split")
     @classmethod
