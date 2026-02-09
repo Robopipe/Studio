@@ -17,6 +17,7 @@
     "drizzle:push": "drizzle-kit push --config ./drizzle.config.ts"
   },
   "dependencies": {
+    "@google-cloud/run": "^1.5.1",
     "@google-cloud/secret-manager": "^6.1.1",
     "@google-cloud/storage": "^7.18.0",
     "@nestjs/axios": "^4.0.1",
