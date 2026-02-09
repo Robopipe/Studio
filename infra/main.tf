@@ -115,7 +115,9 @@ module "cloud_run" {
   bucket_name          = module.storage.assets_bucket_name
   web_host             = var.domain != "" ? "https://${var.domain}" : ""
   api_host             = var.api_domain != "" ? "https://${var.api_domain}" : ""
-  ml_host              = module.cloud_run_ml.url
+  ml_job_name          = module.cloud_run_ml.job_name
+  ml_region            = var.ml_region
+  gcp_project          = var.project_id
 
   depends_on = [google_project_service.apis, module.secrets]
 }
@@ -129,8 +131,6 @@ module "cloud_run_ml" {
   service_account = google_service_account.ml.email
   image           = var.ml_image != "" ? var.ml_image : "us-docker.pkg.dev/cloudrun/container/hello:latest"
   environment     = var.environment
-  min_instances   = var.ml_min_instances
-  max_instances   = var.ml_max_instances
   secret_ids      = module.secrets.secret_ids
   api_host        = "https://${var.api_domain}"
   gpu_type        = var.ml_gpu_type
@@ -140,6 +140,15 @@ module "cloud_run_ml" {
   timeout         = var.ml_timeout
 
   depends_on = [google_project_service.apis, module.secrets]
+}
+
+# Allow the API service account to trigger ML jobs
+resource "google_cloud_run_v2_job_iam_member" "api_can_run_ml_job" {
+  project  = var.project_id
+  name     = module.cloud_run_ml.job_name
+  location = var.ml_region
+  role     = "roles/run.invoker"
+  member   = "serviceAccount:${google_service_account.api.email}"
 }
 
 module "storage" {
@@ -261,9 +270,9 @@ resource "google_cloudbuild_trigger" "ml" {
   filename = "cloudbuild-ml.yaml"
 
   substitutions = {
-    _REGION       = var.ml_region
-    _PROJECT_ID   = var.project_id
-    _REPO_NAME    = module.artifact_registry.repository_id
-    _SERVICE_NAME = module.cloud_run_ml.service_name
+    _REGION     = var.ml_region
+    _PROJECT_ID = var.project_id
+    _REPO_NAME  = module.artifact_registry.repository_id
+    _JOB_NAME   = module.cloud_run_ml.job_name
   }
 }

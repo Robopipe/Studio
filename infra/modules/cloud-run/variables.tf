@@ -51,10 +51,19 @@ variable "api_host" {
   default     = ""
 }
 
-variable "ml_host" {
-  description = "ML service URL"
+variable "ml_job_name" {
+  description = "Cloud Run ML job name"
   type        = string
-  default     = ""
+}
+
+variable "ml_region" {
+  description = "Region where the ML job is deployed"
+  type        = string
+}
+
+variable "gcp_project" {
+  description = "GCP project ID"
+  type        = string
 }
 
 variable "bucket_name" {

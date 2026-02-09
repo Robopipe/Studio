@@ -23,7 +23,7 @@ output "artifact_registry" {
   value       = module.artifact_registry.repository_id
 }
 
-output "ml_url" {
-  description = "Cloud Run ML service URL"
-  value       = module.cloud_run_ml.url
+output "ml_job_name" {
+  description = "Cloud Run ML job name"
+  value       = module.cloud_run_ml.job_name
 }

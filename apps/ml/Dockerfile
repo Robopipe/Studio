@@ -27,17 +27,8 @@ COPY app/ ./app/
 # Create directories for exports and datasets
 RUN mkdir -p /app/export /app/dataset
 
-# Expose the default port
-EXPOSE 8000
-
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
-ENV HOST=0.0.0.0
-ENV PORT=8000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:8000/ || exit 1
-
-# Run the application
-CMD ["python", "-m", "app"]
+# Run as Cloud Run Job entrypoint
+CMD ["python", "-m", "app.job"]
