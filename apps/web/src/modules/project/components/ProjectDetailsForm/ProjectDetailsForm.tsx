@@ -1,3 +1,4 @@
+import { useAuth } from "@/core/auth/hooks";
 import { Heading, TextArea, TextInput } from "@repo/ui";
 import styles from "./ProjectDetailsForm.module.scss";
 
@@ -6,6 +7,8 @@ interface ProjectDetailsFormProps {
   setName: (val: string) => void;
   description: string;
   setDescription: (val: string) => void;
+  cameraApiUrl: string | null;
+  setCameraApiUrl: (val: string) => void;
 }
 
 export const ProjectDetailsForm = ({
@@ -13,7 +16,11 @@ export const ProjectDetailsForm = ({
   setName,
   description,
   setDescription,
+  cameraApiUrl,
+  setCameraApiUrl,
 }: ProjectDetailsFormProps) => {
+  const { user } = useAuth();
+
   return (
     <div className={styles.formSection}>
       <Heading variant="h5" weight="600">
@@ -27,7 +34,7 @@ export const ProjectDetailsForm = ({
           placeholder="Project name"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          />
+        />
 
         <TextArea
           label="Project description"
@@ -36,6 +43,14 @@ export const ProjectDetailsForm = ({
           rows={5}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
+        />
+
+        <TextInput
+          label="Camera API URL"
+          boldLabel={true}
+          placeholder={`${user?.cameraApiUrl} (inherited from account settings)`}
+          value={cameraApiUrl ?? ""}
+          onChange={(e) => setCameraApiUrl(e.target.value)}
         />
       </div>
     </div>

@@ -1,5 +1,5 @@
-import type { Project, ProjectTypeEnum } from '@repo/schema';
-import type { ProjectSelect } from 'src/repository/types/project';
+import type { Project, ProjectTypeEnum } from "@repo/schema";
+import type { ProjectSelect } from "src/repository/types/project";
 
 export class ProjectEntity {
   readonly id: number;
@@ -7,6 +7,7 @@ export class ProjectEntity {
   readonly description: string;
   readonly organizationId: number;
   readonly type: ProjectTypeEnum;
+  readonly cameraApiUrl: string | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;
   readonly deletedAt: Date | null;
@@ -17,9 +18,10 @@ export class ProjectEntity {
     this.description = data.description;
     this.type = data.type;
     this.organizationId = data.organizationId;
+    this.cameraApiUrl = data.cameraApiUrl;
     this.createdAt = data.createdAt;
     this.updatedAt = data.updatedAt;
-    this.deletedAt = data.deletedAt
+    this.deletedAt = data.deletedAt;
   }
 
   public toResponse(): Project {
@@ -29,9 +31,10 @@ export class ProjectEntity {
       description: this.description,
       type: this.type,
       organizationId: this.organizationId,
+      cameraApiUrl: this.cameraApiUrl,
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),
-      deletedAt: this.deletedAt ? this.deletedAt.toISOString() : null
+      deletedAt: this.deletedAt ? this.deletedAt.toISOString() : null,
     };
   }
 }

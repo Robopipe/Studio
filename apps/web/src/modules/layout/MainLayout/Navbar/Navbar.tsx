@@ -1,4 +1,4 @@
-import { useLogoutMutation } from "@/core/auth/services";
+import { useLogoutMutation, useProfileQuery } from "@/core/auth/services";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import {
   useGetProjectQuery,
@@ -15,12 +15,13 @@ import {
   Stack,
   SupportIcon,
 } from "@repo/ui";
-import { matchPath, useLocation, useNavigate } from "react-router";
+import { Link, matchPath, useLocation, useNavigate } from "react-router";
 
 import { useEffect } from "react";
 import styles from "./Navbar.module.scss";
 import { NavDropdown } from "./components/NavDropdown";
 import { NavItem } from "./components/NavItem";
+import { webConfig } from "@/config/web";
 
 export const Navbar = () => {
   const navigate = useNavigate();
@@ -28,6 +29,7 @@ export const Navbar = () => {
 
   const [logout] = useLogoutMutation();
   const { data: projects } = useGetProjectsQuery();
+  const { data: profile } = useProfileQuery();
   const [activeProject, setActiveProject] = useActiveProject();
 
   const match = matchPath(
@@ -75,6 +77,14 @@ export const Navbar = () => {
       navigate("/login");
     }
   };
+
+  const initials = profile
+    ? profile.fullName
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+    : "";
 
   return (
     <nav className={styles.navbar}>
@@ -140,7 +150,7 @@ export const Navbar = () => {
 
       {/* Right: User Actions */}
       <Stack direction="row" align="center" gap={12} className={styles.right}>
-        <div className={styles.userAvatar}>FM</div>
+        <Link to={webConfig.routes.account} className={styles.userAvatar}>{initials}</Link>
         <button
           className={styles.iconBtn}
           onClick={() => window.open("https://docs.robopipe.ai", "_blank")}

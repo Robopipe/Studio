@@ -22,9 +22,10 @@ export const RegisterForm = () => {
     const formData = new FormData(e.currentTarget);
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
-
+    const fullName = formData.get("fullName") as string;
+    console.log("Form Data:", { email, password, fullName });
     try {
-      await register({ email, password }).unwrap();
+      await register({ email, password, fullName }).unwrap();
       redirect("/");
     } catch (error) {
       console.error("Registration failed:", error);
@@ -49,8 +50,7 @@ export const RegisterForm = () => {
           <div className={styles.ErrorBox}>
             <div className={styles.ErrorTag}>ERROR</div>
             <div className={styles.ErrorMessage}>
-              The username or password you entered is incorrect. Please check
-              your credentials and try again.
+              Registration failed. Please check your details and try again.
             </div>
           </div>
         )}
@@ -63,6 +63,15 @@ export const RegisterForm = () => {
               type="email"
               placeholder="Email"
               helperText="Enter your email address"
+              error={isError}
+              required
+            />
+            <TextInput
+              label="Full Name"
+              name="fullName"
+              type="text"
+              placeholder="Full Name"
+              helperText="Enter your full name"
               error={isError}
               required
             />
@@ -81,7 +90,7 @@ export const RegisterForm = () => {
               disabled={isLoading}
               className={styles.SubmitBtn}
             >
-              Log In
+              {isLoading ? "Signing Up..." : "Sign Up"}
             </Button>
           </Stack>
         </bui.Form>

@@ -17,4 +17,11 @@ export const jwtSchema = z.object({
   exp: z.int(),
 });
 
-export const registerSchema = loginSchema
+export const registerSchema = loginSchema.extend({
+  fullName: z.string().nonempty(),
+});
+
+export const updateUserSchema = z.object({
+  fullName: z.string().nonempty(),
+  cameraApiUrl: z.url(),
+});
