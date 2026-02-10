@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Req,
   Res,
   UnauthorizedException,
@@ -18,7 +19,7 @@ import { User } from '../decorators/user.decorator';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { LocalAuthGuard } from '../guards/local-auth.guard';
 import { AuthService } from '../services/auth.service';
-import { RegisterDto } from "../dto/auth.dto";
+import { RegisterDto, UserUpdateRequest } from "../dto/auth.dto";
 
 @Controller('auth')
 @Public()
@@ -58,6 +59,13 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   getProfile(@User() user: UserEntity): UserDto {
     return user.toDto();
+  }
+
+  @Put('profile')
+  @UseGuards(JwtAuthGuard)
+  async updateProfile(@User() user: UserEntity, @Body() data: UserUpdateRequest): Promise<UserDto> {
+    const updatedUser = await this.authService.updateProfile(user.id, data);
+    return updatedUser.toDto();
   }
 
   @Post("register")

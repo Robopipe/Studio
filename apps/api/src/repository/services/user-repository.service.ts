@@ -2,8 +2,10 @@ import { Inject, Injectable, InternalServerErrorException } from '@nestjs/common
 import { DB_CONNECTION } from 'src/core/database/database.constant';
 import type { DbConnection } from 'src/core/database/types/database.types';
 import { UserEntity } from 'src/modules/user/entities/user.entity';
-import { UserInsert } from "../types/user";
+import { UserInsert, UserUpdate } from "../types/user";
 import { userTable } from "@repo/database";
+import { eq } from 'drizzle-orm';
+import { UpdateUserRequest } from '@repo/schema';
 
 @Injectable()
 export class UserRepository {
@@ -70,5 +72,26 @@ export class UserRepository {
     }
 
     return new UserEntity(createdUser)
+  }
+
+  /**
+   * Update user
+   * @param id
+   * @param data - UserUpdate
+   * @throws InternalServerErrorException - Failed updating user
+   * @returns updated user
+   */
+  public async update(id: number, data: UserUpdate): Promise<UserEntity> {
+    const [updatedUser] = await this.db
+      .update(userTable)
+      .set(data)
+      .where(eq(userTable.id, id))
+      .returning()
+
+    if(!updatedUser){
+      throw new InternalServerErrorException("Failed updating user")
+    }
+
+    return new UserEntity(updatedUser)
   }
 }
