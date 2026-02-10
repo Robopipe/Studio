@@ -4,6 +4,10 @@ import { Button, NumberInput, Stack, Text, TextInput } from "@repo/ui";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { useCreateModelMutation, useTrainModelMutation } from "../../services";
+import {
+  AppliedAugmentation,
+  AugmentationSettings,
+} from "../AugmentationSettings";
 import { DatasetSplit, DatasetSplitSettings } from "../DatasetSplitSettings";
 import { ModelLayout } from "../ModelLayout/ModelLayout";
 import { OutputSettings } from "../OutputSettings";
@@ -28,6 +32,7 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
     validation: 20,
     test: 10,
   });
+  const [augmentations, setAugmentations] = useState<AppliedAugmentation[]>([]);
 
   const saveModel = async (train = false) => {
     const newModel = await createModel({
@@ -39,6 +44,7 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
       splitTrain: datasetSplit.train,
       splitValidate: datasetSplit.validation,
       outputTypes: outputs,
+      augmentations
     }).unwrap();
     if (train) {
       await trainModel({
@@ -83,7 +89,12 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
           activeLabels={activeLabels}
         />
         <DatasetSplitSettings split={datasetSplit} onChange={setDatasetSplit} />
+        <AugmentationSettings
+          augmentations={augmentations}
+          onChange={setAugmentations}
+        />
         <OutputSettings outputs={outputs} setOutputs={setOutputs} />
+
         <Stack direction="row" justify="end">
           <Button onClick={() => saveModel()}>Save</Button>
           <Button onClick={() => saveModel(true)}>Save & Train</Button>

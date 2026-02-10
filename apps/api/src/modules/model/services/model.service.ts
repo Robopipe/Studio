@@ -13,7 +13,7 @@ import { ModelStatusEnum } from "@repo/schema";
 import { ProjectLabelRepository } from "../../../repository/services/project-label-repository.service";
 import { DB_CONNECTION } from "../../../core/database/database.constant";
 import type { DbConnection } from "../../../core/database/types/database.types";
-import { modelLabelTable } from "@repo/database";
+import { modelAugmentationTable, modelLabelTable } from "@repo/database";
 import { eq } from "drizzle-orm";
 import { ModelLogRepository } from "../../../repository/services/model-log-repository.service";
 import { ModelLogEntity } from "../entity/model-log.entity";
@@ -93,6 +93,12 @@ export class ModelService{
     await this.db.insert(modelLabelTable).values(labels.map((labelId) => ({
       modelId: createdModel.id,
       labelId
+    })))
+
+    await this.db.insert(modelAugmentationTable).values(data.augmentations.map(aug => ({
+      modelId: createdModel.id,
+      type: aug.type,
+      params: aug.params
     })))
 
     return this.getModelById(createdModel.id, projectId)

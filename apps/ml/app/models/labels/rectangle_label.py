@@ -5,19 +5,17 @@ from .label import Label
 
 class RectangleLabel(BaseSchema):
     label: Label
-    x: int
-    y: int
-    width: int
-    height: int
+    x: float
+    y: float
+    width: float
+    height: float
 
     def __get_normalized_coordinates(
         self, image_width: int, image_height: int
     ) -> tuple[float, float, float, float]:
-        x_center = (self.x + self.width / 2) / image_width
-        y_center = (self.y + self.height / 2) / image_height
-        norm_width = self.width / image_width
-        norm_height = self.height / image_height
-        return x_center, y_center, norm_width, norm_height
+        x_center = (self.x + self.width / 2) / 100
+        y_center = (self.y + self.height / 2) / 100
+        return x_center, y_center, self.width / 100, self.height / 100
 
     def to_str(self, image_width: int, image_height: int) -> str:
         x_center, y_center, norm_width, norm_height = self.__get_normalized_coordinates(
