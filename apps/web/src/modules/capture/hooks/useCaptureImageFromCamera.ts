@@ -1,4 +1,4 @@
-import { appConfig } from "@/config";
+import { useCameraApiUrl } from "@/hooks";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import { useState, useRef, useEffect } from "react";
 import { useCreateTaskMutation } from "../services/captureApi";
@@ -17,6 +17,7 @@ interface QueuedUpload {
 export const useCaptureImageFromCamera = () => {
   const [createTask] = useCreateTaskMutation();
   const [activeProject] = useActiveProject();
+  const cameraApiUrl = useCameraApiUrl();
   const [isLoading, setIsLoading] = useState(false);
   const [uploadQueue, setUploadQueue] = useState<QueuedUpload[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -50,7 +51,7 @@ export const useCaptureImageFromCamera = () => {
   const handleCaptureImage = async (mxid: string, streamName: string) => {
     setIsLoading(true);
     try {
-      const url = `${appConfig.cameraApi.baseUrl}/cameras/${mxid}/streams/${streamName}/still`;
+      const url = `${cameraApiUrl}/cameras/${mxid}/streams/${streamName}/still`;
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error("Failed to capture image");

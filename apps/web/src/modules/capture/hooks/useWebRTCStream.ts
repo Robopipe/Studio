@@ -1,4 +1,4 @@
-import { cameraApiConfig } from "@/config/cameraApi";
+import { useCameraApiUrl } from "@/hooks";
 import { useEffect, useRef, useState } from "react";
 
 export interface UseWebRTCStreamOptions {
@@ -11,8 +11,6 @@ export interface UseWebRTCStreamReturn {
   isStreaming: boolean;
   error: string | null;
 }
-
-const apiHost = cameraApiConfig.baseUrl;
 
 const ICE_SERVERS: RTCIceServer[] = [
   { urls: ["stun:stun.l.google.com:19302"] },
@@ -34,6 +32,7 @@ export const useWebRTCStream = (
   options: UseWebRTCStreamOptions,
 ): UseWebRTCStreamReturn => {
   const { selectedMxid, selectedSensorName } = options;
+  const apiHost = useCameraApiUrl();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -201,7 +200,7 @@ export const useWebRTCStream = (
       }
       setIsStreaming(false);
     };
-  }, [selectedMxid, selectedSensorName]);
+  }, [selectedMxid, selectedSensorName, apiHost]);
 
   return {
     videoRef,

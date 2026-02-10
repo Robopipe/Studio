@@ -15,4 +15,5 @@ export const webRoutes = {
   capture: "/projects/:projectId/capture",
   label: "/projects/:projectId/label",
   run: "/projects/:projectId/run",
+  account: "/account",
 } as const;

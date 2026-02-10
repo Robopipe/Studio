@@ -1,4 +1,4 @@
-import { cameraApiConfig } from "@/config/cameraApi";
+import { useCameraApiUrl } from "@/hooks";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export interface UseMJPEGStreamOptions {
@@ -12,12 +12,11 @@ export interface UseMJPEGStreamReturn {
   isStreaming: boolean;
 }
 
-const apiHost = cameraApiConfig.baseUrl;
-
 export const useMJPEGStream = (
   options: UseMJPEGStreamOptions,
 ): UseMJPEGStreamReturn => {
   const { selectedMxid, selectedSensorName } = options;
+  const apiHost = useCameraApiUrl();
   const imageRef = useRef<HTMLImageElement | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
 
@@ -26,7 +25,7 @@ export const useMJPEGStream = (
 
     const baseUrl = `${apiHost}/cameras/${selectedMxid}/streams/${selectedSensorName}/mjpeg`;
     imageRef.current.src = `${baseUrl}?t=${Date.now()}`;
-  }, [selectedMxid, selectedSensorName]);
+  }, [selectedMxid, selectedSensorName, apiHost]);
 
   useEffect(() => {
     const img = imageRef.current;
@@ -50,7 +49,7 @@ export const useMJPEGStream = (
       img.src = "";
       setIsStreaming(false);
     };
-  }, [selectedMxid, selectedSensorName]);
+  }, [selectedMxid, selectedSensorName, apiHost]);
 
   return {
     imageRef,

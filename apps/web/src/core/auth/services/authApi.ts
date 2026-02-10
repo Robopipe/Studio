@@ -2,7 +2,7 @@ import { appConfig } from "@/config";
 import { baseQuery } from "@/core/api/baseQuery";
 import { HttpMethod } from "@/types";
 import { createApi } from "@reduxjs/toolkit/query/react";
-import { Login, Register, Token, User } from "@repo/schema";
+import { Login, Register, Token, UpdateUserRequest, User } from "@repo/schema";
 
 const { auth } = appConfig.studioApi.endpoints;
 const authApiBase = createApi({
@@ -40,10 +40,17 @@ export const authApi = authApiBase.injectEndpoints({
       }),
     }),
     register: builder.mutation<Token, Register>({
-      query: ({ email, password }) => ({
+      query: (data) => ({
         url: auth.register,
         method: HttpMethod.POST,
-        body: { email, password },
+        body: data,
+      }),
+    }),
+    updateProfile: builder.mutation<User, UpdateUserRequest>({
+      query: (data) => ({
+        url: auth.profile,
+        method: HttpMethod.PUT,
+        body: data,
       }),
     }),
   }),
@@ -56,4 +63,5 @@ export const {
   useLogoutMutation,
   useProfileQuery,
   useRegisterMutation,
+  useUpdateProfileMutation,
 } = authApi;
