@@ -29,11 +29,20 @@ export const ModelCard = ({ model, order }: ModelCardProps) => {
       to={`/projects/${projectId}/models/${model.id}`}
       style={{ textDecoration: "none", color: "inherit" }}
     >
-      <Container className={clsx([styles.modelCard, model.id.toString() === modelId && styles["modelCard--active"]])} paddingX="sm" paddingY="sm">
+      <Container
+        className={clsx([
+          styles.modelCard,
+          model.id.toString() === modelId && styles["modelCard--active"],
+        ])}
+        paddingX="sm"
+        paddingY="sm"
+      >
         <Stack gap={8}>
           <Stack direction="row">
-            <Badge variant={getBadgeVariant(model.status)}>v{order}</Badge>
-            <Badge>{model.status.toLowerCase()}</Badge>
+            <Badge>v{order}</Badge>
+            <Badge variant={getBadgeVariant(model.status)}>
+              {model.status.toLowerCase()}
+            </Badge>
           </Stack>
           <Text variant="text-16" weight="700" as="p">
             {model.name}
