@@ -67,7 +67,12 @@ export const projectApi = projectApiBase.injectEndpoints({
     }),
     updateProject: builder.mutation<
       Project,
-      { projectId: number; name: string; description: string }
+      {
+        projectId: number;
+        name: string;
+        description: string;
+        cameraApiUrl: string | null;
+      }
     >({
       query: ({ projectId, ...body }) => ({
         url: projects.project(projectId),

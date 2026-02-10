@@ -1,6 +1,6 @@
 import { ACCESS_TOKEN_KEY } from "@/core/api";
 import { createSlice, isAnyOf, PayloadAction } from "@reduxjs/toolkit";
-import { Token } from "@repo/schema";
+import { Token, User } from "@repo/schema";
 import { AuthState } from "../types";
 import { authApi } from "./authApi";
 
@@ -61,6 +61,12 @@ export const authSlice = createSlice({
           state.user = user;
           state.isAuthenticated = true;
           sessionStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+        },
+      )
+      .addMatcher(
+        authApi.endpoints.updateProfile.matchFulfilled,
+        (state, { payload }: PayloadAction<User>) => {
+          state.user = payload;
         },
       );
   },
