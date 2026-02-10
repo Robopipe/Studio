@@ -1,4 +1,4 @@
-import { Button, EthernetIcon, NoCameraIcon, RefreshIcon, Stack, Text, USBIcon } from "@repo/ui";
+import { Button, EthernetIcon, NoCameraIcon, RefreshIcon, Spinner, Stack, Text, USBIcon } from "@repo/ui";
 import styles from "./NoCameraDetected.module.scss";
 
 export interface NoCameraDetectedProps {
@@ -40,26 +40,18 @@ export const NoCameraDetected = ({ onRefresh, isRefreshing }: NoCameraDetectedPr
         disabled={isRefreshing}
         className={styles.refreshButton}
       >
-        <RefreshIcon />
+        {isRefreshing ? <Spinner size="sm" style={{ "--color-primary": "#fff" } as React.CSSProperties} /> : <RefreshIcon />}
         Refresh
       </Button>
 
       <Stack gap={8} className={styles.helpLinks}>
         <a
-          href="https://docs.robopipe.ai/connect-camera-usb"
+          href="https://robopipe.gitbook.io/doc/getting-started/connection"
           target="_blank"
           rel="noopener noreferrer"
           className={styles.helpLink}
         >
-          Learn more how to connect camera using USB
-        </a>
-        <a
-          href="https://docs.robopipe.ai/connect-camera-ethernet"
-          target="_blank"
-          rel="noopener noreferrer"
-          className={styles.helpLink}
-        >
-          Learn more how to connect camera using Ethernet (PoE)
+          Learn more how to connect camera
         </a>
       </Stack>
     </Stack>

@@ -21,7 +21,7 @@
 
   &:hover:not(:disabled) {
     background: rgba(0, 0, 0, 0.06);
-    color: var(--color-text-primary);
+    color: #000;
   }
 
   svg {
@@ -31,12 +31,12 @@
 }
 
 .active {
-  background: rgba(99, 102, 241, 0.12);
-  color: #6366f1;
+  background: rgba(16, 185, 129, 0.1);
+  color: #000;
 
   &:hover {
-    background: rgba(99, 102, 241, 0.18);
-    color: #6366f1;
+    background: rgba(16, 185, 129, 0.18);
+    color: #000;
   }
 }
 
