@@ -1,6 +1,6 @@
-import { ConflictException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import type { Jwt, Token } from '@repo/schema';
+import type { Jwt, Token, UpdateUserRequest } from '@repo/schema';
 import { compare, hash } from 'bcrypt';
 import type { Response } from 'express';
 import { AppConfig } from 'src/core/configuration/app.config';
@@ -112,7 +112,7 @@ export class AuthService {
     const user = await this.userRepository.create({
       email: data.email,
       username: data.email,
-      fullName: data.email, // TODO?
+      fullName: data.fullName,
       password: hashedPassword,
       organizationId: organization.id
     })
@@ -160,5 +160,22 @@ export class AuthService {
    */
   private hashPassword(password: string): Promise<string>{
     return hash(password, 10)
+  }
+
+  /**
+   * Update user profile
+   * @param id - user id
+   * @param data - UpdateUserRequest
+   * @throws NotFoundException if user not found
+   * @returns updated user
+   */
+  public async updateProfile(id: number, data: UpdateUserRequest): Promise<UserEntity> {
+    const user = await this.userRepository.getById(id);
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return this.userRepository.update(id, data);
   }
 }
