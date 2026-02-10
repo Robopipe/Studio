@@ -42,7 +42,7 @@ export const ProjectsPage = ({}: ProjectsPageProps) => {
             project={project}
             onClick={() => {
               navigate(
-                webRoutes.main.project.replace(":projectId", project.id.toString()),
+                webRoutes.capture.replace(":projectId", project.id.toString()),
               );
             }}
           />

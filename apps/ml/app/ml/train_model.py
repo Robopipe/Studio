@@ -30,12 +30,13 @@ def __upload_model(url: str, file_path: str, api_key: str) -> None:
         print(f"Failed to upload model to {url}: {e}")
 
 
-def __train(config: ModelConfig):
+def run_training(config: ModelConfig):
     ONNX_PATH = f"export/{config.id}.onnx"
     with tempfile.TemporaryDirectory() as dir:
         luxonis_config = generate_luxonis_config(config, dir)
         config_path = f"{dir}/config.yml"
         prepare_dataset(dir, config.data, config.training_config.dataset_config)
+        print(luxonis_config)
         with open(config_path, "w") as f:
             f.write(luxonis_config)
         model = Model(config_path, debug_mode=True)
@@ -76,6 +77,6 @@ def __train(config: ModelConfig):
 
 
 def train_model(config: ModelConfig):
-    process = Process(target=__train, args=(config,))
+    process = Process(target=run_training, args=(config,))
     process.start()
     return {"status": "Training started"}

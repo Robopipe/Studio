@@ -23,16 +23,6 @@ variable "environment" {
   type = string
 }
 
-variable "min_instances" {
-  type    = number
-  default = 0
-}
-
-variable "max_instances" {
-  type    = number
-  default = 3
-}
-
 variable "secret_ids" {
   description = "Map of secret key to Secret Manager secret ID"
   type        = map(string)

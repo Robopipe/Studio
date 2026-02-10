@@ -9,13 +9,15 @@ import { AssetsModule } from "../assets/assets.module";
   imports: [HttpModule.registerAsync({
     inject: [AppConfig],
     useFactory: (config: AppConfig) => ({
-      baseURL: config.mlHost,
+      baseURL: config.mlHost ?? "",
       headers: {
         Authorization: config.mlSecret
       }
     })
   }), AssetsModule],
-  providers: [TrainingExternalService],
+  providers: [
+    TrainingExternalService,
+  ],
   controllers: [TrainingExternalController],
   exports: [TrainingExternalService]
 })

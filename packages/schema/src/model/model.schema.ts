@@ -15,6 +15,22 @@ export enum ModelOutputTypeEnum {
   RVC3 = "RVC3",
   RVC2 = "RVC2",
 }
+export enum ModelAugmentationTypeEnum {
+  FLIP = "FLIP",
+  ROTATE90 = "ROTATE90",
+  CROP = "CROP",
+  ROTATION = "ROTATION",
+  SHEAR = "SHEAR",
+  GRAYSCALE = "GRAYSCALE",
+  HUE = "HUE",
+  SATURATION = "SATURATION",
+  BRIGHTNESS = "BRIGHTNESS",
+  CONTRAST = "CONTRAST",
+  BLUR = "BLUR",
+  NOISE = "NOISE",
+  CUTOUT = "CUTOUT",
+  MOSAIC = "MOSAIC",
+}
 
 export const modelSchema = z.object({
   id: z.number(),
@@ -33,34 +49,47 @@ export const modelSchema = z.object({
 export const modelLogMetricsSchema = z.object({
   accuracy: z.number(),
   loss: z.number(),
-})
+});
 
 export const modelLogSchema = z.object({
   id: z.number(),
   epoch: z.number(),
   metrics: modelLogMetricsSchema,
   createdAt: z.iso.datetime(),
-})
+});
 
+export const modelAugmentationSchema = z.object({
+  id: z.number(),
+  modelId: z.number(),
+  type: z.enum(ModelAugmentationTypeEnum),
+  params: z.record(z.string(), z.unknown()),
+});
 
+export const createModelSchema = modelSchema
+  .pick({
+    name: true,
+    epochs: true,
+    outputTypes: true,
+    splitTrain: true,
+    splitValidate: true,
+    splitTest: true,
+  })
+  .extend({
+    labelIds: z.number().array(),
+    augmentations: z
+      .object({
+        type: z.enum(ModelAugmentationTypeEnum),
+        params: z.record(z.string(), z.unknown()),
+      })
+      .array()
+      .default([]),
+  });
 
-export const createModelSchema = modelSchema.pick({
-  name: true,
-  epochs: true,
-  outputTypes: true,
-  splitTrain: true,
-  splitValidate: true,
-  splitTest: true,
-}).extend({
-  labelIds: z.number().array()
-})
-
-export const updateModelSchema = createModelSchema
-
+export const updateModelSchema = createModelSchema;
 
 export const modelOutputSchema = z.object({
   id: z.number(),
   type: z.enum(ModelOutputTypeEnum),
   filePath: z.string(),
-  fileType: z.enum(TaskFileTypeEnum)
-})
+  fileType: z.enum(TaskFileTypeEnum),
+});

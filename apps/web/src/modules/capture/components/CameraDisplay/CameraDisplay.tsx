@@ -1,4 +1,4 @@
-import { useMJPEGStream } from "../../hooks/useMJPEGStream";
+import { useWebRTCStream } from "../../hooks/useWebRTCStream";
 
 import styles from "./CameraDisplay.module.scss";
 
@@ -11,7 +11,7 @@ export const CameraDisplay = ({
   selectedMxid,
   selectedSensorName,
 }: CameraDisplayProps) => {
-  const { imageRef, isStreaming } = useMJPEGStream({
+  const { videoRef, isStreaming, error } = useWebRTCStream({
     selectedMxid,
     selectedSensorName,
   });
@@ -20,10 +20,21 @@ export const CameraDisplay = ({
     <div className={styles.container}>
       {isStreaming && <span className={styles.liveLabel}>LIVE</span>}
 
-      <img ref={imageRef} className={styles.stream} alt="Camera Feed" />
+      <video
+        ref={videoRef}
+        autoPlay
+        muted
+        playsInline
+        className={styles.stream}
+      ></video>
 
-      {!isStreaming && (
+      {!isStreaming && !error && (
         <div className={styles.placeholder}>Connecting to camera...</div>
+      )}
+      {error && (
+        <div className={styles.placeholder} style={{ color: "red" }}>
+          Error: {error}
+        </div>
       )}
     </div>
   );
