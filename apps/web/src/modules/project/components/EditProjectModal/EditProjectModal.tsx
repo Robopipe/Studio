@@ -1,27 +1,35 @@
-import { useState } from "react";
 import { Project } from "@repo/schema";
 import { Button, Stack } from "@repo/ui";
-import { 
-  useUpdateProjectMutation, 
+import { useState } from "react";
+import {
   useCreateProjectLabelMutation,
   useDeleteProjectLabelMutation,
-  useGetProjectLabelsQuery
+  useGetProjectLabelsQuery,
+  useUpdateProjectMutation,
 } from "../../services/projectApi";
+import { LabelingSetup, LocalLabel } from "../LabelingSetup";
 import { Modal, ModalTab } from "../Modal";
 import { ProjectDetailsForm } from "../ProjectDetailsForm";
-import { LabelingSetup, LocalLabel } from "../LabelingSetup";
 
 interface EditProjectModalProps {
   project: Project;
   onClose: () => void;
 }
 
-export const EditProjectModal = ({ project, onClose }: EditProjectModalProps) => {
+export const EditProjectModal = ({
+  project,
+  onClose,
+}: EditProjectModalProps) => {
   const [name, setName] = useState(project.name);
   const [description, setDescription] = useState(project.description || "");
-  
-  const { data: existingLabels } = useGetProjectLabelsQuery({ projectId: project.id });
-  
+  const [cameraApiUrl, setCameraApiUrl] = useState<string | null>(
+    project.cameraApiUrl,
+  );
+
+  const { data: existingLabels } = useGetProjectLabelsQuery({
+    projectId: project.id,
+  });
+
   const [updateProject, { isLoading: isUpdating }] = useUpdateProjectMutation();
   const [createLabel] = useCreateProjectLabelMutation();
   const [deleteLabel] = useDeleteProjectLabelMutation();
@@ -34,6 +42,7 @@ export const EditProjectModal = ({ project, onClose }: EditProjectModalProps) =>
         projectId: project.id,
         name,
         description,
+        cameraApiUrl,
       }).unwrap();
 
       onClose();
@@ -52,6 +61,8 @@ export const EditProjectModal = ({ project, onClose }: EditProjectModalProps) =>
           setName={setName}
           description={description}
           setDescription={setDescription}
+          cameraApiUrl={cameraApiUrl}
+          setCameraApiUrl={setCameraApiUrl}
         />
       ),
     },
@@ -61,11 +72,13 @@ export const EditProjectModal = ({ project, onClose }: EditProjectModalProps) =>
       content: (
         <LabelingSetup
           labels={(existingLabels || []) as LocalLabel[]}
-          onAddLabel={(label) => 
+          onAddLabel={(label) =>
             createLabel({ projectId: project.id, ...label })
           }
           onRemoveLabel={(labelName) => {
-            const labelToDelete = existingLabels?.find(l => l.name === labelName);
+            const labelToDelete = existingLabels?.find(
+              (l) => l.name === labelName,
+            );
             if (labelToDelete) {
               deleteLabel({ projectId: project.id, labelId: labelToDelete.id });
             }

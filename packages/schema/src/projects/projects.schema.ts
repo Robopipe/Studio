@@ -12,19 +12,22 @@ export const projectSchema = z.object({
   name: z.string(),
   description: z.string(),
   type: z.enum(ProjectTypeEnum),
+  cameraApiUrl: z.url().nullable(),
   organizationId: z.number(),
-  ...timestampsSchema
+  ...timestampsSchema,
 });
 
 export const createProjectRequestSchema = z.object({
   name: z.string().min(1).max(256),
   description: z.string(),
-  type: z.enum(ProjectTypeEnum)
+  type: z.enum(ProjectTypeEnum),
+  cameraApiUrl: z.url().nullable(),
 });
 
 export const updateProjectRequestSchema = z.object({
   name: z.string().min(1).max(256),
   description: z.string(),
+  cameraApiUrl: z.url().nullable(),
 });
 
 export const projectListResponseSchema = z.object({
