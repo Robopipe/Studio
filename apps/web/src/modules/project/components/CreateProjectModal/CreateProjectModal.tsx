@@ -21,6 +21,9 @@ export const CreateProjectModal = ({
   const [name, setName] = useState(initialName ?? "");
   const [description, setDescription] = useState("");
   const [cameraApiUrl, setCameraApiUrl] = useState<string | null>(null);
+  const [projectType, setProjectType] = useState<ProjectTypeEnum>(
+    ProjectTypeEnum.SEGMENTATION,
+  );
   const [localLabels, setLocalLabels] = useState<LocalLabel[]>([]);
 
   const [createProject, { isLoading: isCreatingProject }] =
@@ -34,7 +37,7 @@ export const CreateProjectModal = ({
       const project = await createProject({
         name,
         description,
-        type: ProjectTypeEnum.SEGMENTATION,
+        type: projectType,
         cameraApiUrl,
       }).unwrap();
 
@@ -76,6 +79,8 @@ export const CreateProjectModal = ({
           setDescription={setDescription}
           cameraApiUrl={cameraApiUrl}
           setCameraApiUrl={setCameraApiUrl}
+          projectType={projectType}
+          setProjectType={setProjectType}
         />
       ),
     },
