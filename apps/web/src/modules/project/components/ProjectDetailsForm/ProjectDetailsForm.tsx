@@ -1,5 +1,6 @@
 import { useAuth } from "@/core/auth/hooks";
-import { Heading, TextArea, TextInput } from "@repo/ui";
+import { ProjectTypeEnum } from "@repo/schema";
+import { Heading, Select, TextArea, TextInput } from "@repo/ui";
 import styles from "./ProjectDetailsForm.module.scss";
 
 interface ProjectDetailsFormProps {
@@ -9,6 +10,8 @@ interface ProjectDetailsFormProps {
   setDescription: (val: string) => void;
   cameraApiUrl: string | null;
   setCameraApiUrl: (val: string) => void;
+  projectType: ProjectTypeEnum;
+  setProjectType?: (val: ProjectTypeEnum) => void;
 }
 
 export const ProjectDetailsForm = ({
@@ -18,6 +21,8 @@ export const ProjectDetailsForm = ({
   setDescription,
   cameraApiUrl,
   setCameraApiUrl,
+  projectType,
+  setProjectType,
 }: ProjectDetailsFormProps) => {
   const { user } = useAuth();
 
@@ -43,6 +48,17 @@ export const ProjectDetailsForm = ({
           rows={5}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
+        />
+
+        <Select<ProjectTypeEnum>
+          items={Object.entries(ProjectTypeEnum).map(([key]) => ({
+            label: key.charAt(0) + key.slice(1).toLowerCase(),
+            value: key,
+          }))}
+          placeholder="Select project type"
+          value={projectType}
+          onValueChange={(val) => setProjectType?.(val as ProjectTypeEnum)}
+          disabled={!setProjectType}
         />
 
         <TextInput
