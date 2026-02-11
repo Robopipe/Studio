@@ -1,6 +1,6 @@
 import z from "zod";
 import { labelSchema } from "../label";
-import { timestampsSchema } from "../helpers";
+import { paginatedResponseSchema, paginationQuerySchema, timestampsSchema } from "../helpers";
 
 export enum TaskStatusEnum {
   TODO = "TODO",
@@ -85,5 +85,18 @@ export const updateTaskSchema = z.object({
   polygonAnnotations: createPolygonAnnotationSchema.array().nullish(),
   classificationAnnotations: createClassificationAnnotationSchema.array().nullish(),
 });
+
+export const taskPaginationQuerySchema = paginationQuerySchema.extend({
+  deleted: z
+    .union([z.literal("true"), z.literal("false"), z.literal("null")])
+    .optional()
+    .transform((val): boolean | null => {
+      if (val === "true") return true;
+      if (val === "null") return null;
+      return false;
+    }),
+});
+
+export const paginatedTaskSchema = paginatedResponseSchema(taskSchema);
 
 

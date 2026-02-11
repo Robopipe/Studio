@@ -1,4 +1,4 @@
-import { Text } from "@repo/ui";
+import { Pagination, Text } from "@repo/ui";
 import { Task } from "@repo/schema";
 import styles from "./DataSourcePanel.module.scss";
 
@@ -7,6 +7,9 @@ export interface DataSourcePanelProps {
   selectedTaskId: number | null;
   annotationCount: number;
   onSelectTask: (taskId: number) => void;
+  page: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
 }
 
 export const DataSourcePanel = ({
@@ -14,6 +17,9 @@ export const DataSourcePanel = ({
   selectedTaskId,
   annotationCount,
   onSelectTask,
+  page,
+  totalPages,
+  onPageChange,
 }: DataSourcePanelProps) => {
   return (
     <div className={styles.panel}>
@@ -50,6 +56,10 @@ export const DataSourcePanel = ({
             </div>
           </button>
         ))}
+      </div>
+
+      <div className={styles.pagination}>
+        <Pagination page={page} totalPages={totalPages} onPageChange={onPageChange} />
       </div>
     </div>
   );

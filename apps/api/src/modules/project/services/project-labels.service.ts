@@ -53,6 +53,15 @@ export class ProjectLabelsService {
       throw new ConflictException("Project label with this name already exists")
     }
 
+    // If a soft-deleted label with this name exists, restore it instead of inserting
+    const deletedLabel = await this.projectLabelRepository.getDeletedByNameAndProjectId(data.name, projectId)
+    if(deletedLabel){
+      return this.projectLabelRepository.restore(deletedLabel.id, {
+        name: data.name,
+        color: data.color,
+      })
+    }
+
     return this.projectLabelRepository.create({
       ...data,
       projectId
