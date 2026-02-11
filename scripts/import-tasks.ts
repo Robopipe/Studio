@@ -49,6 +49,28 @@ async function login(): Promise<string> {
   return data.accessToken;
 }
 
+/**
+ * Download a file from GCS using the JSON API via plain fetch.
+ * Avoids the @google-cloud/storage SDK download pipeline which leaks memory in Bun.
+ */
+async function downloadFromGCS(
+  gcsAccessToken: string,
+  filePath: string,
+): Promise<Buffer> {
+  const url = `https://storage.googleapis.com/storage/v1/b/${BUCKET_NAME}/o/${encodeURIComponent(filePath)}?alt=media`;
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${gcsAccessToken}` },
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`GCS download failed (${res.status}): ${text}`);
+  }
+
+  return Buffer.from(await res.arrayBuffer());
+}
+
 async function createTask(
   token: string,
   projectId: string,
@@ -119,7 +141,12 @@ async function main() {
     return;
   }
 
-  // 3. Import each file
+  // 3. Get GCS access token for direct REST API downloads
+  const authClient = await storage.authClient.getClient();
+  let gcsToken = (await authClient.getAccessToken()).token!;
+  let gcsTokenTime = Date.now();
+
+  // 4. Import each file
   const MAX_RETRIES = 3;
   let created = 0;
   let failed = 0;
@@ -128,6 +155,12 @@ async function main() {
     const filePath = imagePaths[i];
     const fileName = filePath.split("/").pop() ?? filePath;
     const progress = `[${i + 1}/${imagePaths.length}]`;
+
+    // Refresh GCS token every 30 minutes (tokens last 60 min)
+    if (Date.now() - gcsTokenTime > 30 * 60 * 1000) {
+      gcsToken = (await authClient.getAccessToken()).token!;
+      gcsTokenTime = Date.now();
+    }
 
     let success = false;
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
@@ -138,7 +171,7 @@ async function main() {
       }
 
       try {
-        const [buffer] = await bucket.file(filePath).download({ timeout: REQUEST_TIMEOUT_MS });
+        const buffer = await downloadFromGCS(gcsToken, filePath);
         let result = await createTask(token, PROJECT_ID, fileName, buffer);
 
         // Re-login on 401 (token expired) and retry once
@@ -166,12 +199,10 @@ async function main() {
       failed++;
     }
 
-    // Force synchronous GC and pause to let memory settle
-    Bun.gc(true);
-    await new Promise((r) => setTimeout(r, 250));
+    await new Promise((r) => setTimeout(r, 50));
   }
 
-  // 4. Summary
+  // 5. Summary
   console.log(`\nDone. Created: ${created}, Failed: ${failed}`);
 }
 

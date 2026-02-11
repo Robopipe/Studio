@@ -1,5 +1,6 @@
-import { DeleteIcon, DownloadIcon, Stack, Text } from "@repo/ui";
+import { DeleteIcon, DownloadIcon, Pagination, Stack, Text } from "@repo/ui";
 import { format } from "date-fns";
+import { useState } from "react";
 import {
   useDeleteTaskMutation,
   useGetTasksQuery,
@@ -9,6 +10,8 @@ import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import styles from "./CapturedPhotos.module.scss";
 
 export interface CapturedPhotosProps {}
+
+const TASKS_PER_PAGE = 50;
 
 const handleDownload = async (filePath: string, id: number) => {
   const response = await fetch(filePath);
@@ -26,14 +29,17 @@ const handleDownload = async (filePath: string, id: number) => {
 export const CapturedPhotos = ({}: CapturedPhotosProps) => {
   const [deleteTask] = useDeleteTaskMutation();
   const [activeProject] = useActiveProject();
-  const { data: tasks } = useGetTasksQuery(
-    { projectId: activeProject?.id! },
+  const [page, setPage] = useState(1);
+  const { data: tasksData } = useGetTasksQuery(
+    { projectId: activeProject?.id!, page, limit: TASKS_PER_PAGE },
     { skip: !activeProject?.id },
   );
+  const tasks = tasksData?.data ?? [];
+  const totalPages = tasksData ? Math.ceil(tasksData.total / tasksData.limit) : 0;
 
   return (
     <Stack fullWidth gap="md">
-      {tasks?.data.filter(task => task.deletedAt === null).map((task) => (
+      {tasks.map((task) => (
         <div className={styles.photo} key={task.id}>
           <div className={styles.photoHeader}>
             <img src={task.filePath} alt={`#${task.id}`} />
@@ -59,6 +65,7 @@ export const CapturedPhotos = ({}: CapturedPhotosProps) => {
           </div>
         </div>
       ))}
+      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
     </Stack>
   );
 };
