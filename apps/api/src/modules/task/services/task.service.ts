@@ -57,13 +57,16 @@ export class TaskService {
   }
 
   /**
-   * Get tasks by project ID
+   * Get tasks by project ID with pagination
    * @param projectId
-   * @returns Task entities
+   * @param page - Page number (1-based)
+   * @param limit - Items per page
+   * @param deleted - true: only deleted, false: only non-deleted, null: both
+   * @returns Paginated task entities
    */
-  public async getTasks(projectId: number): Promise<TaskEntity[]>{
+  public async getTasks(projectId: number, page: number = 1, limit: number = 50, deleted: boolean | null = false): Promise<{ data: TaskEntity[]; total: number }>{
     const project = await this.projectRepository.getByIdOrThrow(projectId)
-    return this.taskRepository.getAllByProjectId(projectId, project.type)
+    return this.taskRepository.getAllByProjectIdPaginated(projectId, project.type, page, limit, deleted)
   }
 
   /**
@@ -164,6 +167,5 @@ export class TaskService {
     const task = await this.taskRepository.getByIdAndProjectIdOrThrow(id, projectId)
 
     await this.taskRepository.delete(task.id)
-    await this.assetsService.deleteFile(task.filePath)
   }
 }

@@ -2,7 +2,7 @@ import { appConfig } from "@/config";
 import { baseQuery } from "@/core/api/baseQuery";
 import { HttpMethod } from "@/types";
 import { createApi } from "@reduxjs/toolkit/query/react";
-import { Task } from "@repo/schema";
+import { PaginatedTasks, Task } from "@repo/schema";
 
 export enum CaptureApiTagType {
   Tasks = "Tasks",
@@ -37,10 +37,14 @@ export const captureApi = captureApiBase.injectEndpoints({
         { type: CaptureApiTagType.Tasks, id: projectId },
       ],
     }),
-    getTasks: builder.query<Task[], { projectId: number }>({
-      query: ({ projectId }) => ({
+    getTasks: builder.query<
+      PaginatedTasks,
+      { projectId: number; page?: number; limit?: number }
+    >({
+      query: ({ projectId, page = 1, limit = 50 }) => ({
         url: tasks.tasks(projectId),
         method: HttpMethod.GET,
+        params: { page, limit },
       }),
       providesTags: (_result, _error, { projectId }) => [
         { type: CaptureApiTagType.Tasks, id: projectId },

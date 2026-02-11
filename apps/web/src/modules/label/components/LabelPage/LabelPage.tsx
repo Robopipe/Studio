@@ -17,18 +17,20 @@ import { DataSourcePanel } from "../DataSourcePanel";
 import { Toolbar } from "../Toolbar";
 import styles from "./LabelPage.module.scss";
 
+const TASKS_PER_PAGE = 50;
+
 export const LabelPage = () => {
   const [activeProject] = useActiveProject();
   const projectId = activeProject?.id;
 
-  const { data: rawTasks = [] } = useGetTasksQuery(
-    { projectId: projectId! },
+  const [page, setPage] = useState(1);
+  const { data: tasksData } = useGetTasksQuery(
+    { projectId: projectId!, page, limit: TASKS_PER_PAGE },
     { skip: !projectId },
   );
-  const tasks = useMemo(
-    () => [...rawTasks].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
-    [rawTasks],
-  );
+  const tasks = tasksData?.data ?? [];
+  const totalPages = tasksData ? Math.ceil(tasksData.total / tasksData.limit) : 0;
+
   const { data: labels = [] } = useGetProjectLabelsQuery(
     { projectId: projectId! },
     { skip: !projectId },
@@ -124,6 +126,9 @@ export const LabelPage = () => {
         selectedTaskId={selectedTaskId}
         annotationCount={annotations.length}
         onSelectTask={setSelectedTaskId}
+        page={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
       />
       <AnnotationPanel
         annotations={annotations}

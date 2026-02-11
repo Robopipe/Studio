@@ -1,7 +1,7 @@
 import { useGetTasksQuery } from "@/modules/capture/services/captureApi";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import { RangeSlider, Stack, Text } from "@repo/ui";
-import { CSSProperties, useMemo } from "react";
+import { CSSProperties } from "react";
 import { SettingsCard } from "../SettingsCard";
 import styles from "./DatasetSplitSettings.module.scss";
 
@@ -22,10 +22,7 @@ export const DatasetSplitSettings = ({
   const { train, validation, test } = split;
   const [activeProject] = useActiveProject();
   const { data: tasks } = useGetTasksQuery({ projectId: activeProject?.id! });
-  const totalImages = useMemo(
-    () => tasks?.filter((t) => t.deletedAt === null).length || 0,
-    [tasks],
-  );
+  const totalImages = tasks?.total ?? 0;
 
   return (
     <SettingsCard state="complete" stepNumber={2} title="Dataset split">

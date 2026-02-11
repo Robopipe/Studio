@@ -6,6 +6,7 @@ import {
   ParseIntPipe,
   Post,
   Put,
+  Query,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -15,7 +16,9 @@ import { TaskService } from "../services/task.service";
 import { ProjectGuard } from "../../auth/guards/project-guard";
 import { ProjectId } from "../../auth/decorators/project-id.decorator";
 import {
+  PaginatedTaskResponse,
   TaskDetailResponse,
+  TaskPaginationQuery,
   TaskResponse,
   TaskUpdateRequest,
 } from "../dto/task.dto";
@@ -34,9 +37,14 @@ export class TaskController {
 
 
   @Get()
-  public async listTasks(@ProjectId() projectId: number): Promise<TaskResponse[]>{
-    const tasks = await this.taskService.getTasks(projectId)
-    return tasks.map((task) => task.toResponse())
+  public async listTasks(@ProjectId() projectId: number, @Query() query: TaskPaginationQuery): Promise<PaginatedTaskResponse>{
+    const { data, total } = await this.taskService.getTasks(projectId, query.page, query.limit, query.deleted)
+    return {
+      data: data.map((task) => task.toResponse()),
+      total,
+      page: query.page,
+      limit: query.limit,
+    }
   }
 
 

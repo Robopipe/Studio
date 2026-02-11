@@ -47,6 +47,42 @@ export class ProjectLabelRepository {
   }
 
   /**
+   * Find a soft-deleted label by name and project ID
+   * @param name - label name
+   * @param projectId
+   * @returns ProjectLabelEntity or null
+   */
+  public async getDeletedByNameAndProjectId(name: string, projectId: number): Promise<ProjectLabelEntity | null> {
+    const label = await this.db.query.projectLabelTable.findFirst({
+      where: {
+        name,
+        projectId,
+        deletedAt: { isNotNull: true },
+      },
+    })
+
+    return label ? new ProjectLabelEntity(label) : null;
+  }
+
+  /**
+   * Restore a soft-deleted label with updated data
+   * @param id - label ID
+   * @param data - fields to update (name, color)
+   * @returns ProjectLabelEntity
+   */
+  public async restore(id: number, data: ProjectLabelUpdate): Promise<ProjectLabelEntity> {
+    const [restored] = await this.db.update(projectLabelTable).set({
+      ...data,
+      deletedAt: null,
+    }).where(eq(projectLabelTable.id, id)).returning()
+    if(!restored){
+      throw new InternalServerErrorException("Failed restoring project label")
+    }
+
+    return new ProjectLabelEntity(restored)
+  }
+
+  /**
    * Create project label
    * @param data - ProjectLabelInsert
    * @throws InternalServerErrorException - Failed creating project label
