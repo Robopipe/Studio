@@ -101,6 +101,14 @@ export const taskPaginationQuerySchema = paginationQuerySchema.extend({
       if (val === "null") return null;
       return false;
     }),
+  annotated: z
+    .union([z.literal("true"), z.literal("false")])
+    .optional()
+    .transform((val): boolean | undefined => {
+      if (val === "true") return true;
+      if (val === "false") return false;
+      return undefined;
+    }),
 });
 
 export const paginatedTaskSchema = paginatedResponseSchema(taskSchema);
