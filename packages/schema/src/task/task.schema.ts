@@ -67,6 +67,7 @@ export const taskSchema = z.object({
   id: z.number(),
   fileType: z.enum(TaskFileTypeEnum),
   filePath: z.string(),
+  thumbnailUrl: z.string(),
   width: z.number(),
   height: z.number(),
   status: z.enum(TaskStatusEnum),

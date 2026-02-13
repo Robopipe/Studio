@@ -35,7 +35,7 @@ export const DataSourcePanel = ({
             onClick={() => onSelectTask(task.id)}
           >
             <img
-              src={task.filePath}
+              src={task.thumbnailUrl}
               alt={task.filePath.split("/").pop() ?? "task"}
               className={styles.thumbnail}
             />
