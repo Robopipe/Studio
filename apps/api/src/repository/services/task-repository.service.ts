@@ -5,7 +5,7 @@ import type { DbConnection } from "src/core/database/types/database.types";
 import { TaskDetailEntity, TaskEntity } from "../../modules/task/entity/task.entity";
 import { TaskInsert } from "../types/task";
 import { and, asc, count, eq, isNotNull, isNull, max, sql, type SQL } from "drizzle-orm";
-import { ProjectTypeEnum } from "@repo/schema";
+import { ProjectTypeEnum, TaskStatusEnum } from "@repo/schema";
 
 @Injectable()
 export class TaskRepository {
@@ -155,6 +155,7 @@ export class TaskRepository {
     page: number,
     limit: number,
     deleted: boolean | null = false,
+    annotated?: boolean,
   ): Promise<{ data: TaskEntity[]; total: number }> {
     const offset = (page - 1) * limit;
 
@@ -170,11 +171,21 @@ export class TaskRepository {
       deleted === true ? isNotNull(taskTable.deletedAt) :
       undefined;
 
+    // Build status filter based on annotated param
+    const statusValue = annotated === true ? TaskStatusEnum.DONE
+      : annotated === false ? TaskStatusEnum.TODO
+      : undefined;
+
+    const statusCondition: SQL | undefined = statusValue
+      ? eq(taskTable.status, statusValue)
+      : undefined;
+
     const [tasks, totalResult] = await Promise.all([
       this.db.query.taskTable.findMany({
         where: {
           projectId,
           ...(deletedAtFilter && { deletedAt: deletedAtFilter }),
+          ...(statusValue && { status: statusValue }),
         },
         orderBy: (t) => asc(t.createdAt),
         limit,
@@ -194,7 +205,7 @@ export class TaskRepository {
       }),
       this.db.select({ count: count() })
         .from(taskTable)
-        .where(and(eq(taskTable.projectId, projectId), deletedAtCondition)),
+        .where(and(eq(taskTable.projectId, projectId), deletedAtCondition, statusCondition)),
     ]);
 
     return {

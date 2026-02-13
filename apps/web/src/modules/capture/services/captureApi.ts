@@ -39,12 +39,12 @@ export const captureApi = captureApiBase.injectEndpoints({
     }),
     getTasks: builder.query<
       PaginatedTasks,
-      { projectId: number; page?: number; limit?: number }
+      { projectId: number; page?: number; limit?: number; annotated?: string }
     >({
-      query: ({ projectId, page = 1, limit = 50 }) => ({
+      query: ({ projectId, page = 1, limit = 50, annotated }) => ({
         url: tasks.tasks(projectId),
         method: HttpMethod.GET,
-        params: { page, limit },
+        params: { page, limit, ...(annotated && { annotated }) },
       }),
       providesTags: (_result, _error, { projectId }) => [
         { type: CaptureApiTagType.Tasks, id: projectId },
