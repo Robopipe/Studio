@@ -10,6 +10,7 @@ export class TaskEntity {
   readonly projectId: number;
   readonly fileType: TaskFileTypeEnum;
   readonly filePath: string;
+  readonly thumbnailUrl: string;
   readonly width: number;
   readonly height: number;
   readonly status: TaskStatusEnum;
@@ -23,6 +24,7 @@ export class TaskEntity {
     this.projectId = data.projectId;
     this.fileType = data.fileType;
     this.filePath = data.filePath;
+    this.thumbnailUrl = data.thumbnailUrl;
     this.status = data.status;
     this.width = data.width;
     this.height = data.height;
@@ -37,6 +39,7 @@ export class TaskEntity {
       id: this.id,
       fileType: this.fileType,
       filePath: this.filePath,
+      thumbnailUrl: this.thumbnailUrl,
       status: this.status,
       width: this.width,
       height: this.height,

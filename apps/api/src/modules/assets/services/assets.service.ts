@@ -16,12 +16,17 @@ export class AssetsService {
   }
 
   /**
-   * Get asset name
+   * Get asset name for a given type
    * @param fileName
    * @param projectId
+   * @param type - 'asset' or 'thumbnail'
    */
-  public getAssetName(fileName: string, projectId: number): string {
-    return `${projectId}/${uuidv4()}_${fileName}`
+  public getAssetName(fileName: string, projectId: number, type: 'asset' | 'thumbnail'): string {
+    if (type === 'thumbnail') {
+      const nameWithoutExt = fileName.replace(/\.[^.]+$/, '')
+      return `${projectId}/thumbnails/${uuidv4()}_${nameWithoutExt}.webp`
+    }
+    return `${projectId}/assets/${uuidv4()}_${fileName}`
   }
 
   /**
@@ -38,14 +43,15 @@ export class AssetsService {
   }
 
   /**
-   * Save file to Google cloud storage
-   * @param fileData - Multer file
+   * Save buffer to Google cloud storage
+   * @param buffer - file buffer
+   * @param contentType - MIME type
    * @param assetName - file name
    */
-  public async saveFile(fileData: Express.Multer.File, assetName: string): Promise<string>{
+  public async saveFile(buffer: Buffer, contentType: string, assetName: string): Promise<string>{
     const blob = this.bucket.file(assetName)
-    await blob.save(fileData.buffer, {
-      contentType: fileData.mimetype
+    await blob.save(buffer, {
+      contentType
     })
     await blob.makePublic()
 

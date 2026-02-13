@@ -33,13 +33,24 @@ export class TaskService {
    */
   public async createTask(projectId: number, file: Express.Multer.File): Promise<TaskEntity>{
     const assetMetadata = await sharp(file.buffer).metadata()
-    const assetName = this.assetsService.getAssetName(file.originalname, projectId)
-    const filePublicUrl = await this.assetsService.saveFile(file, assetName)
+    const assetName = this.assetsService.getAssetName(file.originalname, projectId, 'asset')
+    const thumbnailName = this.assetsService.getAssetName(file.originalname, projectId, 'thumbnail')
+
+    const thumbnailBuffer = await sharp(file.buffer)
+      .resize(400, 400, { fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: 80 })
+      .toBuffer()
+
+    const [filePublicUrl, thumbnailPublicUrl] = await Promise.all([
+      this.assetsService.saveFile(file.buffer, file.mimetype, assetName),
+      this.assetsService.saveFile(thumbnailBuffer, 'image/webp', thumbnailName),
+    ])
 
     return this.taskRepository.create({
       projectId,
       fileType: TaskFileTypeEnum.GS,
       filePath: filePublicUrl,
+      thumbnailUrl: thumbnailPublicUrl,
       status: TaskStatusEnum.TODO,
       width: assetMetadata.width,
       height: assetMetadata.height,
