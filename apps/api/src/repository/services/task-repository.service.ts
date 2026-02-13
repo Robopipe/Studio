@@ -4,7 +4,7 @@ import { DB_CONNECTION } from "src/core/database/database.constant";
 import type { DbConnection } from "src/core/database/types/database.types";
 import { TaskDetailEntity, TaskEntity } from "../../modules/task/entity/task.entity";
 import { TaskInsert } from "../types/task";
-import { and, asc, count, eq, isNotNull, isNull, type SQL } from "drizzle-orm";
+import { and, asc, count, eq, isNotNull, isNull, max, sql, type SQL } from "drizzle-orm";
 import { ProjectTypeEnum } from "@repo/schema";
 
 @Injectable()
@@ -79,6 +79,36 @@ export class TaskRepository {
     }
 
     return new TaskEntity(createdTask)
+  }
+
+  /**
+   * Create task with auto-generated IID (transaction-safe)
+   * Uses an advisory lock on the project ID to prevent race conditions
+   * @param projectId
+   * @param data - TaskInsert without iid
+   * @returns TaskEntity
+   */
+  public async createWithNextIid(projectId: number, data: Omit<TaskInsert, 'iid'>): Promise<TaskEntity> {
+    return this.db.transaction(async (tx) => {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(${projectId})`)
+
+      const result = await tx
+        .select({
+          maxIid: max(sql`CASE WHEN ${taskTable.iid} ~ '^[0-9]+$' THEN ${taskTable.iid}::int END`),
+        })
+        .from(taskTable)
+        .where(eq(taskTable.projectId, projectId))
+
+      const maxNumeric = result[0]?.maxIid ?? 0
+      const nextIid = String(Number(maxNumeric) + 1)
+
+      const [createdTask] = await tx.insert(taskTable).values({ ...data, iid: nextIid }).returning()
+      if (!createdTask) {
+        throw new InternalServerErrorException("Failed creating task")
+      }
+
+      return new TaskEntity(createdTask)
+    })
   }
 
 

@@ -2,6 +2,7 @@ import {
   classificationAnnotationSchema,
   createPolygonAnnotationSchema,
   createRectangleAnnotationSchema,
+  createTaskSchema,
   paginatedTaskSchema,
   polygonAnnotationSchema,
   rectangleAnnotationSchema,
@@ -17,6 +18,7 @@ export type ClassificationAnnotation = z.infer<typeof classificationAnnotationSc
 export type PolygonAnnotation = z.infer<typeof polygonAnnotationSchema>
 export type CreateRectangleAnnotation = z.infer<typeof createRectangleAnnotationSchema>
 export type CreatePolygonAnnotation = z.infer<typeof createPolygonAnnotationSchema>
+export type CreateTask = z.infer<typeof createTaskSchema>
 export type Task = z.infer<typeof taskSchema>
 export type TaskDetail = z.infer<typeof taskDetailSchema>
 export type UpdateTask = z.infer<typeof updateTaskSchema>

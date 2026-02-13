@@ -16,6 +16,7 @@ import { TaskService } from "../services/task.service";
 import { ProjectGuard } from "../../auth/guards/project-guard";
 import { ProjectId } from "../../auth/decorators/project-id.decorator";
 import {
+  CreateTaskQuery,
   PaginatedTaskResponse,
   TaskDetailResponse,
   TaskPaginationQuery,
@@ -30,8 +31,8 @@ export class TaskController {
 
   @Post()
   @UseInterceptors(FileInterceptor("file"))
-  public async createTask(@ProjectId() projectId: number, @UploadedFile() file: Express.Multer.File): Promise<TaskResponse>{
-    const createdTask = await this.taskService.createTask(projectId, file)
+  public async createTask(@ProjectId() projectId: number, @UploadedFile() file: Express.Multer.File, @Query() query: CreateTaskQuery): Promise<TaskResponse>{
+    const createdTask = await this.taskService.createTask(projectId, file, query.iid)
     return createdTask.toResponse()
   }
 

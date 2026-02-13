@@ -40,7 +40,7 @@ export const DataSourcePanel = ({
               className={styles.thumbnail}
             />
             <div className={styles.meta}>
-              <span className={styles.taskId}>#{task.id}</span>
+              <span className={styles.taskId}>#{task.iid}</span>
               <span className={styles.date}>
                 {new Date(task.createdAt).toLocaleString(undefined, {
                   month: "short",

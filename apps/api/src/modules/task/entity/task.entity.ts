@@ -7,6 +7,7 @@ import { Task, TaskDetail } from "@repo/schema";
 
 export class TaskEntity {
   readonly id: number;
+  readonly iid: string;
   readonly projectId: number;
   readonly fileType: TaskFileTypeEnum;
   readonly filePath: string;
@@ -21,6 +22,7 @@ export class TaskEntity {
 
   constructor(data: TaskSelect) {
     this.id = data.id;
+    this.iid = data.iid;
     this.projectId = data.projectId;
     this.fileType = data.fileType;
     this.filePath = data.filePath;
@@ -37,6 +39,7 @@ export class TaskEntity {
   public toResponse(): Task {
     return {
       id: this.id,
+      iid: this.iid,
       fileType: this.fileType,
       filePath: this.filePath,
       thumbnailUrl: this.thumbnailUrl,

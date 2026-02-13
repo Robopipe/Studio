@@ -42,10 +42,10 @@ export const CapturedPhotos = ({}: CapturedPhotosProps) => {
       {tasks.map((task) => (
         <div className={styles.photo} key={task.id}>
           <div className={styles.photoHeader}>
-            <img src={task.thumbnailUrl} alt={`#${task.id}`} />
+            <img src={task.thumbnailUrl} alt={`#${task.iid}`} />
             <div className={styles.photoInfo}>
               <Text variant="text-16" weight="500">
-                {`#${task.id}`}
+                {`#${task.iid}`}
               </Text>
               <span className={styles.date}>
                 {format(new Date(task.createdAt), "Ppp")}
