@@ -76,12 +76,17 @@ async function createTask(
   projectId: string,
   fileName: string,
   fileBuffer: Buffer,
+  iid?: string,
 ): Promise<{ ok: boolean; status?: number; detail?: string }> {
   const formData = new FormData();
   const blob = new Blob([fileBuffer]);
   formData.append("file", blob, fileName);
 
-  const res = await fetch(`${API_BASE_URL}/task/${projectId}`, {
+  const url = iid
+    ? `${API_BASE_URL}/task/${projectId}?iid=${encodeURIComponent(iid)}`
+    : `${API_BASE_URL}/task/${projectId}`;
+
+  const res = await fetch(url, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
     body: formData,

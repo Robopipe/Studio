@@ -63,8 +63,13 @@ export const createClassificationAnnotationSchema = z.object({
 /**
  * Task schemas
  */
+export const createTaskSchema = z.object({
+  iid: z.string().optional(),
+})
+
 export const taskSchema = z.object({
   id: z.number(),
+  iid: z.string(),
   fileType: z.enum(TaskFileTypeEnum),
   filePath: z.string(),
   thumbnailUrl: z.string(),

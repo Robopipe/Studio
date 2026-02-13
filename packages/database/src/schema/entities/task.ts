@@ -9,6 +9,7 @@ export const taskFileTypeEnum = p.pgEnum("task_file_type_enum", [TaskFileTypeEnu
 
 export const taskTable = p.pgTable("task", {
   id,
+  iid: p.varchar("iid", {length: 256}).notNull(),
   projectId: p
     .integer("project_id")
     .references(() => projectTable.id, { onDelete: "cascade" })
@@ -20,4 +21,4 @@ export const taskTable = p.pgTable("task", {
   height: p.integer("height").notNull(),
   status: taskStatusEnum("status").notNull(),
   ...timestamps,
-});
+}, (t) => [p.unique().on(t.projectId, t.iid)]);
