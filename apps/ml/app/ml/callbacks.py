@@ -27,7 +27,6 @@ class WebhookStats(pl.Callback):
     def on_train_epoch_end(
         self, trainer: pl.Trainer, pl_module: LuxonisLightningModule
     ):
-        print(trainer.callback_metrics, trainer.logged_metrics)
         if (
             self.LOSS_KEY not in trainer.callback_metrics
             or self.acc_key not in trainer.callback_metrics
