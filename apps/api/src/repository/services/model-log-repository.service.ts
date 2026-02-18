@@ -4,6 +4,7 @@ import type { DbConnection } from "../../core/database/types/database.types";
 import { ModelLogEntity } from "../../modules/model/entity/model-log.entity";
 import { ModelLogInsert } from "../types/model-log";
 import { modelLogTable } from "@repo/database";
+import { asc } from "drizzle-orm";
 
 @Injectable()
 export class ModelLogRepository {
@@ -18,7 +19,8 @@ export class ModelLogRepository {
     const logs = await this.db.query.modelLogTable.findMany({
       where: {
         modelId: id
-      }
+      },
+      orderBy: (log) => asc(log.createdAt)
     })
 
     return logs.map((log) => new ModelLogEntity(log))
