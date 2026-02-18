@@ -8,7 +8,12 @@ import { RunSubheader } from "../RunSubheader";
 import styles from "./RunPage.module.scss";
 
 export const RunPage = () => {
-  const { data: cameras, isLoading, refetch, isFetching } = useListCamerasQuery();
+  const {
+    data: cameras,
+    isLoading,
+    refetch,
+    isFetching,
+  } = useListCamerasQuery();
 
   const [selectedCamera, setSelectedCamera] = useState<string | null>(null);
   const [selectedStream, setSelectedStream] = useState<string | null>(null);
@@ -19,7 +24,11 @@ export const RunPage = () => {
 
   if (isLoading) {
     return (
-      <Stack align="center" justify="center" className={styles.loadingContainer}>
+      <Stack
+        align="center"
+        justify="center"
+        className={styles.loadingContainer}
+      >
         <Spinner />
       </Stack>
     );
@@ -35,7 +44,7 @@ export const RunPage = () => {
   }
 
   return (
-    <Stack className={styles.pageWrapper}>
+    <Stack className={styles.pageWrapper} gap={0}>
       <RunSubheader />
       <div className={styles.page}>
         <RunSidebar
