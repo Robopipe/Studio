@@ -8,8 +8,8 @@ export const rectangleAnnotationTable = p.pgTable("rectangle_annotation", {
   id,
   taskId: p.integer("task_id").references(() => taskTable.id, {onDelete: 'cascade'}).notNull(),
   labelId: p.integer("label_id").references(() => projectLabelTable.id, {onDelete: 'cascade'}).notNull(),
-  x: p.integer("x").notNull(),
-  y: p.integer("y").notNull(),
-  width: p.integer("width").notNull(),
-  height: p.integer("height").notNull(),
+  x: p.doublePrecision("x").notNull(),
+  y: p.doublePrecision("y").notNull(),
+  width: p.doublePrecision("width").notNull(),
+  height: p.doublePrecision("height").notNull(),
 })

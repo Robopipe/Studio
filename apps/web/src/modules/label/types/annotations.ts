@@ -1,4 +1,4 @@
-export type RegionType = "bbox" | "polygon";
+export type RegionType = "bbox" | "polygon" | "class";
 
 export interface BBox {
   x: number;
