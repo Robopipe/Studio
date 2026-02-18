@@ -31,7 +31,7 @@ export const LiveInference = ({
     modelId: Number(selectedModelId) || 0,
     enabled: !!canShowInference && !!selectedModelId && !!selectedOutputId,
   });
-  const { detections, isConnected } = useDetections({
+  const { isConnected } = useDetections({
     selectedMxid: selectedCamera || "",
     selectedSensorName: selectedStream || "",
     onDetections: renderDetections,
