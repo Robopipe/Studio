@@ -122,6 +122,32 @@ export const cameraApi = cameraApiBase.injectEndpoints({
         { type: CameraApiTagType.StreamControl, id: `${mxid}-${streamName}` },
       ],
     }),
+
+    deployNN: builder.mutation<
+      void,
+      { mxid: string; streamName: string; model: File }
+    >({
+      query: ({ mxid, streamName, model }) => {
+        const data = new FormData();
+        data.append("model", model);
+        data.append(
+          "config",
+          JSON.stringify({ type: "Generic", nn_config: {} }),
+        );
+        return {
+          url: `/cameras/${mxid}/streams/${streamName}/nn`,
+          method: HttpMethod.POST,
+          body: data,
+        };
+      },
+    }),
+
+    removeNN: builder.mutation<void, { mxid: string; streamName: string }>({
+      query: ({ mxid, streamName }) => ({
+        url: `/cameras/${mxid}/streams/${streamName}/nn`,
+        method: HttpMethod.DELETE,
+      }),
+    }),
   }),
   overrideExisting: true,
 });
@@ -140,4 +166,8 @@ export const {
   useDeactivateStreamMutation,
   useGetStreamControlQuery,
   useUpdateStreamControlMutation,
+
+  // NN hooks
+  useDeployNNMutation,
+  useRemoveNNMutation,
 } = cameraApi;

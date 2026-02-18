@@ -1,6 +1,8 @@
-import { useMJPEGStream } from "@/modules/capture/hooks/useMJPEGStream";
+import { useWebRTCStream } from "@/modules/capture/hooks/useWebRTCStream";
+import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import { Stack, Text } from "@repo/ui";
-import { useEffect, useState } from "react";
+import { useDetections } from "../../hooks/useDetections";
+import { useDetectionsRenderer } from "../../hooks/useDetectionsRenderer";
 import styles from "./LiveInference.module.scss";
 
 export interface LiveInferenceProps {
@@ -10,65 +12,31 @@ export interface LiveInferenceProps {
   selectedOutputId: string | null;
 }
 
-interface MockDetection {
-  id: number;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  label: string;
-  confidence: number;
-}
-
-const generateMockDetections = (): MockDetection[] => {
-  const count = Math.floor(Math.random() * 15) + 10;
-  const detections: MockDetection[] = [];
-
-  for (let i = 0; i < count; i++) {
-    detections.push({
-      id: i,
-      x: Math.random() * 80,
-      y: Math.random() * 80,
-      width: Math.random() * 8 + 4,
-      height: Math.random() * 8 + 4,
-      label: `obj_${i}`,
-      confidence: Math.random() * 0.3 + 0.7,
-    });
-  }
-
-  return detections;
-};
-
 export const LiveInference = ({
   selectedCamera,
   selectedStream,
   selectedModelId,
   selectedOutputId,
 }: LiveInferenceProps) => {
-  const [mockDetections, setMockDetections] = useState<MockDetection[]>([]);
-
   const canShowInference =
     selectedCamera && selectedStream && selectedModelId && selectedOutputId;
-
-  const { imageRef, isStreaming } = useMJPEGStream({
+  const [activeProject] = useActiveProject();
+  const { videoRef, isStreaming } = useWebRTCStream({
     selectedMxid: selectedCamera || "",
     selectedSensorName: selectedStream || "",
   });
-
-  useEffect(() => {
-    if (!canShowInference) {
-      setMockDetections([]);
-      return;
-    }
-
-    setMockDetections(generateMockDetections());
-
-    const interval = setInterval(() => {
-      setMockDetections(generateMockDetections());
-    }, 2000);
-
-    return () => clearInterval(interval);
-  }, [canShowInference]);
+  const { canvasRef, renderDetections } = useDetectionsRenderer({
+    videoRef,
+    projectId: activeProject?.id || 0,
+    modelId: Number(selectedModelId) || 0,
+    enabled: !!canShowInference && !!selectedModelId && !!selectedOutputId,
+  });
+  const { detections, isConnected } = useDetections({
+    selectedMxid: selectedCamera || "",
+    selectedSensorName: selectedStream || "",
+    onDetections: renderDetections,
+    enabled: !!canShowInference && !!selectedModelId && !!selectedOutputId,
+  });
 
   if (!selectedCamera || !selectedStream) {
     return (
@@ -88,33 +56,25 @@ export const LiveInference = ({
 
       <div className={styles.videoWrapper}>
         {isStreaming && <span className={styles.liveLabel}>LIVE</span>}
+        {canShowInference && isConnected && (
+          <span className={styles.nnLabel}>NN</span>
+        )}
 
-        <img ref={imageRef} className={styles.stream} alt="Camera Feed" />
+        <video
+          ref={videoRef}
+          autoPlay
+          muted
+          playsInline
+          className={styles.stream}
+        />
 
         {!isStreaming && (
-          <div className={styles.streamPlaceholder}>Connecting to camera...</div>
-        )}
-
-        {canShowInference && (
-          <div className={styles.detectionsOverlay}>
-            {mockDetections.map((detection) => (
-              <div
-                key={detection.id}
-                className={styles.boundingBox}
-                style={{
-                  left: `${detection.x}%`,
-                  top: `${detection.y}%`,
-                  width: `${detection.width}%`,
-                  height: `${detection.height}%`,
-                }}
-              >
-                <span className={styles.label}>
-                  {Math.round(detection.confidence * 100)}
-                </span>
-              </div>
-            ))}
+          <div className={styles.streamPlaceholder}>
+            Connecting to camera...
           </div>
         )}
+
+        <canvas ref={canvasRef} className={styles.detectionsOverlay} />
       </div>
 
       {!canShowInference && selectedCamera && selectedStream && (
