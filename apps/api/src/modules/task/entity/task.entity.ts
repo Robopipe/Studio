@@ -7,9 +7,11 @@ import { Task, TaskDetail } from "@repo/schema";
 
 export class TaskEntity {
   readonly id: number;
+  readonly iid: string;
   readonly projectId: number;
   readonly fileType: TaskFileTypeEnum;
   readonly filePath: string;
+  readonly thumbnailUrl: string;
   readonly width: number;
   readonly height: number;
   readonly status: TaskStatusEnum;
@@ -20,9 +22,11 @@ export class TaskEntity {
 
   constructor(data: TaskSelect) {
     this.id = data.id;
+    this.iid = data.iid;
     this.projectId = data.projectId;
     this.fileType = data.fileType;
     this.filePath = data.filePath;
+    this.thumbnailUrl = data.thumbnailUrl;
     this.status = data.status;
     this.width = data.width;
     this.height = data.height;
@@ -35,8 +39,10 @@ export class TaskEntity {
   public toResponse(): Task {
     return {
       id: this.id,
+      iid: this.iid,
       fileType: this.fileType,
       filePath: this.filePath,
+      thumbnailUrl: this.thumbnailUrl,
       status: this.status,
       width: this.width,
       height: this.height,

@@ -5,6 +5,7 @@ export * from "./Container";
 export * from "./Heading";
 export * from "./IconContainer";
 export * from "./NumberInput";
+export * from "./Pagination";
 export * from "./RangeSlider";
 export * from "./Select";
 export * from "./Slider";

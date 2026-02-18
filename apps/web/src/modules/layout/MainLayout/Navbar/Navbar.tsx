@@ -153,7 +153,7 @@ export const Navbar = () => {
         <Link to={webConfig.routes.account} className={styles.userAvatar}>{initials}</Link>
         <button
           className={styles.iconBtn}
-          onClick={() => window.open("https://docs.robopipe.ai", "_blank")}
+          onClick={() => window.open("https://robopipe.gitbook.io/doc", "_blank")}
         >
           <SupportIcon />
           <span className={styles.btnText}>Help</span>

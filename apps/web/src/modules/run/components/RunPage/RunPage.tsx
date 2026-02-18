@@ -1,8 +1,8 @@
 import { useListCamerasQuery } from "@/core/cameraApi";
-import { Spinner, Stack } from "@repo/ui";
+import { NoCameraDetected, SearchingForCamera } from "@/modules/ui";
+import { Stack } from "@repo/ui";
 import { useState } from "react";
 import { LiveInference } from "../LiveInference";
-import { NoCameraDetected } from "../NoCameraDetected";
 import { RunSidebar } from "../RunSidebar";
 import { RunSubheader } from "../RunSubheader";
 import styles from "./RunPage.module.scss";
@@ -23,24 +23,11 @@ export const RunPage = () => {
   const hasCameras = cameras && cameras.length > 0;
 
   if (isLoading) {
-    return (
-      <Stack
-        align="center"
-        justify="center"
-        className={styles.loadingContainer}
-      >
-        <Spinner />
-      </Stack>
-    );
+    return <SearchingForCamera />;
   }
 
   if (!hasCameras) {
-    return (
-      <Stack className={styles.pageWrapper}>
-        <RunSubheader />
-        <NoCameraDetected onRefresh={refetch} isRefreshing={isFetching} />
-      </Stack>
-    );
+    return <NoCameraDetected onRefresh={refetch} isRefreshing={isFetching} />;
   }
 
   return (

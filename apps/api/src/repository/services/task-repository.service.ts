@@ -4,8 +4,8 @@ import { DB_CONNECTION } from "src/core/database/database.constant";
 import type { DbConnection } from "src/core/database/types/database.types";
 import { TaskDetailEntity, TaskEntity } from "../../modules/task/entity/task.entity";
 import { TaskInsert } from "../types/task";
-import { eq } from "drizzle-orm";
-import { ProjectTypeEnum } from "@repo/schema";
+import { and, asc, count, eq, isNotNull, isNull, max, sql, type SQL } from "drizzle-orm";
+import { ProjectTypeEnum, TaskStatusEnum } from "@repo/schema";
 
 @Injectable()
 export class TaskRepository {
@@ -81,6 +81,36 @@ export class TaskRepository {
     return new TaskEntity(createdTask)
   }
 
+  /**
+   * Create task with auto-generated IID (transaction-safe)
+   * Uses an advisory lock on the project ID to prevent race conditions
+   * @param projectId
+   * @param data - TaskInsert without iid
+   * @returns TaskEntity
+   */
+  public async createWithNextIid(projectId: number, data: Omit<TaskInsert, 'iid'>): Promise<TaskEntity> {
+    return this.db.transaction(async (tx) => {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(${projectId})`)
+
+      const result = await tx
+        .select({
+          maxIid: max(sql`CASE WHEN ${taskTable.iid} ~ '^[0-9]+$' THEN ${taskTable.iid}::int END`),
+        })
+        .from(taskTable)
+        .where(eq(taskTable.projectId, projectId))
+
+      const maxNumeric = result[0]?.maxIid ?? 0
+      const nextIid = String(Number(maxNumeric) + 1)
+
+      const [createdTask] = await tx.insert(taskTable).values({ ...data, iid: nextIid }).returning()
+      if (!createdTask) {
+        throw new InternalServerErrorException("Failed creating task")
+      }
+
+      return new TaskEntity(createdTask)
+    })
+  }
+
 
   /**
    * Get all tasks by project ID
@@ -108,6 +138,80 @@ export class TaskRepository {
     })
 
     return tasks.map((t) => new TaskEntity(t))
+  }
+
+  /**
+   * Get all tasks by project ID with pagination
+   * @param projectId
+   * @param projectType - Project type enum for relations
+   * @param page - Page number (1-based)
+   * @param limit - Items per page
+   * @param deleted
+   * @returns Paginated task entities
+   */
+  public async getAllByProjectIdPaginated(
+    projectId: number,
+    projectType: ProjectTypeEnum,
+    page: number,
+    limit: number,
+    deleted: boolean | null = false,
+    annotated?: boolean,
+  ): Promise<{ data: TaskEntity[]; total: number }> {
+    const offset = (page - 1) * limit;
+
+    // Build deletedAt filter for relational query
+    const deletedAtFilter: Record<string, boolean> | undefined =
+      deleted === false ? { isNull: true } :
+      deleted === true ? { isNotNull: true } :
+      undefined;
+
+    // Build deletedAt condition for count query
+    const deletedAtCondition: SQL | undefined =
+      deleted === false ? isNull(taskTable.deletedAt) :
+      deleted === true ? isNotNull(taskTable.deletedAt) :
+      undefined;
+
+    // Build status filter based on annotated param
+    const statusValue = annotated === true ? TaskStatusEnum.DONE
+      : annotated === false ? TaskStatusEnum.TODO
+      : undefined;
+
+    const statusCondition: SQL | undefined = statusValue
+      ? eq(taskTable.status, statusValue)
+      : undefined;
+
+    const [tasks, totalResult] = await Promise.all([
+      this.db.query.taskTable.findMany({
+        where: {
+          projectId,
+          ...(deletedAtFilter && { deletedAt: deletedAtFilter }),
+          ...(statusValue && { status: statusValue }),
+        },
+        orderBy: (t) => asc(t.createdAt),
+        limit,
+        offset,
+        extras: {
+          annotationCount: (table) => {
+            switch (projectType) {
+              case ProjectTypeEnum.DETECTION:
+                return this.db.$count(rectangleAnnotationTable, eq(rectangleAnnotationTable.taskId, table.id))
+              case ProjectTypeEnum.CLASSIFICATION:
+                return this.db.$count(classificationAnnotationTable, eq(classificationAnnotationTable.taskId, table.id))
+              case ProjectTypeEnum.SEGMENTATION:
+                return this.db.$count(polygonAnnotationTable, eq(polygonAnnotationTable.taskId, table.id))
+            }
+          }
+        }
+      }),
+      this.db.select({ count: count() })
+        .from(taskTable)
+        .where(and(eq(taskTable.projectId, projectId), deletedAtCondition, statusCondition)),
+    ]);
+
+    return {
+      data: tasks.map((t) => new TaskEntity(t)),
+      total: totalResult[0]?.count ?? 0,
+    };
   }
 
   /**
