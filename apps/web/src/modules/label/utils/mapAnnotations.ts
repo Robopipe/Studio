@@ -1,4 +1,4 @@
-import { TaskDetail, CreateRectangleAnnotation, CreatePolygonAnnotation } from "@repo/schema";
+import { TaskDetail, CreateRectangleAnnotation, CreatePolygonAnnotation, CreateClassificationAnnotation } from "@repo/schema";
 import { Annotation } from "../types/annotations";
 
 export function taskDetailToAnnotations(detail: TaskDetail): Annotation[] {
@@ -28,15 +28,28 @@ export function taskDetailToAnnotations(detail: TaskDetail): Annotation[] {
     });
   }
 
+  for (const cls of detail.classificationAnnotations ?? []) {
+    annotations.push({
+      id: String(cls.id),
+      apiId: cls.id,
+      labelId: String(cls.label.id),
+      labelName: cls.label.name,
+      color: cls.label.color,
+      type: "class",
+    });
+  }
+
   return annotations;
 }
 
 export function annotationsToUpdatePayload(annotations: Annotation[]): {
   rectangleAnnotations: CreateRectangleAnnotation[];
   polygonAnnotations: CreatePolygonAnnotation[];
+  classificationAnnotations: CreateClassificationAnnotation[];
 } {
   const rectangleAnnotations: CreateRectangleAnnotation[] = [];
   const polygonAnnotations: CreatePolygonAnnotation[] = [];
+  const classificationAnnotations: CreateClassificationAnnotation[] = [];
 
   for (const a of annotations) {
     const labelId = Number(a.labelId);
@@ -53,8 +66,12 @@ export function annotationsToUpdatePayload(annotations: Annotation[]): {
         labelId,
         value: a.points,
       });
+    } else if (a.type === "class" && a.labelId) {
+      classificationAnnotations.push({
+        labelId,
+      });
     }
   }
 
-  return { rectangleAnnotations, polygonAnnotations };
+  return { rectangleAnnotations, polygonAnnotations, classificationAnnotations };
 }
