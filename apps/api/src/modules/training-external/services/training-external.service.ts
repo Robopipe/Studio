@@ -69,7 +69,7 @@ export class TrainingExternalService {
     }
 
     const assetPath = this.assetsService.getModelOutputName(file.originalname, model.projectId, model.id, modelOutputType)
-    const assetPublicUrl = await this.assetsService.saveFile(file, assetPath)
+    const assetPublicUrl = await this.assetsService.saveFile(file.buffer, file.mimetype, assetPath)
 
     await this.modelOutputRepository.create({
       modelId: model.id,

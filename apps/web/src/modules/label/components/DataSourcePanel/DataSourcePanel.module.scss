@@ -16,6 +16,11 @@
   padding-right: 1rem;
 }
 
+.filter {
+  margin-bottom: 0.5rem;
+  padding-right: 1rem;
+}
+
 .list {
   flex: 1;
   overflow-y: auto;
@@ -76,6 +81,12 @@
   font-size: 0.6875rem;
   font-weight: 600;
   color: var(--color-text-secondary);
+}
+
+.pagination {
+  flex-shrink: 0;
+  padding-right: 1rem;
+  border-top: 1px solid var(--border-border-12, rgba(0, 0, 0, 0.12));
 }
 
 .uploadButton {

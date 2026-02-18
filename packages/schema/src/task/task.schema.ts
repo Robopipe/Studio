@@ -1,6 +1,6 @@
 import z from "zod";
 import { labelSchema } from "../label";
-import { timestampsSchema } from "../helpers";
+import { paginatedResponseSchema, paginationQuerySchema, timestampsSchema } from "../helpers";
 
 export enum TaskStatusEnum {
   TODO = "TODO",
@@ -63,10 +63,16 @@ export const createClassificationAnnotationSchema = z.object({
 /**
  * Task schemas
  */
+export const createTaskSchema = z.object({
+  iid: z.string().optional(),
+})
+
 export const taskSchema = z.object({
   id: z.number(),
+  iid: z.string(),
   fileType: z.enum(TaskFileTypeEnum),
   filePath: z.string(),
+  thumbnailUrl: z.string(),
   width: z.number(),
   height: z.number(),
   status: z.enum(TaskStatusEnum),
@@ -85,5 +91,26 @@ export const updateTaskSchema = z.object({
   polygonAnnotations: createPolygonAnnotationSchema.array().nullish(),
   classificationAnnotations: createClassificationAnnotationSchema.array().nullish(),
 });
+
+export const taskPaginationQuerySchema = paginationQuerySchema.extend({
+  deleted: z
+    .union([z.literal("true"), z.literal("false"), z.literal("null")])
+    .optional()
+    .transform((val): boolean | null => {
+      if (val === "true") return true;
+      if (val === "null") return null;
+      return false;
+    }),
+  annotated: z
+    .union([z.literal("true"), z.literal("false")])
+    .optional()
+    .transform((val): boolean | undefined => {
+      if (val === "true") return true;
+      if (val === "false") return false;
+      return undefined;
+    }),
+});
+
+export const paginatedTaskSchema = paginatedResponseSchema(taskSchema);
 
 

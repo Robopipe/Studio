@@ -9,14 +9,16 @@ export const taskFileTypeEnum = p.pgEnum("task_file_type_enum", [TaskFileTypeEnu
 
 export const taskTable = p.pgTable("task", {
   id,
+  iid: p.varchar("iid", {length: 256}).notNull(),
   projectId: p
     .integer("project_id")
     .references(() => projectTable.id, { onDelete: "cascade" })
     .notNull(),
   fileType: taskFileTypeEnum("file_type").notNull(),
   filePath: p.varchar("file_path", {length: 256}).notNull(),
+  thumbnailUrl: p.varchar("thumbnail_url", {length: 256}).notNull(),
   width: p.integer("width").notNull(),
   height: p.integer("height").notNull(),
   status: taskStatusEnum("status").notNull(),
   ...timestamps,
-});
+}, (t) => [p.unique().on(t.projectId, t.iid)]);
