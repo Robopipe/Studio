@@ -1,6 +1,5 @@
 .bar {
   display: flex;
-  justify-content: center;
   flex-shrink: 0;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
@@ -30,6 +29,10 @@
     background: var(--color-primary, #6366f1);
     color: white;
     border-color: var(--color-primary, #6366f1);
+  }
+
+  &:not(.active) {
+    color: #000;
   }
 }
 

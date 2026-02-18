@@ -1,4 +1,9 @@
-import { useListCamerasQuery, useListStreamsQuery } from "@/core/cameraApi";
+import {
+  useDeployNNMutation,
+  useListCamerasQuery,
+  useListStreamsQuery,
+  useRemoveNNMutation,
+} from "@/core/cameraApi";
 import {
   useGetModelOutputsQuery,
   useGetModelsQuery,
@@ -8,6 +13,7 @@ import {
   AiPowerIcon,
   Button,
   CameraIcon,
+  DeleteIcon,
   OutputIcon,
   RunIcon,
   SensorIcon,
@@ -15,6 +21,7 @@ import {
   Text,
 } from "@repo/ui";
 import { Select } from "@repo/ui/components/Select/Select";
+import { DetectionsDisplay } from "../DetectionsDisplay";
 import styles from "./RunSidebar.module.scss";
 
 export interface RunSidebarProps {
@@ -56,6 +63,50 @@ export const RunSidebar = ({
     { projectId: projectId!, modelId: Number(selectedModelId) },
     { skip: !projectId || !selectedModelId },
   );
+
+  const [deployNNMut] = useDeployNNMutation();
+  const deployNN = async () => {
+    if (
+      !selectedCamera ||
+      !selectedStream ||
+      !selectedModelId ||
+      !selectedOutputId
+    ) {
+      return;
+    }
+
+    const modelUrl = modelOutputs?.find(
+      (output) => String(output.id) === String(selectedOutputId),
+    )?.filePath;
+    const model = await fetch(modelUrl!).then((res) => res.arrayBuffer());
+    const camera = selectedCamera;
+    const stream = selectedStream;
+    onSelectCamera(null);
+    onSelectStream(null);
+    await deployNNMut({
+      mxid: selectedCamera,
+      streamName: selectedStream,
+      model: new File([model], "model.tar.xz"),
+    }).unwrap();
+    onSelectCamera(camera);
+    onSelectStream(stream);
+  };
+  const [removeNNMut] = useRemoveNNMutation();
+  const removeNN = async () => {
+    if (!selectedCamera || !selectedStream) {
+      return;
+    }
+    const camera = selectedCamera;
+    const stream = selectedStream;
+    onSelectCamera(null);
+    onSelectStream(null);
+    await removeNNMut({
+      mxid: selectedCamera,
+      streamName: selectedStream,
+    }).unwrap();
+    onSelectCamera(camera);
+    onSelectStream(stream);
+  };
 
   return (
     <Stack className={styles.sidebar}>
@@ -160,10 +211,36 @@ export const RunSidebar = ({
       </div>
 
       {/* Deploy Button */}
-      <Button variant="filled" className={styles.deployButton}>
-        <RunIcon />
-        Deploy
-      </Button>
+      <Stack direction="row" justify="center">
+        <Button
+          variant="outlined"
+          onClick={removeNN}
+          disabled={!selectedCamera || !selectedStream}
+          className={styles.deployButton}
+        >
+          <DeleteIcon />
+          Remove NN
+        </Button>
+        <Button
+          variant="filled"
+          className={styles.deployButton}
+          onClick={deployNN}
+          disabled={
+            !selectedCamera ||
+            !selectedStream ||
+            !selectedModelId ||
+            !selectedOutputId
+          }
+        >
+          <RunIcon />
+          Deploy
+        </Button>
+      </Stack>
+      <DetectionsDisplay
+        selectedMxid={selectedCamera}
+        selectedSensorName={selectedStream}
+        selectedModelId={selectedModelId}
+      />
     </Stack>
   );
 };

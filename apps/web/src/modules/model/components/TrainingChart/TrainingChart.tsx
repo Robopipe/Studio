@@ -30,13 +30,9 @@ export const TrainingChart = ({ data, title }: TrainingChartProps) => {
           <XAxis
             dataKey="epoch"
             label={{ value: "Epoch", position: "insideBottom", offset: -10 }}
-            domain={[0, 12]}
-            // ticks={[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]}
           />
           <YAxis
             label={{ value: "Value", angle: -90, position: "insideLeft" }}
-            domain={[0, 1.0]}
-            ticks={[0, 0.2, 0.4, 0.6, 0.8, 1.0]}
           />
           <Tooltip />
           <Area

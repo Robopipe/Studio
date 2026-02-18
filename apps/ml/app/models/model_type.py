@@ -4,7 +4,7 @@ from enum import Enum
 class LuxonisModelType(str, Enum):
     CLASSIFICATION = "ClassificationModel"
     DETECTION = "DetectionModel"
-    SEGMENTATION = "SegmentationModel"
+    SEGMENTATION = "InstanceSegmentationModel"
 
 
 class ModelType(str, Enum):

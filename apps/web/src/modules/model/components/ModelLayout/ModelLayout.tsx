@@ -17,7 +17,11 @@ export const ModelLayout = ({ children, className }: ModelLayoutProps) => {
     >
       <ModelList className={styles.leftPanel} />
       <div className={styles.rightPanel}>
-        <Container centered={false} size="full">
+        <Container
+          centered={false}
+          size="full"
+          className={styles.rightPanelContainer}
+        >
           {children}
         </Container>
       </div>
