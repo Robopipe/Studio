@@ -95,11 +95,13 @@ export class ModelService{
       labelId
     })))
 
-    await this.db.insert(modelAugmentationTable).values(data.augmentations.map(aug => ({
-      modelId: createdModel.id,
-      type: aug.type,
-      params: aug.params
-    })))
+    if (data.augmentations.length > 0) {
+      await this.db.insert(modelAugmentationTable).values(data.augmentations.map(aug => ({
+        modelId: createdModel.id,
+        type: aug.type,
+        params: aug.params
+      })))
+    }
 
     return this.getModelById(createdModel.id, projectId)
   }
