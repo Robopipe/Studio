@@ -1,3 +1,5 @@
+from pydantic import model_validator
+
 from typing import Union
 
 from .base_schema import BaseSchema
@@ -10,7 +12,7 @@ class Image(BaseSchema):
     file_url: str
     width: int
     height: int
-    labels: list[Union[ClassificationLabel, PolygonLabel, RectangleLabel]]
+    labels: list[Union[ClassificationLabel, PolygonLabel, RectangleLabel]] = []
 
     def labels_str(self) -> list[str]:
         result = []
@@ -22,3 +24,18 @@ class Image(BaseSchema):
             elif isinstance(label, RectangleLabel):
                 result.append(label.to_str(self.width, self.height))
         return result
+
+    @model_validator(mode="before")
+    @classmethod
+    def transform(cls, data):
+        data["labels"] = list(
+            filter(
+                lambda x: x is not None
+                and "label" in x
+                and x["label"] is not None
+                and x["label"] != {},
+                data.get("labels", []),
+            )
+        )
+
+        return data
