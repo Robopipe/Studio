@@ -6,10 +6,10 @@ pydantic-settings==2.7.1
 python-multipart==0.0.17
 
 # ML training
-luxonis-train==0.4.1
+luxonis-train @ git+https://github.com/luxonis/luxonis-train.git@main
 lightning==2.6.1
-torch==2.6.0
-torchvision==0.21.0
+torch==2.9.0
+torchvision==0.24.0
 ultralytics==8.3.104
 
 # Model conversion and export
