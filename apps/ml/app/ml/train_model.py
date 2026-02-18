@@ -31,11 +31,13 @@ def __upload_model(url: str, file_path: str, api_key: str) -> None:
 
 
 def run_training(config: ModelConfig):
-    ONNX_PATH = f"export/{config.id}.onnx"
+    ONNX_PATH = f"archive/{config.id}.onnx.tar.xz"
     with tempfile.TemporaryDirectory() as dir:
         luxonis_config = generate_luxonis_config(config, dir)
         config_path = f"{dir}/config.yml"
-        prepare_dataset(dir, config.data, config.training_config.dataset_config)
+        prepare_dataset(
+            dir, config.data, config.training_config.dataset_config, config.type
+        )
         print(luxonis_config)
         with open(config_path, "w") as f:
             f.write(luxonis_config)
