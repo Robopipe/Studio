@@ -11,3 +11,4 @@ export * from "./project-label";
 export * from "./rectangle-annotation";
 export * from "./task";
 export * from "./user";
+export * from './dashboard-configuration-item'
