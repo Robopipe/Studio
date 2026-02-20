@@ -1,3 +1,4 @@
+export { DashboardPage } from "./DashboardPage";
 export { DashboardConfigPage } from "./DashboardConfigPage";
 export { AddLimitModal } from "./AddLimitModal";
 export { DeleteLimitDialog } from "./DeleteLimitDialog";

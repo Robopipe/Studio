@@ -1,1 +1,1 @@
-export { DashboardConfigPage } from "./components";
+export { DashboardPage } from "./components";

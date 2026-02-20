@@ -109,10 +109,13 @@ export const AddLimitModal = ({ projectId, labels, item, onClose }: AddLimitModa
   const handleParameterChange = (cat: ParameterCategory) => {
     if (cat === "POSITION" && !isPositionType(position)) {
       setPosition(DashboardConfigurationItemPositionEnum.POS_CENTER);
+      setUnit(DashboardConfigurationItemLimitUnitEnum.PERCENTAGE);
     } else if (cat === "COUNT") {
       setPosition(DashboardConfigurationItemPositionEnum.COUNT);
+      setUnit(DashboardConfigurationItemLimitUnitEnum.COUNT);
     } else if (cat === "AREA") {
       setPosition(DashboardConfigurationItemPositionEnum.AREA);
+      setUnit(DashboardConfigurationItemLimitUnitEnum.PERCENTAGE);
     }
   };
 
@@ -246,15 +249,26 @@ export const AddLimitModal = ({ projectId, labels, item, onClose }: AddLimitModa
               <Stack gap={4}>
                 <Text variant="text-14">Units</Text>
                 <Stack direction="row" gap={8}>
-                  {unitOptions.map((opt) => (
-                    <button
-                      key={opt.value}
-                      className={clsx(styles.toggleButton, unit === opt.value && styles.active)}
-                      onClick={() => setUnit(opt.value)}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
+                  {unitOptions.map((opt) => {
+                    const allowed =
+                      parameterCategory === "COUNT"
+                        ? opt.value === DashboardConfigurationItemLimitUnitEnum.COUNT
+                        : opt.value === DashboardConfigurationItemLimitUnitEnum.PERCENTAGE;
+                    return (
+                      <button
+                        key={opt.value}
+                        className={clsx(
+                          styles.toggleButton,
+                          unit === opt.value && styles.active,
+                          !allowed && styles.disabled,
+                        )}
+                        onClick={() => allowed && setUnit(opt.value)}
+                        disabled={!allowed}
+                      >
+                        {opt.label}
+                      </button>
+                    );
+                  })}
                 </Stack>
               </Stack>
             </Stack>
