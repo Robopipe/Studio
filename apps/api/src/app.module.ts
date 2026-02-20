@@ -9,6 +9,7 @@ import { AssetsModule } from "./modules/assets/assets.module";
 import { TaskModule } from "./modules/task/task.module";
 import { TrainingExternalModule } from "./modules/training-external/training-external.module";
 import { ModelModule } from "./modules/model/model.module";
+import { DashboardModule } from "./modules/dashboard/dashboard.module";
 import { APP_PIPE } from "@nestjs/core";
 import { ZodValidationPipe } from "nestjs-zod";
 
@@ -23,7 +24,8 @@ import { ZodValidationPipe } from "nestjs-zod";
     AssetsModule,
     TaskModule,
     TrainingExternalModule,
-    ModelModule
+    ModelModule,
+    DashboardModule
   ],
   providers: [
     {
