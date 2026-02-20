@@ -1,0 +1,107 @@
+.box {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  padding: 2px;
+}
+
+.outer {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border: 2px solid var(--color-gray-500);
+  border-radius: 4px;
+  background: #ffffff;
+}
+
+/* Clickable hit-areas – invisible except when active */
+.region {
+  position: absolute;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  z-index: 1;
+
+  &.active {
+    /* subtle highlight on the selected edge/center */
+  }
+}
+
+.region.left {
+  top: 0;
+  left: 0;
+  width: 33%;
+  height: 100%;
+}
+
+.region.right {
+  top: 0;
+  right: 0;
+  width: 33%;
+  height: 100%;
+}
+
+.region.top {
+  top: 0;
+  left: 33%;
+  width: 34%;
+  height: 33%;
+}
+
+.region.bottom {
+  bottom: 0;
+  left: 33%;
+  width: 34%;
+  height: 33%;
+}
+
+.region.center {
+  top: 33%;
+  left: 33%;
+  width: 34%;
+  height: 34%;
+}
+
+/* Inner indicator rectangle */
+.inner {
+  position: absolute;
+  width: 38%;
+  height: 38%;
+  border: 2px solid var(--color-emerald-600);
+  border-radius: 2px;
+  pointer-events: none;
+  transition: top 0.15s, left 0.15s;
+}
+
+.inner.posLeft {
+  top: 50%;
+  left: 4px;
+  transform: translateY(-50%);
+}
+
+.inner.posRight {
+  top: 50%;
+  right: 4px;
+  left: auto;
+  transform: translateY(-50%);
+}
+
+.inner.posTop {
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.inner.posBottom {
+  bottom: 4px;
+  top: auto;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.inner.posCenter {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}

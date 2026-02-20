@@ -1,6 +1,7 @@
 import { authApi, authSlice } from "@/core/auth/services";
 import { cameraApi } from "@/core/cameraApi";
 import { captureApi } from "@/modules/capture/services/captureApi";
+import { dashboardConfigApi } from "@/modules/dashboard/services";
 import { modelApi } from "@/modules/model/services";
 import { projectApi } from "@/modules/project/services/projectApi";
 import { projectSlice } from "@/modules/project/services/projectSlice";
@@ -16,6 +17,7 @@ const apis = {
   [captureApi.reducerPath]: captureApi.reducer,
   [projectApi.reducerPath]: projectApi.reducer,
   [modelApi.reducerPath]: modelApi.reducer,
+  [dashboardConfigApi.reducerPath]: dashboardConfigApi.reducer,
 };
 const middlewares = [
   authApi.middleware,
@@ -23,6 +25,7 @@ const middlewares = [
   captureApi.middleware,
   projectApi.middleware,
   modelApi.middleware,
+  dashboardConfigApi.middleware,
 ];
 const mainReducer = {
   ...slices,

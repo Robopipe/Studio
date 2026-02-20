@@ -43,3 +43,20 @@ export const dashboardConfigurationItemSchema = z.object({
   createdAt: timestampsSchema.createdAt,
   updatedAt: timestampsSchema.updatedAt,
 })
+
+export const createDashboardConfigurationItemSchema = dashboardConfigurationItemSchema
+  .pick({
+    name: true,
+    type: true,
+    severity: true,
+    position: true,
+    unit: true,
+    limitFrom: true,
+    limitTo: true,
+  })
+  .extend({
+    targetLabelId: z.number(),
+    targetParentLabelId: z.number(),
+  });
+
+export const updateDashboardConfigurationItemSchema = createDashboardConfigurationItemSchema;
