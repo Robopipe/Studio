@@ -8,7 +8,7 @@ import { CapturePage } from "@/modules/capture/components/CapturePage";
 import { LabelPage } from "@/modules/label/components/LabelPage";
 import { AuthLayout } from "@/modules/layout";
 import { ModelDetailPage, ModelNewPage } from "@/modules/model/components";
-import { DashboardConfigPage } from "@/modules/dashboard";
+import { DashboardPage } from "@/modules/dashboard";
 import { ProjectsPage } from "@/modules/project";
 import { ProjectPage } from "@/modules/project/components/ProjectPage";
 import { RunPage } from "@/modules/run";
@@ -48,7 +48,7 @@ const authenticatedRoutes: RouteObject = {
     },
     { path: webRoutes.label, element: <LabelPage /> },
     { path: webRoutes.run, element: <RunPage /> },
-    { path: webRoutes.dashboardConfig, element: <DashboardConfigPage /> },
+    { path: webRoutes.dashboard, element: <DashboardPage /> },
     { path: webRoutes.account, element: <AccountPage /> },
   ],
 };
