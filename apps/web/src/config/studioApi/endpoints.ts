@@ -19,5 +19,10 @@ export const studioApiEndpoints = {
     models: {
       models: (projectId: number) => `model/${projectId}`,
     },
+    dashboardConfig: {
+      items: (projectId: number) => `dashboard-config/${projectId}`,
+      item: (projectId: number, itemId: number) =>
+        `dashboard-config/${projectId}/${itemId}`,
+    },
   },
 } as const;

@@ -9,6 +9,7 @@ import {
   ModelOutputRepository,
 } from "./services/model-output-repository.service";
 import { ModelLogRepository } from "./services/model-log-repository.service";
+import { DashboardConfigurationItemRepository } from "./services/dashboard-configuration-item.service";
 
 
 @Global()
@@ -21,7 +22,8 @@ import { ModelLogRepository } from "./services/model-log-repository.service";
     UserRepository,
     ProjectLabelRepository,
     ModelOutputRepository,
-    ModelLogRepository
+    ModelLogRepository,
+    DashboardConfigurationItemRepository
   ],
   exports: [
     ModelRepository,
@@ -31,7 +33,8 @@ import { ModelLogRepository } from "./services/model-log-repository.service";
     UserRepository,
     ProjectLabelRepository,
     ModelOutputRepository,
-    ModelLogRepository
+    ModelLogRepository,
+    DashboardConfigurationItemRepository
   ],
 })
 export class RepositoryModule {}
