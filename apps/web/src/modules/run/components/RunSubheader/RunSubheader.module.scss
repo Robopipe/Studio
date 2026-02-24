@@ -5,21 +5,32 @@
   height: 48px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.12);
   background: #fff;
+  flex-shrink: 0;
 }
 
 .tab {
   position: relative;
   padding: 0.75rem 0;
-  color: var(--color-primary, #16a34a);
+  background: none;
+  border: none;
   cursor: pointer;
+  color: var(--color-gray-500);
 
-  &::after {
-    content: "";
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: var(--color-primary, #16a34a);
+  &.active {
+    color: var(--color-primary, #16a34a);
+
+    &::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--color-primary, #16a34a);
+    }
+  }
+
+  &:hover:not(.active) {
+    color: var(--color-gray-700);
   }
 }

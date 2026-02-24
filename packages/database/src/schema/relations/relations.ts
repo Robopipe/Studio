@@ -19,7 +19,7 @@ export const relations = defineRelations(schema, (r) => ({
     }),
     tasks: r.many.taskTable(),
     labels: r.many.projectLabelTable(),
-    dashboardConfigurationItems: r.many.dashboardConfigurationItemTable(),
+    dashboardConfigurations: r.many.dashboardConfigurationTable(),
   },
   taskTable: {
     project: r.one.projectTable({
@@ -96,10 +96,27 @@ export const relations = defineRelations(schema, (r) => ({
       to: r.modelTable.id,
     }),
   },
-  dashboardConfigurationItemTable: {
+  dashboardConfigurationTable: {
     project: r.one.projectTable({
-      from: r.dashboardConfigurationItemTable.projectId,
+      from: r.dashboardConfigurationTable.projectId,
       to: r.projectTable.id,
+    }),
+    items: r.many.dashboardConfigurationItemTable(),
+    evaluation: r.one.dashboardEvaluationTable({
+      from: r.dashboardConfigurationTable.id,
+      to: r.dashboardEvaluationTable.dashboardConfigurationId,
+    }),
+  },
+  dashboardEvaluationTable: {
+    dashboardConfiguration: r.one.dashboardConfigurationTable({
+      from: r.dashboardEvaluationTable.dashboardConfigurationId,
+      to: r.dashboardConfigurationTable.id,
+    }),
+  },
+  dashboardConfigurationItemTable: {
+    dashboardConfiguration: r.one.dashboardConfigurationTable({
+      from: r.dashboardConfigurationItemTable.dashboardConfigurationId,
+      to: r.dashboardConfigurationTable.id,
     }),
     targetLabel: r.one.projectLabelTable({
       from: r.dashboardConfigurationItemTable.targetLabelId,
