@@ -1,6 +1,6 @@
 import { Inject, Injectable, InternalServerErrorException } from "@nestjs/common";
 import { dashboardConfigurationItemTable } from "@repo/database";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { DB_CONNECTION } from "../../core/database/database.constant";
 import { type DbConnection } from "../../core/database/types/database.types";
 import { DashboardConfigurationItemEntity } from "../../modules/dashboard/entity/dashboard-configuration-item.entity";
@@ -15,32 +15,31 @@ export class DashboardConfigurationItemRepository {
   constructor(@Inject(DB_CONNECTION) private readonly db: DbConnection) {}
 
   /**
-   * Get all dashboard configuration items by project ID
-   * @param projectId
+   * Get all items for a dashboard configuration
+   * @param dashboardConfigurationId
    * @returns DashboardConfigurationItemEntity[]
    */
-  public async getAllByProjectId(projectId: number): Promise<DashboardConfigurationItemEntity[]> {
+  public async getAllByDashboardConfigurationId(dashboardConfigurationId: number): Promise<DashboardConfigurationItemEntity[]> {
     const items = await this.db.query.dashboardConfigurationItemTable.findMany({
-      where: { projectId },
+      where: { dashboardConfigurationId },
       with: {
         targetLabel: true,
         targetParentLabel: true,
       },
     });
 
-    // FK columns are NOT NULL so relations are always present
     return items.map((item) => new DashboardConfigurationItemEntity(item as DashboardConfigurationItemSelect));
   }
 
   /**
-   * Get dashboard configuration item by ID and project ID
+   * Get item by ID and dashboard configuration ID
    * @param id
-   * @param projectId
-   * @returns DashboardConfigurationItemEntity or null
+   * @param dashboardConfigurationId
+   * @returns DashboardConfigurationItemEntity or null if not found
    */
-  public async getByIdAndProjectId(id: number, projectId: number): Promise<DashboardConfigurationItemEntity | null> {
+  public async getByIdAndDashboardConfigurationId(id: number, dashboardConfigurationId: number): Promise<DashboardConfigurationItemEntity | null> {
     const item = await this.db.query.dashboardConfigurationItemTable.findFirst({
-      where: { id, projectId },
+      where: { id, dashboardConfigurationId },
       with: {
         targetLabel: true,
         targetParentLabel: true,
@@ -52,8 +51,9 @@ export class DashboardConfigurationItemRepository {
 
   /**
    * Create a dashboard configuration item
-   * @param data
-   * @returns DashboardConfigurationItemEntity
+   * @param data - DashboardConfigurationItemInsert
+   * @throws InternalServerErrorException
+   * @returns created DashboardConfigurationItemEntity
    */
   public async create(data: DashboardConfigurationItemInsert): Promise<DashboardConfigurationItemEntity> {
     const [created] = await this.db.insert(dashboardConfigurationItemTable).values(data).returning();
@@ -74,10 +74,11 @@ export class DashboardConfigurationItemRepository {
   }
 
   /**
-   * Update dashboard configuration item by id
+   * Update a dashboard configuration item by id
    * @param id
-   * @param data
-   * @returns DashboardConfigurationItemEntity
+   * @param data - DashboardConfigurationItemUpdate
+   * @throws InternalServerErrorException
+   * @returns updated DashboardConfigurationItemEntity
    */
   public async update(id: number, data: DashboardConfigurationItemUpdate): Promise<DashboardConfigurationItemEntity> {
     const [updated] = await this.db
@@ -102,7 +103,7 @@ export class DashboardConfigurationItemRepository {
   }
 
   /**
-   * (HARD) Delete dashboard configuration item by id
+   * (HARD) Delete a dashboard configuration item by id
    * @param id
    */
   public async delete(id: number): Promise<void> {

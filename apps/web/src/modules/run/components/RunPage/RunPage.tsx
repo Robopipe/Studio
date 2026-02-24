@@ -1,13 +1,26 @@
 import { useListCamerasQuery } from "@/core/cameraApi";
+import { DashboardPage } from "@/modules/dashboard";
 import { NoCameraDetected, SearchingForCamera } from "@/modules/ui";
 import { Stack } from "@repo/ui";
 import { useState } from "react";
 import { LiveInference } from "../LiveInference";
 import { RunSidebar } from "../RunSidebar";
-import { RunSubheader } from "../RunSubheader";
+import { RunSubheader, RunTab } from "../RunSubheader";
 import styles from "./RunPage.module.scss";
 
 export const RunPage = () => {
+  const [activeTab, setActiveTab] = useState<RunTab>("inference");
+
+  return (
+    <Stack className={styles.pageWrapper} gap={0}>
+      <RunSubheader activeTab={activeTab} onTabChange={setActiveTab} />
+      {activeTab === "inference" && <InferenceContent />}
+      {activeTab === "dashboard" && <DashboardPage />}
+    </Stack>
+  );
+};
+
+const InferenceContent = () => {
   const {
     data: cameras,
     isLoading,
@@ -31,29 +44,26 @@ export const RunPage = () => {
   }
 
   return (
-    <Stack className={styles.pageWrapper} gap={0}>
-      <RunSubheader />
-      <div className={styles.page}>
-        <RunSidebar
-          selectedCamera={selectedCamera}
-          selectedStream={selectedStream}
-          selectedModelId={selectedModelId}
-          selectedOutputId={selectedOutputId}
-          onSelectCamera={(camera) => {
-            setSelectedCamera(camera);
-            setSelectedStream(null);
-          }}
-          onSelectStream={setSelectedStream}
-          onSelectModel={setSelectedModelId}
-          onSelectOutput={setSelectedOutputId}
-        />
-        <LiveInference
-          selectedCamera={selectedCamera}
-          selectedStream={selectedStream}
-          selectedModelId={selectedModelId}
-          selectedOutputId={selectedOutputId}
-        />
-      </div>
-    </Stack>
+    <div className={styles.page}>
+      <RunSidebar
+        selectedCamera={selectedCamera}
+        selectedStream={selectedStream}
+        selectedModelId={selectedModelId}
+        selectedOutputId={selectedOutputId}
+        onSelectCamera={(camera) => {
+          setSelectedCamera(camera);
+          setSelectedStream(null);
+        }}
+        onSelectStream={setSelectedStream}
+        onSelectModel={setSelectedModelId}
+        onSelectOutput={setSelectedOutputId}
+      />
+      <LiveInference
+        selectedCamera={selectedCamera}
+        selectedStream={selectedStream}
+        selectedModelId={selectedModelId}
+        selectedOutputId={selectedOutputId}
+      />
+    </div>
   );
 };

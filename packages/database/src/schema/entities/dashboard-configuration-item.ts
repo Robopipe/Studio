@@ -1,7 +1,7 @@
 import * as p from 'drizzle-orm/pg-core'
 import { createdAt, id, updatedAt } from "../helpers";
 import { projectLabelTable } from "./project-label";
-import { projectTable } from "./project";
+import { dashboardConfigurationTable } from "./dashboard-configuration";
 import {
   DashboardConfigurationItemTypeEnum,
   DashboardConfigurationItemLimitUnitEnum,
@@ -35,7 +35,7 @@ export const dashboardConfigurationItemLimitUnitEnum = p.pgEnum("dashboard_confi
 
 export const dashboardConfigurationItemTable = p.pgTable("dashboard_configuration_item", {
   id,
-  projectId: p.integer("project_id").references(() => projectTable.id, {onDelete: 'cascade'}).notNull(),
+  dashboardConfigurationId: p.integer("dashboard_configuration_id").references(() => dashboardConfigurationTable.id, {onDelete: 'cascade'}).notNull(),
   name: p.varchar("name", {length: 256}).notNull(),
   type: dashboardConfigurationItemTypeEnum("type").notNull(),
   severity: dashboardConfigurationItemSeverityEnum("severity").notNull(),

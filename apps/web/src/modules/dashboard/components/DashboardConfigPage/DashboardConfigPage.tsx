@@ -1,6 +1,5 @@
 import { Button, Heading, Stack, Text } from "@repo/ui";
 import { useState } from "react";
-import { useParams } from "react-router";
 import {
   DashboardConfigurationItem,
   DashboardConfigurationItemPositionEnum,
@@ -14,6 +13,11 @@ import { AddLimitModal } from "../AddLimitModal";
 import { DeleteLimitDialog } from "../DeleteLimitDialog";
 
 import styles from "./DashboardConfigPage.module.scss";
+
+interface DashboardConfigPageProps {
+  projectId: number;
+  configId: number;
+}
 
 const isPositionType = (pos: string) =>
   !["COUNT", "AREA"].includes(pos);
@@ -50,11 +54,8 @@ const MiniPositionIcon = ({ position }: { position: DashboardConfigurationItemPo
   );
 };
 
-export const DashboardConfigPage = () => {
-  const { projectId: projectIdParam } = useParams<{ projectId: string }>();
-  const projectId = Number(projectIdParam);
-
-  const { data: items = [] } = useGetDashboardConfigItemsQuery({ projectId });
+export const DashboardConfigPage = ({ projectId, configId }: DashboardConfigPageProps) => {
+  const { data: items = [] } = useGetDashboardConfigItemsQuery({ projectId, configId });
   const { data: labels = [] } = useGetProjectLabelsQuery({ projectId });
   const [deleteItem] = useDeleteDashboardConfigItemMutation();
 
@@ -64,7 +65,7 @@ export const DashboardConfigPage = () => {
 
   const handleDelete = async () => {
     if (!deletingItem) return;
-    await deleteItem({ projectId, itemId: deletingItem.id }).unwrap();
+    await deleteItem({ projectId, configId, itemId: deletingItem.id }).unwrap();
     setDeletingItem(null);
   };
 
@@ -140,6 +141,7 @@ export const DashboardConfigPage = () => {
       {(isAddModalOpen || editingItem) && (
         <AddLimitModal
           projectId={projectId}
+          configId={configId}
           labels={labels}
           item={editingItem ?? undefined}
           onClose={() => {

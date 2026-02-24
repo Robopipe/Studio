@@ -11,7 +11,7 @@ import { DashboardConfigurationItemResponse } from "../dto/dashboard-configurati
 export class DashboardConfigurationItemEntity {
   readonly id: number;
   readonly name: string;
-  readonly projectId: number;
+  readonly dashboardConfigurationId: number;
   readonly type: DashboardConfigurationItemTypeEnum;
   readonly severity: DashboardConfigurationItemSeverityEnum;
   readonly position: DashboardConfigurationItemPositionEnum;
@@ -26,7 +26,7 @@ export class DashboardConfigurationItemEntity {
   constructor(data: DashboardConfigurationItemSelect) {
     this.id = data.id;
     this.name = data.name;
-    this.projectId = data.projectId;
+    this.dashboardConfigurationId = data.dashboardConfigurationId;
     this.type = data.type;
     this.severity = data.severity;
     this.position = data.position;

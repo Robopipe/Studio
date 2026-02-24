@@ -10,7 +10,6 @@ import {
   AnnotateIcon,
   CameraIcon,
   ChartIcon,
-  DashboardIcon,
   LogoutIcon,
   RunIcon,
   Stack,
@@ -140,11 +139,6 @@ export const Navbar = () => {
             to={`/projects/${activeId}/run`}
             label="Run"
             icon={<RunIcon />}
-          />
-          <NavItem
-            to={`/projects/${activeId}/dashboard`}
-            label="Dashboard"
-            icon={<DashboardIcon />}
           />
           <NavItem
             to={`/projects/${activeId}/analytics`}

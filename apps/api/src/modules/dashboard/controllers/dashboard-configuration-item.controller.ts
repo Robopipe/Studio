@@ -18,50 +18,52 @@ import {
   DashboardConfigurationItemUpdateRequest,
 } from "../dto/dashboard-configuration-item.dto";
 
-@Controller("dashboard-config/:projectId")
+@Controller("dashboard-config/:projectId/configurations/:configId/items")
 @UseGuards(ProjectGuard)
 export class DashboardConfigurationItemController {
   constructor(private readonly dashboardService: DashboardService) {}
 
   @Get()
-  public async getAll(@ProjectId() projectId: number): Promise<DashboardConfigurationItemResponse[]> {
-    const items = await this.dashboardService.getAll(projectId);
+  public async getAll(
+    @Param("configId", ParseIntPipe) configId: number,
+  ): Promise<DashboardConfigurationItemResponse[]> {
+    const items = await this.dashboardService.getAllItems(configId);
     return items.map((item) => item.toResponse());
   }
 
   @Get(":id")
   public async getById(
-    @ProjectId() projectId: number,
+    @Param("configId", ParseIntPipe) configId: number,
     @Param("id", ParseIntPipe) id: number,
   ): Promise<DashboardConfigurationItemResponse> {
-    const item = await this.dashboardService.getById(id, projectId);
+    const item = await this.dashboardService.getItemById(id, configId);
     return item.toResponse();
   }
 
   @Post()
   public async create(
-    @ProjectId() projectId: number,
+    @Param("configId", ParseIntPipe) configId: number,
     @Body() data: DashboardConfigurationItemCreateRequest,
   ): Promise<DashboardConfigurationItemResponse> {
-    const item = await this.dashboardService.create(projectId, data);
+    const item = await this.dashboardService.createItem(configId, data);
     return item.toResponse();
   }
 
   @Put(":id")
   public async update(
-    @ProjectId() projectId: number,
+    @Param("configId", ParseIntPipe) configId: number,
     @Param("id", ParseIntPipe) id: number,
     @Body() data: DashboardConfigurationItemUpdateRequest,
   ): Promise<DashboardConfigurationItemResponse> {
-    const item = await this.dashboardService.update(id, projectId, data);
+    const item = await this.dashboardService.updateItem(id, configId, data);
     return item.toResponse();
   }
 
   @Delete(":id")
   public async delete(
-    @ProjectId() projectId: number,
+    @Param("configId", ParseIntPipe) configId: number,
     @Param("id", ParseIntPipe) id: number,
   ): Promise<void> {
-    await this.dashboardService.delete(id, projectId);
+    await this.dashboardService.deleteItem(id, configId);
   }
 }

@@ -19,6 +19,7 @@ import styles from "./AddLimitModal.module.scss";
 
 interface AddLimitModalProps {
   projectId: number;
+  configId: number;
   labels: Label[];
   item?: DashboardConfigurationItem;
   onClose: () => void;
@@ -68,7 +69,7 @@ function isPositionType(pos: DashboardConfigurationItemPositionEnum): boolean {
   ].includes(pos);
 }
 
-export const AddLimitModal = ({ projectId, labels, item, onClose }: AddLimitModalProps) => {
+export const AddLimitModal = ({ projectId, configId, labels, item, onClose }: AddLimitModalProps) => {
   const isEdit = !!item;
 
   const [name, setName] = useState(item?.name ?? "");
@@ -135,9 +136,9 @@ export const AddLimitModal = ({ projectId, labels, item, onClose }: AddLimitModa
     };
 
     if (isEdit) {
-      await updateItem({ projectId, itemId: item.id, ...payload }).unwrap();
+      await updateItem({ projectId, configId, itemId: item.id, ...payload }).unwrap();
     } else {
-      await createItem({ projectId, ...payload }).unwrap();
+      await createItem({ projectId, configId, ...payload }).unwrap();
     }
 
     onClose();
