@@ -43,6 +43,8 @@
     background-color: var(--color-white);
   }
 
+  appearance: textfield;
+
   &::-webkit-outer-spin-button,
   &::-webkit-inner-spin-button {
     -webkit-appearance: none;

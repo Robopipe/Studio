@@ -37,7 +37,7 @@ const severityOptions = [
 
 const unitOptions = [
   { label: "Percentage", value: DashboardConfigurationItemLimitUnitEnum.PERCENTAGE },
-  { label: "Px", value: DashboardConfigurationItemLimitUnitEnum.COUNT },
+  { label: "Count", value: DashboardConfigurationItemLimitUnitEnum.COUNT },
 ];
 
 /** High-level parameter categories shown in the dropdown */
@@ -120,8 +120,12 @@ export const AddLimitModal = ({ projectId, configId, labels, item, onClose }: Ad
     }
   };
 
+  const limitFromNum = Number(limitFrom);
+  const limitToNum = Number(limitTo);
+  const hasLimitError = limitFrom !== "" && limitTo !== "" && limitFromNum >= limitToNum;
+
   const handleSave = async () => {
-    if (!name.trim() || !targetLabelId || !targetParentLabelId) return;
+    if (!name.trim() || !targetLabelId || !targetParentLabelId || hasLimitError) return;
 
     const payload = {
       name,
@@ -241,11 +245,13 @@ export const AddLimitModal = ({ projectId, configId, labels, item, onClose }: Ad
                 label="Limit from"
                 value={limitFrom}
                 onChange={(e) => setLimitFrom(e.target.value)}
+                error={hasLimitError}
               />
               <NumberInput
                 label="Limit to"
                 value={limitTo}
                 onChange={(e) => setLimitTo(e.target.value)}
+                error={hasLimitError}
               />
               <Stack gap={4}>
                 <Text variant="text-14">Units</Text>
@@ -284,7 +290,7 @@ export const AddLimitModal = ({ projectId, configId, labels, item, onClose }: Ad
             variant="filled"
             size="sm"
             onClick={handleSave}
-            disabled={isLoading || !name.trim() || !targetLabelId || !targetParentLabelId}
+            disabled={isLoading || !name.trim() || !targetLabelId || !targetParentLabelId || hasLimitError}
           >
             {isLoading ? "Saving..." : "Save"}
           </Button>
