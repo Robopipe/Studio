@@ -1,0 +1,11 @@
+--- a/luxonis_train/config/config.py
++++ b/luxonis_train/config/config.py
+@@ -303,7 +303,7 @@
+     project_id: str | None = None
+     run_name: str | None = None
+     run_id: str | None = None
+-    save_directory: Annotated[Path, Field(exclude=True)] = Path("output")
++    save_directory: Annotated[Path, Field()] = Path("output")
+     is_tensorboard: bool = True
+     is_wandb: bool = False
+     wandb_entity: str | None = None

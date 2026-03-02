@@ -6,7 +6,7 @@ pydantic-settings==2.7.1
 python-multipart==0.0.17
 
 # ML training
-luxonis-train @ git+https://github.com/luxonis/luxonis-train.git@main
+luxonis-train @ git+https://github.com/luxonis/luxonis-train.git@a98b060d2bd6e50a9236ab6663905475f7e08ad2
 lightning==2.6.1
 torch==2.9.0
 torchvision==0.24.0
@@ -17,7 +17,7 @@ onnx==1.20.1
 onnxsim==0.4.36
 
 # HubAI SDK for model conversion
-hubai-sdk==0.2.0
+hubai-sdk==0.2.1
 
 # HTTP client for webhooks
 requests==2.32.3
