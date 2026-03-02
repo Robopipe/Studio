@@ -1,5 +1,3 @@
-import { Button, Heading, NumberInput, Select, Stack, Text, TextInput } from "@repo/ui";
-import { useState } from "react";
 import {
   DashboardConfigurationItem,
   DashboardConfigurationItemLimitUnitEnum,
@@ -9,11 +7,21 @@ import {
   Label,
 } from "@repo/schema";
 import {
+  Button,
+  Heading,
+  NumberInput,
+  Select,
+  Stack,
+  Text,
+  TextInput,
+} from "@repo/ui";
+import clsx from "clsx";
+import { useState } from "react";
+import {
   useCreateDashboardConfigItemMutation,
   useUpdateDashboardConfigItemMutation,
 } from "../../services/dashboardConfigApi";
 import { PositionBox } from "../PositionBox";
-import clsx from "clsx";
 
 import styles from "./AddLimitModal.module.scss";
 
@@ -36,7 +44,10 @@ const severityOptions = [
 ];
 
 const unitOptions = [
-  { label: "Percentage", value: DashboardConfigurationItemLimitUnitEnum.PERCENTAGE },
+  {
+    label: "Percentage",
+    value: DashboardConfigurationItemLimitUnitEnum.PERCENTAGE,
+  },
   { label: "Count", value: DashboardConfigurationItemLimitUnitEnum.COUNT },
 ];
 
@@ -55,7 +66,9 @@ const parameterSelectItems = parameterOptions.map((o) => ({
 }));
 
 /** Map a position enum value back to a ParameterCategory */
-function positionToCategory(pos: DashboardConfigurationItemPositionEnum): ParameterCategory {
+function positionToCategory(
+  pos: DashboardConfigurationItemPositionEnum,
+): ParameterCategory {
   if (pos === DashboardConfigurationItemPositionEnum.COUNT) return "COUNT";
   if (pos === DashboardConfigurationItemPositionEnum.AREA) return "AREA";
   return "POSITION";
@@ -69,33 +82,43 @@ function isPositionType(pos: DashboardConfigurationItemPositionEnum): boolean {
   ].includes(pos);
 }
 
-export const AddLimitModal = ({ projectId, configId, labels, item, onClose }: AddLimitModalProps) => {
+export const AddLimitModal = ({
+  projectId,
+  configId,
+  labels,
+  item,
+  onClose,
+}: AddLimitModalProps) => {
   const isEdit = !!item;
 
   const [name, setName] = useState(item?.name ?? "");
   const [type, setType] = useState<DashboardConfigurationItemTypeEnum>(
     item?.type ?? DashboardConfigurationItemTypeEnum.CHECK,
   );
-  const [severity, setSeverity] = useState<DashboardConfigurationItemSeverityEnum>(
-    item?.severity ?? DashboardConfigurationItemSeverityEnum.ALERT,
-  );
+  const [severity, setSeverity] =
+    useState<DashboardConfigurationItemSeverityEnum>(
+      item?.severity ?? DashboardConfigurationItemSeverityEnum.ALERT,
+    );
   const [targetLabelId, setTargetLabelId] = useState<string>(
     item?.targetLabel.id.toString() ?? "",
   );
   const [targetParentLabelId, setTargetParentLabelId] = useState<string>(
-    item?.targetParentLabel.id.toString() ?? "",
+    item?.targetParentLabel?.id.toString() ?? "",
   );
-  const [position, setPosition] = useState<DashboardConfigurationItemPositionEnum>(
-    item?.position ?? DashboardConfigurationItemPositionEnum.COUNT,
-  );
+  const [position, setPosition] =
+    useState<DashboardConfigurationItemPositionEnum>(
+      item?.position ?? DashboardConfigurationItemPositionEnum.COUNT,
+    );
   const [limitFrom, setLimitFrom] = useState(item?.limitFrom?.toString() ?? "");
   const [limitTo, setLimitTo] = useState(item?.limitTo?.toString() ?? "");
   const [unit, setUnit] = useState<DashboardConfigurationItemLimitUnitEnum>(
     item?.unit ?? DashboardConfigurationItemLimitUnitEnum.PERCENTAGE,
   );
 
-  const [createItem, { isLoading: isCreating }] = useCreateDashboardConfigItemMutation();
-  const [updateItem, { isLoading: isUpdating }] = useUpdateDashboardConfigItemMutation();
+  const [createItem, { isLoading: isCreating }] =
+    useCreateDashboardConfigItemMutation();
+  const [updateItem, { isLoading: isUpdating }] =
+    useUpdateDashboardConfigItemMutation();
 
   const isLoading = isCreating || isUpdating;
 
@@ -122,10 +145,14 @@ export const AddLimitModal = ({ projectId, configId, labels, item, onClose }: Ad
 
   const limitFromNum = Number(limitFrom);
   const limitToNum = Number(limitTo);
-  const hasLimitError = limitFrom !== "" && limitTo !== "" && limitFromNum >= limitToNum;
+  const hasLimitError =
+    (limitFrom === "" && limitTo === "") ||
+    (limitFrom !== "" && isNaN(limitFromNum)) ||
+    (limitTo !== "" && isNaN(limitToNum)) ||
+    limitFromNum > limitToNum;
 
   const handleSave = async () => {
-    if (!name.trim() || !targetLabelId || !targetParentLabelId || hasLimitError) return;
+    if (!name.trim() || !targetLabelId || hasLimitError) return;
 
     const payload = {
       name,
@@ -134,13 +161,20 @@ export const AddLimitModal = ({ projectId, configId, labels, item, onClose }: Ad
       position,
       unit,
       targetLabelId: Number(targetLabelId),
-      targetParentLabelId: Number(targetParentLabelId),
-      limitFrom: Number(limitFrom),
-      limitTo: Number(limitTo),
+      targetParentLabelId: targetParentLabelId
+        ? Number(targetParentLabelId)
+        : null,
+      limitFrom: limitFrom ? Number(limitFrom) : null,
+      limitTo: limitTo ? Number(limitTo) : null,
     };
 
     if (isEdit) {
-      await updateItem({ projectId, configId, itemId: item.id, ...payload }).unwrap();
+      await updateItem({
+        projectId,
+        configId,
+        itemId: item.id,
+        ...payload,
+      }).unwrap();
     } else {
       await createItem({ projectId, configId, ...payload }).unwrap();
     }
@@ -149,7 +183,10 @@ export const AddLimitModal = ({ projectId, configId, labels, item, onClose }: Ad
   };
 
   return (
-    <div className={styles.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <div
+      className={styles.overlay}
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
       <div className={styles.modal}>
         <Heading variant="h4" weight="700">
           {isEdit ? "Edit Limit" : "Add Limit"}
@@ -175,7 +212,10 @@ export const AddLimitModal = ({ projectId, configId, labels, item, onClose }: Ad
                 {typeOptions.map((opt) => (
                   <button
                     key={opt.value}
-                    className={clsx(styles.toggleButton, type === opt.value && styles.active)}
+                    className={clsx(
+                      styles.toggleButton,
+                      type === opt.value && styles.active,
+                    )}
                     onClick={() => setType(opt.value)}
                   >
                     {opt.label}
@@ -190,7 +230,10 @@ export const AddLimitModal = ({ projectId, configId, labels, item, onClose }: Ad
                 {severityOptions.map((opt) => (
                   <button
                     key={opt.value}
-                    className={clsx(styles.toggleButton, severity === opt.value && styles.active)}
+                    className={clsx(
+                      styles.toggleButton,
+                      severity === opt.value && styles.active,
+                    )}
                     onClick={() => setSeverity(opt.value)}
                   >
                     {opt.label}
@@ -217,10 +260,12 @@ export const AddLimitModal = ({ projectId, configId, labels, item, onClose }: Ad
               <Stack gap={4} className={styles.fieldGroup}>
                 <Text variant="text-14">In</Text>
                 <Select
-                  items={labelItems}
-                  placeholder="Select parent label"
+                  items={[{ label: "IMAGE", value: "" }, ...labelItems]}
+                  placeholder="IMAGE"
                   value={targetParentLabelId}
-                  onValueChange={(val) => val && setTargetParentLabelId(val)}
+                  onValueChange={(val) =>
+                    val !== null && setTargetParentLabelId(val)
+                  }
                 />
               </Stack>
               <Stack gap={4} className={styles.fieldGroup}>
@@ -229,14 +274,13 @@ export const AddLimitModal = ({ projectId, configId, labels, item, onClose }: Ad
                   items={parameterSelectItems}
                   placeholder="Select parameter"
                   value={parameterCategory}
-                  onValueChange={(val) => val && handleParameterChange(val as ParameterCategory)}
+                  onValueChange={(val) =>
+                    val && handleParameterChange(val as ParameterCategory)
+                  }
                 />
               </Stack>
               {showPositionBox && (
-                <PositionBox
-                  value={position}
-                  onChange={setPosition}
-                />
+                <PositionBox value={position} onChange={setPosition} />
               )}
             </Stack>
 
@@ -259,8 +303,10 @@ export const AddLimitModal = ({ projectId, configId, labels, item, onClose }: Ad
                   {unitOptions.map((opt) => {
                     const allowed =
                       parameterCategory === "COUNT"
-                        ? opt.value === DashboardConfigurationItemLimitUnitEnum.COUNT
-                        : opt.value === DashboardConfigurationItemLimitUnitEnum.PERCENTAGE;
+                        ? opt.value ===
+                          DashboardConfigurationItemLimitUnitEnum.COUNT
+                        : opt.value ===
+                          DashboardConfigurationItemLimitUnitEnum.PERCENTAGE;
                     return (
                       <button
                         key={opt.value}
@@ -283,14 +329,21 @@ export const AddLimitModal = ({ projectId, configId, labels, item, onClose }: Ad
         </Stack>
 
         <Stack direction="row" justify="end" gap={12} className={styles.footer}>
-          <Button variant="outlined" size="sm" onClick={onClose} disabled={isLoading}>
+          <Button
+            variant="outlined"
+            size="sm"
+            onClick={onClose}
+            disabled={isLoading}
+          >
             Cancel
           </Button>
           <Button
             variant="filled"
             size="sm"
             onClick={handleSave}
-            disabled={isLoading || !name.trim() || !targetLabelId || !targetParentLabelId || hasLimitError}
+            disabled={
+              isLoading || !name.trim() || !targetLabelId || hasLimitError
+            }
           >
             {isLoading ? "Saving..." : "Save"}
           </Button>

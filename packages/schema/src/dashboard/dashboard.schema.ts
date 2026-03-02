@@ -29,7 +29,7 @@ export enum DashboardConfigurationItemLimitUnitEnum {
 }
 
 
-export const dashboardConfigurationItemSchema = z.object({
+const dashboardConfigurationItemBaseSchema = z.object({
   id: z.number(),
   name: z.string(),
   type: z.enum(DashboardConfigurationItemTypeEnum),
@@ -37,14 +37,24 @@ export const dashboardConfigurationItemSchema = z.object({
   position: z.enum(DashboardConfigurationItemPositionEnum),
   unit: z.enum(DashboardConfigurationItemLimitUnitEnum),
   targetLabel: labelSchema,
-  targetParentLabel: labelSchema,
-  limitFrom: z.number(),
-  limitTo: z.number(),
+  targetParentLabel: labelSchema.nullable(),
+  limitFrom: z.number().nullable(),
+  limitTo: z.number().nullable(),
   createdAt: timestampsSchema.createdAt,
   updatedAt: timestampsSchema.updatedAt,
-})
+});
 
-export const createDashboardConfigurationItemSchema = dashboardConfigurationItemSchema
+const limitRefinement = <T extends { limitFrom: number | null; limitTo: number | null }>(data: T) =>
+  data.limitFrom !== null || data.limitTo !== null;
+
+const limitRefinementMessage = { message: "At least one of limitFrom or limitTo must be provided", path: ["limitFrom"] };
+
+export const dashboardConfigurationItemSchema = dashboardConfigurationItemBaseSchema.refine(
+  limitRefinement,
+  limitRefinementMessage,
+);
+
+export const createDashboardConfigurationItemSchema = dashboardConfigurationItemBaseSchema
   .pick({
     name: true,
     type: true,
@@ -56,8 +66,9 @@ export const createDashboardConfigurationItemSchema = dashboardConfigurationItem
   })
   .extend({
     targetLabelId: z.number(),
-    targetParentLabelId: z.number(),
-  });
+    targetParentLabelId: z.number().nullable(),
+  })
+  .refine(limitRefinement, limitRefinementMessage);
 
 export const updateDashboardConfigurationItemSchema = createDashboardConfigurationItemSchema;
 

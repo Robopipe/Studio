@@ -13,6 +13,7 @@ import { DashboardConfigPage } from "../DashboardConfigPage";
 import { EvaluationPage } from "../EvaluationPage";
 
 import styles from "./DashboardPage.module.scss";
+import { DashboardRuntimePage } from "../DashboardRuntimePage";
 
 type RightPanelTab = "custom" | "configuration" | "evaluation";
 
@@ -186,11 +187,7 @@ export const DashboardPage = () => {
               {/* Right panel content */}
               <div className={styles.rightPanelContent}>
                 {rightTab === "custom" && (
-                  <Stack fullWidth align="center" justify="center" className={styles.placeholder}>
-                    <Text variant="text-14" className={styles.placeholderText}>
-                      Custom dashboard coming soon.
-                    </Text>
-                  </Stack>
+                  <DashboardRuntimePage configId={selectedConfigId} />
                 )}
                 {rightTab === "configuration" && (
                   <DashboardConfigPage projectId={projectId} configId={selectedConfigId} />

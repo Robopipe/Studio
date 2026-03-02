@@ -17,9 +17,9 @@ export class DashboardConfigurationItemEntity {
   readonly position: DashboardConfigurationItemPositionEnum;
   readonly unit: DashboardConfigurationItemLimitUnitEnum;
   readonly targetLabel: ProjectLabelEntity;
-  readonly targetParentLabel: ProjectLabelEntity;
-  readonly limitFrom: number;
-  readonly limitTo: number;
+  readonly targetParentLabel: ProjectLabelEntity | null;
+  readonly limitFrom: number | null;
+  readonly limitTo: number | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 
@@ -32,7 +32,9 @@ export class DashboardConfigurationItemEntity {
     this.position = data.position;
     this.unit = data.unit;
     this.targetLabel = new ProjectLabelEntity(data.targetLabel);
-    this.targetParentLabel = new ProjectLabelEntity(data.targetParentLabel);
+    this.targetParentLabel = data.targetParentLabel
+      ? new ProjectLabelEntity(data.targetParentLabel)
+      : null;
     this.limitFrom = data.limitFrom;
     this.limitTo = data.limitTo;
     this.createdAt = data.createdAt;
@@ -48,7 +50,7 @@ export class DashboardConfigurationItemEntity {
       position: this.position,
       unit: this.unit,
       targetLabel: this.targetLabel.toResponse(),
-      targetParentLabel: this.targetParentLabel.toResponse(),
+      targetParentLabel: this.targetParentLabel?.toResponse() ?? null,
       limitFrom: this.limitFrom,
       limitTo: this.limitTo,
       createdAt: this.createdAt.toISOString(),
