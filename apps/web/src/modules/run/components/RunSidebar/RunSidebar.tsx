@@ -87,6 +87,11 @@ export const RunSidebar = ({
       mxid: selectedCamera,
       streamName: selectedStream,
       model: new File([model], "model.tar.xz"),
+      config: {
+        type: "Generic",
+        model_id: Number(selectedModelId),
+        nn_config: {}
+      }
     }).unwrap();
     onSelectCamera(camera);
     onSelectStream(stream);

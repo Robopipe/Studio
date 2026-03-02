@@ -104,7 +104,6 @@ def generate_trainer_config(model_config: ModelConfig) -> dict:
             ),
             "augmentations": augmentations_config,
         },
-        "accelerator": "cpu",
     }
 
     if webhook_url is not None:

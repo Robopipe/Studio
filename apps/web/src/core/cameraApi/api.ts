@@ -3,6 +3,8 @@ import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "./baseQuery";
 import type { DeviceInfo, SensorControl, StreamInfo } from "./schemas";
 import { CameraApiTagType } from "./tagType";
+import { NNConfig } from "./schemas/nn";
+import { DashboardConfiguration, DeployDashboardResponse } from "./schemas/dashboard";
 
 const cameraApiBase = createApi({
   reducerPath: "cameraApi",
@@ -123,17 +125,21 @@ export const cameraApi = cameraApiBase.injectEndpoints({
       ],
     }),
 
+    getNN: builder.query<NNConfig, { mxid: string; streamName: string }>({
+      query: ({ mxid, streamName }) => ({
+        url: `/cameras/${mxid}/streams/${streamName}/nn`,
+        method: HttpMethod.GET,
+      }),
+    }),
+
     deployNN: builder.mutation<
       void,
-      { mxid: string; streamName: string; model: File }
+      { mxid: string; streamName: string; model: File, config: NNConfig }
     >({
-      query: ({ mxid, streamName, model }) => {
+      query: ({ mxid, streamName, model, config }) => {
         const data = new FormData();
         data.append("model", model);
-        data.append(
-          "config",
-          JSON.stringify({ type: "Generic", nn_config: {} }),
-        );
+        data.append("config", JSON.stringify(config));
         return {
           url: `/cameras/${mxid}/streams/${streamName}/nn`,
           method: HttpMethod.POST,
@@ -145,6 +151,21 @@ export const cameraApi = cameraApiBase.injectEndpoints({
     removeNN: builder.mutation<void, { mxid: string; streamName: string }>({
       query: ({ mxid, streamName }) => ({
         url: `/cameras/${mxid}/streams/${streamName}/nn`,
+        method: HttpMethod.DELETE,
+      }),
+    }),
+
+    deployDashboard: builder.mutation<DeployDashboardResponse, {mxid: string, streamName: string, dashboardConfig: DashboardConfiguration}>({
+      query: ({mxid, streamName, dashboardConfig}) => ({
+        url: `/cameras/${mxid}/streams/${streamName}/dashboard`,
+        method: HttpMethod.POST,
+        body: dashboardConfig,
+      }),
+    }),
+
+    removeDashboard: builder.mutation<void, {mxid: string, streamName: string}>({
+      query: ({mxid, streamName}) => ({
+        url: `/cameras/${mxid}/streams/${streamName}/dashboard`,
         method: HttpMethod.DELETE,
       }),
     }),
@@ -168,6 +189,11 @@ export const {
   useUpdateStreamControlMutation,
 
   // NN hooks
+  useGetNNQuery,
   useDeployNNMutation,
   useRemoveNNMutation,
+
+  // Dashboard hooks
+  useDeployDashboardMutation,
+  useRemoveDashboardMutation,
 } = cameraApi;
