@@ -37,6 +37,7 @@ export const SourceImagesSettings = (props: SourceImagesSettingsProps) => {
 
   return (
     <SettingsCard title="source images" state="complete" stepNumber={1}>
+      <Stack direction="row" wrap="wrap">
       {mappedLabels.map((label) => (
         <Stack
           key={label.id}
@@ -55,6 +56,7 @@ export const SourceImagesSettings = (props: SourceImagesSettingsProps) => {
           <Text variant="text-14">{label.name}</Text>
         </Stack>
       ))}
+      </Stack>
     </SettingsCard>
   );
 };
