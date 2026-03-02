@@ -42,9 +42,9 @@ export const dashboardConfigurationItemTable = p.pgTable("dashboard_configuratio
   position: dashboardConfigurationItemPositionEnum("position").notNull(),
   unit: dashboardConfigurationItemLimitUnitEnum("unit").notNull(),
   targetLabelId: p.integer("target_label").references(() => projectLabelTable.id, {onDelete: 'cascade'}).notNull(),
-  targetParentLabelId: p.integer("target_parent_label").references(() => projectLabelTable.id, {onDelete: 'cascade'}).notNull(),
-  limitFrom: p.doublePrecision("limit_from").notNull(),
-  limitTo: p.doublePrecision("limit_to").notNull(),
+  targetParentLabelId: p.integer("target_parent_label").references(() => projectLabelTable.id, {onDelete: 'cascade'}),
+  limitFrom: p.doublePrecision("limit_from"),
+  limitTo: p.doublePrecision("limit_to"),
   createdAt,
   updatedAt
 })

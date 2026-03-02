@@ -100,15 +100,15 @@ export const DashboardConfigPage = ({ projectId, configId }: DashboardConfigPage
               <tr key={item.id}>
                 <td>{item.name}</td>
                 <td>{item.targetLabel.name}</td>
-                <td>{item.targetParentLabel.name}</td>
+                <td>{item.targetParentLabel?.name ?? "IMAGE"}</td>
                 <td className={styles.typeCell}>
                   {positionDisplayLabel(item.position)}
                   {isPositionType(item.position) && (
                     <MiniPositionIcon position={item.position as DashboardConfigurationItemPositionEnum} />
                   )}
                 </td>
-                <td>{item.limitFrom}</td>
-                <td>{item.limitTo}</td>
+                <td>{item.limitFrom ?? "-"}</td>
+                <td>{item.limitTo ?? "-"}</td>
                 <td>{item.type === "CHECK" ? "Check" : "Defect"}</td>
                 <td>{item.severity === "ALERT" ? "Alert" : "Warning"}</td>
                 <td className={styles.actions}>
