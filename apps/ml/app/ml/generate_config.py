@@ -46,7 +46,7 @@ def get_model_params(model_config: ModelConfig) -> tuple[dict, dict]:
     elif model_config.type == ModelType.DETECTION:
         return {"variant": "light"}, {}
     elif model_config.type == ModelType.SEGMENTATION:
-        return {"variant": "light"}, {}
+        return {"variant": "heavy"}, {}
 
 
 def generate_model_config(model_config: ModelConfig) -> dict:
@@ -82,9 +82,10 @@ def generate_trainer_config(model_config: ModelConfig) -> dict:
         for aug in aug_list.to_config()
     ]
     img_size = (
-        (384, 512) if model_config.type != ModelType.CLASSIFICATION else (512, 512)
+        (640, 640) if model_config.type != ModelType.CLASSIFICATION else (512, 512)
     )
     config = {
+        "precision": '16-mixed',
         "batch_size": model_config.training_config.batch_size,
         "epochs": model_config.training_config.epochs,
         "n_workers": 8,
