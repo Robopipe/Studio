@@ -75,6 +75,18 @@ export class UserRepository {
   }
 
   /**
+   * Update user password
+   * @param id
+   * @param hashedPassword - bcrypt hashed password
+   */
+  public async updatePassword(id: number, hashedPassword: string): Promise<void> {
+    await this.db
+      .update(userTable)
+      .set({ password: hashedPassword })
+      .where(eq(userTable.id, id));
+  }
+
+  /**
    * Update user
    * @param id
    * @param data - UserUpdate

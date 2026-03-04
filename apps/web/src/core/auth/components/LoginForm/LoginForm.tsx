@@ -93,8 +93,8 @@ export const LoginForm = () => {
               Sign Up
             </Link>
           </Text>
-          <Link to="/help" className={styles.GreenLink}>
-            Need help?
+          <Link to="/forgot-password" className={styles.GreenLink}>
+            Forgot password?
           </Link>
         </Stack>
       </div>

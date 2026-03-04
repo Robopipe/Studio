@@ -19,7 +19,7 @@ import { User } from '../decorators/user.decorator';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { LocalAuthGuard } from '../guards/local-auth.guard';
 import { AuthService } from '../services/auth.service';
-import { RegisterDto, UserUpdateRequest } from "../dto/auth.dto";
+import { ForgotPasswordDto, RegisterDto, ResetPasswordDto, UserUpdateRequest } from "../dto/auth.dto";
 
 @Controller('auth')
 @Public()
@@ -71,5 +71,17 @@ export class AuthController {
   @Post("register")
   public register(@Body() data: RegisterDto, @Res({passthrough: true}) res: Response): Promise<Token>{
     return this.authService.register(data, res)
+  }
+
+  @Post("forgot-password")
+  public async forgotPassword(@Body() data: ForgotPasswordDto): Promise<{ message: string }> {
+    await this.authService.forgotPassword(data.email);
+    return { message: "If an account with that email exists, a reset link has been sent." };
+  }
+
+  @Post("reset-password")
+  public async resetPassword(@Body() data: ResetPasswordDto): Promise<{ message: string }> {
+    await this.authService.resetPassword(data.token, data.password);
+    return { message: "Password has been reset successfully." };
   }
 }

@@ -12,6 +12,7 @@ import { ModelLogRepository } from "./services/model-log-repository.service";
 import { DashboardConfigurationItemRepository } from "./services/dashboard-configuration-item.service";
 import { DashboardConfigurationRepository } from "./services/dashboard-configuration.service";
 import { DashboardEvaluationRepository } from "./services/dashboard-evaluation.service";
+import { PasswordResetRepository } from "./services/password-reset-repository.service";
 
 
 @Global()
@@ -19,6 +20,7 @@ import { DashboardEvaluationRepository } from "./services/dashboard-evaluation.s
   providers: [
     ModelRepository,
     OrganizationRepository,
+    PasswordResetRepository,
     ProjectRepository,
     TaskRepository,
     UserRepository,
@@ -32,6 +34,7 @@ import { DashboardEvaluationRepository } from "./services/dashboard-evaluation.s
   exports: [
     ModelRepository,
     OrganizationRepository,
+    PasswordResetRepository,
     ProjectRepository,
     TaskRepository,
     UserRepository,

@@ -1,6 +1,10 @@
 import { appConfig } from "@/config";
 import { webRoutes } from "@/config/web/routes";
-import { LoginForm } from "@/core/auth/components";
+import {
+  ForgotPasswordForm,
+  LoginForm,
+  ResetPasswordForm,
+} from "@/core/auth/components";
 import { Authenticated } from "@/core/auth/components/Authenticated/Authenticated";
 import { RegisterForm } from "@/core/auth/components/RegisterForm/RegisterForm";
 import { AccountPage } from "@/modules/account/components";
@@ -24,6 +28,14 @@ const publicRoutes: RouteObject = {
     {
       path: auth.register,
       element: <RegisterForm />,
+    },
+    {
+      path: auth.forgotPassword,
+      element: <ForgotPasswordForm />,
+    },
+    {
+      path: auth.resetPassword,
+      element: <ResetPasswordForm />,
     },
   ],
 };

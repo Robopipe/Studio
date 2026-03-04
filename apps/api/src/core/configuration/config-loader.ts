@@ -27,6 +27,8 @@ export class ConfigLoader {
     const mlSecret = process.env.ML_SECRET || "supersecret";
     const bucketName = process.env.BUCKET_NAME || "robopipe-staging-assets";
     const cookieSecret =  process.env.COOKIE_SECRET || "supersecret";
+    const sendgridApiKey = process.env.SENDGRID_API_KEY || undefined;
+    const sendgridFromEmail = process.env.SENDGRID_FROM_EMAIL || undefined;
 
     const config:Record<string, string|number|undefined> = {
       env,
@@ -42,7 +44,9 @@ export class ConfigLoader {
       bucketName,
       cookieSecret,
       host,
-      port
+      port,
+      sendgridApiKey,
+      sendgridFromEmail,
     }
 
     return config;

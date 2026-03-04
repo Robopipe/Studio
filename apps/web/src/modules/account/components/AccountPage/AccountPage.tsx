@@ -1,8 +1,9 @@
 import { useAuth } from "@/core/auth/hooks";
-import { Button, Container, Heading, Stack, TextInput } from "@repo/ui";
-import styles from "./AccountPage.module.scss";
-import { useState } from "react";
 import { useUpdateProfileMutation } from "@/core/auth/services";
+import { Button, Container, Heading, Stack, TextInput } from "@repo/ui";
+import { useState } from "react";
+import { MemberList } from "../MemberList";
+import styles from "./AccountPage.module.scss";
 
 export interface AccountPageProps {}
 
@@ -10,7 +11,7 @@ export const AccountPage = ({}: AccountPageProps) => {
   const { user } = useAuth();
   const [cameraApiUrl, setCameraApiUrl] = useState(() => user?.cameraApiUrl || '');
   const [updateProfile, {isLoading}] = useUpdateProfileMutation();
-  
+
    const handleSave = async () => {
     if (user) {
       try {
@@ -42,6 +43,8 @@ export const AccountPage = ({}: AccountPageProps) => {
           {isLoading ? "Saving..." : "Save"}
         </Button>
       </Stack>
+      <div className={styles.divider} />
+      <MemberList />
     </Container>
   );
 };

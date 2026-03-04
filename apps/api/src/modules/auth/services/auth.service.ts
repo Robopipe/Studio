@@ -1,12 +1,16 @@
 import { ConflictException, Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import type { Jwt, Token, UpdateUserRequest } from '@repo/schema';
+import { UserRoleEnum } from '@repo/schema';
 import { compare, hash } from 'bcrypt';
+import { randomBytes } from 'crypto';
 import type { Response } from 'express';
 import { AppConfig } from 'src/core/configuration/app.config';
 import { DB_CONNECTION } from 'src/core/database/database.constant';
 import type { DbConnection } from 'src/core/database/types/database.types';
+import { EmailService } from 'src/modules/email/email.service';
 import { UserEntity } from 'src/modules/user/entities/user.entity';
+import { PasswordResetRepository } from 'src/repository/services/password-reset-repository.service';
 import { UserRepository } from 'src/repository/services/user-repository.service';
 import { RegisterDto } from "../dto/auth.dto";
 import { OrganizationRepository } from "../../../repository/services/organization-repository.service";
@@ -17,6 +21,8 @@ export class AuthService {
     @Inject(DB_CONNECTION) private readonly db: DbConnection,
     private readonly userRepository: UserRepository,
     private readonly organizationRepository: OrganizationRepository,
+    private readonly passwordResetRepository: PasswordResetRepository,
+    private readonly emailService: EmailService,
     private readonly jwtService: JwtService,
     private readonly configService: AppConfig,
   ) {}
@@ -114,10 +120,53 @@ export class AuthService {
       username: data.email,
       fullName: data.fullName,
       password: hashedPassword,
+      role: UserRoleEnum.ADMIN,
       organizationId: organization.id
     })
 
     return this.login(user, res)
+  }
+
+  /**
+   * Forgot password - sends reset email if user exists.
+   * Always succeeds to prevent email enumeration.
+   * @param email
+   */
+  public async forgotPassword(email: string): Promise<void> {
+    const user = await this.userRepository.getByEmail(email);
+    if (!user) return;
+
+    await this.passwordResetRepository.deleteByUserId(user.id);
+
+    const token = randomBytes(32).toString("hex");
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    await this.passwordResetRepository.create({
+      token,
+      userId: user.id,
+      expiresAt,
+    });
+
+    const resetLink = `${this.configService.webHost}/reset-password?token=${token}`;
+    await this.emailService.sendPasswordResetEmail(email, resetLink);
+  }
+
+  /**
+   * Reset password using a valid token
+   * @param token
+   * @param newPassword
+   * @throws UnauthorizedException if token is invalid or expired
+   */
+  public async resetPassword(token: string, newPassword: string): Promise<void> {
+    const resetRecord = await this.passwordResetRepository.findValidToken(token);
+
+    if (!resetRecord) {
+      throw new UnauthorizedException("Invalid or expired reset token");
+    }
+
+    const hashedPassword = await this.hashPassword(newPassword);
+    await this.userRepository.updatePassword(resetRecord.userId, hashedPassword);
+    await this.passwordResetRepository.markUsed(resetRecord.id);
   }
 
   /**

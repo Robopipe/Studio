@@ -19,6 +19,8 @@ export const appConfigSchema = z.object({
   mlRegion: z.string().optional(),
   gcpProject: z.string().optional(),
   cookieSecret: z.string(),
+  sendgridApiKey: z.string().optional(),
+  sendgridFromEmail: z.string().optional(),
 });
 
 export class AppConfig extends createZodDto(appConfigSchema) {}
