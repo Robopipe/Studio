@@ -70,3 +70,9 @@ variable "bucket_name" {
   description = "GCS assets bucket name"
   type        = string
 }
+
+variable "sendgrid_from_email" {
+  description = "SendGrid sender email address"
+  type        = string
+  default     = ""
+}

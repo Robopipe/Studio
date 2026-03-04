@@ -5,6 +5,13 @@ export const studioApiEndpoints = {
     refreshToken: "auth/refresh",
     profile: "auth/profile",
     logout: "auth/logout",
+    forgotPassword: "auth/forgot-password",
+    resetPassword: "auth/reset-password",
+  },
+  organizations: {
+    current: "organizations/current",
+    members: "organizations/current/members",
+    invite: "organizations/current/invite",
   },
   tasks: {
     tasks: (projectId: number) => `task/${projectId}`,

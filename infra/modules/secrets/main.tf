@@ -4,7 +4,8 @@ locals {
     jwtSecret    = null # manually set after creation
     cookieSecret = null # manually set after creation
     mlSecret     = null # manually set after creation
-    hubaiApiKey  = null # manually set after creation (for ML service)
+    hubaiApiKey     = null # manually set after creation (for ML service)
+    sendgridApiKey  = null # manually set after creation
   }
 }
 

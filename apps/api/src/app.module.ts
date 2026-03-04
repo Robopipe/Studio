@@ -10,6 +10,7 @@ import { TaskModule } from "./modules/task/task.module";
 import { TrainingExternalModule } from "./modules/training-external/training-external.module";
 import { ModelModule } from "./modules/model/model.module";
 import { DashboardModule } from "./modules/dashboard/dashboard.module";
+import { EmailModule } from "./modules/email/email.module";
 import { APP_PIPE } from "@nestjs/core";
 import { ZodValidationPipe } from "nestjs-zod";
 
@@ -25,7 +26,8 @@ import { ZodValidationPipe } from "nestjs-zod";
     TaskModule,
     TrainingExternalModule,
     ModelModule,
-    DashboardModule
+    DashboardModule,
+    EmailModule,
   ],
   providers: [
     {

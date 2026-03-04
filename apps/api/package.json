@@ -30,6 +30,7 @@
     "@nestjs/swagger": "^11.2.4",
     "@repo/database": "workspace:*",
     "@repo/schema": "workspace:*",
+    "@sendgrid/mail": "^8.1.6",
     "axios": "^1.13.4",
     "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",

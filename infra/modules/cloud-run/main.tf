@@ -111,6 +111,21 @@ resource "google_cloud_run_v2_service" "api" {
         }
       }
 
+      env {
+        name = "SENDGRID_API_KEY"
+        value_source {
+          secret_key_ref {
+            secret  = var.secret_ids["sendgridApiKey"]
+            version = "latest"
+          }
+        }
+      }
+
+      env {
+        name  = "SENDGRID_FROM_EMAIL"
+        value = var.sendgrid_from_email
+      }
+
       volume_mounts {
         name       = "cloudsql"
         mount_path = "/cloudsql"

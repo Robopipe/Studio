@@ -7,6 +7,13 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.userTable.organizationId,
       to: r.organizationTable.id,
     }),
+    passwordResets: r.many.passwordResetTable(),
+  },
+  passwordResetTable: {
+    user: r.one.userTable({
+      from: r.passwordResetTable.userId,
+      to: r.userTable.id,
+    }),
   },
   organizationTable: {
     users: r.many.userTable(),

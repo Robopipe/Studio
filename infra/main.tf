@@ -118,6 +118,7 @@ module "cloud_run" {
   ml_job_name          = module.cloud_run_ml.job_name
   ml_region            = var.ml_region
   gcp_project          = var.project_id
+  sendgrid_from_email  = var.sendgrid_from_email
 
   depends_on = [google_project_service.apis, module.secrets]
 }

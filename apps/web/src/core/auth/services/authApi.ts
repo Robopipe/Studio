@@ -2,7 +2,15 @@ import { appConfig } from "@/config";
 import { baseQuery } from "@/core/api/baseQuery";
 import { HttpMethod } from "@/types";
 import { createApi } from "@reduxjs/toolkit/query/react";
-import { Login, Register, Token, UpdateUserRequest, User } from "@repo/schema";
+import {
+  ForgotPassword,
+  Login,
+  Register,
+  ResetPassword,
+  Token,
+  UpdateUserRequest,
+  User,
+} from "@repo/schema";
 
 const { auth } = appConfig.studioApi.endpoints;
 const authApiBase = createApi({
@@ -53,6 +61,20 @@ export const authApi = authApiBase.injectEndpoints({
         body: data,
       }),
     }),
+    forgotPassword: builder.mutation<{ message: string }, ForgotPassword>({
+      query: (data) => ({
+        url: auth.forgotPassword,
+        method: HttpMethod.POST,
+        body: data,
+      }),
+    }),
+    resetPassword: builder.mutation<{ message: string }, ResetPassword>({
+      query: (data) => ({
+        url: auth.resetPassword,
+        method: HttpMethod.POST,
+        body: data,
+      }),
+    }),
   }),
   overrideExisting: true,
 });
@@ -64,4 +86,6 @@ export const {
   useProfileQuery,
   useRegisterMutation,
   useUpdateProfileMutation,
+  useForgotPasswordMutation,
+  useResetPasswordMutation,
 } = authApi;

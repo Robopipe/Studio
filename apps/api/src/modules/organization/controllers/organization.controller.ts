@@ -1,4 +1,6 @@
-import { Body, Controller, Get, Patch } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post, UseGuards } from '@nestjs/common';
+import { InviteUserDto } from 'src/modules/auth/dto/auth.dto';
+import { AdminGuard } from 'src/modules/auth/guards/admin.guard';
 import { User } from 'src/modules/auth/decorators/user.decorator';
 import { OrganizationService } from '../services/organization.service';
 import {
@@ -38,5 +40,19 @@ export class OrganizationController {
   ): Promise<OrganizationMembersResponse> {
     const members = await this.organizationService.getMembers(organizationId);
     return { members: members.map((m) => m.toDto()) };
+  }
+
+  @Post("current/invite")
+  @UseGuards(AdminGuard)
+  public async inviteUser(
+    @User("organizationId") organizationId: number,
+    @Body() body: InviteUserDto,
+  ): Promise<{ message: string }> {
+    await this.organizationService.inviteUser(
+      organizationId,
+      body.email,
+      body.fullName,
+    );
+    return { message: "Invitation sent successfully." };
   }
 }

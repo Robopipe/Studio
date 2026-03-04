@@ -113,3 +113,9 @@ variable "ml_image" {
   default     = ""
 }
 
+variable "sendgrid_from_email" {
+  description = "SendGrid sender email address"
+  type        = string
+  default     = ""
+}
+

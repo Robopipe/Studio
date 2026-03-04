@@ -25,3 +25,17 @@ export const updateUserSchema = z.object({
   fullName: z.string().nonempty(),
   cameraApiUrl: z.url(),
 });
+
+export const forgotPasswordSchema = z.object({
+  email: z.email(),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().nonempty(),
+  password: z.string().min(8),
+});
+
+export const inviteUserSchema = z.object({
+  email: z.email(),
+  fullName: z.string().nonempty(),
+});
