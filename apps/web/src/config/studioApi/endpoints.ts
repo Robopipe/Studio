@@ -12,6 +12,8 @@ export const studioApiEndpoints = {
     current: "organizations/current",
     members: "organizations/current/members",
     invite: "organizations/current/invite",
+    member: (userId: number) => `organizations/current/members/${userId}`,
+    memberRole: (userId: number) => `organizations/current/members/${userId}/role`,
   },
   tasks: {
     tasks: (projectId: number) => `task/${projectId}`,

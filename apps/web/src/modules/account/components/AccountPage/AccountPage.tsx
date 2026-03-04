@@ -2,6 +2,7 @@ import { useAuth } from "@/core/auth/hooks";
 import { useUpdateProfileMutation } from "@/core/auth/services";
 import { Button, Container, Heading, Stack, TextInput } from "@repo/ui";
 import { useState } from "react";
+import { toast } from "sonner";
 import { MemberList } from "../MemberList";
 import styles from "./AccountPage.module.scss";
 
@@ -16,8 +17,9 @@ export const AccountPage = ({}: AccountPageProps) => {
     if (user) {
       try {
         await updateProfile({cameraApiUrl, fullName: user.fullName}).unwrap();
-      } catch (error) {
-        console.error("Failed to update profile:", error);
+        toast.success("Settings saved");
+      } catch {
+        toast.error("Failed to save settings");
       }
     }
   }

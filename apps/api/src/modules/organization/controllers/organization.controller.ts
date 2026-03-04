@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, UseGuards } from '@nestjs/common';
 import { InviteUserDto } from 'src/modules/auth/dto/auth.dto';
 import { AdminGuard } from 'src/modules/auth/guards/admin.guard';
 import { User } from 'src/modules/auth/decorators/user.decorator';
@@ -7,6 +7,7 @@ import {
   OrganizationResponse,
   OrganizationUpdateRequest,
   OrganizationMembersResponse,
+  UpdateMemberRoleDto,
 } from "../dto/organization.dto";
 
 @Controller("organizations")
@@ -54,5 +55,26 @@ export class OrganizationController {
       body.fullName,
     );
     return { message: "Invitation sent successfully." };
+  }
+
+  @Delete("current/members/:userId")
+  @UseGuards(AdminGuard)
+  public async removeMember(
+    @User("organizationId") organizationId: number,
+    @Param("userId", ParseIntPipe) userId: number,
+  ): Promise<{ message: string }> {
+    await this.organizationService.removeMember(organizationId, userId);
+    return { message: "Member removed." };
+  }
+
+  @Patch("current/members/:userId/role")
+  @UseGuards(AdminGuard)
+  public async updateMemberRole(
+    @User("organizationId") organizationId: number,
+    @Param("userId", ParseIntPipe) userId: number,
+    @Body() body: UpdateMemberRoleDto,
+  ): Promise<{ message: string }> {
+    await this.organizationService.updateMemberRole(organizationId, userId, body.role);
+    return { message: "Role updated." };
   }
 }
