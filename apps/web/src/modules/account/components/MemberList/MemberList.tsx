@@ -3,6 +3,7 @@ import { UserRoleEnum } from "@repo/schema";
 import {
   Badge,
   Button,
+  CloseIcon,
   Heading,
   Select,
   Spinner,
@@ -92,19 +93,22 @@ export const MemberList = () => {
             <div className={styles.memberActions}>
               {isAdmin ? (
                 <>
-                  <Select<string>
-                    placeholder="Role"
-                    items={roleItems}
-                    value={member.role}
-                    onValueChange={(val) => val && handleRoleChange(member.id, val)}
-                  />
+                  <div className={styles.roleSelect}>
+                    <Select<string>
+                      placeholder="Role"
+                      items={roleItems}
+                      value={member.role}
+                      onValueChange={(val) => val && handleRoleChange(member.id, val)}
+                    />
+                  </div>
                   {member.id !== user?.id && (
-                    <Button
-                      variant="danger"
+                    <button
+                      className={styles.removeButton}
                       onClick={() => handleRemove(member.id)}
+                      aria-label="Remove member"
                     >
-                      Remove
-                    </Button>
+                      <CloseIcon width={16} height={16} />
+                    </button>
                   )}
                 </>
               ) : (
