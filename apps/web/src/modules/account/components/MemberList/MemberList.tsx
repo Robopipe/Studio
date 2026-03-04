@@ -4,40 +4,69 @@ import {
   Badge,
   Button,
   Heading,
+  Select,
   Spinner,
   Stack,
   Text,
   TextInput,
   bui,
 } from "@repo/ui";
-import { FormEvent, useState } from "react";
-import { useGetMembersQuery, useInviteUserMutation } from "../../services";
+import { FormEvent } from "react";
+import { toast } from "sonner";
+import {
+  useGetMembersQuery,
+  useInviteUserMutation,
+  useRemoveMemberMutation,
+  useUpdateMemberRoleMutation,
+} from "../../services";
 import styles from "./MemberList.module.scss";
+
+const roleItems = [
+  { label: "Admin", value: UserRoleEnum.ADMIN },
+  { label: "Member", value: UserRoleEnum.MEMBER },
+];
 
 export const MemberList = () => {
   const { user } = useAuth();
   const { data: members, isLoading } = useGetMembersQuery();
   const [inviteUser, { isLoading: isInviting }] = useInviteUserMutation();
+  const [removeMember] = useRemoveMemberMutation();
+  const [updateMemberRole] = useUpdateMemberRoleMutation();
   const isAdmin = user?.role === UserRoleEnum.ADMIN;
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
   const handleInvite = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError(null);
-    setSuccess(null);
-    const formData = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const formData = new FormData(form);
     const email = formData.get("email") as string;
     const fullName = formData.get("fullName") as string;
 
     try {
       await inviteUser({ email, fullName }).unwrap();
-      setSuccess(`Invitation sent to ${email}`);
-      e.currentTarget.reset();
+      form.reset();
+      toast.success(`Invitation sent to ${email}`);
     } catch (err: any) {
       const message =
         err?.data?.message || "Failed to send invitation. Please try again.";
-      setError(message);
+      toast.error(message);
+    }
+  };
+
+  const handleRoleChange = async (userId: number, role: string) => {
+    try {
+      await updateMemberRole({ userId, role: role as UserRoleEnum }).unwrap();
+      toast.success("Role updated");
+    } catch {
+      toast.error("Failed to update role");
+    }
+  };
+
+  const handleRemove = async (userId: number) => {
+    try {
+      await removeMember(userId).unwrap();
+      toast.success("Member removed");
+    } catch {
+      toast.error("Failed to remove member");
     }
   };
 
@@ -60,13 +89,34 @@ export const MemberList = () => {
                 {member.email}
               </Text>
             </Stack>
-            <Badge
-              variant={
-                member.role === UserRoleEnum.ADMIN ? "success" : "neutral"
-              }
-            >
-              {member.role}
-            </Badge>
+            <div className={styles.memberActions}>
+              {isAdmin ? (
+                <>
+                  <Select<string>
+                    placeholder="Role"
+                    items={roleItems}
+                    value={member.role}
+                    onValueChange={(val) => val && handleRoleChange(member.id, val)}
+                  />
+                  {member.id !== user?.id && (
+                    <Button
+                      variant="danger"
+                      onClick={() => handleRemove(member.id)}
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <Badge
+                  variant={
+                    member.role === UserRoleEnum.ADMIN ? "success" : "neutral"
+                  }
+                >
+                  {member.role}
+                </Badge>
+              )}
+            </div>
           </div>
         ))}
       </Stack>
@@ -77,17 +127,6 @@ export const MemberList = () => {
           <Heading variant="h5" weight="600">
             Invite Member
           </Heading>
-
-          {error && (
-            <Text variant="text-14" color="error">
-              {error}
-            </Text>
-          )}
-          {success && (
-            <Text variant="text-14" color="success">
-              {success}
-            </Text>
-          )}
 
           <bui.Form onSubmit={handleInvite}>
             <Stack gap={16}>

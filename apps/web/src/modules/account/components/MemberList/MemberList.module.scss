@@ -10,6 +10,12 @@
   }
 }
 
+.memberActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .divider {
   height: 1px;
   background-color: rgba(0, 0, 0, 0.12);

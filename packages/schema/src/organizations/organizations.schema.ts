@@ -1,5 +1,5 @@
 import z from "zod";
-import { userSchema } from "../users";
+import { userSchema, UserRoleEnum } from "../users";
 import { timestampsSchema } from "../helpers";
 
 export const organizationSchema = z.object({
@@ -16,4 +16,8 @@ export const organizationMemberSchema = userSchema;
 
 export const organizationMembersResponseSchema = z.object({
   members: z.array(organizationMemberSchema),
+});
+
+export const updateMemberRoleSchema = z.object({
+  role: z.nativeEnum(UserRoleEnum),
 });

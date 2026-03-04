@@ -5,7 +5,7 @@ import { UserEntity } from 'src/modules/user/entities/user.entity';
 import { UserInsert, UserUpdate } from "../types/user";
 import { userTable } from "@repo/database";
 import { eq } from 'drizzle-orm';
-import { UpdateUserRequest } from '@repo/schema';
+import type { UserRoleEnum } from '@repo/schema';
 
 @Injectable()
 export class UserRepository {
@@ -105,5 +105,28 @@ export class UserRepository {
     }
 
     return new UserEntity(updatedUser)
+  }
+
+  /**
+   * Soft delete user by setting deletedAt
+   * @param id
+   */
+  public async softDelete(id: number): Promise<void> {
+    await this.db
+      .update(userTable)
+      .set({ deletedAt: new Date() })
+      .where(eq(userTable.id, id));
+  }
+
+  /**
+   * Update user role
+   * @param id
+   * @param role - new role
+   */
+  public async updateRole(id: number, role: UserRoleEnum): Promise<void> {
+    await this.db
+      .update(userTable)
+      .set({ role })
+      .where(eq(userTable.id, id));
   }
 }

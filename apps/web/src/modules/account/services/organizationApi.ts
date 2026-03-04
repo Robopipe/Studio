@@ -2,7 +2,7 @@ import { appConfig } from "@/config";
 import { baseRefreshingQuery } from "@/core/api/baseQuery";
 import { HttpMethod } from "@/types";
 import { createApi } from "@reduxjs/toolkit/query/react";
-import { InviteUser, OrganizationMembersResponse, User } from "@repo/schema";
+import { InviteUser, OrganizationMembersResponse, UpdateMemberRole, User } from "@repo/schema";
 
 const { organizations } = appConfig.studioApi.endpoints;
 
@@ -36,8 +36,28 @@ export const organizationApi = organizationApiBase.injectEndpoints({
       }),
       invalidatesTags: [OrganizationApiTagType.OrganizationMembers],
     }),
+    removeMember: builder.mutation<{ message: string }, number>({
+      query: (userId) => ({
+        url: organizations.member(userId),
+        method: HttpMethod.DELETE,
+      }),
+      invalidatesTags: [OrganizationApiTagType.OrganizationMembers],
+    }),
+    updateMemberRole: builder.mutation<{ message: string }, { userId: number } & UpdateMemberRole>({
+      query: ({ userId, role }) => ({
+        url: organizations.memberRole(userId),
+        method: HttpMethod.PATCH,
+        body: { role },
+      }),
+      invalidatesTags: [OrganizationApiTagType.OrganizationMembers],
+    }),
   }),
   overrideExisting: true,
 });
 
-export const { useGetMembersQuery, useInviteUserMutation } = organizationApi;
+export const {
+  useGetMembersQuery,
+  useInviteUserMutation,
+  useRemoveMemberMutation,
+  useUpdateMemberRoleMutation,
+} = organizationApi;

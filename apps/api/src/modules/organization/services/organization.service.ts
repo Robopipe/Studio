@@ -1,5 +1,5 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import type { UpdateOrganizationRequest } from '@repo/schema';
+import type { UpdateOrganizationRequest, UpdateMemberRole } from '@repo/schema';
 import { UserRoleEnum } from '@repo/schema';
 import { hash } from 'bcrypt';
 import { randomBytes } from 'crypto';
@@ -100,5 +100,42 @@ export class OrganizationService {
 
     const resetLink = `${this.config.webHost}/reset-password?token=${token}`;
     await this.emailService.sendInvitationEmail(email, fullName, resetLink);
+  }
+
+  /**
+   * Remove a member from the organization
+   * @param organizationId
+   * @param userId
+   * @throws NotFoundException if user not found or doesn't belong to org
+   */
+  public async removeMember(organizationId: number, userId: number): Promise<void> {
+    const user = await this.userRepository.getById(userId);
+
+    if (!user || user.organizationId !== organizationId) {
+      throw new NotFoundException('Member not found');
+    }
+
+    await this.userRepository.softDelete(userId);
+  }
+
+  /**
+   * Update a member's role
+   * @param organizationId
+   * @param userId
+   * @param role - new role
+   * @throws NotFoundException if user not found or doesn't belong to org
+   */
+  public async updateMemberRole(
+    organizationId: number,
+    userId: number,
+    role: UpdateMemberRole['role'],
+  ): Promise<void> {
+    const user = await this.userRepository.getById(userId);
+
+    if (!user || user.organizationId !== organizationId) {
+      throw new NotFoundException('Member not found');
+    }
+
+    await this.userRepository.updateRole(userId, role);
   }
 }
