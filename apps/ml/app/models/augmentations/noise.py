@@ -15,7 +15,7 @@ class Noise(Augmentation, A_TYPE="GaussNoise"):
     type: Literal["NOISE"]
     params: NoiseParams
 
-    def to_config(self):
+    def to_config(self, img_size: tuple[int, int]):
         return [
             {
                 "name": self.A_TYPE,
