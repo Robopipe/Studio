@@ -12,12 +12,12 @@ class Crop(Augmentation, A_TYPE="RandomResizedCrop"):
     type: Literal["CROP"]
     params: CropParams
 
-    def to_config(self):
+    def to_config(self, img_size: tuple[int, int]):
         return [
             {
                 "name": self.A_TYPE,
                 "params": {
-                    "size": ["*width", "*height"],
+                    "size": [img_size[0], img_size[1]],
                     "scale": [self.params.scale_min, self.params.scale_max],
                 },
             }

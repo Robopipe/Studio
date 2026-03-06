@@ -8,17 +8,17 @@ class MosaicParams(AugmentationParams):
     cols: int = 2
 
 
-class Mosaic(Augmentation, A_TYPE="Mosaic"):
+class Mosaic(Augmentation, A_TYPE="Mosaic4"):
     type: Literal["MOSAIC"]
     params: MosaicParams
 
-    def to_config(self):
+    def to_config(self, img_size: tuple[int, int]):
         return [
             {
                 "name": self.A_TYPE,
                 "params": {
-                    "grid_yx": [self.params.rows, self.params.cols],
-                    "target_size": ["*height", "*width"],
+                    "out_height": img_size[0],
+                    "out_width": img_size[1],
                     "p": self.params.p,
                 },
             }
