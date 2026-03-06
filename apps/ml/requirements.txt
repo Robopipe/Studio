@@ -6,8 +6,7 @@ pydantic-settings==2.7.1
 python-multipart==0.0.17
 
 # ML training
-luxonis-train @ git+https://github.com/luxonis/luxonis-train.git@a98b060d2bd6e50a9236ab6663905475f7e08ad2
-lightning==2.6.1
+luxonis-train @ git+https://github.com/luxonis/luxonis-train.git@4be9f689e10f13bf2a8759fae712c63a2486834f
 torch==2.9.0
 torchvision==0.24.0
 ultralytics==8.3.104
