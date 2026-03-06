@@ -82,6 +82,33 @@ function isPositionType(pos: DashboardConfigurationItemPositionEnum): boolean {
   ].includes(pos);
 }
 
+/** State shape for a single limit pair in the form */
+interface LimitPairState {
+  from: string;
+  to: string;
+}
+
+function initLimitPairs(item?: DashboardConfigurationItem): LimitPairState[] {
+  if (item?.limits && item.limits.length > 0) {
+    return item.limits.map((l) => ({
+      from: l.from?.toString() ?? "",
+      to: l.to?.toString() ?? "",
+    }));
+  }
+  return [{ from: "", to: "" }];
+}
+
+function hasLimitPairError(pair: LimitPairState): boolean {
+  const fromNum = Number(pair.from);
+  const toNum = Number(pair.to);
+  return (
+    (pair.from === "" && pair.to === "") ||
+    (pair.from !== "" && isNaN(fromNum)) ||
+    (pair.to !== "" && isNaN(toNum)) ||
+    (pair.from !== "" && pair.to !== "" && fromNum > toNum)
+  );
+}
+
 export const AddLimitModal = ({
   projectId,
   configId,
@@ -109,8 +136,9 @@ export const AddLimitModal = ({
     useState<DashboardConfigurationItemPositionEnum>(
       item?.position ?? DashboardConfigurationItemPositionEnum.COUNT,
     );
-  const [limitFrom, setLimitFrom] = useState(item?.limitFrom?.toString() ?? "");
-  const [limitTo, setLimitTo] = useState(item?.limitTo?.toString() ?? "");
+  const [limitPairs, setLimitPairs] = useState<LimitPairState[]>(
+    initLimitPairs(item),
+  );
   const [unit, setUnit] = useState<DashboardConfigurationItemLimitUnitEnum>(
     item?.unit ?? DashboardConfigurationItemLimitUnitEnum.PERCENTAGE,
   );
@@ -143,16 +171,29 @@ export const AddLimitModal = ({
     }
   };
 
-  const limitFromNum = Number(limitFrom);
-  const limitToNum = Number(limitTo);
-  const hasLimitError =
-    (limitFrom === "" && limitTo === "") ||
-    (limitFrom !== "" && isNaN(limitFromNum)) ||
-    (limitTo !== "" && isNaN(limitToNum)) ||
-    limitFromNum > limitToNum;
+  const hasLimitError = limitPairs.some(hasLimitPairError);
+
+  const updatePair = (index: number, field: "from" | "to", value: string) => {
+    setLimitPairs((prev) =>
+      prev.map((p, i) => (i === index ? { ...p, [field]: value } : p)),
+    );
+  };
+
+  const addPair = () => {
+    setLimitPairs((prev) => [...prev, { from: "", to: "" }]);
+  };
+
+  const removePair = (index: number) => {
+    setLimitPairs((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const handleSave = async () => {
     if (!name.trim() || !targetLabelId || hasLimitError) return;
+
+    const limits = limitPairs.map((p) => ({
+      from: p.from !== "" ? Number(p.from) : null,
+      to: p.to !== "" ? Number(p.to) : null,
+    }));
 
     const payload = {
       name,
@@ -164,8 +205,7 @@ export const AddLimitModal = ({
       targetParentLabelId: targetParentLabelId
         ? Number(targetParentLabelId)
         : null,
-      limitFrom: limitFrom ? Number(limitFrom) : null,
-      limitTo: limitTo ? Number(limitTo) : null,
+      limits,
     };
 
     if (isEdit) {
@@ -285,18 +325,6 @@ export const AddLimitModal = ({
             </Stack>
 
             <Stack direction="row" gap={16} align="end">
-              <NumberInput
-                label="Limit from"
-                value={limitFrom}
-                onChange={(e) => setLimitFrom(e.target.value)}
-                error={hasLimitError}
-              />
-              <NumberInput
-                label="Limit to"
-                value={limitTo}
-                onChange={(e) => setLimitTo(e.target.value)}
-                error={hasLimitError}
-              />
               <Stack gap={4}>
                 <Text variant="text-14">Units</Text>
                 <Stack direction="row" gap={8}>
@@ -324,6 +352,62 @@ export const AddLimitModal = ({
                   })}
                 </Stack>
               </Stack>
+            </Stack>
+
+            {/* Limit pairs */}
+            <Stack gap={0}>
+              {limitPairs.map((pair, index) => {
+                const pairError = hasLimitPairError(pair);
+                return (
+                  <div key={index}>
+                    {index > 0 && (
+                      <div className={styles.orSeparator}>
+                        <span className={styles.orLabel}>OR</span>
+                      </div>
+                    )}
+                    <Stack
+                      direction="row"
+                      gap={16}
+                      align="end"
+                      className={styles.limitPairRow}
+                    >
+                      <NumberInput
+                        label={index === 0 ? "Limit from" : ""}
+                        value={pair.from}
+                        onChange={(e) =>
+                          updatePair(index, "from", e.target.value)
+                        }
+                        error={pairError}
+                      />
+                      <NumberInput
+                        label={index === 0 ? "Limit to" : ""}
+                        value={pair.to}
+                        onChange={(e) =>
+                          updatePair(index, "to", e.target.value)
+                        }
+                        error={pairError}
+                      />
+                      {limitPairs.length > 1 && (
+                        <button
+                          type="button"
+                          className={styles.removePairButton}
+                          onClick={() => removePair(index)}
+                          aria-label="Remove limit pair"
+                        >
+                          &times;
+                        </button>
+                      )}
+                    </Stack>
+                  </div>
+                );
+              })}
+              <button
+                type="button"
+                className={styles.addPairButton}
+                onClick={addPair}
+              >
+                + Add limit range
+              </button>
             </Stack>
           </Stack>
         </Stack>

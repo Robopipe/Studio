@@ -12,7 +12,7 @@ class Hue(Augmentation, A_TYPE="HueSaturationValue"):
     type: Literal["HUE"]
     params: HueParams
 
-    def to_config(self):
+    def to_config(self, img_size: tuple[int, int]):
         return [
             {
                 "name": self.A_TYPE,

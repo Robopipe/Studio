@@ -12,7 +12,7 @@ class Contrast(Augmentation, A_TYPE="RandomBrightnessContrast"):
     type: Literal["CONTRAST"]
     params: ContrastParams
 
-    def to_config(self):
+    def to_config(self, img_size: tuple[int, int]):
         return [
             {
                 "name": self.A_TYPE,

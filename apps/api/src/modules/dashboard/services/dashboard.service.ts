@@ -2,18 +2,18 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { DashboardConfigurationItemRepository } from "../../../repository/services/dashboard-configuration-item.service";
 import { DashboardConfigurationRepository } from "../../../repository/services/dashboard-configuration.service";
 import { DashboardEvaluationRepository } from "../../../repository/services/dashboard-evaluation.service";
-import { DashboardConfigurationEntity } from "../entity/dashboard-configuration.entity";
-import { DashboardConfigurationItemEntity } from "../entity/dashboard-configuration-item.entity";
-import { DashboardEvaluationEntity } from "../entity/dashboard-evaluation.entity";
-import {
-  DashboardConfigurationCreateRequest,
-  DashboardConfigurationUpdateRequest,
-} from "../dto/dashboard-configuration.dto";
 import {
   DashboardConfigurationItemCreateRequest,
   DashboardConfigurationItemUpdateRequest,
 } from "../dto/dashboard-configuration-item.dto";
+import {
+  DashboardConfigurationCreateRequest,
+  DashboardConfigurationUpdateRequest,
+} from "../dto/dashboard-configuration.dto";
 import { DashboardEvaluationUpsertRequest } from "../dto/dashboard-evaluation.dto";
+import { DashboardConfigurationItemEntity } from "../entity/dashboard-configuration-item.entity";
+import { DashboardConfigurationEntity } from "../entity/dashboard-configuration.entity";
+import { DashboardEvaluationEntity } from "../entity/dashboard-evaluation.entity";
 
 @Injectable()
 export class DashboardService {
@@ -22,7 +22,6 @@ export class DashboardService {
     private readonly dashboardConfigurationItemRepository: DashboardConfigurationItemRepository,
     private readonly dashboardEvaluationRepository: DashboardEvaluationRepository,
   ) {}
-
 
   /**
    * Get all dashboard configurations for a project
@@ -134,8 +133,7 @@ export class DashboardService {
       unit: data.unit,
       targetLabelId: data.targetLabelId,
       targetParentLabelId: data.targetParentLabelId,
-      limitFrom: data.limitFrom,
-      limitTo: data.limitTo,
+      limits: data.limits,
     });
   }
 
@@ -158,8 +156,7 @@ export class DashboardService {
       unit: data.unit,
       targetLabelId: data.targetLabelId,
       targetParentLabelId: data.targetParentLabelId,
-      limitFrom: data.limitFrom,
-      limitTo: data.limitTo,
+      limits: data.limits,
     });
   }
 

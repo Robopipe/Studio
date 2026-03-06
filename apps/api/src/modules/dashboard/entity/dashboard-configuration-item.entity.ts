@@ -3,6 +3,7 @@ import {
   DashboardConfigurationItemPositionEnum,
   DashboardConfigurationItemSeverityEnum,
   DashboardConfigurationItemTypeEnum,
+  LimitPair,
 } from "@repo/schema";
 import { DashboardConfigurationItemSelect } from "../../../repository/types/dashboard-configuration-item";
 import { ProjectLabelEntity } from "../../project/entities/project-label.entity";
@@ -18,8 +19,7 @@ export class DashboardConfigurationItemEntity {
   readonly unit: DashboardConfigurationItemLimitUnitEnum;
   readonly targetLabel: ProjectLabelEntity;
   readonly targetParentLabel: ProjectLabelEntity | null;
-  readonly limitFrom: number | null;
-  readonly limitTo: number | null;
+  readonly limits: LimitPair[];
   readonly createdAt: Date;
   readonly updatedAt: Date;
 
@@ -35,8 +35,7 @@ export class DashboardConfigurationItemEntity {
     this.targetParentLabel = data.targetParentLabel
       ? new ProjectLabelEntity(data.targetParentLabel)
       : null;
-    this.limitFrom = data.limitFrom;
-    this.limitTo = data.limitTo;
+    this.limits = data.limits;
     this.createdAt = data.createdAt;
     this.updatedAt = data.updatedAt;
   }
@@ -51,8 +50,7 @@ export class DashboardConfigurationItemEntity {
       unit: this.unit,
       targetLabel: this.targetLabel.toResponse(),
       targetParentLabel: this.targetParentLabel?.toResponse() ?? null,
-      limitFrom: this.limitFrom,
-      limitTo: this.limitTo,
+      limits: this.limits,
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),
     };

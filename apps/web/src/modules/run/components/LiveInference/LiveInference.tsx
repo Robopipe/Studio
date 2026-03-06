@@ -1,3 +1,4 @@
+import { useGetNNQuery } from "@/core/cameraApi/api";
 import { useWebRTCStream } from "@/modules/capture/hooks/useWebRTCStream";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import { Stack, Text } from "@repo/ui";
@@ -20,6 +21,10 @@ export const LiveInference = ({
 }: LiveInferenceProps) => {
   const canShowInference =
     selectedCamera && selectedStream && selectedModelId && selectedOutputId;
+  const { data: nnInfo } = useGetNNQuery(
+    { mxid: selectedCamera!, streamName: selectedStream! },
+    { skip: !selectedCamera || !selectedStream },
+  );
   const [activeProject] = useActiveProject();
   const { videoRef, isStreaming } = useWebRTCStream({
     selectedMxid: selectedCamera || "",
@@ -35,7 +40,8 @@ export const LiveInference = ({
     selectedMxid: selectedCamera || "",
     selectedSensorName: selectedStream || "",
     onDetections: renderDetections,
-    enabled: !!canShowInference && !!selectedModelId && !!selectedOutputId,
+    enabled:
+      !!canShowInference && !!selectedModelId && !!selectedOutputId && !!nnInfo,
   });
 
   if (!selectedCamera || !selectedStream) {

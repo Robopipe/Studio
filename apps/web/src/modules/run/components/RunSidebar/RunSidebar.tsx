@@ -1,5 +1,6 @@
 import {
   useDeployNNMutation,
+  useGetNNQuery,
   useListCamerasQuery,
   useListStreamsQuery,
   useRemoveNNMutation,
@@ -48,6 +49,10 @@ export const RunSidebar = ({
   const [activeProject] = useActiveProject();
   const projectId = activeProject?.id;
 
+  const { data: nnInfo } = useGetNNQuery(
+    { mxid: selectedCamera!, streamName: selectedStream! },
+    { skip: !selectedCamera || !selectedStream },
+  );
   const { data: cameras } = useListCamerasQuery();
 
   const { data: streams } = useListStreamsQuery(selectedCamera!, {
@@ -90,8 +95,8 @@ export const RunSidebar = ({
       config: {
         type: "Generic",
         model_id: Number(selectedModelId),
-        nn_config: {}
-      }
+        nn_config: {},
+      },
     }).unwrap();
     onSelectCamera(camera);
     onSelectStream(stream);
@@ -220,7 +225,7 @@ export const RunSidebar = ({
         <Button
           variant="outlined"
           onClick={removeNN}
-          disabled={!selectedCamera || !selectedStream}
+          disabled={!nnInfo}
           className={styles.deployButton}
         >
           <DeleteIcon />

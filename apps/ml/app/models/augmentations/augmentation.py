@@ -23,5 +23,5 @@ class Augmentation(BaseModel):
         else:
             AUG_REGISTRY[A_TYPE] = [cls]
 
-    def to_config(self) -> list:
+    def to_config(self, img_size: tuple[int, int]) -> list:
         return [{"name": self.A_TYPE, "params": self.params.model_dump()}]
