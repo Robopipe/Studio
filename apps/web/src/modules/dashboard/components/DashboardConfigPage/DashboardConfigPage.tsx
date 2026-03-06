@@ -1,10 +1,10 @@
-import { Button, Heading, Stack, Text } from "@repo/ui";
-import { useState } from "react";
+import { useGetProjectLabelsQuery } from "@/modules/project/services/projectApi";
 import {
   DashboardConfigurationItem,
   DashboardConfigurationItemPositionEnum,
 } from "@repo/schema";
-import { useGetProjectLabelsQuery } from "@/modules/project/services/projectApi";
+import { Button, Heading, Stack, Text } from "@repo/ui";
+import { useState } from "react";
 import {
   useDeleteDashboardConfigItemMutation,
   useGetDashboardConfigItemsQuery,
@@ -19,8 +19,7 @@ interface DashboardConfigPageProps {
   configId: number;
 }
 
-const isPositionType = (pos: string) =>
-  !["COUNT", "AREA"].includes(pos);
+const isPositionType = (pos: string) => !["COUNT", "AREA"].includes(pos);
 
 const positionDisplayLabel = (position: string) => {
   const map: Record<string, string> = {
@@ -36,32 +35,76 @@ const positionDisplayLabel = (position: string) => {
 };
 
 /** Tiny inline SVG showing the position box icon for position-type items */
-const MiniPositionIcon = ({ position }: { position: DashboardConfigurationItemPositionEnum }) => {
-  const { POS_LEFT, POS_RIGHT, POS_TOP, POS_BOTTOM } = DashboardConfigurationItemPositionEnum;
+const MiniPositionIcon = ({
+  position,
+}: {
+  position: DashboardConfigurationItemPositionEnum;
+}) => {
+  const { POS_LEFT, POS_RIGHT, POS_TOP, POS_BOTTOM } =
+    DashboardConfigurationItemPositionEnum;
 
   // Inner rect position within a 16x16 viewBox (outer = full box)
-  let ix = 4, iy = 4; // center default
-  if (position === POS_LEFT) { ix = 1; iy = 4; }
-  if (position === POS_RIGHT) { ix = 7; iy = 4; }
-  if (position === POS_TOP) { ix = 4; iy = 1; }
-  if (position === POS_BOTTOM) { ix = 4; iy = 7; }
+  let ix = 4,
+    iy = 4; // center default
+  if (position === POS_LEFT) {
+    ix = 1;
+    iy = 4;
+  }
+  if (position === POS_RIGHT) {
+    ix = 7;
+    iy = 4;
+  }
+  if (position === POS_TOP) {
+    ix = 4;
+    iy = 1;
+  }
+  if (position === POS_BOTTOM) {
+    ix = 4;
+    iy = 7;
+  }
 
   return (
     <svg width="14" height="14" viewBox="0 0 16 16" className={styles.miniIcon}>
-      <rect x="0.5" y="0.5" width="15" height="15" rx="1" fill="none" stroke="currentColor" strokeWidth="1.5" />
-      <rect x={ix} y={iy} width="6" height="6" rx="0.5" fill="none" stroke="var(--color-emerald-600)" strokeWidth="1.5" />
+      <rect
+        x="0.5"
+        y="0.5"
+        width="15"
+        height="15"
+        rx="1"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      />
+      <rect
+        x={ix}
+        y={iy}
+        width="6"
+        height="6"
+        rx="0.5"
+        fill="none"
+        stroke="var(--color-emerald-600)"
+        strokeWidth="1.5"
+      />
     </svg>
   );
 };
 
-export const DashboardConfigPage = ({ projectId, configId }: DashboardConfigPageProps) => {
-  const { data: items = [] } = useGetDashboardConfigItemsQuery({ projectId, configId });
+export const DashboardConfigPage = ({
+  projectId,
+  configId,
+}: DashboardConfigPageProps) => {
+  const { data: items = [] } = useGetDashboardConfigItemsQuery({
+    projectId,
+    configId,
+  });
   const { data: labels = [] } = useGetProjectLabelsQuery({ projectId });
   const [deleteItem] = useDeleteDashboardConfigItemMutation();
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<DashboardConfigurationItem | null>(null);
-  const [deletingItem, setDeletingItem] = useState<DashboardConfigurationItem | null>(null);
+  const [editingItem, setEditingItem] =
+    useState<DashboardConfigurationItem | null>(null);
+  const [deletingItem, setDeletingItem] =
+    useState<DashboardConfigurationItem | null>(null);
 
   const handleDelete = async () => {
     if (!deletingItem) return;
@@ -88,8 +131,7 @@ export const DashboardConfigPage = ({ projectId, configId }: DashboardConfigPage
               <th>Label</th>
               <th>In</th>
               <th>Type</th>
-              <th>From</th>
-              <th>To</th>
+              <th>Limits</th>
               <th>If Not</th>
               <th>Severity</th>
               <th>Action</th>
@@ -104,11 +146,18 @@ export const DashboardConfigPage = ({ projectId, configId }: DashboardConfigPage
                 <td className={styles.typeCell}>
                   {positionDisplayLabel(item.position)}
                   {isPositionType(item.position) && (
-                    <MiniPositionIcon position={item.position as DashboardConfigurationItemPositionEnum} />
+                    <MiniPositionIcon
+                      position={
+                        item.position as DashboardConfigurationItemPositionEnum
+                      }
+                    />
                   )}
                 </td>
-                <td>{item.limitFrom ?? "-"}</td>
-                <td>{item.limitTo ?? "-"}</td>
+                <td>
+                  {item.limits
+                    .map((l) => `${l.from ?? "-"} – ${l.to ?? "-"}`)
+                    .join(" | ")}
+                </td>
                 <td>{item.type === "CHECK" ? "Check" : "Defect"}</td>
                 <td>{item.severity === "ALERT" ? "Alert" : "Warning"}</td>
                 <td className={styles.actions}>

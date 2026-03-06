@@ -1,33 +1,40 @@
 import z from "zod";
-import { labelSchema } from "../label";
 import { timestampsSchema } from "../helpers";
+import { labelSchema } from "../label";
 
 export enum DashboardConfigurationItemTypeEnum {
-  CHECK = 'CHECK',
-  DEFECT = 'DEFECT',
+  CHECK = "CHECK",
+  DEFECT = "DEFECT",
 }
 
 export enum DashboardConfigurationItemSeverityEnum {
-  ALERT = 'ALERT',
-  WARNING = 'WARNING',
+  ALERT = "ALERT",
+  WARNING = "WARNING",
 }
 
-
 export enum DashboardConfigurationItemPositionEnum {
-  POS_LEFT = 'POS_LEFT',
-  POS_RIGHT = 'POS_RIGHT',
-  POS_TOP = 'POS_TOP',
-  POS_BOTTOM = 'POS_BOTTOM',
-  POS_CENTER = 'POS_CENTER',
-  AREA = 'AREA',
-  COUNT = 'COUNT',
+  POS_LEFT = "POS_LEFT",
+  POS_RIGHT = "POS_RIGHT",
+  POS_TOP = "POS_TOP",
+  POS_BOTTOM = "POS_BOTTOM",
+  POS_CENTER = "POS_CENTER",
+  AREA = "AREA",
+  COUNT = "COUNT",
 }
 
 export enum DashboardConfigurationItemLimitUnitEnum {
-  PERCENTAGE = 'PERCENTAGE',
-  COUNT = 'COUNT',
+  PERCENTAGE = "PERCENTAGE",
+  COUNT = "COUNT",
 }
 
+export const limitPairSchema = z
+  .object({
+    from: z.number().nullable(),
+    to: z.number().nullable(),
+  })
+  .refine((pair) => pair.from !== null || pair.to !== null, {
+    message: "At least one of from or to must be provided",
+  });
 
 const dashboardConfigurationItemBaseSchema = z.object({
   id: z.number(),
@@ -38,39 +45,31 @@ const dashboardConfigurationItemBaseSchema = z.object({
   unit: z.enum(DashboardConfigurationItemLimitUnitEnum),
   targetLabel: labelSchema,
   targetParentLabel: labelSchema.nullable(),
-  limitFrom: z.number().nullable(),
-  limitTo: z.number().nullable(),
+  limits: z.array(limitPairSchema).min(1),
   createdAt: timestampsSchema.createdAt,
   updatedAt: timestampsSchema.updatedAt,
 });
 
-const limitRefinement = <T extends { limitFrom: number | null; limitTo: number | null }>(data: T) =>
-  data.limitFrom !== null || data.limitTo !== null;
+export const dashboardConfigurationItemSchema =
+  dashboardConfigurationItemBaseSchema;
 
-const limitRefinementMessage = { message: "At least one of limitFrom or limitTo must be provided", path: ["limitFrom"] };
+export const createDashboardConfigurationItemSchema =
+  dashboardConfigurationItemBaseSchema
+    .pick({
+      name: true,
+      type: true,
+      severity: true,
+      position: true,
+      unit: true,
+      limits: true,
+    })
+    .extend({
+      targetLabelId: z.number(),
+      targetParentLabelId: z.number().nullable(),
+    });
 
-export const dashboardConfigurationItemSchema = dashboardConfigurationItemBaseSchema.refine(
-  limitRefinement,
-  limitRefinementMessage,
-);
-
-export const createDashboardConfigurationItemSchema = dashboardConfigurationItemBaseSchema
-  .pick({
-    name: true,
-    type: true,
-    severity: true,
-    position: true,
-    unit: true,
-    limitFrom: true,
-    limitTo: true,
-  })
-  .extend({
-    targetLabelId: z.number(),
-    targetParentLabelId: z.number().nullable(),
-  })
-  .refine(limitRefinement, limitRefinementMessage);
-
-export const updateDashboardConfigurationItemSchema = createDashboardConfigurationItemSchema;
+export const updateDashboardConfigurationItemSchema =
+  createDashboardConfigurationItemSchema;
 
 export const dashboardConfigurationSchema = z.object({
   id: z.number(),
@@ -78,17 +77,19 @@ export const dashboardConfigurationSchema = z.object({
   projectId: z.number(),
   createdAt: timestampsSchema.createdAt,
   updatedAt: timestampsSchema.updatedAt,
-})
+});
 
-export const dashboardConfigurationWithItemsSchema = dashboardConfigurationSchema.extend({
-  items: dashboardConfigurationItemSchema.array(),
-})
+export const dashboardConfigurationWithItemsSchema =
+  dashboardConfigurationSchema.extend({
+    items: dashboardConfigurationItemSchema.array(),
+  });
 
 export const createDashboardConfigurationSchema = z.object({
   name: z.string().min(1).max(256),
 });
 
-export const updateDashboardConfigurationSchema = createDashboardConfigurationSchema;
+export const updateDashboardConfigurationSchema =
+  createDashboardConfigurationSchema;
 
 const gradeFields = {
   grade1AlertsBelow: z.number().min(0).max(100),

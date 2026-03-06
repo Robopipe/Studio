@@ -70,3 +70,69 @@
   padding-top: 16px;
   border-top: 1px solid var(--color-gray-200);
 }
+
+.limitPairRow {
+  flex: 1;
+}
+
+.orSeparator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 0;
+
+  &::before,
+  &::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--color-gray-300);
+  }
+}
+
+.orLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.removePairButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--color-gray-400);
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--color-gray-600);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s;
+
+  &:hover {
+    border-color: var(--color-red-500, #ef4444);
+    color: var(--color-red-500, #ef4444);
+  }
+}
+
+.addPairButton {
+  margin-top: 8px;
+  padding: 6px 0;
+  border: none;
+  background: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-emerald-600);
+  cursor: pointer;
+  text-align: left;
+  transition: color 0.15s;
+
+  &:hover {
+    color: var(--color-emerald-700, var(--color-emerald-600));
+  }
+}
