@@ -2,9 +2,12 @@ import { HttpMethod } from "@/types";
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "./baseQuery";
 import type { DeviceInfo, SensorControl, StreamInfo } from "./schemas";
-import { CameraApiTagType } from "./tagType";
+import {
+  DashboardConfiguration,
+  DeployDashboardResponse,
+} from "./schemas/dashboard";
 import { NNConfig } from "./schemas/nn";
-import { DashboardConfiguration, DeployDashboardResponse } from "./schemas/dashboard";
+import { CameraApiTagType } from "./tagType";
 
 const cameraApiBase = createApi({
   reducerPath: "cameraApi",
@@ -130,11 +133,14 @@ export const cameraApi = cameraApiBase.injectEndpoints({
         url: `/cameras/${mxid}/streams/${streamName}/nn`,
         method: HttpMethod.GET,
       }),
+      providesTags: (_result, _error, { mxid, streamName }) => [
+        { type: CameraApiTagType.NN, id: `${mxid}-${streamName}` },
+      ],
     }),
 
     deployNN: builder.mutation<
       void,
-      { mxid: string; streamName: string; model: File, config: NNConfig }
+      { mxid: string; streamName: string; model: File; config: NNConfig }
     >({
       query: ({ mxid, streamName, model, config }) => {
         const data = new FormData();
@@ -146,6 +152,9 @@ export const cameraApi = cameraApiBase.injectEndpoints({
           body: data,
         };
       },
+      invalidatesTags: (_result, _error, { mxid, streamName }) => [
+        { type: CameraApiTagType.NN, id: `${mxid}-${streamName}` },
+      ],
     }),
 
     removeNN: builder.mutation<void, { mxid: string; streamName: string }>({
@@ -153,18 +162,31 @@ export const cameraApi = cameraApiBase.injectEndpoints({
         url: `/cameras/${mxid}/streams/${streamName}/nn`,
         method: HttpMethod.DELETE,
       }),
+      invalidatesTags: (_result, _error, { mxid, streamName }) => [
+        { type: CameraApiTagType.NN, id: `${mxid}-${streamName}` },
+      ],
     }),
 
-    deployDashboard: builder.mutation<DeployDashboardResponse, {mxid: string, streamName: string, dashboardConfig: DashboardConfiguration}>({
-      query: ({mxid, streamName, dashboardConfig}) => ({
+    deployDashboard: builder.mutation<
+      DeployDashboardResponse,
+      {
+        mxid: string;
+        streamName: string;
+        dashboardConfig: DashboardConfiguration;
+      }
+    >({
+      query: ({ mxid, streamName, dashboardConfig }) => ({
         url: `/cameras/${mxid}/streams/${streamName}/dashboard`,
         method: HttpMethod.POST,
         body: dashboardConfig,
       }),
     }),
 
-    removeDashboard: builder.mutation<void, {mxid: string, streamName: string}>({
-      query: ({mxid, streamName}) => ({
+    removeDashboard: builder.mutation<
+      void,
+      { mxid: string; streamName: string }
+    >({
+      query: ({ mxid, streamName }) => ({
         url: `/cameras/${mxid}/streams/${streamName}/dashboard`,
         method: HttpMethod.DELETE,
       }),

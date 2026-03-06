@@ -1,3 +1,4 @@
+import sys
 import yaml
 
 from ..config import get_config
@@ -46,7 +47,7 @@ def get_model_params(model_config: ModelConfig) -> tuple[dict, dict]:
     elif model_config.type == ModelType.DETECTION:
         return {"variant": "light"}, {}
     elif model_config.type == ModelType.SEGMENTATION:
-        return {"variant": "heavy"}, {}
+        return {"variant": "light"}, {}
 
 
 def generate_model_config(model_config: ModelConfig) -> dict:
@@ -76,16 +77,15 @@ def generate_loader_config(model_config: ModelConfig, dir: str) -> dict:
 
 def generate_trainer_config(model_config: ModelConfig) -> dict:
     webhook_url = get_config().webhook_url
+    img_size = (
+        (480, 640) if model_config.type != ModelType.CLASSIFICATION else (512, 512)
+    )
     augmentations_config = [
         aug
         for aug_list in model_config.training_config.dataset_config.augmentations
-        for aug in aug_list.to_config()
+        for aug in aug_list.to_config(img_size)
     ]
-    img_size = (
-        (640, 640) if model_config.type != ModelType.CLASSIFICATION else (512, 512)
-    )
     config = {
-        "precision": '16-mixed',
         "batch_size": model_config.training_config.batch_size,
         "epochs": model_config.training_config.epochs,
         "n_workers": 8,
@@ -105,6 +105,7 @@ def generate_trainer_config(model_config: ModelConfig) -> dict:
             ),
             "augmentations": augmentations_config,
         },
+        "accelerator": "cpu" if sys.platform == "darwin" else "auto",
     }
 
     if webhook_url is not None:

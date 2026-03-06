@@ -12,7 +12,7 @@ class Flip(Augmentation, A_TYPE="FLIP"):
     type: Literal["FLIP"]
     params: FlipParams
 
-    def to_config(self):
+    def to_config(self, img_size: tuple[int, int]):
         augs = []
         if self.params.horizontal:
             augs.append({"name": "HorizontalFlip", "params": {"p": self.params.p}})

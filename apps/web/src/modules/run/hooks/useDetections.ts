@@ -1,3 +1,4 @@
+import { useGetNNQuery } from "@/core/cameraApi";
 import { useCameraApiUrl } from "@/hooks";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { NNDetections } from "../types/detections";
@@ -25,6 +26,10 @@ export const useDetections = ({
   enabled = true,
 }: UseDetectionsOptions): UseDetectionsReturn => {
   const apiHost = useCameraApiUrl();
+  const { data: nnInfo } = useGetNNQuery(
+    { mxid: selectedMxid, streamName: selectedSensorName },
+    { skip: !selectedMxid || !selectedSensorName },
+  );
   const [detections, setDetections] = useState<NNDetections>({
     detections: [],
   });
@@ -51,7 +56,13 @@ export const useDetections = ({
   }, []);
 
   useEffect(() => {
-    if (!enabled || !selectedMxid || !selectedSensorName || !apiHost) {
+    if (
+      !enabled ||
+      !selectedMxid ||
+      !selectedSensorName ||
+      !apiHost ||
+      !nnInfo
+    ) {
       cleanup();
       setError(null);
       return;
@@ -115,7 +126,7 @@ export const useDetections = ({
     connect();
 
     return cleanup;
-  }, [enabled, selectedMxid, selectedSensorName, apiHost, cleanup]);
+  }, [enabled, selectedMxid, selectedSensorName, apiHost, nnInfo, cleanup]);
 
   return { detections, isConnected, error };
 };

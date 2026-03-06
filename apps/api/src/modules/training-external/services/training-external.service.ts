@@ -85,7 +85,7 @@ export class TrainingExternalService {
     }
 
     // Check if this is the last model to be uploaded
-    if(modelOutputs.length === 2) {
+    if(modelOutputs.length === model.outputTypes.length - 1) {
       await this.modelRepository.update(model.id, {
         status: ModelStatusEnum.DONE
       })
