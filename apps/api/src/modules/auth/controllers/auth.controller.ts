@@ -25,6 +25,7 @@ import { OrganizationMemberRepository } from 'src/repository/services/organizati
 import { Cookie } from '../decorators/cookie.decorator';
 import { Public } from '../decorators/public.decorator';
 import { User } from '../decorators/user.decorator';
+import { EitherAuthGuard } from '../guards/either-auth.guard';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { LocalAuthGuard } from '../guards/local-auth.guard';
 import { PreAuthGuard } from '../guards/pre-auth.guard';
@@ -97,26 +98,23 @@ export class AuthController {
   }
 
   /**
-   * List organizations the pre-auth user belongs to.
-   * @param user - pre-auth user from JWT
-   * @returns list of organizations with roles
+   * List organizations the user belongs to.
+   * Works with both pre-auth and session tokens.
    */
   @Get('organizations')
-  @UseGuards(PreAuthGuard)
-  async listOrganizations(@User() user: UserEntity): Promise<OrganizationListItem[]> {
+  @UseGuards(EitherAuthGuard)
+  async listOrganizations(@User() user: UserEntity | SessionUser): Promise<OrganizationListItem[]> {
     return this.authService.listUserOrganizations(user.id);
   }
 
   /**
    * Create a new organization (user becomes owner).
-   * @param user - pre-auth user from JWT
-   * @param body - contains organization name
-   * @returns the created organization with owner role
+   * Works with both pre-auth and session tokens.
    */
   @Post('organizations')
-  @UseGuards(PreAuthGuard)
+  @UseGuards(EitherAuthGuard)
   async createOrganization(
-    @User() user: UserEntity,
+    @User() user: UserEntity | SessionUser,
     @Body() body: CreateOrganizationDto,
   ): Promise<OrganizationListItem> {
     return this.authService.createOrganization(user.id, body.name);

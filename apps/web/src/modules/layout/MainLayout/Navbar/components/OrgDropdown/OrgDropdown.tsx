@@ -59,6 +59,7 @@ export const OrgDropdown = () => {
       createLabel="Create"
       onCreate={handleCreate}
       align="right"
+      maxLabelWidth={150}
       items={
         organizations?.map((org) => ({
           id: org.id,
