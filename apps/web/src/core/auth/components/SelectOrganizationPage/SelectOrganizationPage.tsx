@@ -160,12 +160,7 @@ export const SelectOrganizationPage = () => {
                 disabled={selectingOrg}
               >
                 <Stack direction="row" justify="space-between" align="center">
-                  <div>
-                    <Text weight="500">{org.name}</Text>
-                    <Text variant="text-12" color="text-secondary">
-                      {org.role}
-                    </Text>
-                  </div>
+                  <Text weight="500">{org.name}</Text>
                   <Text color="text-secondary">&rarr;</Text>
                 </Stack>
               </button>
