@@ -2,7 +2,7 @@ import { appConfig } from "@/config";
 import { baseRefreshingQuery } from "@/core/api/baseQuery";
 import { HttpMethod } from "@/types";
 import { createApi } from "@reduxjs/toolkit/query/react";
-import { InviteUser, OrganizationMembersResponse, UpdateMemberRole, User } from "@repo/schema";
+import { InviteUser, OrganizationMember, OrganizationMembersResponse, UpdateMemberRole } from "@repo/schema";
 
 const { organizations } = appConfig.studioApi.endpoints;
 
@@ -19,7 +19,7 @@ const organizationApiBase = createApi({
 
 export const organizationApi = organizationApiBase.injectEndpoints({
   endpoints: (builder) => ({
-    getMembers: builder.query<User[], void>({
+    getMembers: builder.query<OrganizationMember[], void>({
       query: () => ({
         url: organizations.members,
         method: HttpMethod.GET,

@@ -2,11 +2,12 @@ import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, UseGua
 import { InviteUserDto } from 'src/modules/auth/dto/auth.dto';
 import { AdminGuard } from 'src/modules/auth/guards/admin.guard';
 import { User } from 'src/modules/auth/decorators/user.decorator';
+import type { SessionUser } from 'src/modules/auth/strategies/jwt.strategy';
 import { OrganizationService } from '../services/organization.service';
+import type { OrganizationMembersResponse } from '@repo/schema';
 import {
   OrganizationResponse,
   OrganizationUpdateRequest,
-  OrganizationMembersResponse,
   UpdateMemberRoleDto,
 } from "../dto/organization.dto";
 
@@ -14,6 +15,10 @@ import {
 export class OrganizationController {
   constructor(private readonly organizationService: OrganizationService) {}
 
+  /**
+   * @param organizationId - from session JWT
+   * @returns current organization DTO
+   */
   @Get("current")
   public async getCurrent(
     @User("organizationId") organizationId: number,
@@ -23,7 +28,14 @@ export class OrganizationController {
     return organization.toDto();
   }
 
+  /**
+   * Rename the current organization. Requires ADMIN or OWNER role.
+   * @param organizationId - from session JWT
+   * @param body - fields to update
+   * @returns updated organization DTO
+   */
   @Patch("current")
+  @UseGuards(AdminGuard)
   public async update(
     @User("organizationId") organizationId: number,
     @Body() body: OrganizationUpdateRequest,
@@ -35,6 +47,10 @@ export class OrganizationController {
     return organization.toDto();
   }
 
+  /**
+   * @param organizationId - from session JWT
+   * @returns members list with nested user data
+   */
   @Get("current/members")
   public async getMembers(
     @User("organizationId") organizationId: number,
@@ -43,38 +59,57 @@ export class OrganizationController {
     return { members: members.map((m) => m.toDto()) };
   }
 
+  /**
+   * Send an invitation email. Requires ADMIN or OWNER role.
+   * @param user - session user
+   * @param body - contains the invitee's email
+   * @returns success message
+   */
   @Post("current/invite")
   @UseGuards(AdminGuard)
   public async inviteUser(
-    @User("organizationId") organizationId: number,
+    @User() user: SessionUser,
     @Body() body: InviteUserDto,
   ): Promise<{ message: string }> {
     await this.organizationService.inviteUser(
-      organizationId,
+      user.organizationId,
       body.email,
-      body.fullName,
+      user.id,
     );
     return { message: "Invitation sent successfully." };
   }
 
+  /**
+   * Remove a member from the organization. Requires ADMIN or OWNER role.
+   * @param user - session user (for org context and role check)
+   * @param userId - member to remove
+   * @returns success message
+   */
   @Delete("current/members/:userId")
   @UseGuards(AdminGuard)
   public async removeMember(
-    @User("organizationId") organizationId: number,
+    @User() user: SessionUser,
     @Param("userId", ParseIntPipe) userId: number,
   ): Promise<{ message: string }> {
-    await this.organizationService.removeMember(organizationId, userId);
+    await this.organizationService.removeMember(user.organizationId, userId, user.role);
     return { message: "Member removed." };
   }
 
+  /**
+   * Change a member's role. Requires ADMIN or OWNER role.
+   * @param user - session user (for org context and role check)
+   * @param userId - target member
+   * @param body - contains the new role
+   * @returns success message
+   */
   @Patch("current/members/:userId/role")
   @UseGuards(AdminGuard)
   public async updateMemberRole(
-    @User("organizationId") organizationId: number,
+    @User() user: SessionUser,
     @Param("userId", ParseIntPipe) userId: number,
     @Body() body: UpdateMemberRoleDto,
   ): Promise<{ message: string }> {
-    await this.organizationService.updateMemberRole(organizationId, userId, body.role);
+    await this.organizationService.updateMemberRole(user.organizationId, userId, body.role, user.role);
     return { message: "Role updated." };
   }
 }

@@ -8,32 +8,63 @@ import {
   TextInput,
   bui,
 } from "@repo/ui";
-import { FormEvent } from "react";
-import { Link, Navigate, redirect } from "react-router";
+import { FormEvent, useState } from "react";
+import { Link, Navigate } from "react-router";
 import { useAuth } from "../../hooks";
 import { useRegisterMutation } from "../../services";
 import styles from "./RegisterForm.module.scss";
 
 export const RegisterForm = () => {
   const [register, { isError, isLoading }] = useRegisterMutation();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isPreAuth } = useAuth();
+  const [success, setSuccess] = useState(false);
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
     const fullName = formData.get("fullName") as string;
-    console.log("Form Data:", { email, password, fullName });
     try {
-      await register({ email, password, fullName }).unwrap();
-      redirect("/");
+      await register({ email, fullName }).unwrap();
+      setSuccess(true);
     } catch (error) {
       console.error("Registration failed:", error);
     }
   };
 
+  if (isPreAuth) {
+    return <Navigate to={appConfig.web.routes.auth.selectOrganization} replace />;
+  }
+
   if (isAuthenticated) {
     return <Navigate to={appConfig.web.routes.main.projects} replace />;
+  }
+
+  if (success) {
+    return (
+      <Container className={styles.LoginPane}>
+        <div className={styles.FormWidth}>
+          <Stack align="center" gap={8} className={styles.Header}>
+            <Heading variant="h2" weight="600">
+              Check your email
+            </Heading>
+            <Text color="text-secondary">
+              We've sent you an email with a link to set your password. Please
+              check your inbox and follow the instructions to complete your
+              registration.
+            </Text>
+          </Stack>
+          <Stack align="center" gap={16} className={styles.FooterLinks}>
+            <Link to="/login" className={styles.GreenLink}>
+              Go to Login
+            </Link>
+          </Stack>
+        </div>
+        <div className={styles.Copyright}>
+          Powered by Robopipe | © All rights reserved
+        </div>
+      </Container>
+    );
   }
 
   return (
@@ -72,15 +103,6 @@ export const RegisterForm = () => {
               type="text"
               placeholder="Full Name"
               helperText="Enter your full name"
-              error={isError}
-              required
-            />
-            <TextInput
-              label="Password"
-              name="password"
-              type="password"
-              placeholder="Password"
-              helperText="Enter your password"
               error={isError}
               required
             />

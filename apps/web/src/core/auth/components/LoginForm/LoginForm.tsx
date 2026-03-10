@@ -17,7 +17,7 @@ import styles from "./LoginForm.module.scss";
 
 export const LoginForm = () => {
   const [login, { isError, isLoading }] = useLoginMutation();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isPreAuth } = useAuth();
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -30,6 +30,10 @@ export const LoginForm = () => {
       console.error("Login failed:", error);
     }
   };
+
+  if (isPreAuth) {
+    return <Navigate to={appConfig.web.routes.auth.selectOrganization} replace />;
+  }
 
   if (isAuthenticated) {
     return <Navigate to={appConfig.web.routes.main.projects} replace />;

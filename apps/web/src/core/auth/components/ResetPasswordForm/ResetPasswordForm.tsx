@@ -15,6 +15,7 @@ import styles from "./ResetPasswordForm.module.scss";
 export const ResetPasswordForm = () => {
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token");
+  const isWelcome = searchParams.get("welcome") === "1";
   const [resetPassword, { isLoading }] = useResetPasswordMutation();
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +45,7 @@ export const ResetPasswordForm = () => {
       await resetPassword({ token, password }).unwrap();
       setSuccess(true);
     } catch {
-      setError("Invalid or expired reset link. Please request a new one.");
+      setError("Invalid or expired link. Please request a new one.");
     }
   };
 
@@ -54,11 +55,12 @@ export const ResetPasswordForm = () => {
         <div className={styles.FormWidth}>
           <Stack align="center" gap={8} className={styles.Header}>
             <Heading variant="h2" weight="600">
-              Password reset
+              {isWelcome ? "You're all set" : "Password reset"}
             </Heading>
             <Text color="text-secondary">
-              Your password has been reset successfully. You can now log in with
-              your new password.
+              {isWelcome
+                ? "Your password has been set. You can now log in to your account."
+                : "Your password has been reset successfully. You can now log in with your new password."}
             </Text>
           </Stack>
           <Stack align="center" gap={16} className={styles.FooterLinks}>
@@ -79,9 +81,13 @@ export const ResetPasswordForm = () => {
       <div className={styles.FormWidth}>
         <Stack align="center" gap={8} className={styles.Header}>
           <Heading variant="h2" weight="600">
-            Set new password
+            {isWelcome ? "Set your password" : "Set new password"}
           </Heading>
-          <Text color="text-secondary">Enter your new password below</Text>
+          <Text color="text-secondary">
+            {isWelcome
+              ? "Choose a password for your Robopipe Studio account"
+              : "Enter your new password below"}
+          </Text>
         </Stack>
 
         {error && (
@@ -94,10 +100,10 @@ export const ResetPasswordForm = () => {
         <bui.Form onSubmit={handleSubmit}>
           <Stack gap={20}>
             <TextInput
-              label="New Password"
+              label="Password"
               name="password"
               type="password"
-              placeholder="New password"
+              placeholder={isWelcome ? "Choose a password" : "New password"}
               helperText="At least 8 characters"
               required
             />
@@ -106,7 +112,7 @@ export const ResetPasswordForm = () => {
               name="confirmPassword"
               type="password"
               placeholder="Confirm password"
-              helperText="Re-enter your new password"
+              helperText="Re-enter your password"
               required
             />
             <Button
@@ -115,7 +121,7 @@ export const ResetPasswordForm = () => {
               disabled={isLoading}
               className={styles.SubmitBtn}
             >
-              {isLoading ? "Resetting..." : "Reset Password"}
+              {isLoading ? "Saving..." : "Set Password"}
             </Button>
           </Stack>
         </bui.Form>

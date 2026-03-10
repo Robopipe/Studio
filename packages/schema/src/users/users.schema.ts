@@ -6,13 +6,17 @@ export enum UserRoleEnum {
   MEMBER = "MEMBER",
 }
 
+export enum OrgMemberRoleEnum {
+  OWNER = "OWNER",
+  ADMIN = "ADMIN",
+  MEMBER = "MEMBER",
+}
+
 export const userSchema = z.object({
   id: z.number(),
   username: z.string(),
   email: z.email(),
   fullName: z.string(),
   cameraApiUrl: z.url(),
-  organizationId: z.number(),
-  role: z.nativeEnum(UserRoleEnum),
   ...timestampsSchema
 })

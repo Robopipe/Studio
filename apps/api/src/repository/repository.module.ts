@@ -13,6 +13,8 @@ import { DashboardConfigurationItemRepository } from "./services/dashboard-confi
 import { DashboardConfigurationRepository } from "./services/dashboard-configuration.service";
 import { DashboardEvaluationRepository } from "./services/dashboard-evaluation.service";
 import { PasswordResetRepository } from "./services/password-reset-repository.service";
+import { OrganizationMemberRepository } from "./services/organization-member-repository.service";
+import { InvitationRepository } from "./services/invitation-repository.service";
 
 
 @Global()
@@ -20,6 +22,8 @@ import { PasswordResetRepository } from "./services/password-reset-repository.se
   providers: [
     ModelRepository,
     OrganizationRepository,
+    OrganizationMemberRepository,
+    InvitationRepository,
     PasswordResetRepository,
     ProjectRepository,
     TaskRepository,
@@ -34,6 +38,8 @@ import { PasswordResetRepository } from "./services/password-reset-repository.se
   exports: [
     ModelRepository,
     OrganizationRepository,
+    OrganizationMemberRepository,
+    InvitationRepository,
     PasswordResetRepository,
     ProjectRepository,
     TaskRepository,

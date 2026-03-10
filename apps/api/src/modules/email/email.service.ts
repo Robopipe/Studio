@@ -23,7 +23,6 @@ export class EmailService {
   }
 
   /**
-   * Send password reset email
    * @param email - recipient
    * @param resetLink - password reset URL
    */
@@ -40,24 +39,38 @@ export class EmailService {
   }
 
   /**
+   * @param email - recipient
+   * @param fullName - user's display name
+   * @param setPasswordLink - URL to the set-password page
+   */
+  async sendWelcomeEmail(email: string, fullName: string, setPasswordLink: string): Promise<void> {
+    const html = `
+      <h2>Welcome to Robopipe Studio</h2>
+      <p>Hi ${fullName},</p>
+      <p>Your account has been created. To get started, set your password by clicking the link below:</p>
+      <p><a href="${setPasswordLink}">${setPasswordLink}</a></p>
+      <p>This link will expire in 24 hours.</p>
+    `;
+    await this.send(email, "Welcome to Robopipe Studio — Set Your Password", html);
+  }
+
+  /**
    * Send organization invitation email
    * @param email - recipient
-   * @param fullName - invitee display name
-   * @param resetLink - set-password URL
+   * @param organizationName - name of the inviting org
+   * @param inviteLink - invitation acceptance URL
    */
   async sendInvitationEmail(
     email: string,
-    fullName: string,
-    resetLink: string,
+    organizationName: string,
+    inviteLink: string,
   ): Promise<void> {
-    const escapedName = this.escapeHtml(fullName);
     const html = `
       <h2>You've Been Invited to Robopipe Studio</h2>
-      <p>Hi ${escapedName},</p>
-      <p>You've been invited to join an organization on Robopipe Studio.</p>
-      <p>Click the link below to set your password and get started:</p>
-      <p><a href="${resetLink}">${resetLink}</a></p>
-      <p>This link will expire in 24 hours.</p>
+      <p>You've been invited to join <strong>${organizationName}</strong> on Robopipe Studio.</p>
+      <p>Click the link below to accept the invitation:</p>
+      <p><a href="${inviteLink}">${inviteLink}</a></p>
+      <p>This invitation will expire in 7 days.</p>
     `;
     await this.send(
       email,
@@ -86,11 +99,4 @@ export class EmailService {
     }
   }
 
-  private escapeHtml(str: string): string {
-    return str
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
-  }
 }
