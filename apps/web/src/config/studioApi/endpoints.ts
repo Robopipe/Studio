@@ -7,6 +7,12 @@ export const studioApiEndpoints = {
     logout: "auth/logout",
     forgotPassword: "auth/forgot-password",
     resetPassword: "auth/reset-password",
+    selectOrganization: "auth/select-organization",
+    switchOrganization: "auth/switch-organization",
+    organizations: "auth/organizations",
+    invitations: "auth/invitations",
+    acceptInvitation: (id: number) => `auth/invitations/${id}/accept`,
+    declineInvitation: (id: number) => `auth/invitations/${id}/decline`,
   },
   organizations: {
     current: "organizations/current",

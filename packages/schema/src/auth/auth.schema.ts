@@ -1,23 +1,48 @@
 import z from "zod";
-import { userSchema } from "../users";
+import { OrgMemberRoleEnum, userSchema } from "../users";
+import { organizationSchema } from "../organizations";
 
 export const loginSchema = z.object({
   email: z.email(),
   password: z.string().nonempty(),
 });
 
-export const tokenSchema = z.object({
+export const preAuthTokenSchema = z.object({
   accessToken: z.string().nonempty(),
   user: userSchema,
 });
 
-export const jwtSchema = z.object({
+export const tokenSchema = z.object({
+  accessToken: z.string().nonempty(),
+  user: userSchema,
+  organization: organizationSchema,
+  role: z.nativeEnum(OrgMemberRoleEnum),
+});
+
+export const preAuthJwtSchema = z.object({
   sub: z.int(),
+  scope: z.literal("pre-auth"),
   iat: z.int(),
   exp: z.int(),
 });
 
-export const registerSchema = loginSchema.extend({
+export const sessionJwtSchema = z.object({
+  sub: z.int(),
+  orgId: z.int(),
+  role: z.nativeEnum(OrgMemberRoleEnum),
+  scope: z.literal("session"),
+  iat: z.int(),
+  exp: z.int(),
+});
+
+export const jwtSchema = sessionJwtSchema;
+
+export const selectOrganizationSchema = z.object({
+  organizationId: z.number(),
+});
+
+export const registerSchema = z.object({
+  email: z.email(),
   fullName: z.string().nonempty(),
 });
 
@@ -37,5 +62,8 @@ export const resetPasswordSchema = z.object({
 
 export const inviteUserSchema = z.object({
   email: z.email(),
-  fullName: z.string().nonempty(),
+});
+
+export const createOrganizationSchema = z.object({
+  name: z.string().min(1).max(256),
 });

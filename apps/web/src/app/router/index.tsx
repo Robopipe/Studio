@@ -4,6 +4,7 @@ import {
   ForgotPasswordForm,
   LoginForm,
   ResetPasswordForm,
+  SelectOrganizationPage,
 } from "@/core/auth/components";
 import { Authenticated } from "@/core/auth/components/Authenticated/Authenticated";
 import { RegisterForm } from "@/core/auth/components/RegisterForm/RegisterForm";
@@ -36,6 +37,10 @@ const publicRoutes: RouteObject = {
     {
       path: auth.resetPassword,
       element: <ResetPasswordForm />,
+    },
+    {
+      path: auth.selectOrganization,
+      element: <SelectOrganizationPage />,
     },
   ],
 };

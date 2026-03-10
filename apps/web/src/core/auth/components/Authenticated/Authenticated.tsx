@@ -7,7 +7,7 @@ import { useAuth, useAuthInit } from "../../hooks";
 export interface AuthenticatedProps {}
 
 export const Authenticated = ({}: AuthenticatedProps) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isPreAuth } = useAuth();
   useAuthInit();
 
   if (isAuthenticated === null) {
@@ -16,6 +16,10 @@ export const Authenticated = ({}: AuthenticatedProps) => {
 
   if (isAuthenticated === false) {
     return <Navigate to={appConfig.web.routes.auth.login} replace={true} />;
+  }
+
+  if (isPreAuth) {
+    return <Navigate to={appConfig.web.routes.auth.selectOrganization} replace={true} />;
   }
 
   return (

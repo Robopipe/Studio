@@ -3,10 +3,7 @@ import * as schema from '../entities'
 
 export const relations = defineRelations(schema, (r) => ({
   userTable: {
-    organization: r.one.organizationTable({
-      from: r.userTable.organizationId,
-      to: r.organizationTable.id,
-    }),
+    memberships: r.many.organizationMemberTable(),
     passwordResets: r.many.passwordResetTable(),
   },
   passwordResetTable: {
@@ -15,8 +12,29 @@ export const relations = defineRelations(schema, (r) => ({
       to: r.userTable.id,
     }),
   },
+  organizationMemberTable: {
+    user: r.one.userTable({
+      from: r.organizationMemberTable.userId,
+      to: r.userTable.id,
+    }),
+    organization: r.one.organizationTable({
+      from: r.organizationMemberTable.organizationId,
+      to: r.organizationTable.id,
+    }),
+  },
+  invitationTable: {
+    organization: r.one.organizationTable({
+      from: r.invitationTable.organizationId,
+      to: r.organizationTable.id,
+    }),
+    invitedBy: r.one.userTable({
+      from: r.invitationTable.invitedById,
+      to: r.userTable.id,
+    }),
+  },
   organizationTable: {
-    users: r.many.userTable(),
+    members: r.many.organizationMemberTable(),
+    invitations: r.many.invitationTable(),
     projects: r.many.projectTable(),
   },
   projectTable: {

@@ -1,5 +1,5 @@
 import { useAuth } from "@/core/auth/hooks";
-import { UserRoleEnum } from "@repo/schema";
+import { OrgMemberRoleEnum, UpdateMemberRole } from "@repo/schema";
 import {
   Badge,
   Button,
@@ -23,27 +23,28 @@ import {
 import styles from "./MemberList.module.scss";
 
 const roleItems = [
-  { label: "Admin", value: UserRoleEnum.ADMIN },
-  { label: "Member", value: UserRoleEnum.MEMBER },
+  { label: "Admin", value: OrgMemberRoleEnum.ADMIN },
+  { label: "Member", value: OrgMemberRoleEnum.MEMBER },
 ];
 
 export const MemberList = () => {
-  const { user } = useAuth();
+  const { user, role: currentUserRole } = useAuth();
   const { data: members, isLoading } = useGetMembersQuery();
   const [inviteUser, { isLoading: isInviting }] = useInviteUserMutation();
   const [removeMember] = useRemoveMemberMutation();
   const [updateMemberRole] = useUpdateMemberRoleMutation();
-  const isAdmin = user?.role === UserRoleEnum.ADMIN;
+  const canManage =
+    currentUserRole === OrgMemberRoleEnum.ADMIN ||
+    currentUserRole === OrgMemberRoleEnum.OWNER;
 
   const handleInvite = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
     const formData = new FormData(form);
     const email = formData.get("email") as string;
-    const fullName = formData.get("fullName") as string;
 
     try {
-      await inviteUser({ email, fullName }).unwrap();
+      await inviteUser({ email }).unwrap();
       form.reset();
       toast.success(`Invitation sent to ${email}`);
     } catch (err: any) {
@@ -55,7 +56,7 @@ export const MemberList = () => {
 
   const handleRoleChange = async (userId: number, role: string) => {
     try {
-      await updateMemberRole({ userId, role: role as UserRoleEnum }).unwrap();
+      await updateMemberRole({ userId, role: role as UpdateMemberRole['role'] }).unwrap();
       toast.success("Role updated");
     } catch {
       toast.error("Failed to update role");
@@ -83,28 +84,30 @@ export const MemberList = () => {
 
       <Stack gap={12}>
         {members?.map((member) => (
-          <div key={member.id} className={styles.memberRow}>
+          <div key={member.user.id} className={styles.memberRow}>
             <Stack gap={2}>
-              <Text weight="600">{member.fullName}</Text>
+              <Text weight="600">{member.user.fullName}</Text>
               <Text variant="text-14" color="text-secondary">
-                {member.email}
+                {member.user.email}
               </Text>
             </Stack>
             <div className={styles.memberActions}>
-              {isAdmin ? (
+              {canManage && member.role !== OrgMemberRoleEnum.OWNER ? (
                 <>
                   <div className={styles.roleSelect}>
                     <Select<string>
                       placeholder="Role"
                       items={roleItems}
                       value={member.role}
-                      onValueChange={(val) => val && handleRoleChange(member.id, val)}
+                      onValueChange={(val) =>
+                        val && handleRoleChange(member.user.id, val)
+                      }
                     />
                   </div>
-                  {member.id !== user?.id && (
+                  {member.user.id !== user?.id && (
                     <button
                       className={styles.removeButton}
-                      onClick={() => handleRemove(member.id)}
+                      onClick={() => handleRemove(member.user.id)}
                       aria-label="Remove member"
                     >
                       <CloseIcon width={16} height={16} />
@@ -114,7 +117,7 @@ export const MemberList = () => {
               ) : (
                 <Badge
                   variant={
-                    member.role === UserRoleEnum.ADMIN ? "success" : "neutral"
+                    member.role === OrgMemberRoleEnum.MEMBER ? "neutral" : "success"
                   }
                 >
                   {member.role}
@@ -125,7 +128,7 @@ export const MemberList = () => {
         ))}
       </Stack>
 
-      {isAdmin && (
+      {canManage && (
         <>
           <div className={styles.divider} />
           <Heading variant="h5" weight="600">
@@ -139,13 +142,6 @@ export const MemberList = () => {
                 name="email"
                 type="email"
                 placeholder="user@example.com"
-                required
-              />
-              <TextInput
-                label="Full Name"
-                name="fullName"
-                type="text"
-                placeholder="John Doe"
                 required
               />
               <Button type="submit" disabled={isInviting}>

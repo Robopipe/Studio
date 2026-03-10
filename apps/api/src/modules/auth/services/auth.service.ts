@@ -1,7 +1,7 @@
 import { ConflictException, Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import type { Jwt, Token, UpdateUserRequest } from '@repo/schema';
-import { UserRoleEnum } from '@repo/schema';
+import type { Organization, PreAuthToken, SessionJwt, Token, UpdateUserRequest } from '@repo/schema';
+import { OrgMemberRoleEnum } from '@repo/schema';
 import { compare, hash } from 'bcrypt';
 import { randomBytes } from 'crypto';
 import type { Response } from 'express';
@@ -10,10 +10,11 @@ import { DB_CONNECTION } from 'src/core/database/database.constant';
 import type { DbConnection } from 'src/core/database/types/database.types';
 import { EmailService } from 'src/modules/email/email.service';
 import { UserEntity } from 'src/modules/user/entities/user.entity';
+import { OrganizationMemberRepository } from 'src/repository/services/organization-member-repository.service';
+import { OrganizationRepository } from 'src/repository/services/organization-repository.service';
 import { PasswordResetRepository } from 'src/repository/services/password-reset-repository.service';
 import { UserRepository } from 'src/repository/services/user-repository.service';
 import { RegisterDto } from "../dto/auth.dto";
-import { OrganizationRepository } from "../../../repository/services/organization-repository.service";
 
 @Injectable()
 export class AuthService {
@@ -21,6 +22,7 @@ export class AuthService {
     @Inject(DB_CONNECTION) private readonly db: DbConnection,
     private readonly userRepository: UserRepository,
     private readonly organizationRepository: OrganizationRepository,
+    private readonly organizationMemberRepository: OrganizationMemberRepository,
     private readonly passwordResetRepository: PasswordResetRepository,
     private readonly emailService: EmailService,
     private readonly jwtService: JwtService,
@@ -28,10 +30,10 @@ export class AuthService {
   ) {}
 
   /**
-   * Authenticate user
-   * @param email
-   * @param password
-   * @returns UserEntity or null if not authenticated
+   * Validate email + password, returning the user if correct.
+   * @param email - user email
+   * @param password - plaintext password
+   * @returns the user entity, or null if credentials are invalid
    */
   public async validateUser(email: string, password: string): Promise<UserEntity | null> {
     const user = await this.db.query.userTable.findFirst({
@@ -43,7 +45,6 @@ export class AuthService {
     }
 
     const isPasswordValid = await this.checkPassword(password, user.password);
-
     if (!isPasswordValid) {
       return null;
     }
@@ -53,84 +54,189 @@ export class AuthService {
   }
 
   /**
-   * Login user
-   * @param user
-   * @param res - Express response obj
-   * @returns Access token
+   * First step of login — issues a short-lived pre-auth token (no org context).
+   * @param user - authenticated user entity
+   * @returns pre-auth token with user data
    */
-  public login(user: UserEntity, res: Response): Token {
-    const payload = { sub: user.id };
-    const accessToken = this.jwtService.sign(payload);
-    const refreshTokenDuration =
-      this.configService.jwtRefreshTokenDuration ?? 7 * 24 * 60 * 60; // 7 days
-    const refreshToken = this.jwtService.sign(payload, {
-      expiresIn: refreshTokenDuration,
-    });
-
-    this.setRefreshTokenCookie(res, refreshToken, refreshTokenDuration * 1000);
+  public preAuthLogin(user: UserEntity): PreAuthToken {
+    const accessToken = this.jwtService.sign(
+      { sub: user.id, scope: 'pre-auth' },
+      { expiresIn: 10 * 60 }, // 10 minutes for org selection
+    );
 
     return { accessToken, user: user.toDto() };
   }
 
   /**
-   * Refresh authentication token
-   * @param refreshToken
-   * @returns - new access token
+   * Second step — user picks an org and we issue the real session JWT.
+   * @param userId - ID of the authenticated user
+   * @param organizationId - chosen organization
+   * @param res - express response for setting the refresh cookie
+   * @returns full session token
+   * @throws {UnauthorizedException} if user is not a member of the organization
+   * @throws {NotFoundException} if organization doesn't exist
    */
-  public async refreshLogin(refreshToken: string): Promise<Token> {
-    const { sub } = this.jwtService.verify<Jwt>(refreshToken);
-    const user = await this.userRepository.getById(sub);
+  public async selectOrganization(userId: number, organizationId: number, res: Response): Promise<Token> {
+    const membership = await this.organizationMemberRepository.getByUserAndOrg(userId, organizationId);
+    if (!membership) {
+      throw new UnauthorizedException('You are not a member of this organization');
+    }
 
+    const user = await this.userRepository.getById(userId);
     if (!user) {
       throw new UnauthorizedException('User not found');
     }
 
-    return { accessToken: this.jwtService.sign({ sub }), user: user.toDto() };
+    const org = await this.organizationRepository.getById(organizationId);
+    if (!org) {
+      throw new NotFoundException('Organization not found');
+    }
+
+    return this.issueSessionToken(user, org.id, membership.role as OrgMemberRoleEnum, org.toDto(), res);
   }
 
   /**
-   * Logout - clears refresh token cookie
-   * @param res - express response obj
+   * Switch to a different org without re-entering credentials.
+   * @param userId - ID of the authenticated user
+   * @param organizationId - target organization
+   * @param res - express response for setting the refresh cookie
+   * @returns full session token for the new org
+   * @throws {UnauthorizedException} if user is not a member of the organization
+   */
+  public async switchOrganization(userId: number, organizationId: number, res: Response): Promise<Token> {
+    return this.selectOrganization(userId, organizationId, res);
+  }
+
+  /**
+   * Get all orgs the user belongs to, with their role in each.
+   * @param userId - ID of the user
+   * @returns list of organizations with the user's role
+   */
+  public async listUserOrganizations(userId: number) {
+    const memberships = await this.organizationMemberRepository.getAllByUserId(userId);
+
+    return memberships
+      .filter((m) => m.organizationName)
+      .map((m) => ({
+        id: m.organizationId,
+        name: m.organizationName!,
+        role: m.role as OrgMemberRoleEnum,
+      }));
+  }
+
+  /**
+   * Create an org and assign the user as owner.
+   * @param userId - ID of the user creating the org
+   * @param name - organization name
+   * @returns the created org with the owner role
+   */
+  public async createOrganization(userId: number, name: string) {
+    const org = await this.organizationRepository.create({ name });
+
+    await this.organizationMemberRepository.create({
+      userId,
+      organizationId: org.id,
+      role: OrgMemberRoleEnum.OWNER,
+    });
+
+    return { id: org.id, name: org.name, role: OrgMemberRoleEnum.OWNER };
+  }
+
+  /**
+   * Refresh an existing session — re-validates membership and reissues the token.
+   * @param refreshToken - signed refresh token from cookie
+   * @param res - express response for setting the new refresh cookie
+   * @returns refreshed session token
+   * @throws {UnauthorizedException} if the token is invalid, user no longer exists, or membership was revoked
+   */
+  public async refreshLogin(refreshToken: string, res: Response): Promise<Token> {
+    let payload: SessionJwt;
+    try {
+      payload = this.jwtService.verify<SessionJwt>(refreshToken);
+    } catch {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    const user = await this.userRepository.getById(payload.sub);
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    if (payload.orgId && payload.role) {
+      const org = await this.organizationRepository.getById(payload.orgId);
+      if (!org) {
+        throw new UnauthorizedException('Organization not found');
+      }
+
+      const membership = await this.organizationMemberRepository.getByUserAndOrg(user.id, payload.orgId);
+      if (!membership) {
+        throw new UnauthorizedException('No longer a member of this organization');
+      }
+
+      return this.issueSessionToken(user, org.id, membership.role as OrgMemberRoleEnum, org.toDto(), res);
+    }
+
+    throw new UnauthorizedException('Session expired, please log in again');
+  }
+
+  /**
+   * Clear the refresh token cookie on logout.
+   * @param res - express response
    */
   public logout(res: Response): void {
     this.setRefreshTokenCookie(res, '', 0);
   }
 
-
   /**
-   * Register user
-   * @param data - RegisterDto
-   * @param res - Express response for cookies
-   * @returns Token
+   * Register a new user with a random password and send a welcome email
+   * with a set-password link. The user must set their password before logging in.
+   * @param data - registration payload (email, fullName)
+   * @returns success message
+   * @throws {ConflictException} if a user with that email already exists
    */
-  public async register(data: RegisterDto, res: Response) : Promise<Token> {
-    const existingUser = await this.userRepository.getByEmail(data.email)
-
-    if(existingUser){
+  public async register(data: RegisterDto): Promise<{ message: string }> {
+    const existingUser = await this.userRepository.getByEmail(data.email);
+    if (existingUser) {
       throw new ConflictException("User with this email already exists");
     }
 
-    const hashedPassword = await this.hashPassword(data.password)
-    const organization = await this.organizationRepository.create({
-      name: `${data.email}'s organization`,
-    })
-
+    const randomPassword = randomBytes(32).toString('hex');
+    const hashedPassword = await this.hashPassword(randomPassword);
     const user = await this.userRepository.create({
       email: data.email,
       username: data.email,
       fullName: data.fullName,
       password: hashedPassword,
-      role: UserRoleEnum.ADMIN,
-      organizationId: organization.id
-    })
+    });
 
-    return this.login(user, res)
+    await this.sendSetPasswordEmail(user);
+
+    return { message: "Account created. Please check your email to set your password." };
   }
 
   /**
-   * Forgot password - sends reset email if user exists.
-   * Always succeeds to prevent email enumeration.
-   * @param email
+   * Generates a password reset token and sends the welcome/set-password email.
+   * @param user - newly created user entity
+   */
+  private async sendSetPasswordEmail(user: UserEntity): Promise<void> {
+    await this.passwordResetRepository.deleteByUserId(user.id);
+
+    const token = randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    await this.passwordResetRepository.create({
+      token,
+      userId: user.id,
+      expiresAt,
+    });
+
+    const setPasswordLink = `${this.configService.webHost}/reset-password?token=${token}&welcome=1`;
+    await this.emailService.sendWelcomeEmail(user.email, user.fullName, setPasswordLink);
+  }
+
+  /**
+   * Send a password reset email if the user exists. Silently no-ops otherwise.
+   * @param email - email address to send the reset link to
    */
   public async forgotPassword(email: string): Promise<void> {
     const user = await this.userRepository.getByEmail(email);
@@ -152,14 +258,13 @@ export class AuthService {
   }
 
   /**
-   * Reset password using a valid token
-   * @param token
-   * @param newPassword
-   * @throws UnauthorizedException if token is invalid or expired
+   * Reset a user's password using a valid reset token.
+   * @param token - the reset token from the email link
+   * @param newPassword - new plaintext password
+   * @throws {UnauthorizedException} if the token is invalid or expired
    */
   public async resetPassword(token: string, newPassword: string): Promise<void> {
     const resetRecord = await this.passwordResetRepository.findValidToken(token);
-
     if (!resetRecord) {
       throw new UnauthorizedException("Invalid or expired reset token");
     }
@@ -170,11 +275,51 @@ export class AuthService {
   }
 
   /**
-   * Set refresh token cookie
-   * @param res - express response
-   * @param token - refresh token
-   * @param maxAge - token max age
+   * Update user profile fields.
+   * @param id - user ID
+   * @param data - fields to update
+   * @returns updated user entity
+   * @throws {NotFoundException} if user doesn't exist
    */
+  public async updateProfile(id: number, data: UpdateUserRequest): Promise<UserEntity> {
+    const user = await this.userRepository.getById(id);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return this.userRepository.update(id, data);
+  }
+
+  private issueSessionToken(
+    user: UserEntity,
+    orgId: number,
+    role: OrgMemberRoleEnum,
+    orgDto: Organization,
+    res: Response,
+  ): Token {
+    const accessToken = this.jwtService.sign({
+      sub: user.id,
+      orgId,
+      role,
+      scope: 'session',
+    });
+
+    const refreshTokenDuration = this.configService.jwtRefreshTokenDuration ?? 7 * 24 * 60 * 60;
+    const refreshToken = this.jwtService.sign(
+      { sub: user.id, orgId, role, scope: 'session' },
+      { expiresIn: refreshTokenDuration },
+    );
+
+    this.setRefreshTokenCookie(res, refreshToken, refreshTokenDuration * 1000);
+
+    return {
+      accessToken,
+      user: user.toDto(),
+      organization: orgDto,
+      role,
+    };
+  }
+
   private setRefreshTokenCookie(res: Response, token: string, maxAge: number) {
     const apiHost = new URL(this.configService.apiHost).hostname;
     const webHost = this.configService.webHost
@@ -192,39 +337,11 @@ export class AuthService {
     });
   }
 
-  /**
-   * Compare user provided and hashed password
-   * @param plain
-   * @param hashed
-   * @returns boolean
-   */
   private checkPassword(plain: string, hashed: string): Promise<boolean> {
     return compare(plain, hashed);
   }
 
-  /**
-   * Hash password using bcrypt
-   * @param password - plain password
-   * @returns hashed password
-   */
-  private hashPassword(password: string): Promise<string>{
-    return hash(password, 10)
-  }
-
-  /**
-   * Update user profile
-   * @param id - user id
-   * @param data - UpdateUserRequest
-   * @throws NotFoundException if user not found
-   * @returns updated user
-   */
-  public async updateProfile(id: number, data: UpdateUserRequest): Promise<UserEntity> {
-    const user = await this.userRepository.getById(id);
-
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-
-    return this.userRepository.update(id, data);
+  private hashPassword(password: string): Promise<string> {
+    return hash(password, 10);
   }
 }
