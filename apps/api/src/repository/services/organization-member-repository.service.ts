@@ -18,10 +18,7 @@ export class OrganizationMemberRepository {
    */
   public async getByUserAndOrg(userId: number, organizationId: number): Promise<OrganizationMemberEntity | null> {
     const row = await this.db.query.organizationMemberTable.findFirst({
-      where: and(
-        eq(organizationMemberTable.userId, userId),
-        eq(organizationMemberTable.organizationId, organizationId),
-      ),
+      where: { userId, organizationId },
     });
 
     return row ? new OrganizationMemberEntity(row) : null;
@@ -33,7 +30,7 @@ export class OrganizationMemberRepository {
    */
   public async getAllByUserId(userId: number): Promise<OrganizationMemberEntity[]> {
     const rows = await this.db.query.organizationMemberTable.findMany({
-      where: eq(organizationMemberTable.userId, userId),
+      where: { userId },
       with: { organization: true },
     });
 
@@ -46,7 +43,7 @@ export class OrganizationMemberRepository {
    */
   public async getAllByOrgId(organizationId: number): Promise<OrganizationMemberEntity[]> {
     const rows = await this.db.query.organizationMemberTable.findMany({
-      where: eq(organizationMemberTable.organizationId, organizationId),
+      where: { organizationId },
       with: { user: { columns: { password: false } } },
     });
 
