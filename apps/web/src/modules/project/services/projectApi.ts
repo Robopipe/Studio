@@ -1,5 +1,5 @@
 import { appConfig } from "@/config";
-import { baseQuery } from "@/core/api/baseQuery";
+import { baseRefreshingQuery } from "@/core/api/baseQuery";
 import { HttpMethod } from "@/types";
 import { createApi } from "@reduxjs/toolkit/query/react";
 import {
@@ -20,7 +20,7 @@ export enum ProjectApiTagType {
 const { projects } = appConfig.studioApi.endpoints;
 const projectApiBase = createApi({
   reducerPath: "projectApi",
-  baseQuery: baseQuery,
+  baseQuery: baseRefreshingQuery,
   tagTypes: Object.values(ProjectApiTagType),
   endpoints: () => ({}),
 });
