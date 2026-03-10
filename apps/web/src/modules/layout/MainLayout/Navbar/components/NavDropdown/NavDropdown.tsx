@@ -26,6 +26,7 @@ interface NavDropdownProps {
   onCreate?: (name: string) => void;
   createLabel?: string;
   align?: "left" | "right";
+  maxLabelWidth?: number;
 }
 
 const MAX_SEARCH_LENGTH = 14;
@@ -40,6 +41,7 @@ export const NavDropdown = ({
   onCreate,
   createLabel = "Create",
   align = "left",
+  maxLabelWidth,
 }: NavDropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -80,7 +82,18 @@ export const NavDropdown = ({
         onClick={() => setIsOpen(!isOpen)}
       >
         <Stack direction="row" align="center" gap={8}>
-          <Text variant="text-14" weight="500" color="text-white-primary">
+          <Text
+            variant="text-14"
+            weight="500"
+            color="text-white-primary"
+            style={maxLabelWidth ? {
+              maxWidth: maxLabelWidth,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              display: "block",
+            } : undefined}
+          >
             {label}
           </Text>
           <span className={clsx(styles.chevron, isOpen && styles.open)} />
