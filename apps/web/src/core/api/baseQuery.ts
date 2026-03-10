@@ -27,6 +27,8 @@ export const baseQuery = fetchBaseQuery({
   credentials: "include",
 });
 
+let refreshPromise: Promise<boolean> | null = null;
+
 export const baseRefreshingQuery: BaseQueryFn<
   string | FetchArgs,
   unknown,
@@ -34,16 +36,31 @@ export const baseRefreshingQuery: BaseQueryFn<
 > = async (args, api, extraOptions) => {
   const result = await baseQuery(args, api, extraOptions);
   if (result.error && result.error.status === 401) {
-    const refreshResult = await baseQuery(
-      { url: appConfig.studioApi.endpoints.auth.refreshToken, method: "POST" },
-      api,
-      extraOptions,
-    );
-    if (refreshResult.data) {
-      api.dispatch(setCredentials(refreshResult.data as Token));
+    if (!refreshPromise) {
+      refreshPromise = (async () => {
+        const refreshResult = await baseQuery(
+          {
+            url: appConfig.studioApi.endpoints.auth.refreshToken,
+            method: "POST",
+          },
+          api,
+          extraOptions,
+        );
+        if (refreshResult.data) {
+          api.dispatch(setCredentials(refreshResult.data as Token));
+          return true;
+        } else {
+          api.dispatch(clearCredentials());
+          return false;
+        }
+      })().finally(() => {
+        refreshPromise = null;
+      });
+    }
+
+    const refreshSuccess = await refreshPromise;
+    if (refreshSuccess) {
       return baseQuery(args, api, extraOptions);
-    } else {
-      api.dispatch(clearCredentials());
     }
   }
 

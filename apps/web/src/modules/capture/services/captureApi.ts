@@ -1,5 +1,5 @@
 import { appConfig } from "@/config";
-import { baseQuery } from "@/core/api/baseQuery";
+import { baseRefreshingQuery } from "@/core/api/baseQuery";
 import { HttpMethod } from "@/types";
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { PaginatedTasks, Task } from "@repo/schema";
@@ -11,7 +11,7 @@ export enum CaptureApiTagType {
 const { tasks } = appConfig.studioApi.endpoints;
 const captureApiBase = createApi({
   reducerPath: "captureApi",
-  baseQuery: baseQuery,
+  baseQuery: baseRefreshingQuery,
   tagTypes: Object.values(CaptureApiTagType),
   endpoints: () => ({}),
 });
