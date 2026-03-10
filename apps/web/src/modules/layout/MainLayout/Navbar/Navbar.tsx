@@ -4,10 +4,12 @@ import {
   useGetProjectQuery,
   useGetProjectsQuery,
 } from "@/modules/project/services/projectApi";
+import { CreateProjectModal } from "@/modules/project/components/CreateProjectModal";
 import { Logo } from "@/modules/ui";
 import {
   AiPowerIcon,
   AnnotateIcon,
+  BoxIcon,
   CameraIcon,
   ChartIcon,
   LogoutIcon,
@@ -17,10 +19,11 @@ import {
 } from "@repo/ui";
 import { Link, matchPath, useLocation, useNavigate } from "react-router";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import styles from "./Navbar.module.scss";
 import { NavDropdown } from "./components/NavDropdown";
 import { NavItem } from "./components/NavItem";
+import { OrgDropdown } from "./components/OrgDropdown";
 import { webConfig } from "@/config/web";
 
 export const Navbar = () => {
@@ -31,6 +34,8 @@ export const Navbar = () => {
   const { data: projects } = useGetProjectsQuery();
   const { data: profile } = useProfileQuery();
   const [activeProject, setActiveProject] = useActiveProject();
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [createModalInitialName, setCreateModalInitialName] = useState("");
 
   const match = matchPath(
     { path: "/projects/:projectId/*" },
@@ -60,7 +65,7 @@ export const Navbar = () => {
   useEffect(() => {
   if (activeId && projects) {
     const matchingProject = projects.find((p) => String(p.id) === String(activeId));
-    
+
     if (matchingProject && matchingProject.id !== activeProject?.id) {
       setActiveProject(matchingProject);
     }
@@ -98,8 +103,18 @@ export const Navbar = () => {
             <div className={styles.divider} />
             <NavDropdown
               label={activeProject?.name ?? "Select a project..."}
+              title="PROJECTS"
+              placeholder="Search or create projects"
+              itemIcon={<BoxIcon />}
+              activeItemId={activeProject?.id}
+              createLabel="Create"
+              onCreate={(name) => {
+                setCreateModalInitialName(name);
+                setIsCreateModalOpen(true);
+              }}
               items={
                 projects?.map((p) => ({
+                  id: p.id,
                   label: p.name,
                   onClick: () => {
                     setActiveProject(p);
@@ -148,8 +163,10 @@ export const Navbar = () => {
         </Stack>
       )}
 
-      {/* Right: User Actions */}
+      {/* Right: Org Switcher & User Actions */}
       <Stack direction="row" align="center" gap={12} className={styles.right}>
+        <OrgDropdown />
+        <div className={styles.divider} />
         <Link to={webConfig.routes.account} className={styles.userAvatar}>{initials}</Link>
         <button
           className={styles.iconBtn}
@@ -162,6 +179,13 @@ export const Navbar = () => {
           <LogoutIcon />
         </button>
       </Stack>
+
+      {isCreateModalOpen && (
+        <CreateProjectModal
+          onClose={() => setIsCreateModalOpen(false)}
+          initialName={createModalInitialName}
+        />
+      )}
     </nav>
   );
 };

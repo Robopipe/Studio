@@ -1,4 +1,3 @@
-import { CreateProjectModal } from "@/modules/project/components/CreateProjectModal";
 import {
   AddLargeIcon,
   BoxIcon,
@@ -8,20 +7,42 @@ import {
   Text,
 } from "@repo/ui";
 import clsx from "clsx";
-import { useEffect, useRef, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import styles from "./NavDropdown.module.scss";
+
+export interface NavDropdownItem {
+  id: string | number;
+  label: string;
+  onClick?: () => void;
+}
 
 interface NavDropdownProps {
   label: string;
-  items?: { label: string; onClick?: () => void }[];
+  title: string;
+  items?: NavDropdownItem[];
+  activeItemId?: string | number;
+  placeholder?: string;
+  itemIcon?: ReactNode;
+  onCreate?: (name: string) => void;
+  createLabel?: string;
+  align?: "left" | "right";
 }
 
 const MAX_SEARCH_LENGTH = 14;
 
-export const NavDropdown = ({ label, items = [] }: NavDropdownProps) => {
+export const NavDropdown = ({
+  label,
+  title,
+  items = [],
+  activeItemId,
+  placeholder = "Search...",
+  itemIcon = <BoxIcon />,
+  onCreate,
+  createLabel = "Create",
+  align = "left",
+}: NavDropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -38,11 +59,18 @@ export const NavDropdown = ({ label, items = [] }: NavDropdownProps) => {
     item.label.toLowerCase().includes(search.toLowerCase()),
   );
 
-  const showCreateOption = filteredItems.length === 0 && search.trim().length > 0;
+  const showCreateOption = onCreate && filteredItems.length === 0 && search.trim().length > 0;
 
   const getDisplaySearch = () => {
     if (search.length <= MAX_SEARCH_LENGTH) return search;
     return `${search.substring(0, MAX_SEARCH_LENGTH)}...`;
+  };
+
+  const handleCreate = () => {
+    if (onCreate && search.trim()) {
+      onCreate(search.trim());
+      setSearch("");
+    }
   };
 
   return (
@@ -60,13 +88,15 @@ export const NavDropdown = ({ label, items = [] }: NavDropdownProps) => {
       </div>
 
       {isOpen && (
-        <div className={styles.dropdownMenu}>
+        <div className={clsx(styles.dropdownMenu, align === "right" && styles.alignRight)}>
           <Stack direction="row" align="center" justify="space-between" className={styles.menuHeader}>
-            <Text variant="text-14" weight="600" color="text-white-primary">PROJECTS</Text>
+            <Text variant="text-14" weight="600" color="text-white-primary">{title}</Text>
             <Stack direction="row" align="center" gap={12}>
-              <button className={styles.actionBtn} onClick={() => setIsModalOpen(true)}>
-                <AddLargeIcon />
-              </button>
+              {onCreate && (
+                <button className={styles.actionBtn} onClick={() => handleCreate()}>
+                  <AddLargeIcon />
+                </button>
+              )}
               <button className={styles.actionBtn} onClick={() => setIsOpen(false)}>
                 <CloseIcon />
               </button>
@@ -78,10 +108,10 @@ export const NavDropdown = ({ label, items = [] }: NavDropdownProps) => {
             <input
               autoFocus
               className={styles.searchInput}
-              placeholder="Search or create projects"
+              placeholder={placeholder}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && showCreateOption && setIsModalOpen(true)}
+              onKeyDown={(e) => e.key === 'Enter' && showCreateOption && handleCreate()}
             />
           </div>
 
@@ -89,35 +119,38 @@ export const NavDropdown = ({ label, items = [] }: NavDropdownProps) => {
             {filteredItems.length > 0 ? (
               filteredItems.map((item) => (
                 <div
-                  key={item.label}
-                  className={styles.dropdownItem}
+                  key={item.id}
+                  className={clsx(
+                    styles.dropdownItem,
+                    activeItemId !== undefined && item.id === activeItemId && styles.activeItem,
+                  )}
                   onClick={() => {
                     item.onClick?.();
                     setIsOpen(false);
                   }}
                 >
                   <Stack direction="row" align="center" gap={10}>
-                    <BoxIcon />
+                    {itemIcon}
                     <Text variant="text-14">{item.label}</Text>
                   </Stack>
                 </div>
               ))
             ) : (
               <div className={styles.noResults}>
-                <Text variant="text-14" color="gray-500">No project found</Text>
+                <Text variant="text-14" color="gray-500">No results found</Text>
               </div>
             )}
           </div>
 
           {showCreateOption && (
-            <div className={styles.createFooter} onClick={() => setIsModalOpen(true)}>
+            <div className={styles.createFooter} onClick={handleCreate}>
               <Stack direction="row" align="center" justify="space-between">
                 <Stack direction="row" align="center" gap={8}>
                   <div className={styles.createIcon}>
                      <AddLargeIcon width={14} height={14} />
                   </div>
                   <Text variant="text-14" weight="500">
-                    Create "{getDisplaySearch()}"
+                    {createLabel} "{getDisplaySearch()}"
                   </Text>
                 </Stack>
                 <div className={styles.enterBadge}>
@@ -127,13 +160,6 @@ export const NavDropdown = ({ label, items = [] }: NavDropdownProps) => {
             </div>
           )}
         </div>
-      )}
-      
-      {isModalOpen && (
-        <CreateProjectModal 
-          onClose={() => setIsModalOpen(false)} 
-          initialName={search}
-        />
       )}
     </div>
   );

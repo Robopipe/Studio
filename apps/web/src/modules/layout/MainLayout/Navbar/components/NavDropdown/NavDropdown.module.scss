@@ -33,6 +33,11 @@
   top: calc(100% + 8px);
   left: 0;
   width: 360px;
+
+  &.alignRight {
+    left: auto;
+    right: 0;
+  }
   background-color: #1c1c1f;
   border: 1px solid var(--color-gray-800);
   border-radius: 0.75rem;
@@ -50,6 +55,11 @@
 
   &:hover {
     background-color: rgba(255, 255, 255, 0.05);
+    color: var(--color-emerald-400);
+  }
+
+  &.activeItem {
+    background-color: rgba(16, 185, 129, 0.1);
     color: var(--color-emerald-400);
   }
 }
