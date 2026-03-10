@@ -1,6 +1,5 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-import type { SessionJwt } from '@repo/schema';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { AppConfig } from 'src/core/configuration/app.config';
 import { UserRepository } from 'src/repository/services/user-repository.service';
@@ -37,12 +36,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
    * @returns session user with org context merged in
    * @throws {UnauthorizedException} if the token is pre-auth scope or user doesn't exist
    */
-  async validate(payload: SessionJwt & { scope?: string }): Promise<SessionUser> {
+  async validate(payload: Record<string, unknown>): Promise<SessionUser> {
     if (payload.scope === 'pre-auth') {
       throw new UnauthorizedException('Session token required');
     }
 
-    const user = await this.userRepository.getById(payload.sub);
+    const user = await this.userRepository.getById(payload.sub as number);
     if (!user) {
       throw new UnauthorizedException('User not found');
     }
@@ -53,8 +52,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       email: user.email,
       fullName: user.fullName,
       cameraApiUrl: user.cameraApiUrl,
-      organizationId: payload.orgId,
-      role: payload.role,
+      organizationId: payload.orgId as number,
+      role: payload.role as string,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
       deletedAt: user.deletedAt,

@@ -1,11 +1,10 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 import type { Request } from 'express';
-import type { SessionUser } from '../strategies/jwt.strategy';
 
 export const User = createParamDecorator(
-  <K extends keyof SessionUser>(field: K | undefined, ctx: ExecutionContext): SessionUser | SessionUser[K] => {
+  (field: string | undefined, ctx: ExecutionContext) => {
     const request = ctx.switchToHttp().getRequest<Request>();
-    const user = request.user as SessionUser;
+    const user = request.user as unknown as Record<string, unknown>;
 
     return field ? user[field] : user;
   },

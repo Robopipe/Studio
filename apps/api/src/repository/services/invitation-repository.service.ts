@@ -1,6 +1,6 @@
 import { Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
-import { and, eq, gt, isNull } from 'drizzle-orm';
-import { invitationTable } from '@repo/database';
+import { eq } from 'drizzle-orm';
+import { invitationTable } from '@repo/database/schema';
 import { InvitationStatusEnum } from '@repo/schema';
 import { DB_CONNECTION } from 'src/core/database/database.constant';
 import type { DbConnection } from 'src/core/database/types/database.types';
@@ -32,7 +32,7 @@ export class InvitationRepository {
    */
   public async findByToken(token: string): Promise<InvitationEntity | null> {
     const row = await this.db.query.invitationTable.findFirst({
-      where: eq(invitationTable.token, token),
+      where: { token },
     });
 
     return row ? new InvitationEntity(row) : null;
@@ -44,7 +44,7 @@ export class InvitationRepository {
    */
   public async findById(id: number): Promise<InvitationEntity | null> {
     const row = await this.db.query.invitationTable.findFirst({
-      where: eq(invitationTable.id, id),
+      where: { id },
     });
 
     return row ? new InvitationEntity(row) : null;
@@ -57,11 +57,11 @@ export class InvitationRepository {
    */
   public async findPendingByEmail(email: string): Promise<InvitationEntity[]> {
     const rows = await this.db.query.invitationTable.findMany({
-      where: and(
-        eq(invitationTable.email, email),
-        eq(invitationTable.status, InvitationStatusEnum.PENDING),
-        gt(invitationTable.expiresAt, new Date()),
-      ),
+      where: {
+        email,
+        status: InvitationStatusEnum.PENDING,
+        expiresAt: { gt: new Date() },
+      },
       with: { organization: true },
     });
 
