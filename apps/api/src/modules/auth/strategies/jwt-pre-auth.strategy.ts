@@ -25,7 +25,7 @@ export class JwtPreAuthStrategy extends PassportStrategy(Strategy, JWT_PRE_AUTH)
    */
   async validate(payload: PreAuthJwt & { scope?: string }) {
     if (payload.scope !== 'pre-auth') {
-      throw new UnauthorizedException('Expected pre-auth token');
+      return null;
     }
 
     const user = await this.userRepository.getById(payload.sub);
