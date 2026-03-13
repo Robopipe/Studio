@@ -45,6 +45,8 @@ export const NavDropdown = ({
 }: NavDropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
+  const [createName, setCreateName] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -72,6 +74,15 @@ export const NavDropdown = ({
     if (onCreate && search.trim()) {
       onCreate(search.trim());
       setSearch("");
+    }
+  };
+
+  const handleCreateFromForm = () => {
+    if (onCreate && createName.trim()) {
+      onCreate(createName.trim());
+      setCreateName("");
+      setIsCreating(false);
+      setIsOpen(false);
     }
   };
 
@@ -106,7 +117,7 @@ export const NavDropdown = ({
             <Text variant="text-14" weight="600" color="text-white-primary">{title}</Text>
             <Stack direction="row" align="center" gap={12}>
               {onCreate && (
-                <button className={styles.actionBtn} onClick={() => handleCreate()}>
+                <button className={styles.actionBtn} onClick={() => setIsCreating(!isCreating)}>
                   <AddLargeIcon />
                 </button>
               )}
@@ -116,10 +127,29 @@ export const NavDropdown = ({
             </Stack>
           </Stack>
 
+          {isCreating && (
+            <div className={styles.createForm}>
+              <input
+                autoFocus
+                placeholder="Organization name"
+                value={createName}
+                onChange={(e) => setCreateName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleCreateFromForm()}
+              />
+              <button
+                className={styles.createBtn}
+                onClick={handleCreateFromForm}
+                disabled={!createName.trim()}
+              >
+                {createLabel}
+              </button>
+            </div>
+          )}
+
           <div className={styles.searchContainer}>
             <SearchIcon className={styles.searchIcon} />
             <input
-              autoFocus
+              autoFocus={!isCreating}
               className={styles.searchInput}
               placeholder={placeholder}
               value={search}
