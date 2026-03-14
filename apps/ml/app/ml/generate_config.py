@@ -55,19 +55,22 @@ def get_trainer_hyperparams(model_config: ModelConfig) -> dict:
 
     Detection models are prone to exploding gradients, so we apply:
     - gradient clipping (norm-based, val=1.0)
-    - AdamW with reduced LR and weight decay
-    - cosine annealing to smoothly decay the LR
+    - AdamW with weight decay for stable optimisation
+    - cosine annealing with warm restarts to avoid LR plateauing at near-zero
     """
     if model_config.type == ModelType.DETECTION:
+        epochs = model_config.training_config.epochs
+        t0 = max(10, epochs // 3)
         return {
             "gradient_clip_val": 1.0,
             "gradient_clip_algorithm": "norm",
             "optimizer": {
                 "name": "AdamW",
-                "params": {"lr": 1e-4, "weight_decay": 5e-4},
+                "params": {"lr": 3e-4, "weight_decay": 5e-4},
             },
             "scheduler": {
-                "name": "CosineAnnealingLR",
+                "name": "CosineAnnealingWarmRestarts",
+                "params": {"T_0": t0},
             },
         }
     return {}
