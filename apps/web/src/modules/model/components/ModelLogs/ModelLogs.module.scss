@@ -35,3 +35,25 @@
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
 }
+
+.timestamp {
+  color: var(--color-gray-400);
+}
+
+.epochLabel,
+.epochValue {
+  color: var(--color-pear-500);
+}
+
+.metricKey {
+  color: var(--color-blue-200);
+}
+
+.metricValue {
+  color: var(--color-emerald-400);
+}
+
+.separator,
+.brace {
+  color: var(--color-gray-400);
+}
