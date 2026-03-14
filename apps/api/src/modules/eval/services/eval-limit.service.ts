@@ -1,4 +1,4 @@
-import { Inject, Injectable } from "@nestjs/common";
+import { BadRequestException, Inject, Injectable } from "@nestjs/common";
 import { EvalLimitRepository } from "src/repository/services/eval-limit.service";
 import { EvalLimitDetailEntity, EvalLimitEntity } from "../entities/eval-limit.entity";
 import { EvalTestCaseRepository } from "src/repository/services/eval-test-case.service";
@@ -6,14 +6,16 @@ import { EvalLimitCreateOrUpdateDto } from "../dto/eval-limit.dto";
 import { DB_CONNECTION } from "src/core/database/database.constant";
 import type { DbConnection } from "src/core/database/types/database.types";
 import { evalLimitItemTable } from "@repo/database";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
+import { ProjectLabelRepository } from "src/repository/services/project-label-repository.service";
 
 @Injectable()
 export class EvalLimitService {
   constructor(
     @Inject(DB_CONNECTION) private readonly db: DbConnection,
     private readonly evalLimitRepository: EvalLimitRepository,
-    private readonly evalTestCaseRepository: EvalTestCaseRepository
+    private readonly evalTestCaseRepository: EvalTestCaseRepository,
+    private readonly projectLabelRepository: ProjectLabelRepository,
   ){}
 
   /**
@@ -49,10 +51,13 @@ export class EvalLimitService {
    * @param projectId
    * @param testCaseId
    * @param data - EvalLimitCreateOrUpdateDto
+   * @throws BadRequestException - Target label not found
+   * @throws BadRequestException - Target parent label not found
    * @returns EvalLimitDetailEntity
    */
   public async createLimit(projectId: number, testCaseId: string, data: EvalLimitCreateOrUpdateDto): Promise<EvalLimitDetailEntity>{
     await this.evalTestCaseRepository.getByIdAndProjectIdOrThrow(testCaseId, projectId)
+    await this.validateLabelsInProject(data, projectId)
     const createdLimit = await this.evalLimitRepository.create(testCaseId, data)
 
     if(data.limitItems.length){
@@ -71,8 +76,19 @@ export class EvalLimitService {
     return this.evalLimitRepository.getByIdAndTestCaseIdOrThrow(createdLimit.id, testCaseId)
   }
 
+  /**
+   * Update limit
+   * @param projectId
+   * @param testCaseId
+   * @param limitId
+   * @param data - EvalLimitCreateOrUpdateDto
+   * @throws BadRequestException - Target label not found
+   * @throws BadRequestException - Target parent label not found
+   * @returns EvalLimitDetailEntity
+   */
   public async updateLimit(projectId: number, testCaseId: string, limitId: string, data: EvalLimitCreateOrUpdateDto): Promise<EvalLimitDetailEntity> {
     await this.evalTestCaseRepository.getByIdAndProjectIdOrThrow(testCaseId, projectId)
+    await this.validateLabelsInProject(data, projectId)
     const existingLimit = await this.evalLimitRepository.getByIdAndTestCaseIdOrThrow(limitId, testCaseId)
 
     const { limitItems, ...limitData } = data
@@ -80,6 +96,28 @@ export class EvalLimitService {
     await this.diffLimitItems(limitId, existingLimit.limitItems, limitItems)
 
     return this.evalLimitRepository.getByIdAndTestCaseIdOrThrow(limitId, testCaseId)
+  }
+
+  /**
+   * Validate that targetLabelId and targetParentLabelId belong to the project
+   * @param data - EvalLimitCreateOrUpdateDto
+   * @param projectId
+   * @throws BadRequestException
+   */
+  private async validateLabelsInProject(data: EvalLimitCreateOrUpdateDto, projectId: number): Promise<void>{
+    const labelIds: number[] = [data.targetLabelId];
+    if(data.targetParentLabelId){
+      labelIds.push(data.targetParentLabelId)
+    }
+    const projectLabels = await this.projectLabelRepository.getAllByIdInAndProjectId(labelIds, projectId)
+    const foundIds = projectLabels.map((l) => l.id)
+
+    if(!foundIds.includes(data.targetLabelId)){
+      throw new BadRequestException("Target label not found")
+    }
+    if(data.targetParentLabelId && !foundIds.includes(data.targetParentLabelId)){
+      throw new BadRequestException("Target parent label not found")
+    }
   }
 
   /**
@@ -103,7 +141,7 @@ export class EvalLimitService {
 
     // Delete removed items
     if(idsToDelete.length > 0){
-      await this.db.delete(evalLimitItemTable).where(inArray(evalLimitItemTable.id, idsToDelete))
+      await this.db.delete(evalLimitItemTable).where(and(inArray(evalLimitItemTable.id, idsToDelete), eq(evalLimitItemTable.limitId, limitId)))
     }
 
     // Update existing items
@@ -116,7 +154,7 @@ export class EvalLimitService {
           operator: item.operator,
           position: item.index,
         })
-        .where(eq(evalLimitItemTable.id, item.id))
+        .where(and(eq(evalLimitItemTable.id, item.id), eq(evalLimitItemTable.limitId, limitId)))
     ))
 
     // Insert new items
