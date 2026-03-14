@@ -53,27 +53,44 @@ def get_model_params(model_config: ModelConfig) -> tuple[dict, dict]:
 def get_trainer_hyperparams(model_config: ModelConfig) -> dict:
     """Return training hyperparameters tuned per model type.
 
-    Detection models are prone to exploding gradients, so we apply:
-    - gradient clipping (norm-based, val=1.0)
-    - AdamW with weight decay for stable optimisation
-    - cosine annealing with warm restarts to avoid LR plateauing at near-zero
+    Detection uses TripleLRSGDStrategy (YOLO-style 3-param-group SGD with
+    built-in warmup + cosine annealing) which handles both exploding
+    gradients and plateau avoidance natively.
+
+    Segmentation uses AdamW with warm-restart cosine annealing.
+
+    Both get norm-based gradient clipping as an extra safety net.
     """
     if model_config.type == ModelType.DETECTION:
+        return {
+            "gradient_clip_val": 1.0,
+            "gradient_clip_algorithm": "norm",
+            "training_strategy": {
+                "name": "TripleLRSGDStrategy",
+            },
+        }
+    elif model_config.type == ModelType.SEGMENTATION:
         epochs = model_config.training_config.epochs
-        t0 = max(10, epochs // 3)
         return {
             "gradient_clip_val": 1.0,
             "gradient_clip_algorithm": "norm",
             "optimizer": {
                 "name": "AdamW",
-                "params": {"lr": 3e-4, "weight_decay": 5e-4},
+                "params": {"lr": 5e-4, "weight_decay": 1e-4},
             },
             "scheduler": {
                 "name": "CosineAnnealingWarmRestarts",
-                "params": {"T_0": t0},
+                "params": {"T_0": max(10, epochs // 3)},
             },
         }
     return {}
+
+
+def _get_model_callbacks(model_config: ModelConfig) -> list[dict]:
+    """Return extra callbacks for model types that benefit from EMA."""
+    if model_config.type in (ModelType.DETECTION, ModelType.SEGMENTATION):
+        return [{"name": "EMACallback", "params": {"decay": 0.9999}}]
+    return []
 
 
 def generate_model_config(model_config: ModelConfig) -> dict:
@@ -120,6 +137,7 @@ def generate_trainer_config(model_config: ModelConfig) -> dict:
             {"name": "ExportOnTrainEnd"},
             {"name": "ArchiveOnTrainEnd"},
             {"name": "LearningRateMonitor", "params": {"logging_interval": "epoch"}},
+            *_get_model_callbacks(model_config),
         ],
         "validation_interval": 1,
         "log_sub_losses": False,
