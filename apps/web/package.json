@@ -17,6 +17,7 @@
     "@repo/schema": "workspace:*",
     "@repo/ui": "workspace:*",
     "@tailwindcss/vite": "^4.2.1",
+    "@tanstack/react-form": "^1.28.5",
     "@tanstack/react-table": "^8.21.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

@@ -5,7 +5,7 @@ import {
   PopoverTrigger,
 } from "@/modules/shadcn/ui/popover";
 import { type Column } from "@tanstack/react-table";
-import { ListFilterIcon, SlidersHorizontal } from "lucide-react";
+import { ListFilterIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface ColumnFilterProps<T> {
