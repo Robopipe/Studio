@@ -1,35 +1,20 @@
-import { ReactNode } from 'react';
-import { CircleAlertIcon } from 'lucide-react-native';
+import { ReactNode } from "react";
 
-import { Column, Icon, Row, Text } from '@/src/components/ui';
+import { Label } from "@/modules/shadcn/ui/label";
 
 export type FieldWrapperProps = {
-    children: ReactNode;
-    label?: string;
-    error?: string;
+  label?: string;
+  name?: string;
+  error?: string;
+  children: ReactNode;
 };
 
-export const FieldWrapper = ({ children, label, error }: FieldWrapperProps) => {
-    return (
-        <Column className="shrink gap-1">
-            {label && (
-                <Text
-                    variant="regular14"
-                    className="shrink text-ellipsis text-primary"
-                    numberOfLines={1}
-                >
-                    {label}
-                </Text>
-            )}
-            <Row>{children}</Row>
-            {error && (
-                <Row className="items-center gap-1">
-                    <Icon as={CircleAlertIcon} size={16} className="text-destructive" />
-                    <Text variant="regular14" className="flex-1 text-destructive">
-                        {error}
-                    </Text>
-                </Row>
-            )}
-        </Column>
-    );
+export const FieldWrapper = ({ label, error, children, name }: FieldWrapperProps) => {
+  return (
+    <div className="flex flex-col gap-1.5">
+      {label && <Label htmlFor={name} className="text-xs text-muted-foreground">{label}</Label>}
+      {children}
+      {error && <p className="text-xs text-destructive">{error}</p>}
+    </div>
+  );
 };

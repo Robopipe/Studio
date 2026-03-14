@@ -1,16 +1,24 @@
-import { Button, ButtonProps } from '@/src/components/ui';
-import { useFormContext } from '../hooks/useFormContext';
+import { ComponentProps } from "react";
 
-export type SubmitButtonProps = ButtonProps;
+import { Button } from "@/modules/shadcn/ui/button";
+import { useFormContext } from "../hooks/useFormContext";
+
+export type SubmitButtonProps = ComponentProps<typeof Button>;
 
 export const SubmitButton = ({ ...props }: SubmitButtonProps) => {
-    const form = useFormContext();
+  const form = useFormContext();
 
-    return (
-        <form.Subscribe selector={(state) => ({ isSubmitting: state.isSubmitting })}>
-            {({ isSubmitting }) => (
-                <Button {...props} loading={isSubmitting} onPress={form.handleSubmit} />
-            )}
-        </form.Subscribe>
-    );
+  return (
+    <form.Subscribe
+      selector={(state) => ({ isSubmitting: state.isSubmitting })}
+    >
+      {({ isSubmitting }) => (
+        <Button
+          {...props}
+          disabled={isSubmitting || props.disabled}
+          onClick={form.handleSubmit}
+        />
+      )}
+    </form.Subscribe>
+  );
 };
