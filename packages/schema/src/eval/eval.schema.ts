@@ -76,9 +76,10 @@ export const evalLimitItemSchema = z.object({
   operator: z.enum(EvalLimitItemOperatorEnum), // Operator "after" the limit item, default to AND
   createdAt: timestampsSchema.createdAt,
   updatedAt: timestampsSchema.updatedAt
-}).refine((limitItem) => limitItem.limitFrom !== null || limitItem.limitTo !== null, {
-  message: "At least one of limitFrom or limitTo must be provided"
 })
+// .refine((limitItem) => limitItem.limitFrom !== null || limitItem.limitTo !== null, {
+//   message: "At least one of limitFrom or limitTo must be provided"
+// })
 
 /* Eval limit */
 export const evalLimitSchema = z.object({
