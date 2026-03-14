@@ -16,9 +16,18 @@ export const relationBase = defineRelations(schema, (r) => ({
       from: r.taskTable.projectId,
       to: r.projectTable.id,
     }),
-    rectangleAnnotations: r.many.rectangleAnnotationTable(),
-    polygonAnnotations: r.many.polygonAnnotationTable(),
-    classificationAnnotations: r.many.classificationAnnotationTable(),
+    rectangleAnnotations: r.many.rectangleAnnotationTable({
+      from: r.taskTable.id,
+      to: r.rectangleAnnotationTable.taskId,
+    }),
+    polygonAnnotations: r.many.polygonAnnotationTable({
+      from: r.taskTable.id,
+      to: r.polygonAnnotationTable.taskId,
+    }),
+    classificationAnnotations: r.many.classificationAnnotationTable({
+      from: r.taskTable.id,
+      to: r.classificationAnnotationTable.taskId,
+    }),
   },
   modelTable: {
     project: r.one.projectTable({
@@ -46,9 +55,18 @@ export const relationBase = defineRelations(schema, (r) => ({
       from: r.projectLabelTable.projectId,
       to: r.projectTable.id,
     }),
-    polygonAnnotations: r.many.polygonAnnotationTable(),
-    rectangleAnnotations: r.many.rectangleAnnotationTable(),
-    classificationAnnotations: r.many.classificationAnnotationTable(),
+    polygonAnnotations: r.many.polygonAnnotationTable({
+      from: r.projectLabelTable.id,
+      to: r.polygonAnnotationTable.labelId,
+    }),
+    rectangleAnnotations: r.many.rectangleAnnotationTable({
+      from: r.projectLabelTable.id,
+      to: r.rectangleAnnotationTable.labelId,
+    }),
+    classificationAnnotations: r.many.classificationAnnotationTable({
+      from: r.projectLabelTable.id,
+      to: r.classificationAnnotationTable.labelId,
+    }),
   },
   modelOutputTable: {
     model: r.one.modelTable({
