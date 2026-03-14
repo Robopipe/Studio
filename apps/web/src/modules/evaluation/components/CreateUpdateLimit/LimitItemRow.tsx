@@ -84,7 +84,7 @@ export function LimitItemRow({ index, field, onDelete }: LimitItemRowProps) {
           aria-label="Delete limit"
           onClick={onDelete}
         >
-          <Trash2Icon />
+          <Trash2Icon className="text-destructive" />
         </Button>
       </div>
     </div>

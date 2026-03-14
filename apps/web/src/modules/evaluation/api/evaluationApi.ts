@@ -12,6 +12,8 @@ import {
   EvalTestCaseTypeEnum,
 } from "@repo/schema";
 
+const mockDelay = () => new Promise((resolve) => setTimeout(resolve, 800));
+
 const now = new Date().toISOString();
 
 // --- Mock data ---
@@ -112,7 +114,8 @@ export const evaluationApi = api.injectEndpoints({
   endpoints: (builder) => ({
     // Eval Limits
     getEvalLimits: builder.query<EvalLimitDetail[], { projectId: number }>({
-      queryFn: () => {
+      queryFn: async () => {
+        await mockDelay();
         return { data: mockLimits };
       },
       providesTags: (_result, _error, { projectId }) => [
@@ -124,7 +127,8 @@ export const evaluationApi = api.injectEndpoints({
       EvalLimitDetail,
       { projectId: number; limitId: string }
     >({
-      queryFn: ({ limitId }) => {
+      queryFn: async ({ limitId }) => {
+        await mockDelay();
         const limit = mockLimits.find((l) => l.id === limitId);
         if (!limit) {
           return { error: { status: 404, data: "Limit not found" } };
@@ -141,7 +145,8 @@ export const evaluationApi = api.injectEndpoints({
       EvalTestCaseDetail[],
       { projectId: number }
     >({
-      queryFn: () => {
+      queryFn: async () => {
+        await mockDelay();
         return { data: mockTestCases };
       },
       providesTags: (_result, _error, { projectId }) => [
@@ -153,7 +158,8 @@ export const evaluationApi = api.injectEndpoints({
       EvalTestCaseDetail,
       { projectId: number; testCaseId: string }
     >({
-      queryFn: ({ testCaseId }) => {
+      queryFn: async ({ testCaseId }) => {
+        await mockDelay();
         const testCase = mockTestCases.find((tc) => tc.id === testCaseId);
         if (!testCase) {
           return { error: { status: 404, data: "Test case not found" } };
@@ -170,7 +176,8 @@ export const evaluationApi = api.injectEndpoints({
       EvalTestCaseDetail,
       { projectId: number; body: EvalTestCaseCreateOrUpdate }
     >({
-      queryFn: ({ body }) => {
+      queryFn: async ({ body }) => {
+        await mockDelay();
         const newTestCase: EvalTestCaseDetail = {
           id: crypto.randomUUID() as `${string}-${string}-${string}-${string}-${string}`,
           name: body.name,
@@ -196,7 +203,8 @@ export const evaluationApi = api.injectEndpoints({
         body: EvalTestCaseCreateOrUpdate;
       }
     >({
-      queryFn: ({ testCaseId, body }) => {
+      queryFn: async ({ testCaseId, body }) => {
+        await mockDelay();
         const existing = mockTestCases.find((tc) => tc.id === testCaseId);
         if (!existing) {
           return { error: { status: 404, data: "Test case not found" } };
@@ -222,7 +230,8 @@ export const evaluationApi = api.injectEndpoints({
       EvalLimitDetail,
       { projectId: number; testCaseId: string; body: EvalLimitCreateOrUpdate }
     >({
-      queryFn: ({ body }) => {
+      queryFn: async ({ body }) => {
+        await mockDelay();
         const newLimit: EvalLimitDetail = {
           id: crypto.randomUUID() as `${string}-${string}-${string}-${string}-${string}`,
           name: body.name,
@@ -268,7 +277,8 @@ export const evaluationApi = api.injectEndpoints({
       EvalLimitDetail,
       { projectId: number; limitId: string; body: EvalLimitCreateOrUpdate }
     >({
-      queryFn: ({ limitId, body }) => {
+      queryFn: async ({ limitId, body }) => {
+        await mockDelay();
         const existing = mockLimits.find((l) => l.id === limitId);
         if (!existing) {
           return { error: { status: 404, data: "Limit not found" } };
@@ -313,6 +323,34 @@ export const evaluationApi = api.injectEndpoints({
         { type: apiCacheTags.eval.limits, id: limitId },
       ],
     }),
+
+    deleteEvalLimit: builder.mutation<
+      void,
+      { projectId: number; limitId: string }
+    >({
+      queryFn: async () => {
+        await mockDelay();
+        return { data: undefined };
+      },
+      invalidatesTags: (_result, _error, { projectId, limitId }) => [
+        { type: apiCacheTags.eval.limits, id: projectId },
+        { type: apiCacheTags.eval.limits, id: limitId },
+      ],
+    }),
+
+    deleteEvalTestCase: builder.mutation<
+      void,
+      { projectId: number; testCaseId: string }
+    >({
+      queryFn: async () => {
+        await mockDelay();
+        return { data: undefined };
+      },
+      invalidatesTags: (_result, _error, { projectId, testCaseId }) => [
+        { type: apiCacheTags.eval.testCases, id: projectId },
+        { type: apiCacheTags.eval.testCases, id: testCaseId },
+      ],
+    }),
   }),
 });
 
@@ -329,4 +367,6 @@ export const {
   useUpdateEvalTestCaseMutation,
   useCreateEvalLimitMutation,
   useUpdateEvalLimitMutation,
+  useDeleteEvalLimitMutation,
+  useDeleteEvalTestCaseMutation,
 } = evaluationApi;

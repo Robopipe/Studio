@@ -1,6 +1,6 @@
-import type { useCreateLimitForm } from "./useCreateLimitForm.hook";
+import type { useLimitForm } from "./useLimitForm.hook";
 
-export type FormInstance = ReturnType<typeof useCreateLimitForm>["form"];
+export type FormInstance = ReturnType<typeof useLimitForm>["form"];
 
 // TODO: replace with actual labels from API
 export const labelOptions = [

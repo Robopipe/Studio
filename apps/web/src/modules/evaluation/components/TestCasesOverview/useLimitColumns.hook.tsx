@@ -71,7 +71,7 @@ export function useLimitColumns(
           label: "Edit limit",
         },
         {
-          icon: <Trash2Icon className="size-4" />,
+          icon: <Trash2Icon className="size-4 text-destructive" />,
           onClick: onDelete,
           label: "Delete limit",
         },

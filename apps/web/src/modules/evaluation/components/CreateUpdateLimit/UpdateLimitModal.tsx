@@ -7,28 +7,30 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/modules/shadcn/ui/dialog";
+import { EvalLimitDetail } from "@repo/schema";
 import { GeneralSection } from "./GeneralSection";
 import { LimitsSection } from "./LimitsSection";
 import { SetupSection } from "./SetupSection";
 import { labelOptions } from "./types";
-import { useCreateLimitForm } from "./useCreateLimitForm.hook";
+import { useLimitForm } from "./useLimitForm.hook";
 
-export type CreateLimitModalProps = {
+export type UpdateLimitModalProps = {
   projectId: number;
-  testCaseId: string;
+  limit: EvalLimitDetail;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
 
-export const CreateLimitModal = ({
+export const UpdateLimitModal = ({
   projectId,
-  testCaseId,
+  limit,
   open,
   onOpenChange,
-}: CreateLimitModalProps) => {
-  const { form, isSubmitting } = useCreateLimitForm({
+}: UpdateLimitModalProps) => {
+  const { form, isSubmitting } = useLimitForm({
     projectId,
-    testCaseId,
+    limitId: limit.id,
+    initialValues: limit,
     onSuccess: () => onOpenChange(false),
   });
 
@@ -36,7 +38,7 @@ export const CreateLimitModal = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-160">
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold">Add Limit</DialogTitle>
+          <DialogTitle className="text-xl font-semibold">Edit Limit</DialogTitle>
         </DialogHeader>
 
         <form

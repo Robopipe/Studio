@@ -4,7 +4,7 @@ import { PlusIcon } from "lucide-react";
 import { LimitItemRow } from "./LimitItemRow";
 import { LogicalOperatorSelect } from "./LogicalOperatorSelect";
 import type { FormInstance } from "./types";
-import { emptyLimitItem } from "./useCreateLimitForm.hook";
+import { emptyLimitItem } from "./useLimitForm.hook";
 
 type LimitsSectionProps = {
   form: FormInstance;
