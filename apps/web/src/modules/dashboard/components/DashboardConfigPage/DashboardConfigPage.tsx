@@ -12,6 +12,7 @@ import {
 import { AddLimitModal } from "../AddLimitModal";
 import { DeleteLimitDialog } from "../DeleteLimitDialog";
 
+import { DashboardLineConfiguration } from "../DashboardLineConfiguration";
 import styles from "./DashboardConfigPage.module.scss";
 
 interface DashboardConfigPageProps {
@@ -114,6 +115,7 @@ export const DashboardConfigPage = ({
 
   return (
     <Stack fullWidth gap="md">
+      <DashboardLineConfiguration projectId={projectId} configId={configId} />
       <Stack fullWidth direction="row" justify="space-between" align="center">
         <Heading variant="h5" weight="600">
           Limit Items

@@ -71,10 +71,23 @@ export const createDashboardConfigurationItemSchema =
 export const updateDashboardConfigurationItemSchema =
   createDashboardConfigurationItemSchema;
 
+export enum DashboardConfigurationLineDirectionEnum {
+  HORIZONTAL = "HORIZONTAL",
+  VERTICAL = "VERTICAL",
+}
+
+export enum DashboardConfigurationLineFlowEnum {
+  POSITIVE = "POSITIVE",
+  NEGATIVE = "NEGATIVE",
+}
+
 export const dashboardConfigurationSchema = z.object({
   id: z.number(),
   name: z.string(),
   projectId: z.number(),
+  lineDirection: z.enum(DashboardConfigurationLineDirectionEnum),
+  linePosition: z.number(),
+  lineFlow: z.enum(DashboardConfigurationLineFlowEnum),
   createdAt: timestampsSchema.createdAt,
   updatedAt: timestampsSchema.updatedAt,
 });
