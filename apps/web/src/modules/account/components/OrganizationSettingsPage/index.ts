@@ -1,2 +1,1 @@
-export * from "./AccountPage";
 export * from "./OrganizationSettingsPage";

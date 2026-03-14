@@ -3,6 +3,7 @@ import {
   BoxIcon,
   CloseIcon,
   SearchIcon,
+  SettingsIcon,
   Stack,
   Text,
 } from "@repo/ui";
@@ -25,6 +26,7 @@ interface NavDropdownProps {
   itemIcon?: ReactNode;
   onCreate?: (name: string) => void;
   createLabel?: string;
+  onSettingsClick?: () => void;
   align?: "left" | "right";
   maxLabelWidth?: number;
 }
@@ -40,6 +42,7 @@ export const NavDropdown = ({
   itemIcon = <BoxIcon />,
   onCreate,
   createLabel = "Create",
+  onSettingsClick,
   align = "left",
   maxLabelWidth,
 }: NavDropdownProps) => {
@@ -49,10 +52,17 @@ export const NavDropdown = ({
   const [createName, setCreateName] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  const closeDropdown = () => {
+    setIsOpen(false);
+    setSearch("");
+    setIsCreating(false);
+    setCreateName("");
+  };
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
+        closeDropdown();
       }
     };
     if (isOpen) document.addEventListener("mousedown", handleClickOutside);
@@ -82,7 +92,7 @@ export const NavDropdown = ({
       onCreate(createName.trim());
       setCreateName("");
       setIsCreating(false);
-      setIsOpen(false);
+      closeDropdown();
     }
   };
 
@@ -90,7 +100,7 @@ export const NavDropdown = ({
     <div className={styles.dropdownContainer} ref={dropdownRef}>
       <div
         className={clsx(styles.navDropdown, isOpen && styles.active)}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => isOpen ? closeDropdown() : setIsOpen(true)}
       >
         <Stack direction="row" align="center" gap={8}>
           <Text
@@ -121,7 +131,12 @@ export const NavDropdown = ({
                   <AddLargeIcon />
                 </button>
               )}
-              <button className={styles.actionBtn} onClick={() => setIsOpen(false)}>
+              {onSettingsClick && (
+                <button className={styles.actionBtn} onClick={() => { onSettingsClick(); closeDropdown(); }}>
+                  <SettingsIcon />
+                </button>
+              )}
+              <button className={styles.actionBtn} onClick={closeDropdown}>
                 <CloseIcon />
               </button>
             </Stack>
@@ -169,7 +184,7 @@ export const NavDropdown = ({
                   )}
                   onClick={() => {
                     item.onClick?.();
-                    setIsOpen(false);
+                    closeDropdown();
                   }}
                 >
                   <Stack direction="row" align="center" gap={10}>

@@ -9,6 +9,7 @@ export const webRoutes = {
   main: {
     projects: "/",
     project: "/projects/:projectId",
+    organization: "/organization",
   },
   model: {
     modelList: "/projects/:projectId/models",
