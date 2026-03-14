@@ -1,6 +1,7 @@
-import { EvalLogicNode, EvalTestCase, EvalTestCaseDetail, EvalTestCaseSeverityEnum, EvalTestCaseTypeEnum } from "@repo/schema";
-import { EvalTestCaseDetailSelect, EvalTestCaseSelect } from "src/repository/types/eval";
+import { EvalLogicNode, EvalTestCase, EvalTestCaseDetail, EvalTestCaseSeverityEnum, EvalTestCaseThreshold, EvalTestCaseTypeEnum } from "@repo/schema";
+import { EvalTestCaseDetailSelect, EvalTestCaseSelect, EvalTestCaseThresholdSelect } from "src/repository/types/eval";
 import { EvalLimitEntity } from "./eval-limit.entity";
+import { EvalThresholdEntity } from "./eval-threshold.entity";
 
 export class EvalTestCaseEntity {
   readonly id: string;
@@ -49,6 +50,33 @@ export class EvalTestCaseDetailEntity extends EvalTestCaseEntity {
     return {
       ...this.toResponse(),
       logicNodes: this.logicNodes
+    }
+  }
+}
+
+
+export class EvalTestCaseThresholdEntity {
+  readonly id: string;
+  readonly name: string;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
+  readonly thresholds: EvalThresholdEntity[]
+
+  constructor(data: EvalTestCaseThresholdSelect){
+    this.id = data.id;
+    this.name = data.name;
+    this.thresholds = data.thresholds.map((threshold) => new EvalThresholdEntity(threshold))
+    this.createdAt = data.createdAt;
+    this.updatedAt = data.updatedAt
+  }
+
+  public toResponse(): EvalTestCaseThreshold {
+    return {
+      id: this.id,
+      name: this.name,
+      thresholds: this.thresholds.map((threshold) => threshold.toResponse()),
+      updatedAt: this.updatedAt.toISOString(),
+      createdAt: this.createdAt.toISOString()
     }
   }
 }

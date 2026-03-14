@@ -2,10 +2,15 @@ import { Injectable } from "@nestjs/common";
 import { EvalTestCaseDetailEntity, EvalTestCaseEntity } from "../entities/eval-test-case.entity";
 import { EvalTestCaseCreateOrUpdateDto } from "../dto/eval-test-case.dto";
 import { EvalTestCaseRepository } from "src/repository/services/eval-test-case.service";
+import { EvalThresholdRepository } from "src/repository/services/eval-threshold.service";
+import { defaultThresholds } from "../data/eval-threshold.data";
 
 @Injectable()
 export class EvalTestCaseService {
-  constructor(private readonly evalTestCaseRepository: EvalTestCaseRepository){}
+  constructor(
+    private readonly evalTestCaseRepository: EvalTestCaseRepository,
+    private readonly evalThresholdRepository: EvalThresholdRepository
+  ){}
 
   /**
    * Get project test cases
@@ -36,10 +41,14 @@ export class EvalTestCaseService {
    * @returns EvalTestCaseDetailEntity
    */
   public async createTestCase(projectId: number, data: EvalTestCaseCreateOrUpdateDto): Promise<EvalTestCaseDetailEntity> {
-    return this.evalTestCaseRepository.create(projectId, {
+    const createdTestCase = await this.evalTestCaseRepository.create(projectId, {
       logicNodes: [],
       ...data,
     })
+
+    await this.evalThresholdRepository.createMany(createdTestCase.id, defaultThresholds)
+
+    return createdTestCase
   }
 
 

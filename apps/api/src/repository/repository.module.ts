@@ -17,6 +17,7 @@ import { OrganizationMemberRepository } from "./services/organization-member-rep
 import { InvitationRepository } from "./services/invitation-repository.service";
 import { EvalLimitRepository } from './services/eval-limit.service';
 import { EvalTestCaseRepository } from './services/eval-test-case.service';
+import { EvalThresholdRepository } from './services/eval-threshold.service';
 
 
 @Global()
@@ -37,7 +38,8 @@ import { EvalTestCaseRepository } from './services/eval-test-case.service';
     DashboardConfigurationRepository,
     DashboardEvaluationRepository,
     EvalLimitRepository,
-    EvalTestCaseRepository
+    EvalTestCaseRepository,
+    EvalThresholdRepository,
   ],
   exports: [
     ModelRepository,
@@ -56,6 +58,7 @@ import { EvalTestCaseRepository } from './services/eval-test-case.service';
     DashboardEvaluationRepository,
     EvalLimitRepository,
     EvalTestCaseRepository,
+    EvalThresholdRepository,
   ],
 })
 export class RepositoryModule {}
