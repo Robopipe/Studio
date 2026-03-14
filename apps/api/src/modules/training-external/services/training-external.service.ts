@@ -5,7 +5,6 @@ import {
   TrainingBasePayload,
   TrainingPayload,
 } from "../schema/training-external.schema";
-import { ProjectRepository } from "../../../repository/services/project-repository.service";
 import { ModelEntity } from "../../model/entity/model.entity";
 import {
   ProjectTypeEnum,
@@ -35,7 +34,6 @@ export class TrainingExternalService {
     private readonly assetsService: AssetsService,
     private readonly config: AppConfig,
     private readonly modelRepository: ModelRepository,
-    private readonly projectRepository: ProjectRepository,
     private readonly modelLogRepository: ModelLogRepository,
     private readonly modelOutputRepository: ModelOutputRepository,
   ) {}
@@ -189,10 +187,6 @@ export class TrainingExternalService {
   private async getTrainingPayload(
     model: ModelEntity,
   ): Promise<TrainingPayload> {
-    const project = await this.projectRepository.getByIdOrThrow(
-      model.projectId,
-    );
-
     const tasks = await this.db.query.taskTable.findMany({
       where: {
         projectId: model.projectId,
@@ -236,7 +230,7 @@ export class TrainingExternalService {
       },
     };
 
-    switch (project.type) {
+    switch (model.trainingType) {
       case ProjectTypeEnum.CLASSIFICATION: {
         const data = tasks.map((task) => ({
           file_url: task.filePath,
@@ -249,52 +243,55 @@ export class TrainingExternalService {
           })),
         }));
 
-        return {
-          ...basePayload,
-          type: ProjectTypeEnum.CLASSIFICATION,
-          data,
-        };
+        return { ...basePayload, type: ProjectTypeEnum.CLASSIFICATION, data };
       }
+
       case ProjectTypeEnum.SEGMENTATION: {
         const data = tasks.map((task) => ({
           file_url: task.filePath,
           width: task.width,
           height: task.height,
           labels: task.polygonAnnotations.map((annotation) => ({
-            label: {
-              label_number: labelsIndexMap[annotation.labelId],
-            },
+            label: { label_number: labelsIndexMap[annotation.labelId] },
             points: annotation.value,
           })),
         }));
 
-        return {
-          ...basePayload,
-          type: ProjectTypeEnum.SEGMENTATION,
-          data,
-        };
+        return { ...basePayload, type: ProjectTypeEnum.SEGMENTATION, data };
       }
-      case ProjectTypeEnum.DETECTION: {
-        const data = tasks.map((task) => ({
-          file_url: task.filePath,
-          width: task.width,
-          height: task.height,
-          labels: task.rectangleAnnotations.map((annotation) => ({
-            label: {
-              label_number: labelsIndexMap[annotation.labelId],
-            },
-            x: annotation.x,
-            y: annotation.y,
-            width: annotation.width,
-            height: annotation.height,
-          })),
-        }));
 
-        return {
-          ...basePayload,
-          type: ProjectTypeEnum.DETECTION,
-          data,
-        };
+      case ProjectTypeEnum.DETECTION: {
+        const useDetection = model.annotationsUsed.includes(ProjectTypeEnum.DETECTION);
+        const useSegmentation = model.annotationsUsed.includes(ProjectTypeEnum.SEGMENTATION);
+
+        const data = tasks.map((task) => {
+          const labels = [];
+
+          if (useDetection) {
+            for (const annotation of task.rectangleAnnotations) {
+              labels.push({
+                label: { label_number: labelsIndexMap[annotation.labelId] },
+                x: annotation.x,
+                y: annotation.y,
+                width: annotation.width,
+                height: annotation.height,
+              });
+            }
+          }
+
+          if (useSegmentation) {
+            for (const annotation of task.polygonAnnotations) {
+              labels.push({
+                label: { label_number: labelsIndexMap[annotation.labelId] },
+                points: annotation.value,
+              });
+            }
+          }
+
+          return { file_url: task.filePath, width: task.width, height: task.height, labels };
+        });
+
+        return { ...basePayload, type: ProjectTypeEnum.DETECTION, data };
       }
     }
   }

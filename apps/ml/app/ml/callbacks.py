@@ -1,4 +1,6 @@
 import requests
+import math
+from numbers import Real
 
 import lightning.pytorch as pl
 from luxonis_train import LuxonisLightningModule
@@ -11,6 +13,7 @@ from ..config import get_config
 @CALLBACKS.register()
 class WebhookStats(pl.Callback):
     LOSS_KEY = "val/loss"
+    DEFAULT_NON_FINITE_VALUE = 0.0
     ACC_KEY_MAP = {
         ModelType.CLASSIFICATION: "val/metric/ClassificationHead/Accuracy",
         ModelType.DETECTION: "val/metric/EfficientBBoxHead/MeanAveragePrecision",
@@ -33,15 +36,31 @@ class WebhookStats(pl.Callback):
         ):
             return
 
-        loss = trainer.logged_metrics[self.LOSS_KEY].item()
-        acc = trainer.logged_metrics[self.acc_key].item()
+        metrics: dict[str, float] = {}
+
+        for key, value in trainer.callback_metrics.items():
+            if hasattr(value, "item"):
+                try:
+                    raw_value = float(value.item())
+                except (TypeError, ValueError):
+                    continue
+                metrics[key] = self._sanitize_metric_value(raw_value)
+            elif isinstance(value, Real):
+                metrics[key] = self._sanitize_metric_value(float(value))
+
+        loss = metrics.get(self.LOSS_KEY)
+        acc = metrics.get(self.acc_key)
+
+        if loss is None or acc is None:
+            return
+
+        # Keep canonical keys required by the API while forwarding all trainer metrics.
+        metrics["accuracy"] = acc
+        metrics["loss"] = loss
 
         data = {
             "epoch": trainer.current_epoch,
-            "metrics": {
-                "accuracy": acc,
-                "loss": loss,
-            },
+            "metrics": metrics,
         }
         try:
             response = requests.post(
@@ -50,3 +69,9 @@ class WebhookStats(pl.Callback):
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
             print(f"Failed to send webhook: {e}")
+
+    def _sanitize_metric_value(self, value: float) -> float:
+        if math.isfinite(value):
+            return value
+
+        return self.DEFAULT_NON_FINITE_VALUE
