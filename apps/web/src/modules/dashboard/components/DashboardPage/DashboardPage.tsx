@@ -203,7 +203,7 @@ export const DashboardPage = () => {
                   <EvaluationPage projectId={projectId} configId={selectedConfigId} />
                 )}
                 {rightTab === "test-cases" && (
-                  <TestCasesOverviewPage />
+                  <TestCasesOverviewPage projectId={projectId} />
                 )}
               </div>
             </Stack>
