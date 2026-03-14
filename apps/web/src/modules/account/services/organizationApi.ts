@@ -7,6 +7,7 @@ import { InviteUser, OrganizationMember, OrganizationMembersResponse, UpdateMemb
 const { organizations } = appConfig.studioApi.endpoints;
 
 export enum OrganizationApiTagType {
+  Organization = "Organization",
   OrganizationMembers = "OrganizationMembers",
 }
 
@@ -19,6 +20,21 @@ const organizationApiBase = createApi({
 
 export const organizationApi = organizationApiBase.injectEndpoints({
   endpoints: (builder) => ({
+    getOrganization: builder.query<{ id: number; name: string }, void>({
+      query: () => ({
+        url: organizations.current,
+        method: HttpMethod.GET,
+      }),
+      providesTags: [OrganizationApiTagType.Organization],
+    }),
+    updateOrganization: builder.mutation<{ id: number; name: string }, { name: string }>({
+      query: (data) => ({
+        url: organizations.current,
+        method: HttpMethod.PATCH,
+        body: data,
+      }),
+      invalidatesTags: [OrganizationApiTagType.Organization],
+    }),
     getMembers: builder.query<OrganizationMember[], void>({
       query: () => ({
         url: organizations.members,
@@ -56,6 +72,8 @@ export const organizationApi = organizationApiBase.injectEndpoints({
 });
 
 export const {
+  useGetOrganizationQuery,
+  useUpdateOrganizationMutation,
   useGetMembersQuery,
   useInviteUserMutation,
   useRemoveMemberMutation,

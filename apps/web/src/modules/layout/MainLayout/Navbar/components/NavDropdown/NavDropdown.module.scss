@@ -80,6 +80,46 @@
   }
 }
 
+.createForm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  background-color: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  border: 1px solid var(--color-gray-800);
+  padding: 0 8px 0 0;
+
+  input {
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--color-white);
+    font-size: 0.875rem;
+    padding: 8px 10px;
+    flex: 1;
+    min-width: 0;
+
+    &::placeholder { color: var(--color-gray-600); }
+  }
+
+  .createBtn {
+    background-color: var(--color-emerald-500);
+    color: var(--color-gray-900);
+    border: none;
+    border-radius: 4px;
+    padding: 4px 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.2s;
+
+    &:hover { opacity: 0.9; }
+    &:disabled { opacity: 0.4; cursor: default; }
+  }
+}
+
 .searchContainer {
   margin-bottom: 8px;
   display: flex;
