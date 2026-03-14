@@ -15,6 +15,8 @@ import { DashboardEvaluationRepository } from "./services/dashboard-evaluation.s
 import { PasswordResetRepository } from "./services/password-reset-repository.service";
 import { OrganizationMemberRepository } from "./services/organization-member-repository.service";
 import { InvitationRepository } from "./services/invitation-repository.service";
+import { EvalLimitRepository } from './services/eval-limit.service';
+import { EvalTestCaseRepository } from './services/eval-test-case.service';
 
 
 @Global()
@@ -33,7 +35,9 @@ import { InvitationRepository } from "./services/invitation-repository.service";
     ModelLogRepository,
     DashboardConfigurationItemRepository,
     DashboardConfigurationRepository,
-    DashboardEvaluationRepository
+    DashboardEvaluationRepository,
+    EvalLimitRepository,
+    EvalTestCaseRepository
   ],
   exports: [
     ModelRepository,
@@ -49,7 +53,9 @@ import { InvitationRepository } from "./services/invitation-repository.service";
     ModelLogRepository,
     DashboardConfigurationItemRepository,
     DashboardConfigurationRepository,
-    DashboardEvaluationRepository
+    DashboardEvaluationRepository,
+    EvalLimitRepository,
+    EvalTestCaseRepository,
   ],
 })
 export class RepositoryModule {}
