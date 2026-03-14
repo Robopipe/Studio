@@ -7,10 +7,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/modules/shadcn/ui/dialog";
+import { useGetProjectLabelsQuery } from "@/modules/project/services/projectApi";
 import { GeneralSection } from "./GeneralSection";
 import { LimitsSection } from "./LimitsSection";
 import { SetupSection } from "./SetupSection";
-import { labelOptions } from "./types";
 import { useLimitForm } from "./useLimitForm.hook";
 
 export type CreateLimitModalProps = {
@@ -31,6 +31,9 @@ export const CreateLimitModal = ({
     testCaseId,
     onSuccess: () => onOpenChange(false),
   });
+
+  const { data: labels = [] } = useGetProjectLabelsQuery({ projectId });
+  const labelOptions = labels.map((l) => ({ label: l.name, value: String(l.id) }));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

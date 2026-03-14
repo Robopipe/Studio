@@ -17,20 +17,18 @@ export function useLimitColumns(
       {
         accessorKey: "name",
         header: "Name",
-        size: 212,
+
       },
       {
         id: "targetLabel",
         header: "Label",
         accessorFn: (row: EvalLimit) => row.targetLabel.name,
-        size: 96,
       },
       {
         id: "parentLabel",
         header: "Parent",
         accessorFn: (row: EvalLimit) =>
           row.targetParentLabel?.name ?? "—",
-        size: 96,
       },
       createActionsColumn<EvalLimit>([
         {

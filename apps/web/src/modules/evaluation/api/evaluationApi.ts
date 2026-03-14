@@ -114,8 +114,10 @@ export const evaluationApi = api.injectEndpoints({
         body,
       }),
       transformResponse: (response) => evalLimitDetailSchema.parse(response),
-      invalidatesTags: (_result, _error, { projectId }) => [
+      invalidatesTags: (_result, _error, { projectId, testCaseId }) => [
         { type: apiCacheTags.eval.limits, id: projectId },
+        { type: apiCacheTags.eval.testCases, id: projectId },
+        { type: apiCacheTags.eval.testCases, id: testCaseId },
       ],
     }),
 
@@ -134,9 +136,11 @@ export const evaluationApi = api.injectEndpoints({
         body,
       }),
       transformResponse: (response) => evalLimitDetailSchema.parse(response),
-      invalidatesTags: (_result, _error, { projectId, limitId }) => [
+      invalidatesTags: (_result, _error, { projectId, testCaseId, limitId }) => [
         { type: apiCacheTags.eval.limits, id: projectId },
         { type: apiCacheTags.eval.limits, id: limitId },
+        { type: apiCacheTags.eval.testCases, id: projectId },
+        { type: apiCacheTags.eval.testCases, id: testCaseId },
       ],
     }),
 
@@ -148,9 +152,11 @@ export const evaluationApi = api.injectEndpoints({
         url: `/eval/${projectId}/limit/${testCaseId}/${limitId}`,
         method: "DELETE",
       }),
-      invalidatesTags: (_result, _error, { projectId, limitId }) => [
+      invalidatesTags: (_result, _error, { projectId, testCaseId, limitId }) => [
         { type: apiCacheTags.eval.limits, id: projectId },
         { type: apiCacheTags.eval.limits, id: limitId },
+        { type: apiCacheTags.eval.testCases, id: projectId },
+        { type: apiCacheTags.eval.testCases, id: testCaseId },
       ],
     }),
 
