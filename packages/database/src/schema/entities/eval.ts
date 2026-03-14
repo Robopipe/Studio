@@ -3,6 +3,7 @@ import { createdAt, updatedAt, uuidId } from '../helpers'
 import { EvalLimitItemOperatorEnum, EvalLimitItemParameterEnum, EvalLogicNode, EvalTestCaseSeverityEnum, EvalTestCaseTypeEnum } from '@repo/schema'
 import { projectLabelTable } from './project-label'
 import { projectTable } from './project'
+import { uuid } from 'drizzle-orm/gel-core'
 
 
 export const evalLimitItemParameterEnum = p.pgEnum("eval_limit_item_parameter_enum", [
@@ -61,6 +62,17 @@ export const evalTestCaseTable = p.pgTable("eval_test_case", {
   severity: evalTestCaseSeverityEnum("severity").notNull(),
   logicNodes: p.jsonb("logic_nodes").$type<EvalLogicNode[]>().notNull(),
   projectId: p.integer("project_id").notNull().references(() => projectTable.id, {onDelete: 'cascade'}),
+  createdAt,
+  updatedAt
+})
+
+
+export const evalThresholdTable = p.pgTable("eval_threshold", {
+  id: uuidId,
+  name: p.varchar("name", {length: 255}).notNull(),
+  value: p.doublePrecision("value").notNull(),
+  color: p.varchar("color", {length: 255}).notNull(),
+  testCaseId: p.varchar("test_case_id", {length: 128}).notNull().references(() => evalTestCaseTable.id, {onDelete: 'cascade'}),
   createdAt,
   updatedAt
 })

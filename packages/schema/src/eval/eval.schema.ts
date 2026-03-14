@@ -112,6 +112,25 @@ export const evalTestCaseDetailSchema = evalTestCaseSchema.extend({
 })
 
 
+export const evalThresholdSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  color: z.string(),
+  value: z.number(),
+  createdAt: timestampsSchema.createdAt,
+  updatedAt: timestampsSchema.updatedAt
+})
+
+export const evalTestCaseThresholdSchema = evalTestCaseSchema.pick({
+  id: true,
+  name: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  thresholds: evalThresholdSchema.array()
+})
+
+
 /**
  * API schemas
  */
@@ -144,4 +163,11 @@ export const evalTestCaseDetailSchema = evalTestCaseSchema.extend({
      id: z.uuidv7().nullable() // Added items will have ID null
    })
    .array()
+ })
+
+
+ export const evalThresholdCreateOrUpdateSchema = evalThresholdSchema.pick({
+   name: true,
+   color: true,
+   value: true
  })
