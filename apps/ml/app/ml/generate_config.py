@@ -50,6 +50,29 @@ def get_model_params(model_config: ModelConfig) -> tuple[dict, dict]:
         return {"variant": "light"}, {}
 
 
+def get_trainer_hyperparams(model_config: ModelConfig) -> dict:
+    """Return training hyperparameters tuned per model type.
+
+    Detection models are prone to exploding gradients, so we apply:
+    - gradient clipping (norm-based, val=1.0)
+    - AdamW with reduced LR and weight decay
+    - cosine annealing to smoothly decay the LR
+    """
+    if model_config.type == ModelType.DETECTION:
+        return {
+            "gradient_clip_val": 1.0,
+            "gradient_clip_algorithm": "norm",
+            "optimizer": {
+                "name": "AdamW",
+                "params": {"lr": 1e-4, "weight_decay": 5e-4},
+            },
+            "scheduler": {
+                "name": "CosineAnnealingLR",
+            },
+        }
+    return {}
+
+
 def generate_model_config(model_config: ModelConfig) -> dict:
     predefined_model_params, model_params = get_model_params(model_config)
     config = {
@@ -88,6 +111,7 @@ def generate_trainer_config(model_config: ModelConfig) -> dict:
     config = {
         "batch_size": model_config.training_config.batch_size,
         "epochs": model_config.training_config.epochs,
+        **get_trainer_hyperparams(model_config),
         "n_workers": 8,
         "callbacks": [
             {"name": "ExportOnTrainEnd"},
