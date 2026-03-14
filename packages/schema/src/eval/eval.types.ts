@@ -7,9 +7,13 @@ import {
   evalLogicNodeSchema,
   evalTestCaseCreateOrUpdateSchema,
   evalTestCaseDetailSchema,
-  evalTestCaseSchema,
+  evalTestCaseSchema,evalTestCaseThresholdSchema,evalThresholdCreateOrUpdateSchema, evalThresholdSchema
 } from "./eval.schema";
 
+
+export type EvalTestCaseThreshold = z.infer<typeof evalTestCaseThresholdSchema>;
+export type EvalThresholdCreateOrUpdate = z.infer<typeof evalThresholdCreateOrUpdateSchema>;
+export type EvalThreshold = z.infer<typeof evalThresholdSchema>;
 export type EvalLogicNode = z.infer<typeof evalLogicNodeSchema>;
 export type EvalLimitItem = z.infer<typeof evalLimitItemSchema>;
 export type EvalLimit = z.infer<typeof evalLimitSchema>;
