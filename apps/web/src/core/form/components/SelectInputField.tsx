@@ -17,6 +17,7 @@ export type SelectInputFieldProps = {
   options: SelectOption[];
   parseValue?: (v: string) => unknown;
   formatValue?: (v: unknown) => string;
+  deselectable?: boolean;
 };
 
 export const SelectInputField = ({
@@ -26,12 +27,15 @@ export const SelectInputField = ({
   options,
   parseValue,
   formatValue,
+  deselectable,
 }: SelectInputFieldProps) => {
   const field = useFieldContext();
 
   const currentValue = formatValue
     ? formatValue(field.state.value)
     : String(field.state.value ?? "");
+
+  const selectedLabel = options.find((o) => o.value === currentValue)?.label;
 
   return (
     <FieldWrapper
@@ -51,9 +55,14 @@ export const SelectInputField = ({
           className="w-full"
           aria-invalid={!!field.state.meta.errors?.[0]}
         >
-          <SelectValue placeholder={placeholder} />
+          <SelectValue placeholder={placeholder}>{selectedLabel}</SelectValue>
         </SelectTrigger>
         <SelectContent>
+          {deselectable && (
+            <SelectItem value="">
+              <span className="text-muted-foreground">None</span>
+            </SelectItem>
+          )}
           {options.map((o) => (
             <SelectItem key={o.value} value={o.value}>
               {o.label}
