@@ -5,7 +5,7 @@ import { type ReactNode } from "react";
 export function createSelectColumn<T>(): ColumnDef<T, unknown> {
   return {
     id: "select",
-    size: 40,
+    size: 24,
     enableSorting: false,
     enableColumnFilter: false,
     enableResizing: false,
