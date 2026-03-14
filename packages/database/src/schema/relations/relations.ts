@@ -1,42 +1,7 @@
 import { defineRelations } from "drizzle-orm";
 import * as schema from '../entities'
 
-export const relations = defineRelations(schema, (r) => ({
-  userTable: {
-    memberships: r.many.organizationMemberTable(),
-    passwordResets: r.many.passwordResetTable(),
-  },
-  passwordResetTable: {
-    user: r.one.userTable({
-      from: r.passwordResetTable.userId,
-      to: r.userTable.id,
-    }),
-  },
-  organizationMemberTable: {
-    user: r.one.userTable({
-      from: r.organizationMemberTable.userId,
-      to: r.userTable.id,
-    }),
-    organization: r.one.organizationTable({
-      from: r.organizationMemberTable.organizationId,
-      to: r.organizationTable.id,
-    }),
-  },
-  invitationTable: {
-    organization: r.one.organizationTable({
-      from: r.invitationTable.organizationId,
-      to: r.organizationTable.id,
-    }),
-    invitedBy: r.one.userTable({
-      from: r.invitationTable.invitedById,
-      to: r.userTable.id,
-    }),
-  },
-  organizationTable: {
-    members: r.many.organizationMemberTable(),
-    invitations: r.many.invitationTable(),
-    projects: r.many.projectTable(),
-  },
+export const relationBase = defineRelations(schema, (r) => ({
   projectTable: {
     organization: r.one.organizationTable({
       from: r.projectTable.organizationId,
@@ -54,36 +19,6 @@ export const relations = defineRelations(schema, (r) => ({
     rectangleAnnotations: r.many.rectangleAnnotationTable(),
     polygonAnnotations: r.many.polygonAnnotationTable(),
     classificationAnnotations: r.many.classificationAnnotationTable(),
-  },
-  rectangleAnnotationTable: {
-    task: r.one.taskTable({
-      from: r.rectangleAnnotationTable.taskId,
-      to: r.taskTable.id,
-    }),
-    label: r.one.projectLabelTable({
-      from: r.rectangleAnnotationTable.labelId,
-      to: r.projectLabelTable.id,
-    }),
-  },
-  polygonAnnotationTable: {
-    task: r.one.taskTable({
-      from: r.polygonAnnotationTable.taskId,
-      to: r.taskTable.id,
-    }),
-    label: r.one.projectLabelTable({
-      from: r.polygonAnnotationTable.labelId,
-      to: r.projectLabelTable.id,
-    }),
-  },
-  classificationAnnotationTable: {
-    task: r.one.taskTable({
-      from: r.classificationAnnotationTable.taskId,
-      to: r.taskTable.id,
-    }),
-    label: r.one.projectLabelTable({
-      from: r.classificationAnnotationTable.labelId,
-      to: r.projectLabelTable.id,
-    }),
   },
   modelTable: {
     project: r.one.projectTable({
@@ -151,5 +86,5 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.dashboardConfigurationItemTable.targetParentLabelId,
       to: r.projectLabelTable.id,
     }),
-  },
+  }
 }));
