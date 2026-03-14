@@ -8,7 +8,7 @@ import {
 } from "@/core/auth/components";
 import { Authenticated } from "@/core/auth/components/Authenticated/Authenticated";
 import { RegisterForm } from "@/core/auth/components/RegisterForm/RegisterForm";
-import { AccountPage } from "@/modules/account/components";
+import { AccountPage, OrganizationSettingsPage } from "@/modules/account/components";
 import { CapturePage } from "@/modules/capture/components/CapturePage";
 import { LabelPage } from "@/modules/label/components/LabelPage";
 import { AuthLayout } from "@/modules/layout";
@@ -65,6 +65,7 @@ const authenticatedRoutes: RouteObject = {
     { path: webRoutes.label, element: <LabelPage /> },
     { path: webRoutes.run, element: <RunPage /> },
     { path: webRoutes.account, element: <AccountPage /> },
+    { path: webRoutes.main.organization, element: <OrganizationSettingsPage /> },
   ],
 };
 

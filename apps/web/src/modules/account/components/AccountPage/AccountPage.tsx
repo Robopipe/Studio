@@ -3,7 +3,6 @@ import { useUpdateProfileMutation } from "@/core/auth/services";
 import { Button, Container, Heading, Stack, TextInput } from "@repo/ui";
 import { useState } from "react";
 import { toast } from "sonner";
-import { MemberList } from "../MemberList";
 import styles from "./AccountPage.module.scss";
 
 export interface AccountPageProps {}
@@ -45,8 +44,6 @@ export const AccountPage = ({}: AccountPageProps) => {
           {isLoading ? "Saving..." : "Save"}
         </Button>
       </Stack>
-      <div className={styles.divider} />
-      <MemberList />
     </Container>
   );
 };
