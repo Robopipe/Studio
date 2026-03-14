@@ -36,9 +36,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
    * @returns session user with org context merged in
    * @throws {UnauthorizedException} if the token is pre-auth scope or user doesn't exist
    */
-  async validate(payload: Record<string, unknown>): Promise<SessionUser> {
+  async validate(payload: Record<string, unknown>): Promise<SessionUser | null> {
     if (payload.scope === 'pre-auth') {
-      throw new UnauthorizedException('Session token required');
+      return null;
     }
 
     const user = await this.userRepository.getById(payload.sub as number);

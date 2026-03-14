@@ -3,6 +3,7 @@ import {
   BoxIcon,
   CloseIcon,
   SearchIcon,
+  SettingsIcon,
   Stack,
   Text,
 } from "@repo/ui";
@@ -25,6 +26,7 @@ interface NavDropdownProps {
   itemIcon?: ReactNode;
   onCreate?: (name: string) => void;
   createLabel?: string;
+  onSettingsClick?: () => void;
   align?: "left" | "right";
   maxLabelWidth?: number;
 }
@@ -40,17 +42,27 @@ export const NavDropdown = ({
   itemIcon = <BoxIcon />,
   onCreate,
   createLabel = "Create",
+  onSettingsClick,
   align = "left",
   maxLabelWidth,
 }: NavDropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
+  const [createName, setCreateName] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const closeDropdown = () => {
+    setIsOpen(false);
+    setSearch("");
+    setIsCreating(false);
+    setCreateName("");
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
+        closeDropdown();
       }
     };
     if (isOpen) document.addEventListener("mousedown", handleClickOutside);
@@ -75,11 +87,20 @@ export const NavDropdown = ({
     }
   };
 
+  const handleCreateFromForm = () => {
+    if (onCreate && createName.trim()) {
+      onCreate(createName.trim());
+      setCreateName("");
+      setIsCreating(false);
+      closeDropdown();
+    }
+  };
+
   return (
     <div className={styles.dropdownContainer} ref={dropdownRef}>
       <div
         className={clsx(styles.navDropdown, isOpen && styles.active)}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => isOpen ? closeDropdown() : setIsOpen(true)}
       >
         <Stack direction="row" align="center" gap={8}>
           <Text
@@ -106,20 +127,44 @@ export const NavDropdown = ({
             <Text variant="text-14" weight="600" color="text-white-primary">{title}</Text>
             <Stack direction="row" align="center" gap={12}>
               {onCreate && (
-                <button className={styles.actionBtn} onClick={() => handleCreate()}>
+                <button className={styles.actionBtn} onClick={() => setIsCreating(!isCreating)}>
                   <AddLargeIcon />
                 </button>
               )}
-              <button className={styles.actionBtn} onClick={() => setIsOpen(false)}>
+              {onSettingsClick && (
+                <button className={styles.actionBtn} onClick={() => { onSettingsClick(); closeDropdown(); }}>
+                  <SettingsIcon />
+                </button>
+              )}
+              <button className={styles.actionBtn} onClick={closeDropdown}>
                 <CloseIcon />
               </button>
             </Stack>
           </Stack>
 
+          {isCreating && (
+            <div className={styles.createForm}>
+              <input
+                autoFocus
+                placeholder="Organization name"
+                value={createName}
+                onChange={(e) => setCreateName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleCreateFromForm()}
+              />
+              <button
+                className={styles.createBtn}
+                onClick={handleCreateFromForm}
+                disabled={!createName.trim()}
+              >
+                {createLabel}
+              </button>
+            </div>
+          )}
+
           <div className={styles.searchContainer}>
             <SearchIcon className={styles.searchIcon} />
             <input
-              autoFocus
+              autoFocus={!isCreating}
               className={styles.searchInput}
               placeholder={placeholder}
               value={search}
@@ -139,7 +184,7 @@ export const NavDropdown = ({
                   )}
                   onClick={() => {
                     item.onClick?.();
-                    setIsOpen(false);
+                    closeDropdown();
                   }}
                 >
                   <Stack direction="row" align="center" gap={10}>

@@ -10,7 +10,7 @@ import { dashboardConfigApi } from "@/modules/dashboard/services";
 import { modelApi } from "@/modules/model/services";
 import { projectApi } from "@/modules/project/services/projectApi";
 import { organizationApi } from "@/modules/account/services";
-import { SettingsIcon } from "@repo/ui";
+import { appConfig } from "@/config";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router";
 import { NavDropdown } from "../NavDropdown";
@@ -54,8 +54,8 @@ export const OrgDropdown = () => {
       label={organization?.name ?? "Select organization..."}
       title="ORGANIZATIONS"
       placeholder="Search or create organizations"
-      itemIcon={<SettingsIcon />}
       activeItemId={organization?.id}
+      onSettingsClick={() => navigate(appConfig.web.routes.main.organization)}
       createLabel="Create"
       onCreate={handleCreate}
       align="right"
