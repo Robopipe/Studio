@@ -41,9 +41,10 @@ export const SelectInputField = ({
     >
       <Select
         value={currentValue}
-        onValueChange={(v) =>
-          field.handleChange(parseValue ? parseValue(v) : v)
-        }
+        onValueChange={(v) => {
+          if (v === null) return;
+          field.handleChange(parseValue ? parseValue(v) : v);
+        }}
       >
         <SelectTrigger
           id={field.name}
