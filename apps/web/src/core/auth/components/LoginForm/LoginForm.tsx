@@ -60,7 +60,6 @@ export const LoginForm = () => {
         )}
 
         <bui.Form onSubmit={handleSubmit}>
-          <div className="size-10 bg-red-300"></div>
           <Stack gap={20}>
             <TextInput
               label="Email"
