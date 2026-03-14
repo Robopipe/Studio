@@ -1,6 +1,7 @@
 import z from "zod";
 import { timestampsSchema } from "../helpers";
 import { labelSchema } from "../label";
+import { ProjectTypeEnum } from "../projects";
 import { TaskFileTypeEnum } from "../task";
 
 export enum ModelStatusEnum {
@@ -39,6 +40,8 @@ export const modelSchema = z.object({
   epochs: z.number(),
   labels: labelSchema.array(),
   outputTypes: z.enum(ModelOutputTypeEnum).array(),
+  trainingType: z.enum(ProjectTypeEnum),
+  annotationsUsed: z.enum(ProjectTypeEnum).array(),
   // Train, validate and test should add to 1
   splitTrain: z.number(),
   splitValidate: z.number(),
@@ -72,6 +75,8 @@ export const createModelSchema = modelSchema
     name: true,
     epochs: true,
     outputTypes: true,
+    trainingType: true,
+    annotationsUsed: true,
     splitTrain: true,
     splitValidate: true,
     splitTest: true,
@@ -85,7 +90,27 @@ export const createModelSchema = modelSchema
       })
       .array()
       .default([]),
-  });
+  })
+  .refine(
+    (data) => {
+      switch (data.trainingType) {
+        case ProjectTypeEnum.CLASSIFICATION:
+        case ProjectTypeEnum.SEGMENTATION:
+          return (
+            data.annotationsUsed.length === 1 &&
+            data.annotationsUsed[0] === data.trainingType
+          );
+        case ProjectTypeEnum.DETECTION:
+          return (
+            data.annotationsUsed.length > 0 &&
+            data.annotationsUsed.every(
+              (t) => t === ProjectTypeEnum.DETECTION || t === ProjectTypeEnum.SEGMENTATION,
+            )
+          );
+      }
+    },
+    { message: "annotationsUsed is invalid for the selected trainingType" },
+  );
 
 export const updateModelSchema = createModelSchema;
 
