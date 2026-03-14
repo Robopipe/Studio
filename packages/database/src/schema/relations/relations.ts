@@ -7,9 +7,18 @@ export const relationBase = defineRelations(schema, (r) => ({
       from: r.projectTable.organizationId,
       to: r.organizationTable.id,
     }),
-    tasks: r.many.taskTable(),
-    labels: r.many.projectLabelTable(),
-    dashboardConfigurations: r.many.dashboardConfigurationTable(),
+    tasks: r.many.taskTable({
+      from: r.projectTable.id,
+      to: r.taskTable.projectId,
+    }),
+    labels: r.many.projectLabelTable({
+      from: r.projectTable.id,
+      to: r.projectLabelTable.projectId,
+    }),
+    dashboardConfigurations: r.many.dashboardConfigurationTable({
+      from: r.projectTable.id,
+      to: r.dashboardConfigurationTable.projectId,
+    }),
   },
   taskTable: {
     project: r.one.projectTable({
@@ -38,7 +47,10 @@ export const relationBase = defineRelations(schema, (r) => ({
       from: r.modelTable.id.through(r.modelLabelTable.modelId),
       to: r.projectLabelTable.id.through(r.modelLabelTable.labelId),
     }),
-    outputs: r.many.modelOutputTable(),
+    outputs: r.many.modelOutputTable({
+      from: r.modelTable.id,
+      to: r.modelOutputTable.modelId,
+    }),
   },
   modelLabelTable: {
     model: r.one.modelTable({
@@ -79,7 +91,10 @@ export const relationBase = defineRelations(schema, (r) => ({
       from: r.dashboardConfigurationTable.projectId,
       to: r.projectTable.id,
     }),
-    items: r.many.dashboardConfigurationItemTable(),
+    items: r.many.dashboardConfigurationItemTable({
+      from: r.dashboardConfigurationTable.id,
+      to: r.dashboardConfigurationItemTable.dashboardConfigurationId,
+    }),
     evaluation: r.one.dashboardEvaluationTable({
       from: r.dashboardConfigurationTable.id,
       to: r.dashboardEvaluationTable.dashboardConfigurationId,

@@ -4,8 +4,14 @@ import * as schema from '../entities'
 
 export const relationUserOrgPart = defineRelationsPart(schema, (r) => ({
   userTable: {
-    memberships: r.many.organizationMemberTable(),
-    passwordResets: r.many.passwordResetTable(),
+    memberships: r.many.organizationMemberTable({
+      from: r.userTable.id,
+      to: r.organizationMemberTable.userId,
+    }),
+    passwordResets: r.many.passwordResetTable({
+      from: r.userTable.id,
+      to: r.passwordResetTable.userId,
+    }),
   },
   passwordResetTable: {
     user: r.one.userTable({
@@ -34,8 +40,17 @@ export const relationUserOrgPart = defineRelationsPart(schema, (r) => ({
     }),
   },
   organizationTable: {
-    members: r.many.organizationMemberTable(),
-    invitations: r.many.invitationTable(),
-    projects: r.many.projectTable(),
+    members: r.many.organizationMemberTable({
+      from: r.organizationTable.id,
+      to: r.organizationMemberTable.organizationId,
+    }),
+    invitations: r.many.invitationTable({
+      from: r.organizationTable.id,
+      to: r.invitationTable.organizationId,
+    }),
+    projects: r.many.projectTable({
+      from: r.organizationTable.id,
+      to: r.projectTable.organizationId,
+    }),
   },
 }))
