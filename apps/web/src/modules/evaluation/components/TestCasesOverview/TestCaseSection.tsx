@@ -4,13 +4,14 @@ import { Card, CardContent, CardHeader } from "@/modules/shadcn/ui/card";
 import { Separator } from "@/modules/shadcn/ui/separator";
 import { DataTable } from "@/modules/ui/components/Table";
 import { EvalLimitDetail, EvalTestCaseDetail } from "@repo/schema";
-import { PlusIcon, Trash2Icon } from "lucide-react";
+import { PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
 import {
   useDeleteEvalLimitMutation,
   useDeleteEvalTestCaseMutation,
 } from "../../api/evaluationApi";
 import { CreateLimitModal, UpdateLimitModal } from "../CreateUpdateLimit";
+import { UpdateTestCaseModal } from "../UpdateTestCase";
 import { useLimitColumns } from "./useLimitColumns.hook";
 
 interface TestCaseSectionProps {
@@ -29,6 +30,7 @@ export function TestCaseSection({
   const [limitToDelete, setLimitToDelete] = useState<EvalLimitDetail | null>(
     null,
   );
+  const [isEditTestCaseOpen, setIsEditTestCaseOpen] = useState(false);
   const [isDeleteTestCaseOpen, setIsDeleteTestCaseOpen] = useState(false);
   const [deleteEvalLimit, { isLoading: isDeleting }] =
     useDeleteEvalLimitMutation();
@@ -76,15 +78,26 @@ export function TestCaseSection({
           <PlusIcon />
           Add limit
         </Button>
-        <Button
-          variant="destructive"
-          size="icon-sm"
-          className="ml-auto shrink-0 text-muted-foreground hover:text-destructive"
-          aria-label="Delete test case"
-          onClick={() => setIsDeleteTestCaseOpen(true)}
-        >
-          <Trash2Icon className="size-4 text-destructive" />
-        </Button>
+        <div className="ml-auto flex shrink-0 items-center gap-1">
+          <Button
+            variant="secondary"
+            size="icon-sm"
+            className=""
+            aria-label="Edit test case"
+            onClick={() => setIsEditTestCaseOpen(true)}
+          >
+            <PencilIcon className="size-4" />
+          </Button>
+          <Button
+            variant="destructive"
+            size="icon-sm"
+            className="text-muted-foreground hover:text-destructive"
+            aria-label="Delete test case"
+            onClick={() => setIsDeleteTestCaseOpen(true)}
+          >
+            <Trash2Icon className="size-4 text-destructive" />
+          </Button>
+        </div>
       </CardHeader>
 
       <CardContent>
@@ -104,6 +117,15 @@ export function TestCaseSection({
           limit={limitToEdit}
           open={true}
           onOpenChange={(open) => !open && setLimitToEdit(null)}
+        />
+      )}
+
+      {isEditTestCaseOpen && (
+        <UpdateTestCaseModal
+          projectId={projectId}
+          testCase={testCase}
+          open={true}
+          onOpenChange={(open) => !open && setIsEditTestCaseOpen(false)}
         />
       )}
 

@@ -29,6 +29,7 @@ export const evalLogicNodeSchema = z.union([
   z.object({
     id: z.uuidv7(),
     type: z.literal(EvalLogicNodeTypeEnum.LIMIT),
+    limitId: z.uuidv7(),
   }),
   z.object({
     id: z.uuidv7(),

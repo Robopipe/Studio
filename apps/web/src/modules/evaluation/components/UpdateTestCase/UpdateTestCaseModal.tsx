@@ -7,9 +7,12 @@ import {
 } from "@/modules/shadcn/ui/dialog";
 import { Input } from "@/modules/shadcn/ui/input";
 import { Label } from "@/modules/shadcn/ui/label";
-import { EvalTestCaseSeverityEnum, EvalTestCaseTypeEnum } from "@repo/schema";
-import { ToggleGroupField } from "./ToggleGroupField";
-import { useTestCaseForm } from "./useTestCaseForm.hook";
+import { EvalLimit, EvalTestCaseDetail, EvalTestCaseSeverityEnum, EvalTestCaseTypeEnum } from "@repo/schema";
+import { useRef } from "react";
+import { ToggleGroupField } from "../CreateTestCase/ToggleGroupField";
+import { useTestCaseForm } from "../CreateTestCase/useTestCaseForm.hook";
+import { LogicBuilder } from "./LogicBuilder/LogicBuilder";
+import { LogicBuilderState } from "./LogicBuilder/useLogicBuilder.hook";
 
 const typeOptions = [
   { label: "Check", value: EvalTestCaseTypeEnum.CHECK },
@@ -21,28 +24,36 @@ const severityOptions = [
   { label: "Warning", value: EvalTestCaseSeverityEnum.WARNING },
 ] as const;
 
-export type CreateTestCaseModalProps = {
+export type UpdateTestCaseModalProps = {
   projectId: number;
+  testCase: EvalTestCaseDetail;
+  /** All limits available for this project (used as the draggable palette) */
+  availableLimits?: EvalLimit[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
 
-export const CreateTestCaseModal = ({
+export const UpdateTestCaseModal = ({
   projectId,
+  testCase,
+  availableLimits = [],
   open,
   onOpenChange,
-}: CreateTestCaseModalProps) => {
+}: UpdateTestCaseModalProps) => {
+  const builderStateRef = useRef<LogicBuilderState | null>(null);
+
   const { form, isSubmitting } = useTestCaseForm({
     projectId,
+    testCaseId: testCase.id,
+    initialValues: testCase,
+    getLogicNodes: () => builderStateRef.current?.nodes ?? testCase.logicNodes,
     onSuccess: () => onOpenChange(false),
   });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogTitle className="text-xl font-semibold">
-          Add Test case
-        </DialogTitle>
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogTitle className="text-xl font-semibold">Edit Test case</DialogTitle>
 
         <form
           onSubmit={(e) => {
@@ -71,7 +82,6 @@ export const CreateTestCaseModal = ({
               )}
             </form.Field>
 
-            {/* Type & Severity row */}
             <div className="flex gap-8">
               <form.Field name="type">
                 {(field) => (
@@ -101,11 +111,19 @@ export const CreateTestCaseModal = ({
             </div>
           </div>
 
+          {/* Logic builder section */}
+          <div className="flex flex-col gap-2">
+            <h6 className="text-sm font-bold">Logic</h6>
+            <LogicBuilder
+              testCase={testCase}
+              availableLimits={availableLimits.length > 0 ? availableLimits : testCase.limits}
+              builderRef={(state) => { builderStateRef.current = state; }}
+            />
+          </div>
+
           {/* Footer */}
           <div className="flex justify-end gap-2">
-            <DialogClose
-              render={<Button type="button" variant="outline" size="lg" />}
-            >
+            <DialogClose render={<Button type="button" variant="outline" size="lg" />}>
               Cancel
             </DialogClose>
             <Button type="submit" size="lg" disabled={isSubmitting}>

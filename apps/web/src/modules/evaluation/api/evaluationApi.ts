@@ -5,7 +5,6 @@ import {
   EvalLimitDetail,
   EvalLimitItemOperatorEnum,
   EvalLimitItemParameterEnum,
-  EvalLogicNodeTypeEnum,
   EvalTestCaseCreateOrUpdate,
   EvalTestCaseDetail,
   EvalTestCaseSeverityEnum,
@@ -16,11 +15,40 @@ const mockDelay = () => new Promise((resolve) => setTimeout(resolve, 800));
 
 const now = new Date().toISOString();
 
+function uuidv7(): string {
+  const ms = Date.now();
+  const b = new Uint8Array(16);
+  crypto.getRandomValues(b);
+  // 48-bit timestamp
+  b[0] = (ms / 2 ** 40) & 0xff;
+  b[1] = (ms / 2 ** 32) & 0xff;
+  b[2] = (ms / 2 ** 24) & 0xff;
+  b[3] = (ms / 2 ** 16) & 0xff;
+  b[4] = (ms / 2 ** 8) & 0xff;
+  b[5] = ms & 0xff;
+  b[6] = (b[6]! & 0x0f) | 0x70; // version 7
+  b[8] = (b[8]! & 0x3f) | 0x80; // variant
+  const h = Array.from(b).map((x) => x.toString(16).padStart(2, "0")).join("");
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+}
+
+// Pre-generate stable IDs for the mock session
+const ids = {
+  limit1: uuidv7(),
+  limit2: uuidv7(),
+  limitItem1: uuidv7(),
+  limitItem2: uuidv7(),
+  limitItem3: uuidv7(),
+  testCase1: uuidv7(),
+  testCase2: uuidv7(),
+  logicNode1: uuidv7(),
+};
+
 // --- Mock data ---
 
 const mockLimits: EvalLimitDetail[] = [
   {
-    id: "019504a0-0000-7000-8000-000000000001",
+    id: ids.limit1,
     name: "Scratch area limit",
     targetLabel: {
       id: 1,
@@ -35,7 +63,7 @@ const mockLimits: EvalLimitDetail[] = [
     updatedAt: now,
     limitItems: [
       {
-        id: "019504a0-0000-7000-8000-000000000010",
+        id: ids.limitItem1,
         limitFrom: 0,
         limitTo: 5,
         parameter: EvalLimitItemParameterEnum.AREA,
@@ -46,7 +74,7 @@ const mockLimits: EvalLimitDetail[] = [
     ],
   },
   {
-    id: "019504a0-0000-7000-8000-000000000002",
+    id: ids.limit2,
     name: "Dent count limit",
     targetLabel: {
       id: 2,
@@ -61,7 +89,7 @@ const mockLimits: EvalLimitDetail[] = [
     updatedAt: now,
     limitItems: [
       {
-        id: "019504a0-0000-7000-8000-000000000020",
+        id: ids.limitItem2,
         limitFrom: null,
         limitTo: 3,
         parameter: EvalLimitItemParameterEnum.COUNT,
@@ -70,7 +98,7 @@ const mockLimits: EvalLimitDetail[] = [
         updatedAt: now,
       },
       {
-        id: "019504a0-0000-7000-8000-000000000021",
+        id: ids.limitItem3,
         limitFrom: 0,
         limitTo: 10,
         parameter: EvalLimitItemParameterEnum.AREA,
@@ -84,22 +112,17 @@ const mockLimits: EvalLimitDetail[] = [
 
 const mockTestCases: EvalTestCaseDetail[] = [
   {
-    id: "019504a0-0000-7000-8000-000000000101",
+    id: ids.testCase1,
     name: "Surface defect check",
     type: EvalTestCaseTypeEnum.DEFECT,
     severity: EvalTestCaseSeverityEnum.ALERT,
     limits: mockLimits.map(({ limitItems: _, ...limit }) => limit),
-    logicNodes: [
-      {
-        id: "019504a0-0000-7000-8000-000000000201",
-        type: EvalLogicNodeTypeEnum.LIMIT,
-      },
-    ],
+    logicNodes: [],
     createdAt: now,
     updatedAt: now,
   },
   {
-    id: "019504a0-0000-7000-8000-000000000102",
+    id: ids.testCase2,
     name: "Assembly presence check",
     type: EvalTestCaseTypeEnum.CHECK,
     severity: EvalTestCaseSeverityEnum.WARNING,
