@@ -50,6 +50,59 @@ def get_model_params(model_config: ModelConfig) -> tuple[dict, dict]:
         return {"variant": "light"}, {}
 
 
+def get_trainer_hyperparams(model_config: ModelConfig) -> dict:
+    """Return training hyperparameters tuned per model type.
+
+    Detection and segmentation both use AdamW with warm-restart cosine
+    annealing and norm-based gradient clipping.
+
+    AdamW's per-parameter adaptive LR handles noisy gradients from small
+    datasets better than SGD.  Warm restarts periodically spike the LR,
+    which helps escape local minima and acts as implicit regularisation
+    (disrupts memorised patterns).
+
+    Detection uses stronger weight decay (0.01) than segmentation (1e-4)
+    because detection losses are more prone to overfitting on small
+    industrial datasets.
+    """
+    if model_config.type == ModelType.DETECTION:
+        epochs = model_config.training_config.epochs
+        return {
+            "gradient_clip_val": 1.0,
+            "gradient_clip_algorithm": "norm",
+            "optimizer": {
+                "name": "AdamW",
+                "params": {"lr": 1e-3, "weight_decay": 0.01},
+            },
+            "scheduler": {
+                "name": "CosineAnnealingWarmRestarts",
+                "params": {"T_0": max(10, epochs // 3)},
+            },
+        }
+    elif model_config.type == ModelType.SEGMENTATION:
+        epochs = model_config.training_config.epochs
+        return {
+            "gradient_clip_val": 1.0,
+            "gradient_clip_algorithm": "norm",
+            "optimizer": {
+                "name": "AdamW",
+                "params": {"lr": 5e-4, "weight_decay": 1e-4},
+            },
+            "scheduler": {
+                "name": "CosineAnnealingWarmRestarts",
+                "params": {"T_0": max(10, epochs // 3)},
+            },
+        }
+    return {}
+
+
+def _get_model_callbacks(model_config: ModelConfig) -> list[dict]:
+    """Return extra callbacks for model types that benefit from EMA."""
+    if model_config.type in (ModelType.DETECTION, ModelType.SEGMENTATION):
+        return [{"name": "EMACallback", "params": {"decay": 0.9999}}]
+    return []
+
+
 def generate_model_config(model_config: ModelConfig) -> dict:
     predefined_model_params, model_params = get_model_params(model_config)
     config = {
@@ -88,11 +141,13 @@ def generate_trainer_config(model_config: ModelConfig) -> dict:
     config = {
         "batch_size": model_config.training_config.batch_size,
         "epochs": model_config.training_config.epochs,
+        **get_trainer_hyperparams(model_config),
         "n_workers": 8,
         "callbacks": [
             {"name": "ExportOnTrainEnd"},
             {"name": "ArchiveOnTrainEnd"},
             {"name": "LearningRateMonitor", "params": {"logging_interval": "epoch"}},
+            *_get_model_callbacks(model_config),
         ],
         "validation_interval": 1,
         "log_sub_losses": False,

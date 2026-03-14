@@ -13,6 +13,7 @@ import { DashboardModule } from "./modules/dashboard/dashboard.module";
 import { EmailModule } from "./modules/email/email.module";
 import { APP_PIPE } from "@nestjs/core";
 import { ZodValidationPipe } from "nestjs-zod";
+import { EvalModule } from "./modules/eval/eval.module";
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { ZodValidationPipe } from "nestjs-zod";
     ModelModule,
     DashboardModule,
     EmailModule,
+    EvalModule
   ],
   providers: [
     {

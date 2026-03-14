@@ -1,88 +1,41 @@
 import { defineRelations } from "drizzle-orm";
 import * as schema from '../entities'
 
-export const relations = defineRelations(schema, (r) => ({
-  userTable: {
-    memberships: r.many.organizationMemberTable(),
-    passwordResets: r.many.passwordResetTable(),
-  },
-  passwordResetTable: {
-    user: r.one.userTable({
-      from: r.passwordResetTable.userId,
-      to: r.userTable.id,
-    }),
-  },
-  organizationMemberTable: {
-    user: r.one.userTable({
-      from: r.organizationMemberTable.userId,
-      to: r.userTable.id,
-    }),
-    organization: r.one.organizationTable({
-      from: r.organizationMemberTable.organizationId,
-      to: r.organizationTable.id,
-    }),
-  },
-  invitationTable: {
-    organization: r.one.organizationTable({
-      from: r.invitationTable.organizationId,
-      to: r.organizationTable.id,
-    }),
-    invitedBy: r.one.userTable({
-      from: r.invitationTable.invitedById,
-      to: r.userTable.id,
-    }),
-  },
-  organizationTable: {
-    members: r.many.organizationMemberTable(),
-    invitations: r.many.invitationTable(),
-    projects: r.many.projectTable(),
-  },
+export const relationBase = defineRelations(schema, (r) => ({
   projectTable: {
     organization: r.one.organizationTable({
       from: r.projectTable.organizationId,
       to: r.organizationTable.id,
     }),
-    tasks: r.many.taskTable(),
-    labels: r.many.projectLabelTable(),
-    dashboardConfigurations: r.many.dashboardConfigurationTable(),
+    tasks: r.many.taskTable({
+      from: r.projectTable.id,
+      to: r.taskTable.projectId,
+    }),
+    labels: r.many.projectLabelTable({
+      from: r.projectTable.id,
+      to: r.projectLabelTable.projectId,
+    }),
+    dashboardConfigurations: r.many.dashboardConfigurationTable({
+      from: r.projectTable.id,
+      to: r.dashboardConfigurationTable.projectId,
+    }),
   },
   taskTable: {
     project: r.one.projectTable({
       from: r.taskTable.projectId,
       to: r.projectTable.id,
     }),
-    rectangleAnnotations: r.many.rectangleAnnotationTable(),
-    polygonAnnotations: r.many.polygonAnnotationTable(),
-    classificationAnnotations: r.many.classificationAnnotationTable(),
-  },
-  rectangleAnnotationTable: {
-    task: r.one.taskTable({
-      from: r.rectangleAnnotationTable.taskId,
-      to: r.taskTable.id,
+    rectangleAnnotations: r.many.rectangleAnnotationTable({
+      from: r.taskTable.id,
+      to: r.rectangleAnnotationTable.taskId,
     }),
-    label: r.one.projectLabelTable({
-      from: r.rectangleAnnotationTable.labelId,
-      to: r.projectLabelTable.id,
+    polygonAnnotations: r.many.polygonAnnotationTable({
+      from: r.taskTable.id,
+      to: r.polygonAnnotationTable.taskId,
     }),
-  },
-  polygonAnnotationTable: {
-    task: r.one.taskTable({
-      from: r.polygonAnnotationTable.taskId,
-      to: r.taskTable.id,
-    }),
-    label: r.one.projectLabelTable({
-      from: r.polygonAnnotationTable.labelId,
-      to: r.projectLabelTable.id,
-    }),
-  },
-  classificationAnnotationTable: {
-    task: r.one.taskTable({
-      from: r.classificationAnnotationTable.taskId,
-      to: r.taskTable.id,
-    }),
-    label: r.one.projectLabelTable({
-      from: r.classificationAnnotationTable.labelId,
-      to: r.projectLabelTable.id,
+    classificationAnnotations: r.many.classificationAnnotationTable({
+      from: r.taskTable.id,
+      to: r.classificationAnnotationTable.taskId,
     }),
   },
   modelTable: {
@@ -94,7 +47,10 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.modelTable.id.through(r.modelLabelTable.modelId),
       to: r.projectLabelTable.id.through(r.modelLabelTable.labelId),
     }),
-    outputs: r.many.modelOutputTable(),
+    outputs: r.many.modelOutputTable({
+      from: r.modelTable.id,
+      to: r.modelOutputTable.modelId,
+    }),
   },
   modelLabelTable: {
     model: r.one.modelTable({
@@ -111,9 +67,18 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.projectLabelTable.projectId,
       to: r.projectTable.id,
     }),
-    polygonAnnotations: r.many.polygonAnnotationTable(),
-    rectangleAnnotations: r.many.rectangleAnnotationTable(),
-    classificationAnnotations: r.many.classificationAnnotationTable(),
+    polygonAnnotations: r.many.polygonAnnotationTable({
+      from: r.projectLabelTable.id,
+      to: r.polygonAnnotationTable.labelId,
+    }),
+    rectangleAnnotations: r.many.rectangleAnnotationTable({
+      from: r.projectLabelTable.id,
+      to: r.rectangleAnnotationTable.labelId,
+    }),
+    classificationAnnotations: r.many.classificationAnnotationTable({
+      from: r.projectLabelTable.id,
+      to: r.classificationAnnotationTable.labelId,
+    }),
   },
   modelOutputTable: {
     model: r.one.modelTable({
@@ -126,7 +91,10 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.dashboardConfigurationTable.projectId,
       to: r.projectTable.id,
     }),
-    items: r.many.dashboardConfigurationItemTable(),
+    items: r.many.dashboardConfigurationItemTable({
+      from: r.dashboardConfigurationTable.id,
+      to: r.dashboardConfigurationItemTable.dashboardConfigurationId,
+    }),
     evaluation: r.one.dashboardEvaluationTable({
       from: r.dashboardConfigurationTable.id,
       to: r.dashboardEvaluationTable.dashboardConfigurationId,
@@ -151,5 +119,5 @@ export const relations = defineRelations(schema, (r) => ({
       from: r.dashboardConfigurationItemTable.targetParentLabelId,
       to: r.projectLabelTable.id,
     }),
-  },
+  }
 }));

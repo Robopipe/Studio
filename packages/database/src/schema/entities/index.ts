@@ -17,3 +17,4 @@ export * from "./password-reset";
 export * from './dashboard-configuration'
 export * from './dashboard-configuration-item'
 export * from './dashboard-evaluation'
+export * from './eval'
