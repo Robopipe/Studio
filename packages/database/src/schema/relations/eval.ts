@@ -7,15 +7,24 @@ export const relationEvalPart = defineRelationsPart(schema, (r) => ({
       from: r.evalTestCaseTable.projectId,
       to: r.projectTable.id
     }),
-    limits: r.many.evalLimitTable(),
-    thresholds: r.many.evalThresholdTable()
+    limits: r.many.evalLimitTable({
+      from: r.evalTestCaseTable.id,
+      to: r.evalLimitTable.testCaseId,
+    }),
+    thresholds: r.many.evalThresholdTable({
+      from: r.evalTestCaseTable.id,
+      to: r.evalThresholdTable.testCaseId,
+    })
   },
   evalLimitTable: {
     testCase: r.one.evalTestCaseTable({
       from: r.evalLimitTable.testCaseId,
       to: r.evalTestCaseTable.id
     }),
-    limitItems: r.many.evalLimitItemTable(),
+    limitItems: r.many.evalLimitItemTable({
+      from: r.evalLimitTable.id,
+      to: r.evalLimitItemTable.limitId,
+    }),
     targetLabel: r.one.projectLabelTable({
       from: r.evalLimitTable.targetLabelId,
       to: r.projectLabelTable.id,
