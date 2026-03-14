@@ -1,14 +1,18 @@
 import { cn } from "@/lib/utils";
-import { EvalLogicNode } from "@repo/schema";
 import { useRef, useState } from "react";
 import { GroupBox } from "./GroupBox";
 import { LimitChip } from "./LimitChip";
 import { useLogicBuilderContext } from "./LogicBuilderContext";
 import { OperatorChip } from "./OperatorChip";
-import { getInsertBeforeId, isGroupNode, processNodes } from "./logicBuilder.utils";
+import {
+  RenderNode,
+  getInsertBeforeId,
+  isGroupNode,
+  processNodes,
+} from "./logicBuilder.utils";
 
 interface LogicNodeListProps {
-  nodes: EvalLogicNode[];
+  nodes: RenderNode[];
   /** null means root level */
   groupId: string | null;
 }
@@ -20,7 +24,11 @@ export const DRAG_DATA_KEY = "application/logic-limit-id";
  * Gap 0 = before first item, gap n = after last item.
  * Determines position by scanning rendered item elements.
  */
-function findGapIndex(containerEl: HTMLElement, clientX: number, itemCount: number): number {
+function findGapIndex(
+  containerEl: HTMLElement,
+  clientX: number,
+  itemCount: number,
+): number {
   // Items with data-logic-item attribute are the rendered limit/group/operator elements
   const items = containerEl.querySelectorAll<HTMLElement>("[data-logic-item]");
   if (items.length === 0) return 0;
@@ -89,7 +97,10 @@ export function LogicNodeList({ nodes, groupId }: LogicNodeListProps) {
       addLimit(limitId, { type: "append", groupId });
     } else {
       const targetItem = processedItems[gap]!;
-      addLimit(limitId, { type: "before", nodeId: getInsertBeforeId(targetItem) });
+      addLimit(limitId, {
+        type: "before",
+        nodeId: getInsertBeforeId(targetItem),
+      });
     }
   };
 
@@ -124,7 +135,7 @@ export function LogicNodeList({ nodes, groupId }: LogicNodeListProps) {
       className="relative flex flex-wrap items-center gap-y-2 rounded p-1 transition-colors"
     >
       {processedItems.map((pi, idx) => (
-        <div key={`${idx}-${pi.item.id}`} className="contents">
+        <div key={pi.item.renderId} className="contents">
           {/* Drop indicator before this item */}
           {dropGap === idx && (
             <div className="w-0.5 self-stretch min-h-7 rounded-full bg-primary mx-0.5" />

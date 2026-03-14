@@ -1,146 +1,30 @@
 import { api } from "@/core/api";
 import { apiCacheTags } from "@/core/api/tags";
 import {
+  EvalLimit,
   EvalLimitCreateOrUpdate,
   EvalLimitDetail,
-  EvalLimitItemOperatorEnum,
-  EvalLimitItemParameterEnum,
+  EvalTestCase,
   EvalTestCaseCreateOrUpdate,
   EvalTestCaseDetail,
-  EvalTestCaseSeverityEnum,
-  EvalTestCaseTypeEnum,
+  evalLimitDetailSchema,
+  evalLimitSchema,
+  evalTestCaseDetailSchema,
+  evalTestCaseSchema,
 } from "@repo/schema";
-
-const mockDelay = () => new Promise((resolve) => setTimeout(resolve, 800));
-
-const now = new Date().toISOString();
-
-function uuidv7(): string {
-  const ms = Date.now();
-  const b = new Uint8Array(16);
-  crypto.getRandomValues(b);
-  // 48-bit timestamp
-  b[0] = (ms / 2 ** 40) & 0xff;
-  b[1] = (ms / 2 ** 32) & 0xff;
-  b[2] = (ms / 2 ** 24) & 0xff;
-  b[3] = (ms / 2 ** 16) & 0xff;
-  b[4] = (ms / 2 ** 8) & 0xff;
-  b[5] = ms & 0xff;
-  b[6] = (b[6]! & 0x0f) | 0x70; // version 7
-  b[8] = (b[8]! & 0x3f) | 0x80; // variant
-  const h = Array.from(b).map((x) => x.toString(16).padStart(2, "0")).join("");
-  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
-}
-
-// Pre-generate stable IDs for the mock session
-const ids = {
-  limit1: uuidv7(),
-  limit2: uuidv7(),
-  limitItem1: uuidv7(),
-  limitItem2: uuidv7(),
-  limitItem3: uuidv7(),
-  testCase1: uuidv7(),
-  testCase2: uuidv7(),
-  logicNode1: uuidv7(),
-};
-
-// --- Mock data ---
-
-const mockLimits: EvalLimitDetail[] = [
-  {
-    id: ids.limit1,
-    name: "Scratch area limit",
-    targetLabel: {
-      id: 1,
-      name: "Scratch",
-      color: "#FF0000",
-      createdAt: now,
-      updatedAt: now,
-      deletedAt: null,
-    },
-    targetParentLabel: null,
-    createdAt: now,
-    updatedAt: now,
-    limitItems: [
-      {
-        id: ids.limitItem1,
-        limitFrom: 0,
-        limitTo: 5,
-        parameter: EvalLimitItemParameterEnum.AREA,
-        operator: EvalLimitItemOperatorEnum.AND,
-        createdAt: now,
-        updatedAt: now,
-      },
-    ],
-  },
-  {
-    id: ids.limit2,
-    name: "Dent count limit",
-    targetLabel: {
-      id: 2,
-      name: "Dent",
-      color: "#00FF00",
-      createdAt: now,
-      updatedAt: now,
-      deletedAt: null,
-    },
-    targetParentLabel: null,
-    createdAt: now,
-    updatedAt: now,
-    limitItems: [
-      {
-        id: ids.limitItem2,
-        limitFrom: null,
-        limitTo: 3,
-        parameter: EvalLimitItemParameterEnum.COUNT,
-        operator: EvalLimitItemOperatorEnum.AND,
-        createdAt: now,
-        updatedAt: now,
-      },
-      {
-        id: ids.limitItem3,
-        limitFrom: 0,
-        limitTo: 10,
-        parameter: EvalLimitItemParameterEnum.AREA,
-        operator: EvalLimitItemOperatorEnum.AND,
-        createdAt: now,
-        updatedAt: now,
-      },
-    ],
-  },
-];
-
-const mockTestCases: EvalTestCaseDetail[] = [
-  {
-    id: ids.testCase1,
-    name: "Surface defect check",
-    type: EvalTestCaseTypeEnum.DEFECT,
-    severity: EvalTestCaseSeverityEnum.ALERT,
-    limits: mockLimits.map(({ limitItems: _, ...limit }) => limit),
-    logicNodes: [],
-    createdAt: now,
-    updatedAt: now,
-  },
-  {
-    id: ids.testCase2,
-    name: "Assembly presence check",
-    type: EvalTestCaseTypeEnum.CHECK,
-    severity: EvalTestCaseSeverityEnum.WARNING,
-    limits: [mockLimits[0]!].map(({ limitItems: _, ...limit }) => limit),
-    logicNodes: [],
-    createdAt: now,
-    updatedAt: now,
-  },
-];
+import { z } from "zod";
 
 export const evaluationApi = api.injectEndpoints({
   endpoints: (builder) => ({
     // Eval Limits
-    getEvalLimits: builder.query<EvalLimitDetail[], { projectId: number }>({
-      queryFn: async () => {
-        await mockDelay();
-        return { data: mockLimits };
-      },
+    getEvalLimits: builder.query<
+      EvalLimit[],
+      { projectId: number; testCaseId: string }
+    >({
+      query: ({ projectId, testCaseId }) =>
+        `/eval/${projectId}/limit/${testCaseId}`,
+      transformResponse: (response) =>
+        z.array(evalLimitSchema).parse(response),
       providesTags: (_result, _error, { projectId }) => [
         { type: apiCacheTags.eval.limits, id: projectId },
       ],
@@ -148,16 +32,11 @@ export const evaluationApi = api.injectEndpoints({
 
     getEvalLimit: builder.query<
       EvalLimitDetail,
-      { projectId: number; limitId: string }
+      { projectId: number; testCaseId: string; limitId: string }
     >({
-      queryFn: async ({ limitId }) => {
-        await mockDelay();
-        const limit = mockLimits.find((l) => l.id === limitId);
-        if (!limit) {
-          return { error: { status: 404, data: "Limit not found" } };
-        }
-        return { data: limit };
-      },
+      query: ({ projectId, testCaseId, limitId }) =>
+        `/eval/${projectId}/limit/${testCaseId}/${limitId}`,
+      transformResponse: (response) => evalLimitDetailSchema.parse(response),
       providesTags: (_result, _error, { limitId }) => [
         { type: apiCacheTags.eval.limits, id: limitId },
       ],
@@ -165,13 +44,12 @@ export const evaluationApi = api.injectEndpoints({
 
     // Eval Test Cases
     getEvalTestCases: builder.query<
-      EvalTestCaseDetail[],
+      EvalTestCase[],
       { projectId: number }
     >({
-      queryFn: async () => {
-        await mockDelay();
-        return { data: mockTestCases };
-      },
+      query: ({ projectId }) => `/eval/${projectId}/test-case`,
+      transformResponse: (response) =>
+        z.array(evalTestCaseSchema).parse(response),
       providesTags: (_result, _error, { projectId }) => [
         { type: apiCacheTags.eval.testCases, id: projectId },
       ],
@@ -181,14 +59,9 @@ export const evaluationApi = api.injectEndpoints({
       EvalTestCaseDetail,
       { projectId: number; testCaseId: string }
     >({
-      queryFn: async ({ testCaseId }) => {
-        await mockDelay();
-        const testCase = mockTestCases.find((tc) => tc.id === testCaseId);
-        if (!testCase) {
-          return { error: { status: 404, data: "Test case not found" } };
-        }
-        return { data: testCase };
-      },
+      query: ({ projectId, testCaseId }) =>
+        `/eval/${projectId}/test-case/${testCaseId}`,
+      transformResponse: (response) => evalTestCaseDetailSchema.parse(response),
       providesTags: (_result, _error, { testCaseId }) => [
         { type: apiCacheTags.eval.testCases, id: testCaseId },
       ],
@@ -199,20 +72,12 @@ export const evaluationApi = api.injectEndpoints({
       EvalTestCaseDetail,
       { projectId: number; body: EvalTestCaseCreateOrUpdate }
     >({
-      queryFn: async ({ body }) => {
-        await mockDelay();
-        const newTestCase: EvalTestCaseDetail = {
-          id: crypto.randomUUID() as `${string}-${string}-${string}-${string}-${string}`,
-          name: body.name,
-          type: body.type,
-          severity: body.severity,
-          limits: [],
-          logicNodes: body.logicNodes ?? [],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-        return { data: newTestCase };
-      },
+      query: ({ projectId, body }) => ({
+        url: `/eval/${projectId}/test-case`,
+        method: "POST",
+        body,
+      }),
+      transformResponse: (response) => evalTestCaseDetailSchema.parse(response),
       invalidatesTags: (_result, _error, { projectId }) => [
         { type: apiCacheTags.eval.testCases, id: projectId },
       ],
@@ -226,22 +91,12 @@ export const evaluationApi = api.injectEndpoints({
         body: EvalTestCaseCreateOrUpdate;
       }
     >({
-      queryFn: async ({ testCaseId, body }) => {
-        await mockDelay();
-        const existing = mockTestCases.find((tc) => tc.id === testCaseId);
-        if (!existing) {
-          return { error: { status: 404, data: "Test case not found" } };
-        }
-        const updated: EvalTestCaseDetail = {
-          ...existing,
-          name: body.name,
-          type: body.type,
-          severity: body.severity,
-          logicNodes: body.logicNodes ?? existing.logicNodes,
-          updatedAt: new Date().toISOString(),
-        };
-        return { data: updated };
-      },
+      query: ({ projectId, testCaseId, body }) => ({
+        url: `/eval/${projectId}/test-case/${testCaseId}`,
+        method: "PUT",
+        body,
+      }),
+      transformResponse: (response) => evalTestCaseDetailSchema.parse(response),
       invalidatesTags: (_result, _error, { projectId, testCaseId }) => [
         { type: apiCacheTags.eval.testCases, id: projectId },
         { type: apiCacheTags.eval.testCases, id: testCaseId },
@@ -253,44 +108,12 @@ export const evaluationApi = api.injectEndpoints({
       EvalLimitDetail,
       { projectId: number; testCaseId: string; body: EvalLimitCreateOrUpdate }
     >({
-      queryFn: async ({ body }) => {
-        await mockDelay();
-        const newLimit: EvalLimitDetail = {
-          id: crypto.randomUUID() as `${string}-${string}-${string}-${string}-${string}`,
-          name: body.name,
-          targetLabel: {
-            id: body.targetLabelId,
-            name: "Label",
-            color: "#000000",
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            deletedAt: null,
-          },
-          targetParentLabel: body.targetParentLabelId
-            ? {
-                id: body.targetParentLabelId,
-                name: "Parent Label",
-                color: "#000000",
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-                deletedAt: null,
-              }
-            : null,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          limitItems: body.limitItems.map((item) => ({
-            id: (item.id ??
-              crypto.randomUUID()) as `${string}-${string}-${string}-${string}-${string}`,
-            limitFrom: item.limitFrom,
-            limitTo: item.limitTo,
-            parameter: item.parameter,
-            operator: item.operator,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          })),
-        };
-        return { data: newLimit };
-      },
+      query: ({ projectId, testCaseId, body }) => ({
+        url: `/eval/${projectId}/limit/${testCaseId}`,
+        method: "POST",
+        body,
+      }),
+      transformResponse: (response) => evalLimitDetailSchema.parse(response),
       invalidatesTags: (_result, _error, { projectId }) => [
         { type: apiCacheTags.eval.limits, id: projectId },
       ],
@@ -298,49 +121,19 @@ export const evaluationApi = api.injectEndpoints({
 
     updateEvalLimit: builder.mutation<
       EvalLimitDetail,
-      { projectId: number; limitId: string; body: EvalLimitCreateOrUpdate }
+      {
+        projectId: number;
+        testCaseId: string;
+        limitId: string;
+        body: EvalLimitCreateOrUpdate;
+      }
     >({
-      queryFn: async ({ limitId, body }) => {
-        await mockDelay();
-        const existing = mockLimits.find((l) => l.id === limitId);
-        if (!existing) {
-          return { error: { status: 404, data: "Limit not found" } };
-        }
-        const updated: EvalLimitDetail = {
-          ...existing,
-          name: body.name,
-          targetLabel: {
-            id: body.targetLabelId,
-            name: existing.targetLabel.name,
-            color: existing.targetLabel.color,
-            createdAt: existing.targetLabel.createdAt,
-            updatedAt: new Date().toISOString(),
-            deletedAt: null,
-          },
-          targetParentLabel: body.targetParentLabelId
-            ? (existing.targetParentLabel ?? {
-                id: body.targetParentLabelId,
-                name: "Parent Label",
-                color: "#000000",
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-                deletedAt: null,
-              })
-            : null,
-          updatedAt: new Date().toISOString(),
-          limitItems: body.limitItems.map((item) => ({
-            id: (item.id ??
-              crypto.randomUUID()) as `${string}-${string}-${string}-${string}-${string}`,
-            limitFrom: item.limitFrom,
-            limitTo: item.limitTo,
-            parameter: item.parameter,
-            operator: item.operator,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          })),
-        };
-        return { data: updated };
-      },
+      query: ({ projectId, testCaseId, limitId, body }) => ({
+        url: `/eval/${projectId}/limit/${testCaseId}/${limitId}`,
+        method: "PUT",
+        body,
+      }),
+      transformResponse: (response) => evalLimitDetailSchema.parse(response),
       invalidatesTags: (_result, _error, { projectId, limitId }) => [
         { type: apiCacheTags.eval.limits, id: projectId },
         { type: apiCacheTags.eval.limits, id: limitId },
@@ -349,12 +142,12 @@ export const evaluationApi = api.injectEndpoints({
 
     deleteEvalLimit: builder.mutation<
       void,
-      { projectId: number; limitId: string }
+      { projectId: number; testCaseId: string; limitId: string }
     >({
-      queryFn: async () => {
-        await mockDelay();
-        return { data: undefined };
-      },
+      query: ({ projectId, testCaseId, limitId }) => ({
+        url: `/eval/${projectId}/limit/${testCaseId}/${limitId}`,
+        method: "DELETE",
+      }),
       invalidatesTags: (_result, _error, { projectId, limitId }) => [
         { type: apiCacheTags.eval.limits, id: projectId },
         { type: apiCacheTags.eval.limits, id: limitId },
@@ -365,10 +158,10 @@ export const evaluationApi = api.injectEndpoints({
       void,
       { projectId: number; testCaseId: string }
     >({
-      queryFn: async () => {
-        await mockDelay();
-        return { data: undefined };
-      },
+      query: ({ projectId, testCaseId }) => ({
+        url: `/eval/${projectId}/test-case/${testCaseId}`,
+        method: "DELETE",
+      }),
       invalidatesTags: (_result, _error, { projectId, testCaseId }) => [
         { type: apiCacheTags.eval.testCases, id: projectId },
         { type: apiCacheTags.eval.testCases, id: testCaseId },

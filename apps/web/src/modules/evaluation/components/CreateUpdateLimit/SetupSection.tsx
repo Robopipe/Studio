@@ -44,7 +44,7 @@ export function SetupSection({ form, labelOptions }: SetupSectionProps) {
         <form.Field name="targetParentLabelId">
           {(field) => (
             <div className="flex flex-1 flex-col gap-2">
-              <Label className="text-xs text-muted-foreground">Label</Label>
+              <Label className="text-xs text-muted-foreground">Parent Label</Label>
               <Select
                 value={String(field.state.value ?? "")}
                 onValueChange={(v) =>

@@ -1,10 +1,10 @@
 import { cn } from "@/lib/utils";
 import { EvalLogicNodeOperatorValueEnum } from "@repo/schema";
 import { useLogicBuilderContext } from "./LogicBuilderContext";
-import { OperatorNode } from "./logicBuilder.utils";
+import { RenderOperatorNode } from "./logicBuilder.utils";
 
 interface OperatorChipProps {
-  node: OperatorNode;
+  node: RenderOperatorNode;
 }
 
 const NEXT_VALUE: Record<string, EvalLogicNodeOperatorValueEnum> = {
@@ -18,7 +18,7 @@ export function OperatorChip({ node }: OperatorChipProps) {
   const toggle = (e: React.MouseEvent) => {
     e.stopPropagation();
     const next = NEXT_VALUE[node.operatorValue];
-    if (next) changeOperator(node.id, next);
+    if (next) changeOperator(node.renderId, next);
   };
 
   return (

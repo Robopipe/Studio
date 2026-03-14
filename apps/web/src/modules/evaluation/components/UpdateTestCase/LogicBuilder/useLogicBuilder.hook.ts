@@ -1,13 +1,20 @@
-import { EvalLogicNode, EvalLogicNodeOperatorValueEnum, EvalTestCaseDetail } from "@repo/schema";
+import {
+  EvalLogicNode,
+  EvalLogicNodeOperatorValueEnum,
+  EvalTestCaseDetail,
+} from "@repo/schema";
 import { useState } from "react";
 import {
+  RenderNode,
   appendLimitToLevel,
   areSiblings,
   changeOperatorInArray,
   groupLimitsInArray,
+  hydrateNodes,
   insertLimitBeforeNode,
   prependLimitToLevel,
   removeLimitNodeFromArray,
+  stripRenderIds,
   toggleNotInArray,
   ungroupInArray,
 } from "./logicBuilder.utils";
@@ -17,8 +24,13 @@ export type AddLimitPosition =
   | { type: "before"; nodeId: string }
   | { type: "append"; groupId: string | null };
 
-export function useLogicBuilder(initialNodes: EvalLogicNode[], _testCase: EvalTestCaseDetail) {
-  const [nodes, setNodes] = useState<EvalLogicNode[]>(initialNodes);
+export function useLogicBuilder(
+  initialNodes: EvalLogicNode[],
+  _testCase: EvalTestCaseDetail,
+) {
+  const [nodes, setNodes] = useState<RenderNode[]>(() =>
+    hydrateNodes(initialNodes),
+  );
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const addLimit = (limitId: string, position: AddLimitPosition) => {
@@ -34,17 +46,17 @@ export function useLogicBuilder(initialNodes: EvalLogicNode[], _testCase: EvalTe
     });
   };
 
-  const toggleSelect = (limitId: string, multi: boolean) => {
+  const toggleSelect = (renderId: string, multi: boolean) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (multi) {
-        if (next.has(limitId)) next.delete(limitId);
-        else next.add(limitId);
+        if (next.has(renderId)) next.delete(renderId);
+        else next.add(renderId);
       } else {
-        if (next.size === 1 && next.has(limitId)) next.clear();
+        if (next.size === 1 && next.has(renderId)) next.clear();
         else {
           next.clear();
-          next.add(limitId);
+          next.add(renderId);
         }
       }
       return next;
@@ -53,12 +65,15 @@ export function useLogicBuilder(initialNodes: EvalLogicNode[], _testCase: EvalTe
 
   const clearSelection = () => setSelectedIds(new Set());
 
-  const toggleNot = (limitId: string) => {
-    setNodes((prev) => toggleNotInArray(prev, limitId));
+  const toggleNot = (renderId: string) => {
+    setNodes((prev) => toggleNotInArray(prev, renderId));
   };
 
-  const changeOperator = (operatorId: string, newValue: EvalLogicNodeOperatorValueEnum) => {
-    setNodes((prev) => changeOperatorInArray(prev, operatorId, newValue));
+  const changeOperator = (
+    operatorRenderId: string,
+    newValue: EvalLogicNodeOperatorValueEnum,
+  ) => {
+    setNodes((prev) => changeOperatorInArray(prev, operatorRenderId, newValue));
   };
 
   const groupSelected = () => {
@@ -66,14 +81,21 @@ export function useLogicBuilder(initialNodes: EvalLogicNode[], _testCase: EvalTe
     setSelectedIds(new Set());
   };
 
-  const removeNode = (nodeId: string) => {
-    setNodes((prev) => removeLimitNodeFromArray(prev, nodeId));
-    setSelectedIds((prev) => { const next = new Set(prev); next.delete(nodeId); return next; });
+  const removeNode = (renderId: string) => {
+    setNodes((prev) => removeLimitNodeFromArray(prev, renderId));
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.delete(renderId);
+      return next;
+    });
   };
 
-  const ungroup = (groupId: string) => {
-    setNodes((prev) => ungroupInArray(prev, groupId));
+  const ungroup = (groupRenderId: string) => {
+    setNodes((prev) => ungroupInArray(prev, groupRenderId));
   };
+
+  /** Get schema-compatible nodes (stripped of renderId) for saving to backend. */
+  const getSchemaNodes = (): EvalLogicNode[] => stripRenderIds(nodes);
 
   const canGroup = selectedIds.size >= 2 && areSiblings(nodes, selectedIds);
 
@@ -89,6 +111,7 @@ export function useLogicBuilder(initialNodes: EvalLogicNode[], _testCase: EvalTe
     changeOperator,
     groupSelected,
     ungroup,
+    getSchemaNodes,
   };
 }
 

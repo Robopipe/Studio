@@ -16,6 +16,7 @@ import { useLimitForm } from "./useLimitForm.hook";
 
 export type UpdateLimitModalProps = {
   projectId: number;
+  testCaseId: string;
   limit: EvalLimitDetail;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -23,12 +24,14 @@ export type UpdateLimitModalProps = {
 
 export const UpdateLimitModal = ({
   projectId,
+  testCaseId,
   limit,
   open,
   onOpenChange,
 }: UpdateLimitModalProps) => {
   const { form, isSubmitting } = useLimitForm({
     projectId,
+    testCaseId,
     limitId: limit.id,
     initialValues: limit,
     onSuccess: () => onOpenChange(false),

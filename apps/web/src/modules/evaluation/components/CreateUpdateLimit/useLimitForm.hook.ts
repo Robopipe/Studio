@@ -19,6 +19,7 @@ type CreateOptions = {
 
 type UpdateOptions = {
   projectId: number;
+  testCaseId: string;
   limitId: string;
   initialValues: EvalLimitDetail;
   onSuccess: () => void;
@@ -68,7 +69,7 @@ export function useLimitForm(options: LimitFormOptions) {
     },
     onSubmit: async ({ value }) => {
       if (isUpdate(options)) {
-        await updateLimit({ projectId: options.projectId, limitId: options.limitId, body: value }).unwrap();
+        await updateLimit({ projectId: options.projectId, testCaseId: options.testCaseId, limitId: options.limitId, body: value }).unwrap();
       } else {
         await createLimit({ projectId: options.projectId, testCaseId: options.testCaseId, body: value }).unwrap();
       }

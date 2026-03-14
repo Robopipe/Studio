@@ -3,57 +3,141 @@ import {
   EvalLogicNodeOperatorValueEnum,
   EvalLogicNodeTypeEnum,
 } from "@repo/schema";
+import { v7 as uuidv7 } from "uuid";
 
-export type LimitNode = Extract<EvalLogicNode, { type: EvalLogicNodeTypeEnum.LIMIT }>;
-export type OperatorNode = Extract<EvalLogicNode, { type: EvalLogicNodeTypeEnum.OPERATOR }>;
-export type GroupNode = Extract<EvalLogicNode, { type: EvalLogicNodeTypeEnum.GROUP }>;
+// ─── Schema-level type helpers ───────────────────────────────────────────────
+
+export type LimitNode = Extract<
+  EvalLogicNode,
+  { type: EvalLogicNodeTypeEnum.LIMIT }
+>;
+export type OperatorNode = Extract<
+  EvalLogicNode,
+  { type: EvalLogicNodeTypeEnum.OPERATOR }
+>;
+export type GroupNode = Extract<
+  EvalLogicNode,
+  { type: EvalLogicNodeTypeEnum.GROUP }
+>;
+
+// ─── Render-level types (frontend-only, with renderId) ───────────────────────
+
+export type RenderLimitNode = LimitNode & { renderId: string };
+export type RenderOperatorNode = OperatorNode & { renderId: string };
+export type RenderGroupNode = Omit<GroupNode, "children"> & {
+  renderId: string;
+  children: RenderNode[];
+};
+export type RenderNode = RenderLimitNode | RenderOperatorNode | RenderGroupNode;
 
 export type ProcessedItem = {
-  connector: OperatorNode | null; // AND or OR — appears before the item
-  not: OperatorNode | null;       // NOT — appears right before the item (after connector)
-  item: LimitNode | GroupNode;
+  connector: RenderOperatorNode | null; // AND or OR — appears before the item
+  not: RenderOperatorNode | null; // NOT — appears right before the item (after connector)
+  item: RenderLimitNode | RenderGroupNode;
 };
 
-export function isLimitNode(node: EvalLogicNode): node is LimitNode {
+// ─── Type guards ─────────────────────────────────────────────────────────────
+
+function isSchemaGroupNode(node: EvalLogicNode): node is GroupNode {
+  return node.type === EvalLogicNodeTypeEnum.GROUP;
+}
+
+export function isLimitNode(node: RenderNode): node is RenderLimitNode {
   return node.type === EvalLogicNodeTypeEnum.LIMIT;
 }
 
-export function isOperatorNode(node: EvalLogicNode): node is OperatorNode {
+export function isOperatorNode(node: RenderNode): node is RenderOperatorNode {
   return node.type === EvalLogicNodeTypeEnum.OPERATOR;
 }
 
-export function isGroupNode(node: EvalLogicNode): node is GroupNode {
+export function isGroupNode(node: RenderNode): node is RenderGroupNode {
   return node.type === EvalLogicNodeTypeEnum.GROUP;
 }
 
 // Zod v4 recursive type inference leaks Record<string,unknown> into GroupNode.children.
 // Use this everywhere to avoid widespread ts-ignore.
-function children(node: GroupNode): EvalLogicNode[] {
+function schemaChildren(node: GroupNode): EvalLogicNode[] {
   return node.children as EvalLogicNode[];
 }
 
-function makeId(): string {
-  return crypto.randomUUID();
+// ─── ID helpers ──────────────────────────────────────────────────────────────
+
+function makeRenderId(): string {
+  return uuidv7();
 }
 
-export function makeOperatorNode(value: EvalLogicNodeOperatorValueEnum): OperatorNode {
-  return { id: makeId(), type: EvalLogicNodeTypeEnum.OPERATOR, operatorValue: value };
+// ─── Hydrate / Strip (backend <-> frontend) ──────────────────────────────────
+
+/** Add renderId to every node in the tree (backend -> frontend). */
+export function hydrateNodes(nodes: EvalLogicNode[]): RenderNode[] {
+  return nodes.map((node) => {
+    if (isSchemaGroupNode(node)) {
+      return {
+        ...node,
+        renderId: makeRenderId(),
+        children: hydrateNodes(schemaChildren(node)),
+      } as RenderGroupNode;
+    }
+    return { ...node, renderId: makeRenderId() } as RenderNode;
+  });
 }
 
-export function makeLimitNode(limitId: string): LimitNode {
-  return { id: makeId(), type: EvalLogicNodeTypeEnum.LIMIT, limitId };
+/** Strip renderId from every node in the tree (frontend -> backend). */
+export function stripRenderIds(nodes: RenderNode[]): EvalLogicNode[] {
+  return nodes.map((node) => {
+    if (isGroupNode(node)) {
+      const { renderId, children, ...rest } = node;
+      return {
+        ...rest,
+        children: stripRenderIds(children),
+      } as EvalLogicNode;
+    }
+    const { renderId, ...rest } = node;
+    return rest as EvalLogicNode;
+  });
 }
 
-export function makeGroupNode(ch: EvalLogicNode[], id?: string): GroupNode {
-  return { id: id ?? makeId(), type: EvalLogicNodeTypeEnum.GROUP, children: ch as GroupNode["children"] };
+// ─── Node factories ──────────────────────────────────────────────────────────
+
+export function makeOperatorNode(
+  value: EvalLogicNodeOperatorValueEnum,
+): RenderOperatorNode {
+  return {
+    id: makeRenderId(),
+    renderId: makeRenderId(),
+    type: EvalLogicNodeTypeEnum.OPERATOR,
+    operatorValue: value,
+  };
 }
 
-export function getAllLimitIds(nodes: EvalLogicNode[]): Set<string> {
+export function makeLimitNode(limitId: string): RenderLimitNode {
+  return {
+    id: limitId,
+    renderId: makeRenderId(),
+    type: EvalLogicNodeTypeEnum.LIMIT,
+  };
+}
+
+export function makeGroupNode(
+  ch: RenderNode[],
+  renderId?: string,
+): RenderGroupNode {
+  return {
+    id: makeRenderId(),
+    renderId: renderId ?? makeRenderId(),
+    type: EvalLogicNodeTypeEnum.GROUP,
+    children: ch,
+  };
+}
+
+// ─── Queries ─────────────────────────────────────────────────────────────────
+
+export function getAllLimitIds(nodes: RenderNode[]): Set<string> {
   const ids = new Set<string>();
-  const traverse = (arr: EvalLogicNode[]) => {
+  const traverse = (arr: RenderNode[]) => {
     for (const node of arr) {
       if (isLimitNode(node)) ids.add(node.id);
-      if (isGroupNode(node)) traverse(children(node));
+      if (isGroupNode(node)) traverse(node.children);
     }
   };
   traverse(nodes);
@@ -65,10 +149,10 @@ export function getAllLimitIds(nodes: EvalLogicNode[]): Set<string> {
  * Operators before an item are attached to it as connector (AND/OR) or not (NOT).
  * Array order: [OPERATOR(AND)?, OPERATOR(NOT)?, LIMIT|GROUP, ...]
  */
-export function processNodes(nodes: EvalLogicNode[]): ProcessedItem[] {
+export function processNodes(nodes: RenderNode[]): ProcessedItem[] {
   const result: ProcessedItem[] = [];
-  let pendingConnector: OperatorNode | null = null;
-  let pendingNot: OperatorNode | null = null;
+  let pendingConnector: RenderOperatorNode | null = null;
+  let pendingNot: RenderOperatorNode | null = null;
 
   for (const node of nodes) {
     if (isOperatorNode(node)) {
@@ -81,7 +165,7 @@ export function processNodes(nodes: EvalLogicNode[]): ProcessedItem[] {
       result.push({
         connector: pendingConnector,
         not: pendingNot,
-        item: node as LimitNode | GroupNode,
+        item: node as RenderLimitNode | RenderGroupNode,
       });
       pendingConnector = null;
       pendingNot = null;
@@ -91,113 +175,151 @@ export function processNodes(nodes: EvalLogicNode[]): ProcessedItem[] {
 }
 
 /**
- * Get the node id to use as the "insert before" reference for a gap before this item.
+ * Get the renderId to use as the "insert before" reference for a gap before this item.
  * The insertion point is at the first node belonging to this item (connector > not > item).
  */
 export function getInsertBeforeId(pi: ProcessedItem): string {
-  return pi.connector?.id ?? pi.not?.id ?? pi.item.id;
+  return pi.connector?.renderId ?? pi.not?.renderId ?? pi.item.renderId;
 }
 
 // ─── Mutations ────────────────────────────────────────────────────────────────
 
 export function appendLimitToLevel(
-  nodes: EvalLogicNode[],
+  nodes: RenderNode[],
   limitId: string,
-  groupId: string | null,
-): EvalLogicNode[] {
-  if (groupId === null) {
+  groupRenderId: string | null,
+): RenderNode[] {
+  if (groupRenderId === null) {
     const limitNode = makeLimitNode(limitId);
     if (nodes.length === 0) return [limitNode];
-    return [...nodes, makeOperatorNode(EvalLogicNodeOperatorValueEnum.AND), limitNode];
+    return [
+      ...nodes,
+      makeOperatorNode(EvalLogicNodeOperatorValueEnum.AND),
+      limitNode,
+    ];
   }
   return nodes.map((node) => {
-    if (isGroupNode(node) && node.id === groupId) {
+    if (isGroupNode(node) && node.renderId === groupRenderId) {
       const limitNode = makeLimitNode(limitId);
-      const ch = children(node);
+      const ch = node.children;
       const newChildren =
         ch.length === 0
           ? [limitNode]
-          : [...ch, makeOperatorNode(EvalLogicNodeOperatorValueEnum.AND), limitNode];
-      return makeGroupNode(newChildren, node.id);
+          : [
+              ...ch,
+              makeOperatorNode(EvalLogicNodeOperatorValueEnum.AND),
+              limitNode,
+            ];
+      return makeGroupNode(newChildren, node.renderId);
     }
     if (isGroupNode(node)) {
-      return makeGroupNode(appendLimitToLevel(children(node), limitId, groupId), node.id);
+      return makeGroupNode(
+        appendLimitToLevel(node.children, limitId, groupRenderId),
+        node.renderId,
+      );
     }
     return node;
   });
 }
 
 export function prependLimitToLevel(
-  nodes: EvalLogicNode[],
+  nodes: RenderNode[],
   limitId: string,
-  groupId: string | null,
-): EvalLogicNode[] {
-  if (groupId === null) {
+  groupRenderId: string | null,
+): RenderNode[] {
+  if (groupRenderId === null) {
     const limitNode = makeLimitNode(limitId);
     if (nodes.length === 0) return [limitNode];
-    return [limitNode, makeOperatorNode(EvalLogicNodeOperatorValueEnum.AND), ...nodes];
+    return [
+      limitNode,
+      makeOperatorNode(EvalLogicNodeOperatorValueEnum.AND),
+      ...nodes,
+    ];
   }
   return nodes.map((node) => {
-    if (isGroupNode(node) && node.id === groupId) {
+    if (isGroupNode(node) && node.renderId === groupRenderId) {
       const limitNode = makeLimitNode(limitId);
-      const ch = children(node);
+      const ch = node.children;
       const newChildren =
         ch.length === 0
           ? [limitNode]
-          : [limitNode, makeOperatorNode(EvalLogicNodeOperatorValueEnum.AND), ...ch];
-      return makeGroupNode(newChildren, node.id);
+          : [
+              limitNode,
+              makeOperatorNode(EvalLogicNodeOperatorValueEnum.AND),
+              ...ch,
+            ];
+      return makeGroupNode(newChildren, node.renderId);
     }
     if (isGroupNode(node)) {
-      return makeGroupNode(prependLimitToLevel(children(node), limitId, groupId), node.id);
+      return makeGroupNode(
+        prependLimitToLevel(node.children, limitId, groupRenderId),
+        node.renderId,
+      );
     }
     return node;
   });
 }
 
 /**
- * Insert a limit before the node with the given id (searching recursively).
+ * Insert a limit before the node with the given renderId (searching recursively).
  * Adds an AND connector in front of the new limit at the insertion point.
  */
 export function insertLimitBeforeNode(
-  nodes: EvalLogicNode[],
+  nodes: RenderNode[],
   limitId: string,
-  beforeNodeId: string,
-): EvalLogicNode[] {
-  const idx = nodes.findIndex((n) => n.id === beforeNodeId);
+  beforeRenderId: string,
+): RenderNode[] {
+  const idx = nodes.findIndex((n) => n.renderId === beforeRenderId);
   if (idx >= 0) {
     const limitNode = makeLimitNode(limitId);
     const connectorNode = makeOperatorNode(EvalLogicNodeOperatorValueEnum.AND);
-    return [...nodes.slice(0, idx), connectorNode, limitNode, ...nodes.slice(idx)];
+    return [
+      ...nodes.slice(0, idx),
+      connectorNode,
+      limitNode,
+      ...nodes.slice(idx),
+    ];
   }
   return nodes.map((node) => {
     if (isGroupNode(node)) {
-      const ch = children(node);
-      const newChildren = insertLimitBeforeNode(ch, limitId, beforeNodeId);
-      if (newChildren !== ch) return makeGroupNode(newChildren, node.id);
+      const ch = node.children;
+      const newChildren = insertLimitBeforeNode(ch, limitId, beforeRenderId);
+      if (newChildren !== ch) return makeGroupNode(newChildren, node.renderId);
     }
     return node;
   });
 }
 
 /**
- * Remove a LIMIT node by its unique node id, also removing its preceding NOT and connector
+ * Remove a LIMIT node by its unique renderId, also removing its preceding NOT and connector
  * (or following connector if it's the first item).
  */
-export function removeLimitNodeFromArray(nodes: EvalLogicNode[], nodeId: string): EvalLogicNode[] {
-  const idx = nodes.findIndex((n) => isLimitNode(n) && n.id === nodeId);
+export function removeLimitNodeFromArray(
+  nodes: RenderNode[],
+  renderId: string,
+): RenderNode[] {
+  const idx = nodes.findIndex((n) => isLimitNode(n) && n.renderId === renderId);
 
   if (idx >= 0) {
     let removeStart = idx;
 
     // Include NOT immediately before the limit
     const beforeLimit = nodes[idx - 1];
-    if (beforeLimit && isOperatorNode(beforeLimit) && beforeLimit.operatorValue === EvalLogicNodeOperatorValueEnum.NOT) {
+    if (
+      beforeLimit &&
+      isOperatorNode(beforeLimit) &&
+      beforeLimit.operatorValue === EvalLogicNodeOperatorValueEnum.NOT
+    ) {
       removeStart = idx - 1;
     }
 
     // Include AND/OR connector before (possibly before the NOT)
     const beforeConnector = nodes[removeStart - 1];
-    if (beforeConnector && isOperatorNode(beforeConnector) && beforeConnector.operatorValue !== EvalLogicNodeOperatorValueEnum.NOT) {
+    if (
+      beforeConnector &&
+      isOperatorNode(beforeConnector) &&
+      beforeConnector.operatorValue !== EvalLogicNodeOperatorValueEnum.NOT
+    ) {
       removeStart = removeStart - 1;
     }
 
@@ -206,7 +328,11 @@ export function removeLimitNodeFromArray(nodes: EvalLogicNode[], nodeId: string)
     // If this was the first item, a dangling AND/OR connector is now at position 0 — drop it
     if (removeStart === 0) {
       const newFirst = result[0];
-      if (newFirst && isOperatorNode(newFirst) && newFirst.operatorValue !== EvalLogicNodeOperatorValueEnum.NOT) {
+      if (
+        newFirst &&
+        isOperatorNode(newFirst) &&
+        newFirst.operatorValue !== EvalLogicNodeOperatorValueEnum.NOT
+      ) {
         result.shift();
       }
     }
@@ -217,27 +343,36 @@ export function removeLimitNodeFromArray(nodes: EvalLogicNode[], nodeId: string)
   // Recurse into groups
   return nodes.map((node) => {
     if (isGroupNode(node)) {
-      const ch = children(node);
-      const newChildren = removeLimitNodeFromArray(ch, nodeId);
-      if (newChildren !== ch) return makeGroupNode(newChildren, node.id);
+      const ch = node.children;
+      const newChildren = removeLimitNodeFromArray(ch, renderId);
+      if (newChildren !== ch) return makeGroupNode(newChildren, node.renderId);
     }
     return node;
   });
 }
 
-export function toggleNotInArray(nodes: EvalLogicNode[], limitId: string): EvalLogicNode[] {
-  const result: EvalLogicNode[] = [];
+export function toggleNotInArray(
+  nodes: RenderNode[],
+  renderId: string,
+): RenderNode[] {
+  const result: RenderNode[] = [];
   for (const node of nodes) {
-    if (isLimitNode(node) && node.id === limitId) {
+    if (isLimitNode(node) && node.renderId === renderId) {
       const prev = result[result.length - 1];
-      if (prev && isOperatorNode(prev) && prev.operatorValue === EvalLogicNodeOperatorValueEnum.NOT) {
+      if (
+        prev &&
+        isOperatorNode(prev) &&
+        prev.operatorValue === EvalLogicNodeOperatorValueEnum.NOT
+      ) {
         result.pop(); // remove existing NOT
       } else {
         result.push(makeOperatorNode(EvalLogicNodeOperatorValueEnum.NOT));
       }
       result.push(node);
     } else if (isGroupNode(node)) {
-      result.push(makeGroupNode(toggleNotInArray(children(node), limitId), node.id));
+      result.push(
+        makeGroupNode(toggleNotInArray(node.children, renderId), node.renderId),
+      );
     } else {
       result.push(node);
     }
@@ -246,26 +381,38 @@ export function toggleNotInArray(nodes: EvalLogicNode[], limitId: string): EvalL
 }
 
 export function changeOperatorInArray(
-  nodes: EvalLogicNode[],
-  operatorId: string,
+  nodes: RenderNode[],
+  operatorRenderId: string,
   newValue: EvalLogicNodeOperatorValueEnum,
-): EvalLogicNode[] {
+): RenderNode[] {
   return nodes.map((node) => {
-    if (isOperatorNode(node) && node.id === operatorId) return { ...node, operatorValue: newValue };
+    if (isOperatorNode(node) && node.renderId === operatorRenderId)
+      return { ...node, operatorValue: newValue };
     if (isGroupNode(node)) {
-      return makeGroupNode(changeOperatorInArray(children(node), operatorId, newValue), node.id);
+      return makeGroupNode(
+        changeOperatorInArray(node.children, operatorRenderId, newValue),
+        node.renderId,
+      );
     }
     return node;
   });
 }
 
-export function ungroupInArray(nodes: EvalLogicNode[], groupId: string): EvalLogicNode[] {
-  const result: EvalLogicNode[] = [];
+export function ungroupInArray(
+  nodes: RenderNode[],
+  groupRenderId: string,
+): RenderNode[] {
+  const result: RenderNode[] = [];
   for (const node of nodes) {
-    if (isGroupNode(node) && node.id === groupId) {
-      result.push(...children(node));
+    if (isGroupNode(node) && node.renderId === groupRenderId) {
+      result.push(...node.children);
     } else if (isGroupNode(node)) {
-      result.push(makeGroupNode(ungroupInArray(children(node), groupId), node.id));
+      result.push(
+        makeGroupNode(
+          ungroupInArray(node.children, groupRenderId),
+          node.renderId,
+        ),
+      );
     } else {
       result.push(node);
     }
@@ -273,16 +420,25 @@ export function ungroupInArray(nodes: EvalLogicNode[], groupId: string): EvalLog
   return result;
 }
 
-function countSelectedAtLevel(nodes: EvalLogicNode[], selectedIds: Set<string>): number {
-  return nodes.filter((n) => isLimitNode(n) && selectedIds.has(n.id)).length;
+function countSelectedAtLevel(
+  nodes: RenderNode[],
+  selectedRenderIds: Set<string>,
+): number {
+  return nodes.filter(
+    (n) => isLimitNode(n) && selectedRenderIds.has(n.renderId),
+  ).length;
 }
 
 /** Returns true if all selected limits are siblings at the same level in the tree. */
-export function areSiblings(nodes: EvalLogicNode[], selectedIds: Set<string>): boolean {
-  const atRoot = countSelectedAtLevel(nodes, selectedIds);
-  if (atRoot === selectedIds.size) return true;
+export function areSiblings(
+  nodes: RenderNode[],
+  selectedRenderIds: Set<string>,
+): boolean {
+  const atRoot = countSelectedAtLevel(nodes, selectedRenderIds);
+  if (atRoot === selectedRenderIds.size) return true;
   for (const node of nodes) {
-    if (isGroupNode(node) && areSiblings(children(node), selectedIds)) return true;
+    if (isGroupNode(node) && areSiblings(node.children, selectedRenderIds))
+      return true;
   }
   return false;
 }
@@ -291,17 +447,19 @@ export function areSiblings(nodes: EvalLogicNode[], selectedIds: Set<string>): b
  * Wrap selected limits (and operators between/around them) in a GROUP at the appropriate level.
  */
 export function groupLimitsInArray(
-  nodes: EvalLogicNode[],
-  selectedIds: Set<string>,
-): EvalLogicNode[] {
-  const selectedAtLevel = nodes.filter((n) => isLimitNode(n) && selectedIds.has(n.id));
+  nodes: RenderNode[],
+  selectedRenderIds: Set<string>,
+): RenderNode[] {
+  const selectedAtLevel = nodes.filter(
+    (n) => isLimitNode(n) && selectedRenderIds.has(n.renderId),
+  );
 
   if (selectedAtLevel.length >= 2) {
     let firstIdx = -1;
     let lastIdx = -1;
     for (let i = 0; i < nodes.length; i++) {
       const node = nodes[i]!;
-      if (isLimitNode(node) && selectedIds.has(node.id)) {
+      if (isLimitNode(node) && selectedRenderIds.has(node.renderId)) {
         if (firstIdx === -1) firstIdx = i;
         lastIdx = i;
       }
@@ -327,7 +485,10 @@ export function groupLimitsInArray(
   // Recurse into groups
   return nodes.map((node) => {
     if (isGroupNode(node)) {
-      return makeGroupNode(groupLimitsInArray(children(node), selectedIds), node.id);
+      return makeGroupNode(
+        groupLimitsInArray(node.children, selectedRenderIds),
+        node.renderId,
+      );
     }
     return node;
   });

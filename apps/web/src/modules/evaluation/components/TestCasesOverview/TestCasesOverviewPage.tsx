@@ -2,10 +2,7 @@ import { Button } from "@/modules/shadcn/ui/button";
 import { Skeleton } from "@/modules/shadcn/ui/skeleton";
 import { PlusIcon, SaveIcon } from "lucide-react";
 import { useState } from "react";
-import {
-  useGetEvalLimitsQuery,
-  useGetEvalTestCasesQuery,
-} from "../../api/evaluationApi";
+import { useGetEvalTestCasesQuery } from "../../api/evaluationApi";
 import { CreateTestCaseModal } from "../CreateTestCase";
 import { EmptyTestCasesState } from "./EmptyTestCasesState";
 import { TestCaseSection } from "./TestCaseSection";
@@ -19,17 +16,9 @@ export const TestCasesOverviewPage = ({
 }: TestCasesOverviewPageProps) => {
   const {
     data: testCases = [],
-    isLoading: isLoadingTestCases,
-    error: testCasesError,
+    isLoading,
+    error,
   } = useGetEvalTestCasesQuery({ projectId });
-  const {
-    data: limits = [],
-    isLoading: isLoadingLimits,
-    error: limitsError,
-  } = useGetEvalLimitsQuery({ projectId });
-
-  const isLoading = isLoadingTestCases || isLoadingLimits;
-  const error = testCasesError || limitsError;
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   if (error) {
@@ -73,7 +62,6 @@ export const TestCasesOverviewPage = ({
         <TestCaseSection
           key={tc.id}
           testCase={tc}
-          limits={limits}
           projectId={projectId}
         />
       ))}

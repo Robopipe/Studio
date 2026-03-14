@@ -3,35 +3,48 @@ import { Button } from "@/modules/shadcn/ui/button";
 import { Card, CardContent, CardHeader } from "@/modules/shadcn/ui/card";
 import { Separator } from "@/modules/shadcn/ui/separator";
 import { DataTable } from "@/modules/ui/components/Table";
-import { EvalLimitDetail, EvalTestCaseDetail } from "@repo/schema";
+import { EvalLimit, EvalTestCase } from "@repo/schema";
 import { PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
 import {
   useDeleteEvalLimitMutation,
   useDeleteEvalTestCaseMutation,
+  useGetEvalLimitQuery,
+  useGetEvalLimitsQuery,
+  useGetEvalTestCaseQuery,
 } from "../../api/evaluationApi";
 import { CreateLimitModal, UpdateLimitModal } from "../CreateUpdateLimit";
 import { UpdateTestCaseModal } from "../UpdateTestCase";
 import { useLimitColumns } from "./useLimitColumns.hook";
 
 interface TestCaseSectionProps {
-  testCase: EvalTestCaseDetail;
-  limits: EvalLimitDetail[];
+  testCase: EvalTestCase;
   projectId: number;
 }
 
 export function TestCaseSection({
   testCase,
-  limits,
   projectId,
 }: TestCaseSectionProps) {
+  const { data: limits = [] } = useGetEvalLimitsQuery({
+    projectId,
+    testCaseId: testCase.id,
+  });
   const [isCreateLimitOpen, setIsCreateLimitOpen] = useState(false);
-  const [limitToEdit, setLimitToEdit] = useState<EvalLimitDetail | null>(null);
-  const [limitToDelete, setLimitToDelete] = useState<EvalLimitDetail | null>(
-    null,
-  );
+  const [limitToEditId, setLimitToEditId] = useState<string | null>(null);
+  const [limitToDeleteId, setLimitToDeleteId] = useState<string | null>(null);
   const [isEditTestCaseOpen, setIsEditTestCaseOpen] = useState(false);
   const [isDeleteTestCaseOpen, setIsDeleteTestCaseOpen] = useState(false);
+
+  const { data: limitToEdit } = useGetEvalLimitQuery(
+    { projectId, testCaseId: testCase.id, limitId: limitToEditId! },
+    { skip: !limitToEditId },
+  );
+  const { data: testCaseDetail } = useGetEvalTestCaseQuery(
+    { projectId, testCaseId: testCase.id },
+    { skip: !isEditTestCaseOpen },
+  );
+
   const [deleteEvalLimit, { isLoading: isDeleting }] =
     useDeleteEvalLimitMutation();
   const [deleteEvalTestCase, { isLoading: isDeletingTC }] =
@@ -43,25 +56,22 @@ export function TestCaseSection({
       .then(() => setIsDeleteTestCaseOpen(false));
   };
 
-  const testCaseLimits = limits.filter((l) =>
-    testCase.limits.some((tcl) => tcl.id === l.id),
-  );
-
-  const handleEditLimit = (limit: EvalLimitDetail) => {
-    setLimitToEdit(limit);
+  const handleEditLimit = (limit: EvalLimit) => {
+    setLimitToEditId(limit.id);
   };
 
-  const handleDeleteLimit = (limit: EvalLimitDetail) => {
-    setLimitToDelete(limit);
+  const handleDeleteLimit = (limit: EvalLimit) => {
+    setLimitToDeleteId(limit.id);
   };
 
   const handleConfirmDelete = () => {
-    if (!limitToDelete) return;
-    deleteEvalLimit({ projectId, limitId: limitToDelete.id })
+    if (!limitToDeleteId) return;
+    deleteEvalLimit({ projectId, testCaseId: testCase.id, limitId: limitToDeleteId })
       .unwrap()
-      .then(() => setLimitToDelete(null));
+      .then(() => setLimitToDeleteId(null));
   };
 
+  const limitToDelete = limits.find((l) => l.id === limitToDeleteId) ?? null;
   const columns = useLimitColumns(handleEditLimit, handleDeleteLimit);
 
   return (
@@ -101,7 +111,7 @@ export function TestCaseSection({
       </CardHeader>
 
       <CardContent>
-        <DataTable data={testCaseLimits} columns={columns} enableRowSelection />
+        <DataTable data={limits} columns={columns} enableRowSelection />
       </CardContent>
 
       <CreateLimitModal
@@ -114,16 +124,17 @@ export function TestCaseSection({
       {limitToEdit && (
         <UpdateLimitModal
           projectId={projectId}
+          testCaseId={testCase.id}
           limit={limitToEdit}
           open={true}
-          onOpenChange={(open) => !open && setLimitToEdit(null)}
+          onOpenChange={(open) => !open && setLimitToEditId(null)}
         />
       )}
 
-      {isEditTestCaseOpen && (
+      {isEditTestCaseOpen && testCaseDetail && (
         <UpdateTestCaseModal
           projectId={projectId}
-          testCase={testCase}
+          testCase={testCaseDetail}
           open={true}
           onOpenChange={(open) => !open && setIsEditTestCaseOpen(false)}
         />
@@ -142,7 +153,7 @@ export function TestCaseSection({
 
       {limitToDelete && (
         <DeleteLimitDialog
-          onCancel={() => setLimitToDelete(null)}
+          onCancel={() => setLimitToDeleteId(null)}
           onConfirm={handleConfirmDelete}
           isLoading={isDeleting}
         />
