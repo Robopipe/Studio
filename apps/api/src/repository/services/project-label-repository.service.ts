@@ -47,6 +47,29 @@ export class ProjectLabelRepository {
   }
 
   /**
+   * Get all labels by Id in and project id
+   * @param ids
+   * @param projectId
+   * @returns ProjectLabelEntity[]
+   */
+  public async getAllByIdInAndProjectId(ids: number[], projectId: number): Promise<ProjectLabelEntity[]>{
+    const labels = await this.db.query.projectLabelTable.findMany({
+      where: {
+        projectId,
+        deletedAt: {
+          isNull: true
+        },
+        id: {
+          in: ids
+        }
+      },
+      orderBy: (p) => asc(p.id)
+    })
+
+    return labels.map((label) => new ProjectLabelEntity(label))
+  }
+
+  /**
    * Find a soft-deleted label by name and project ID
    * @param name - label name
    * @param projectId

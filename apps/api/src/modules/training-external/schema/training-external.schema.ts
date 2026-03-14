@@ -74,7 +74,7 @@ export const trainingPayloadSchema = z.discriminatedUnion("type", [
   }),
   basePayload.extend({
     type: z.literal(ProjectTypeEnum.DETECTION),
-    data: createDataSchema(trainingRectangleLabelSchema),
+    data: createDataSchema(trainingRectangleLabelSchema.or(trainingPolygonLabelSchema)),
   }),
   basePayload.extend({
     type: z.literal(ProjectTypeEnum.CLASSIFICATION),

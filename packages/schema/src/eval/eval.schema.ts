@@ -74,8 +74,8 @@ export const evalLimitItemSchema = z.object({
   parameter: z.enum(EvalLimitItemParameterEnum),
   operator: z.enum(EvalLimitItemOperatorEnum), // Operator "after" the limit item, default to AND
   createdAt: timestampsSchema.createdAt,
-  updatedAt: timestampsSchema.updatedAt,
-});
+  updatedAt: timestampsSchema.updatedAt
+})
 // .refine((limitItem) => limitItem.limitFrom !== null || limitItem.limitTo !== null, {
 //   message: "At least one of limitFrom or limitTo must be provided"
 // })
@@ -110,6 +110,25 @@ export const evalTestCaseDetailSchema = evalTestCaseSchema.extend({
   logicNodes: evalLogicNodeSchema.array(), // [] by default
 });
 
+export const evalThresholdSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  color: z.string(),
+  value: z.number(),
+  createdAt: timestampsSchema.createdAt,
+  updatedAt: timestampsSchema.updatedAt
+})
+
+export const evalTestCaseThresholdSchema = evalTestCaseSchema.pick({
+  id: true,
+  name: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  thresholds: evalThresholdSchema.array()
+})
+
+
 /**
  * API schemas
  */
@@ -128,22 +147,26 @@ export const evalTestCaseCreateOrUpdateSchema = evalTestCaseDetailSchema
 // For creating and updating limits. BE does the diff check for limit items,
 // existing/updated limit items will be sent with their IDs, new limit items with ID null
 // BE deletes limit items which were not sent
-export const evalLimitCreateOrUpdateSchema = evalLimitSchema
-  .pick({
-    name: true,
-  })
-  .extend({
-    targetLabelId: z.number(),
-    targetParentLabelId: z.number().nullable(),
-    limitItems: evalLimitItemSchema
-      .pick({
-        limitFrom: true,
-        limitTo: true,
-        parameter: true,
-        operator: true,
-      })
-      .extend({
-        id: z.uuidv7().nullable(), // Added items will have ID null
-      })
-      .array(),
-  });
+ export const evalLimitCreateOrUpdateSchema = evalLimitSchema.pick({
+   name: true,
+ }).extend({
+   targetLabelId: z.number(),
+   targetParentLabelId: z.number().nullable(),
+   limitItems: evalLimitItemSchema.pick({
+     limitFrom: true,
+     limitTo: true,
+     parameter: true,
+     operator: true
+   })
+   .extend({
+     id: z.uuidv7().nullable() // Added items will have ID null
+   })
+   .array()
+ })
+
+
+ export const evalThresholdCreateOrUpdateSchema = evalThresholdSchema.pick({
+   name: true,
+   color: true,
+   value: true
+ })
