@@ -3,6 +3,42 @@ import { timestampsSchema } from "../helpers";
 import { labelSchema } from "../label";
 
 /**
+ * EVAL logic entities
+ */
+
+export enum EvalLogicNodeTypeEnum {
+  GROUP = 'GROUP',
+  LIMIT = 'LIMIT',
+  OPERATOR = 'OPERATOR'
+}
+
+export enum EvalLogicNodeOperatorValueEnum {
+  AND = 'AND',
+  OR = 'OR',
+  NOT = 'NOT'
+}
+
+export const evalLogicNodeSchema = z.union([
+  z.object({
+    id: z.uuidv7(),
+    type: z.literal(EvalLogicNodeTypeEnum.GROUP),
+    get children(){
+      return z.array(evalLogicNodeSchema)
+    }
+  }),
+  z.object({
+    id: z.uuidv7(),
+    type: z.literal(EvalLogicNodeTypeEnum.LIMIT),
+  }),
+  z.object({
+    id: z.uuidv7(),
+    type: z.literal(EvalLogicNodeTypeEnum.OPERATOR),
+    operatorValue: z.enum(EvalLogicNodeOperatorValueEnum),
+  }),
+])
+
+
+/**
  * EVAL entities
  */
 
@@ -37,7 +73,7 @@ export const evalLimitItemSchema = z.object({
   limitFrom: z.number().nullable(),
   limitTo: z.number().nullable(),
   parameter: z.enum(EvalLimitItemParameterEnum),
-  operator: z.enum(EvalLimitItemOperatorEnum), // Operator "after" the limit item
+  operator: z.enum(EvalLimitItemOperatorEnum), // Operator "after" the limit item, default to AND
   createdAt: timestampsSchema.createdAt,
   updatedAt: timestampsSchema.updatedAt
 }).refine((limitItem) => limitItem.limitFrom !== null || limitItem.limitTo !== null, {
@@ -70,37 +106,41 @@ export const evalTestCaseSchema = z.object({
   updatedAt: timestampsSchema.updatedAt
 })
 
+export const evalTestCaseDetailSchema = evalTestCaseSchema.extend({
+  logicNodes: evalLogicNodeSchema.array(), // [] by default
+})
+
 
 /**
- * EVAL logic entities
+ * API schemas
  */
 
-export enum EvalLogicNodeTypeEnum {
-  GROUP = 'GROUP',
-  LIMIT = 'LIMIT',
-  OPERATOR = 'OPERATOR'
-}
+ // For creating and updating test cases. BE ignores logic nodes if not present, otherwise updates
+ export const evalTestCaseCreateOrUpdateSchema = evalTestCaseDetailSchema.pick({
+   name: true,
+   type: true,
+   severity: true,
+ }).extend({
+   logicNodes: evalLogicNodeSchema.array().optional()
+ })
 
-export enum EvalLogicNodeOperatorValueEnum {
-  AND = 'AND',
-  OR = 'OR',
-  NOT = 'NOT'
-}
 
-export const evalLogicNodeSchema = z.union([
-  z.object({
-    id: z.uuidv7(),
-    type: z.union([z.literal(EvalLogicNodeTypeEnum.GROUP), z.literal(EvalLogicNodeTypeEnum.LIMIT)]),
-    get children(){
-      return z.array(evalLogicNodeSchema)
-    }
-  }),
-  z.object({
-    id: z.uuidv7(),
-    type: z.literal(EvalLogicNodeTypeEnum.OPERATOR),
-    operatorValue: z.enum(EvalLogicNodeOperatorValueEnum),
-    get children(){
-      return z.array(evalLogicNodeSchema)
-    }
-  }),
-])
+// For creating and updating limits. BE does the diff check for limit items,
+// existing/updated limit items will be sent with their IDs, new limit items with ID null
+// BE deletes limit items which were not sent
+ export const evalLimitCreateOrUpdateSchema = evalLimitSchema.pick({
+   name: true,
+ }).extend({
+   targetLabelId: z.number(),
+   targetParentLabelId: z.number().nullable(),
+   limitItems: evalLimitItemSchema.pick({
+     limitFrom: true,
+     limitTo: true,
+     parameter: true,
+     operator: true
+   })
+   .extend({
+     id: z.uuidv7().nullable() // Added items will have ID null
+   })
+   .array()
+ })
