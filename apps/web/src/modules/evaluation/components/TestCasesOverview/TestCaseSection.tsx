@@ -22,10 +22,7 @@ interface TestCaseSectionProps {
   projectId: number;
 }
 
-export function TestCaseSection({
-  testCase,
-  projectId,
-}: TestCaseSectionProps) {
+export function TestCaseSection({ testCase, projectId }: TestCaseSectionProps) {
   const { data: limits = [] } = useGetEvalLimitsQuery({
     projectId,
     testCaseId: testCase.id,
@@ -66,7 +63,11 @@ export function TestCaseSection({
 
   const handleConfirmDelete = () => {
     if (!limitToDeleteId) return;
-    deleteEvalLimit({ projectId, testCaseId: testCase.id, limitId: limitToDeleteId })
+    deleteEvalLimit({
+      projectId,
+      testCaseId: testCase.id,
+      limitId: limitToDeleteId,
+    })
       .unwrap()
       .then(() => setLimitToDeleteId(null));
   };
@@ -114,14 +115,16 @@ export function TestCaseSection({
         <DataTable data={limits} columns={columns} enableRowSelection />
       </CardContent>
 
-      <CreateLimitModal
-        projectId={projectId}
-        testCaseId={testCase.id}
-        open={isCreateLimitOpen}
-        onOpenChange={setIsCreateLimitOpen}
-      />
+      {isCreateLimitOpen && (
+        <CreateLimitModal
+          projectId={projectId}
+          testCaseId={testCase.id}
+          open={true}
+          onOpenChange={setIsCreateLimitOpen}
+        />
+      )}
 
-      {limitToEdit && (
+      {limitToEditId && limitToEdit && (
         <UpdateLimitModal
           projectId={projectId}
           testCaseId={testCase.id}

@@ -1,70 +1,45 @@
-import { Label } from "@/modules/shadcn/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/modules/shadcn/ui/select";
-import type { FormInstance, LabelOption } from "./types";
+import { useTypedAppFormContext } from "@/core/form";
+import { limitFormOptions } from "./limitForm.options";
+import type { LabelOption } from "./types";
 
 type SetupSectionProps = {
-  form: FormInstance;
   labelOptions: LabelOption[];
 };
 
-export function SetupSection({ form, labelOptions }: SetupSectionProps) {
+export function SetupSection({ labelOptions }: SetupSectionProps) {
+  const form = useTypedAppFormContext({ ...limitFormOptions });
+
   return (
     <section className="flex flex-col gap-3">
       <h6 className="text-sm font-bold">Setup</h6>
       <div className="flex gap-3">
-        <form.Field name="targetLabelId">
-          {(field) => (
-            <div className="flex flex-1 flex-col gap-2">
-              <Label className="text-xs text-muted-foreground">Label</Label>
-              <Select
-                value={String(field.state.value || "")}
-                onValueChange={(v) => field.handleChange(Number(v))}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select label" />
-                </SelectTrigger>
-                <SelectContent>
-                  {labelOptions.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>
-                      {o.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-        </form.Field>
+        <div className="flex-1">
+          <form.AppField name="targetLabelId">
+            {(field) => (
+              <field.SelectInput
+                label="Label"
+                placeholder="Select label"
+                options={labelOptions}
+                parseValue={(v) => Number(v)}
+                formatValue={(v) => String(v || "")}
+              />
+            )}
+          </form.AppField>
+        </div>
 
-        <form.Field name="targetParentLabelId">
-          {(field) => (
-            <div className="flex flex-1 flex-col gap-2">
-              <Label className="text-xs text-muted-foreground">Parent Label</Label>
-              <Select
-                value={String(field.state.value ?? "")}
-                onValueChange={(v) =>
-                  field.handleChange(v === "" ? null : Number(v))
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select label" />
-                </SelectTrigger>
-                <SelectContent>
-                  {labelOptions.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>
-                      {o.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-        </form.Field>
+        <div className="flex-1">
+          <form.AppField name="targetParentLabelId">
+            {(field) => (
+              <field.SelectInput
+                label="Parent Label"
+                placeholder="Select label"
+                options={labelOptions}
+                parseValue={(v) => (v === "" ? null : Number(v))}
+                formatValue={(v) => String(v ?? "")}
+              />
+            )}
+          </form.AppField>
+        </div>
       </div>
     </section>
   );

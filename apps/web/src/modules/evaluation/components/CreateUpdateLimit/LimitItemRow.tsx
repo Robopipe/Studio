@@ -1,92 +1,83 @@
+import { useTypedAppFormContext } from "@/core/form";
 import { Button } from "@/modules/shadcn/ui/button";
-import { Label } from "@/modules/shadcn/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/modules/shadcn/ui/select";
 import { EvalLimitItemParameterEnum } from "@repo/schema";
-import type { AnyFieldApi } from "@tanstack/react-form";
 import { Trash2Icon } from "lucide-react";
 import { parameterLabel, parameterUnit } from "../../utils/limitFormatters";
-import { LimitInput } from "./LimitInput";
+import { limitFormOptions } from "./limitForm.options";
 import { PositionButton } from "./PositionButton";
 
-const parameterOptions = Object.values(EvalLimitItemParameterEnum);
+const parameterOptions = Object.values(EvalLimitItemParameterEnum).map((p) => ({
+  value: p,
+  label: parameterLabel[p] ?? p,
+}));
+
 const isPositionParam = (p: string) => p.startsWith("POS_");
 
 type LimitItemRowProps = {
   index: number;
-  field: AnyFieldApi;
   onDelete: () => void;
 };
 
-export function LimitItemRow({ index, field, onDelete }: LimitItemRowProps) {
-  const value = field.state.value;
-  const parameter = value.parameter as EvalLimitItemParameterEnum;
-  const unit = parameterUnit[parameter] ?? "%";
+export function LimitItemRow({ index, onDelete }: LimitItemRowProps) {
+  const form = useTypedAppFormContext({ ...limitFormOptions });
   const showLabels = index === 0;
-  const showPosition = isPositionParam(parameter);
-
-  const handleChange = (patch: Record<string, unknown>) =>
-    field.handleChange({ ...value, ...patch });
 
   return (
-    <div className="flex items-end gap-8">
-      <div className="flex shrink-0 items-end gap-3">
-        <LimitInput
-          label={showLabels ? "Limit from" : undefined}
-          value={value.limitFrom}
-          unit={unit}
-          onChange={(v) => handleChange({ limitFrom: v })}
-        />
-        <LimitInput
-          label={showLabels ? "Limit to" : undefined}
-          value={value.limitTo}
-          unit={unit}
-          onChange={(v) => handleChange({ limitTo: v })}
-        />
-      </div>
+    <form.AppField name={`limitItems[${index}].parameter`}>
+      {(paramField) => {
+        const parameter = paramField.state.value as EvalLimitItemParameterEnum;
+        const unit = parameterUnit[parameter] ?? "%";
+        const showPosition = isPositionParam(String(parameter));
 
-      <div className="flex flex-1 items-end gap-3">
-        <div className="flex flex-1 flex-col gap-2">
-          {showLabels && (
-            <Label className="text-xs text-muted-foreground">Parameter</Label>
-          )}
-          <Select
-            value={parameter}
-            onValueChange={(v) =>
-              handleChange({ parameter: v as EvalLimitItemParameterEnum })
-            }
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {parameterOptions.map((p) => (
-                <SelectItem key={p} value={p}>
-                  {parameterLabel[p] ?? p}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        return (
+          <div className="flex items-end gap-8">
+            <div className="flex shrink-0 items-end gap-3">
+              <div className="w-27">
+                <form.AppField name={`limitItems[${index}].limitFrom`}>
+                  {(field) => (
+                    <field.NumberInput
+                      label={showLabels ? "Limit from" : undefined}
+                      unit={unit}
+                    />
+                  )}
+                </form.AppField>
+              </div>
+              <div className="w-27">
+                <form.AppField name={`limitItems[${index}].limitTo`}>
+                  {(field) => (
+                    <field.NumberInput
+                      label={showLabels ? "Limit to" : undefined}
+                      unit={unit}
+                    />
+                  )}
+                </form.AppField>
+              </div>
+            </div>
 
-        {showPosition && <PositionButton />}
+            <div className="flex flex-1 items-end gap-3">
+              <div className="flex-1">
+                <paramField.SelectInput
+                  label={showLabels ? "Parameter" : undefined}
+                  options={parameterOptions}
+                />
+              </div>
 
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          className="shrink-0 text-muted-foreground hover:text-destructive"
-          aria-label="Delete limit"
-          onClick={onDelete}
-        >
-          <Trash2Icon className="text-destructive" />
-        </Button>
-      </div>
-    </div>
+              {showPosition && <PositionButton />}
+
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                className="shrink-0 text-muted-foreground hover:text-destructive"
+                aria-label="Delete limit"
+                onClick={onDelete}
+              >
+                <Trash2Icon className="text-destructive" />
+              </Button>
+            </div>
+          </div>
+        );
+      }}
+    </form.AppField>
   );
 }

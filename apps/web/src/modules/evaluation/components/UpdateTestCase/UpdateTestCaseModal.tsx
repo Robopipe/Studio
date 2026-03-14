@@ -5,8 +5,6 @@ import {
   DialogContent,
   DialogTitle,
 } from "@/modules/shadcn/ui/dialog";
-import { Input } from "@/modules/shadcn/ui/input";
-import { Label } from "@/modules/shadcn/ui/label";
 import { EvalLimit, EvalTestCaseDetail, EvalTestCaseSeverityEnum, EvalTestCaseTypeEnum } from "@repo/schema";
 import { useRef } from "react";
 import { ToggleGroupField } from "../CreateTestCase/ToggleGroupField";
@@ -55,82 +53,72 @@ export const UpdateTestCaseModal = ({
       <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogTitle className="text-xl font-semibold">Edit Test case</DialogTitle>
 
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            form.handleSubmit();
-          }}
-          className="flex flex-col gap-6"
-        >
-          {/* General section */}
-          <div className="flex flex-col gap-3">
-            <h6 className="text-sm font-bold">General</h6>
+        <form.AppForm>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              form.handleSubmit();
+            }}
+            className="flex flex-col gap-6"
+          >
+            <div className="flex flex-col gap-3">
+              <h6 className="text-sm font-bold">General</h6>
 
-            <form.Field name="name">
-              {(field) => (
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="tc-name">Name</Label>
-                  <Input
-                    id="tc-name"
-                    placeholder="Test case name"
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    onBlur={field.handleBlur}
-                  />
-                </div>
-              )}
-            </form.Field>
-
-            <div className="flex gap-8">
-              <form.Field name="type">
+              <form.AppField name="name">
                 {(field) => (
-                  <div className="flex flex-col gap-1.5">
-                    <Label>Type</Label>
+                  <field.TextInput label="Name" placeholder="Test case name" />
+                )}
+              </form.AppField>
+
+              <div className="flex gap-8">
+                <form.AppField name="type">
+                  {() => (
                     <ToggleGroupField
+                      label="Type"
                       options={[...typeOptions]}
-                      value={field.state.value}
-                      onChange={field.handleChange}
                     />
-                  </div>
-                )}
-              </form.Field>
+                  )}
+                </form.AppField>
 
-              <form.Field name="severity">
-                {(field) => (
-                  <div className="flex flex-col gap-1.5">
-                    <Label>If not fulfilled</Label>
+                <form.AppField name="severity">
+                  {() => (
                     <ToggleGroupField
+                      label="If not fulfilled"
                       options={[...severityOptions]}
-                      value={field.state.value}
-                      onChange={field.handleChange}
                     />
-                  </div>
-                )}
-              </form.Field>
+                  )}
+                </form.AppField>
+              </div>
             </div>
-          </div>
 
-          {/* Logic builder section */}
-          <div className="flex flex-col gap-2">
-            <h6 className="text-sm font-bold">Logic</h6>
-            <LogicBuilder
-              testCase={testCase}
-              availableLimits={availableLimits.length > 0 ? availableLimits : testCase.limits}
-              builderRef={(state) => { builderStateRef.current = state; }}
-            />
-          </div>
+            <div className="flex flex-col gap-2">
+              <h6 className="text-sm font-bold">Logic</h6>
+              <LogicBuilder
+                testCase={testCase}
+                availableLimits={
+                  availableLimits.length > 0
+                    ? availableLimits
+                    : testCase.limits
+                }
+                builderRef={(state) => {
+                  builderStateRef.current = state;
+                }}
+              />
+            </div>
 
-          {/* Footer */}
-          <div className="flex justify-end gap-2">
-            <DialogClose render={<Button type="button" variant="outline" size="lg" />}>
-              Cancel
-            </DialogClose>
-            <Button type="submit" size="lg" disabled={isSubmitting}>
-              Save
-            </Button>
-          </div>
-        </form>
+            <div className="flex justify-end gap-2">
+              <DialogClose
+                render={<Button type="button" variant="outline" size="lg" />}
+              >
+                Cancel
+              </DialogClose>
+              <Button type="submit" size="lg" disabled={isSubmitting}>
+                Save
+              </Button>
+            </div>
+          </form>
+        </form.AppForm>
       </DialogContent>
     </Dialog>
   );

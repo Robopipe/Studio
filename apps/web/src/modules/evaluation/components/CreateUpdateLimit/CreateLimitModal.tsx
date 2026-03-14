@@ -39,27 +39,29 @@ export const CreateLimitModal = ({
           <DialogTitle className="text-xl font-semibold">Add Limit</DialogTitle>
         </DialogHeader>
 
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            form.handleSubmit();
-          }}
-          className="flex flex-col gap-8"
-        >
-          <GeneralSection form={form} />
-          <SetupSection form={form} labelOptions={[...labelOptions]} />
-          <LimitsSection form={form} />
+        <form.AppForm>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              form.handleSubmit();
+            }}
+            className="flex flex-col gap-8"
+          >
+            <GeneralSection />
+            <SetupSection labelOptions={[...labelOptions]} />
+            <LimitsSection />
 
-          <DialogFooter>
-            <DialogClose render={<Button type="button" variant="outline" />}>
-              Cancel
-            </DialogClose>
-            <Button type="submit" disabled={isSubmitting}>
-              Save
-            </Button>
-          </DialogFooter>
-        </form>
+            <DialogFooter>
+              <DialogClose render={<Button type="button" variant="outline" />}>
+                Cancel
+              </DialogClose>
+              <Button type="submit" disabled={isSubmitting}>
+                Save
+              </Button>
+            </DialogFooter>
+          </form>
+        </form.AppForm>
       </DialogContent>
     </Dialog>
   );

@@ -1,3 +1,4 @@
+import { useFieldContext } from "@/core/form/hooks/useFormContext";
 import {
   Select,
   SelectContent,
@@ -12,21 +13,15 @@ const operatorOptions = [
   { label: "Or", value: EvalLimitItemOperatorEnum.OR },
 ] as const;
 
-type LogicalOperatorSelectProps = {
-  value: EvalLimitItemOperatorEnum | undefined;
-  onChange: (value: EvalLimitItemOperatorEnum) => void;
-};
+export function LogicalOperatorSelect() {
+  const field = useFieldContext<EvalLimitItemOperatorEnum>();
 
-export function LogicalOperatorSelect({
-  value = EvalLimitItemOperatorEnum.AND,
-  onChange,
-}: LogicalOperatorSelectProps) {
   return (
     <div className="flex items-center gap-1.5">
       <span className="text-xs text-muted-foreground">Logical operator</span>
       <Select
-        value={value}
-        onValueChange={(v) => onChange(v as EvalLimitItemOperatorEnum)}
+        value={field.state.value ?? EvalLimitItemOperatorEnum.AND}
+        onValueChange={(v) => field.handleChange(v as EvalLimitItemOperatorEnum)}
       >
         <SelectTrigger
           size="sm"

@@ -1,6 +1,6 @@
 import { Button } from "@/modules/shadcn/ui/button";
 import { Skeleton } from "@/modules/shadcn/ui/skeleton";
-import { PlusIcon, SaveIcon } from "lucide-react";
+import { PlusIcon } from "lucide-react";
 import { useState } from "react";
 import { useGetEvalTestCasesQuery } from "../../api/evaluationApi";
 import { CreateTestCaseModal } from "../CreateTestCase";
@@ -59,34 +59,20 @@ export const TestCasesOverviewPage = ({
       </div>
 
       {testCases.map((tc) => (
-        <TestCaseSection
-          key={tc.id}
-          testCase={tc}
-          projectId={projectId}
-        />
+        <TestCaseSection key={tc.id} testCase={tc} projectId={projectId} />
       ))}
 
       {testCases.length === 0 && (
         <EmptyTestCasesState onAddTestCase={() => setIsCreateModalOpen(true)} />
       )}
 
-      {testCases.length > 0 && (
-        <>
-          <hr className="border-border" />
-          <div className="flex justify-end">
-            <Button size="lg">
-              <SaveIcon className="size-4 text-primary-foreground" />
-              Save
-            </Button>
-          </div>
-        </>
+      {isCreateModalOpen && (
+        <CreateTestCaseModal
+          projectId={projectId}
+          open={true}
+          onOpenChange={setIsCreateModalOpen}
+        />
       )}
-
-      <CreateTestCaseModal
-        projectId={projectId}
-        open={isCreateModalOpen}
-        onOpenChange={setIsCreateModalOpen}
-      />
     </div>
   );
 };

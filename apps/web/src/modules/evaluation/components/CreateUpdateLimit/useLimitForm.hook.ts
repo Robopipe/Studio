@@ -1,15 +1,11 @@
-import { EvalLimitDetail, EvalLimitItemOperatorEnum, EvalLimitItemParameterEnum } from "@repo/schema";
-import { useForm } from "@tanstack/react-form";
-import { useCreateEvalLimitMutation, useUpdateEvalLimitMutation } from "../../api/evaluationApi";
-import { createLimitFormSchema, type CreateLimitFormSchema, type LimitItemFormSchema } from "../../types/createLimitForm.schema";
-
-export const emptyLimitItem: LimitItemFormSchema = {
-  id: null,
-  limitFrom: null,
-  limitTo: null,
-  parameter: EvalLimitItemParameterEnum.AREA,
-  operator: EvalLimitItemOperatorEnum.AND,
-};
+import { useAppForm } from "@/core/form";
+import { EvalLimitDetail } from "@repo/schema";
+import {
+  useCreateEvalLimitMutation,
+  useUpdateEvalLimitMutation,
+} from "../../api/evaluationApi";
+import { type CreateLimitFormSchema } from "../../types/createLimitForm.schema";
+import { limitFormOptions } from "./limitForm.options";
 
 type CreateOptions = {
   projectId: number;
@@ -46,32 +42,31 @@ function toFormValues(limit: EvalLimitDetail): CreateLimitFormSchema {
   };
 }
 
-const createDefaultValues: CreateLimitFormSchema = {
-  name: "",
-  targetLabelId: 0,
-  targetParentLabelId: null,
-  limitItems: [{ ...emptyLimitItem }],
-};
-
 export function useLimitForm(options: LimitFormOptions) {
   const [createLimit, { isLoading: isCreating }] = useCreateEvalLimitMutation();
   const [updateLimit, { isLoading: isUpdating }] = useUpdateEvalLimitMutation();
 
   const defaultValues = isUpdate(options)
     ? toFormValues(options.initialValues)
-    : createDefaultValues;
+    : limitFormOptions.defaultValues;
 
-  const form = useForm({
-    defaultValues: defaultValues satisfies CreateLimitFormSchema as CreateLimitFormSchema,
-    validators: {
-      onChange: createLimitFormSchema,
-      onSubmit: createLimitFormSchema,
-    },
+  const form = useAppForm({
+    ...limitFormOptions,
+    defaultValues,
     onSubmit: async ({ value }) => {
       if (isUpdate(options)) {
-        await updateLimit({ projectId: options.projectId, testCaseId: options.testCaseId, limitId: options.limitId, body: value }).unwrap();
+        await updateLimit({
+          projectId: options.projectId,
+          testCaseId: options.testCaseId,
+          limitId: options.limitId,
+          body: value,
+        }).unwrap();
       } else {
-        await createLimit({ projectId: options.projectId, testCaseId: options.testCaseId, body: value }).unwrap();
+        await createLimit({
+          projectId: options.projectId,
+          testCaseId: options.testCaseId,
+          body: value,
+        }).unwrap();
       }
       options.onSuccess();
     },

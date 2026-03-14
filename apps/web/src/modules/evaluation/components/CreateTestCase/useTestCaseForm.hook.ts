@@ -1,7 +1,11 @@
-import { EvalLogicNode, EvalTestCaseDetail, EvalTestCaseSeverityEnum, EvalTestCaseTypeEnum } from "@repo/schema";
-import { useForm } from "@tanstack/react-form";
-import { useCreateEvalTestCaseMutation, useUpdateEvalTestCaseMutation } from "../../api/evaluationApi";
-import { createTestCaseFormSchema, type CreateTestCaseFormSchema } from "../../types/createTestCaseForm.schema";
+import { useAppForm } from "@/core/form";
+import { EvalLogicNode, EvalTestCaseDetail } from "@repo/schema";
+import {
+  useCreateEvalTestCaseMutation,
+  useUpdateEvalTestCaseMutation,
+} from "../../api/evaluationApi";
+import { type CreateTestCaseFormSchema } from "../../types/createTestCaseForm.schema";
+import { testCaseFormOptions } from "./testCaseForm.options";
 
 type CreateOptions = {
   projectId: number;
@@ -26,28 +30,27 @@ function isUpdate(options: TestCaseFormOptions): options is UpdateOptions {
   return "testCaseId" in options && options.testCaseId !== undefined;
 }
 
-const createDefaultValues: CreateTestCaseFormSchema = {
-  name: "",
-  type: EvalTestCaseTypeEnum.CHECK,
-  severity: EvalTestCaseSeverityEnum.ALERT,
-};
-
 function toFormValues(testCase: EvalTestCaseDetail): CreateTestCaseFormSchema {
-  return { name: testCase.name, type: testCase.type, severity: testCase.severity };
+  return {
+    name: testCase.name,
+    type: testCase.type,
+    severity: testCase.severity,
+  };
 }
 
 export function useTestCaseForm(options: TestCaseFormOptions) {
-  const [createTestCase, { isLoading: isCreating }] = useCreateEvalTestCaseMutation();
-  const [updateTestCase, { isLoading: isUpdating }] = useUpdateEvalTestCaseMutation();
+  const [createTestCase, { isLoading: isCreating }] =
+    useCreateEvalTestCaseMutation();
+  const [updateTestCase, { isLoading: isUpdating }] =
+    useUpdateEvalTestCaseMutation();
 
-  const form = useForm({
-    defaultValues: isUpdate(options)
-      ? toFormValues(options.initialValues)
-      : createDefaultValues,
-    validators: {
-      onChange: createTestCaseFormSchema,
-      onSubmit: createTestCaseFormSchema,
-    },
+  const defaultValues = isUpdate(options)
+    ? toFormValues(options.initialValues)
+    : testCaseFormOptions.defaultValues;
+
+  const form = useAppForm({
+    ...testCaseFormOptions,
+    defaultValues,
     onSubmit: async ({ value }) => {
       if (isUpdate(options)) {
         await updateTestCase({
@@ -56,7 +59,10 @@ export function useTestCaseForm(options: TestCaseFormOptions) {
           body: { ...value, logicNodes: options.getLogicNodes() },
         }).unwrap();
       } else {
-        await createTestCase({ projectId: options.projectId, body: value }).unwrap();
+        await createTestCase({
+          projectId: options.projectId,
+          body: value,
+        }).unwrap();
       }
       options.onSuccess();
     },
