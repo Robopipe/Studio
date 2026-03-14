@@ -16,7 +16,7 @@ export function SetupSection({ labelOptions }: SetupSectionProps) {
         <div className="flex-1">
           <form.AppField name="targetLabelId">
             {(field) => (
-              <field.SelectInput
+              <field.Combobox
                 label="Label"
                 placeholder="Select label"
                 options={labelOptions}
@@ -30,11 +30,12 @@ export function SetupSection({ labelOptions }: SetupSectionProps) {
         <div className="flex-1">
           <form.AppField name="targetParentLabelId">
             {(field) => (
-              <field.SelectInput
+              <field.Combobox
                 label="Parent Label"
                 placeholder="Select label"
                 options={labelOptions}
-                parseValue={(v) => (v === "" ? null : Number(v))}
+                deselectable
+                parseValue={(v) => Number(v)}
                 formatValue={(v) => String(v ?? "")}
               />
             )}

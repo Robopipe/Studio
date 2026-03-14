@@ -44,15 +44,15 @@ export function LimitChip({ node, hasNot }: LimitChipProps) {
       {/* NOT toggle — animates from zero width to full width on hover */}
       <div
         className={cn(
-          "overflow-hidden transition-[max-width] duration-200",
-          hasNot ? "max-w-12" : "max-w-0 group-hover/chip:max-w-12",
+          "overflow-hidden transition-[max-width] duration-200 grayscale-100 opacity-50",
+          hasNot ? "max-w-12 grayscale-0 opacity-100" : "max-w-0 group-hover/chip:max-w-12",
         )}
       >
         <Button
           size="xs"
           variant="destructive"
           onClick={handleNotClick}
-          className="whitespace-nowrap rounded py-0.5 px-1"
+          className="whitespace-nowrap rounded py-0.5 px-1 "
         >
           not
         </Button>
