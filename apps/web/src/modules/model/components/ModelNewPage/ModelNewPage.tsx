@@ -1,5 +1,5 @@
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
-import { Label, ModelOutputTypeEnum } from "@repo/schema";
+import { Label, ModelOutputTypeEnum, ProjectTypeEnum } from "@repo/schema";
 import { Button, NumberInput, Stack, Text, TextInput } from "@repo/ui";
 import { useState } from "react";
 import { useNavigate } from "react-router";
@@ -10,6 +10,7 @@ import {
 } from "../AugmentationSettings";
 import { DatasetSplit, DatasetSplitSettings } from "../DatasetSplitSettings";
 import { ModelLayout } from "../ModelLayout/ModelLayout";
+import { ModelTypeSettings } from "../ModelTypeSettings";
 import { OutputSettings } from "../OutputSettings";
 import { SourceImagesSettings } from "../SourceImagesSettings";
 import styles from "./ModelNewPage.module.scss";
@@ -33,6 +34,12 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
     test: 10,
   });
   const [augmentations, setAugmentations] = useState<AppliedAugmentation[]>([]);
+  const [trainingType, setTrainingType] = useState<ProjectTypeEnum>(
+    activeProject?.type ?? ProjectTypeEnum.DETECTION,
+  );
+  const [annotationsUsed, setAnnotationsUsed] = useState<ProjectTypeEnum[]>(
+    activeProject ? [activeProject.type] : [ProjectTypeEnum.DETECTION],
+  );
 
   const saveModel = async (train = false) => {
     const newModel = await createModel({
@@ -44,6 +51,8 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
       splitTrain: datasetSplit.train,
       splitValidate: datasetSplit.validation,
       outputTypes: outputs,
+      trainingType,
+      annotationsUsed,
       augmentations
     }).unwrap();
     if (train) {
@@ -84,6 +93,12 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
             style={{ width: "30%" }}
           />
         </Stack>
+        <ModelTypeSettings
+          trainingType={trainingType}
+          annotationsUsed={annotationsUsed}
+          onTrainingTypeChange={setTrainingType}
+          onAnnotationsUsedChange={setAnnotationsUsed}
+        />
         <SourceImagesSettings
           setActiveLabels={setActiveLabels}
           activeLabels={activeLabels}
