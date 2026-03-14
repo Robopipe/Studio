@@ -117,3 +117,4 @@ Requires: pnpm v10.28+, Node >= 18, PostgreSQL 16+, Python 3.11 (for ML)
 - TypeScript strict mode with decorator metadata support (API)
 - Zod for all validation (shared via `@repo/schema`), never use class-validator
 - SCSS modules for styling (web and UI package), not CSS-in-JS
+- **Do NOT use `@repo/ui` (packages/ui) for web UI components** — use the shadcn module inside `apps/web` instead

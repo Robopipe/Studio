@@ -14,8 +14,9 @@ import { EvaluationPage } from "../EvaluationPage";
 
 import styles from "./DashboardPage.module.scss";
 import { DashboardRuntimePage } from "../DashboardRuntimePage";
+import { TestCasesOverviewPage } from "@/modules/evaluation";
 
-type RightPanelTab = "custom" | "configuration" | "evaluation";
+type RightPanelTab = "custom" | "configuration" | "evaluation" | "test-cases";
 
 export const DashboardPage = () => {
   const { projectId: projectIdParam } = useParams<{ projectId: string }>();
@@ -176,6 +177,12 @@ export const DashboardPage = () => {
                     <Text variant="text-14" weight="500">Configuration</Text>
                   </button>
                   <button
+                    className={clsx(styles.tab, rightTab === "test-cases" && styles.active)}
+                    onClick={() => setRightTab("test-cases")}
+                  >
+                    <Text variant="text-14" weight="500">Test cases</Text>
+                  </button>
+                  <button
                     className={clsx(styles.tab, rightTab === "evaluation" && styles.active)}
                     onClick={() => setRightTab("evaluation")}
                   >
@@ -194,6 +201,9 @@ export const DashboardPage = () => {
                 )}
                 {rightTab === "evaluation" && (
                   <EvaluationPage projectId={projectId} configId={selectedConfigId} />
+                )}
+                {rightTab === "test-cases" && (
+                  <TestCasesOverviewPage projectId={projectId} />
                 )}
               </div>
             </Stack>
