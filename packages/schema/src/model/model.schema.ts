@@ -46,10 +46,12 @@ export const modelSchema = z.object({
   ...timestampsSchema,
 });
 
-export const modelLogMetricsSchema = z.object({
-  accuracy: z.number(),
-  loss: z.number(),
-});
+export const modelLogMetricsSchema = z
+  .object({
+    accuracy: z.number(),
+    loss: z.number(),
+  })
+  .loose();
 
 export const modelLogSchema = z.object({
   id: z.number(),
