@@ -53,20 +53,30 @@ def get_model_params(model_config: ModelConfig) -> tuple[dict, dict]:
 def get_trainer_hyperparams(model_config: ModelConfig) -> dict:
     """Return training hyperparameters tuned per model type.
 
-    Detection uses TripleLRSGDStrategy (YOLO-style 3-param-group SGD with
-    built-in warmup + cosine annealing) which handles both exploding
-    gradients and plateau avoidance natively.
+    Detection and segmentation both use AdamW with warm-restart cosine
+    annealing and norm-based gradient clipping.
 
-    Segmentation uses AdamW with warm-restart cosine annealing.
+    AdamW's per-parameter adaptive LR handles noisy gradients from small
+    datasets better than SGD.  Warm restarts periodically spike the LR,
+    which helps escape local minima and acts as implicit regularisation
+    (disrupts memorised patterns).
 
-    Both get norm-based gradient clipping as an extra safety net.
+    Detection uses stronger weight decay (0.01) than segmentation (1e-4)
+    because detection losses are more prone to overfitting on small
+    industrial datasets.
     """
     if model_config.type == ModelType.DETECTION:
+        epochs = model_config.training_config.epochs
         return {
             "gradient_clip_val": 1.0,
             "gradient_clip_algorithm": "norm",
-            "training_strategy": {
-                "name": "TripleLRSGDStrategy",
+            "optimizer": {
+                "name": "AdamW",
+                "params": {"lr": 1e-3, "weight_decay": 0.01},
+            },
+            "scheduler": {
+                "name": "CosineAnnealingWarmRestarts",
+                "params": {"T_0": max(10, epochs // 3)},
             },
         }
     elif model_config.type == ModelType.SEGMENTATION:
