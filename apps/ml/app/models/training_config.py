@@ -8,3 +8,4 @@ class TrainingConfig(BaseSchema):
     batch_size: int = 8
     dataset_config: DatasetConfig
     output_types: list[ModelOutputType]
+    custom_hyperparams: dict = {}

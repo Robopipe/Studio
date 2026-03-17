@@ -15,6 +15,7 @@ export class ModelEntity {
   readonly splitTrain: number;
   readonly splitValidate: number;
   readonly splitTest: number;
+  readonly customHyperparams: Record<string, unknown>;
   readonly labels: ProjectLabelEntity[];
   readonly createdAt: Date;
   readonly updatedAt: Date;
@@ -32,6 +33,7 @@ export class ModelEntity {
     this.splitTrain = data.splitTrain;
     this.splitValidate = data.splitValidate;
     this.splitTest = data.splitTest;
+    this.customHyperparams = (data.customHyperparams ?? {}) as Record<string, unknown>;
     this.createdAt = data.createdAt;
     this.updatedAt = data.updatedAt;
     this.deletedAt = data.deletedAt;
@@ -51,6 +53,7 @@ export class ModelEntity {
       splitTrain: this.splitTrain,
       splitValidate: this.splitValidate,
       splitTest: this.splitTest,
+      customHyperparams: this.customHyperparams,
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),
       deletedAt: this.deletedAt ? this.deletedAt.toISOString() : null,

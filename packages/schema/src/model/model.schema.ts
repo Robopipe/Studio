@@ -46,6 +46,7 @@ export const modelSchema = z.object({
   splitTrain: z.number(),
   splitValidate: z.number(),
   splitTest: z.number(),
+  customHyperparams: z.record(z.string(), z.unknown()),
   ...timestampsSchema,
 });
 
@@ -90,6 +91,7 @@ export const createModelSchema = modelSchema
       })
       .array()
       .default([]),
+    customHyperparams: z.record(z.string(), z.unknown()).default({}),
   })
   .refine(
     (data) => {
