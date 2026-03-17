@@ -18,6 +18,7 @@ export const modelTable = p.pgTable("model", {
   splitTrain: p.integer('split_train').notNull(),
   splitValidate: p.integer('split_validate').notNull(),
   splitTest: p.integer('split_test').notNull(),
+  customHyperparams: p.jsonb("custom_hyperparams").notNull().default({}),
   status: modelStatusEnum("status").notNull(),
   projectId: p.integer("project_id").references(() => projectTable.id, {onDelete: 'cascade'}).notNull(),
   ...timestamps
