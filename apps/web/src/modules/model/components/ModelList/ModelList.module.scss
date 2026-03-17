@@ -1,7 +1,9 @@
 .modelList {
   background-color: rgba(0, 0, 0, 0.03);
   border-right: 1px solid rgba(0, 0, 0, 0.12);
-  overflow-y: scroll;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
   padding-top: 0;
 
   .header {
