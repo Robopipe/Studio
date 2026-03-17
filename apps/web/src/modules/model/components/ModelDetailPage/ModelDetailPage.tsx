@@ -1,8 +1,14 @@
-import { ModelStatusEnum } from "@repo/schema";
+import { DeleteLimitDialog } from "@/modules/dashboard/components/DeleteLimitDialog/DeleteLimitDialog";
+import { ModelLog, ModelStatusEnum } from "@repo/schema";
 import { Button, Stack, Text } from "@repo/ui";
-import { useEffect } from "react";
-import { useParams } from "react-router";
-import { useGetModelLogsQuery, useGetModelQuery } from "../../services";
+import { useCallback, useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router";
+import {
+  useDeleteModelMutation,
+  useGetModelLogsQuery,
+  useGetModelQuery,
+  useTrainModelMutation,
+} from "../../services";
 import { ModelLayout } from "../ModelLayout";
 import { ModelLogs } from "../ModelLogs";
 import { TrainingChart } from "../TrainingChart";
@@ -11,7 +17,28 @@ import styles from "./ModelDetailPage.module.scss";
 export interface ModelDetailPageProps {}
 
 export const ModelDetailPage = ({}: ModelDetailPageProps) => {
+  const navigate = useNavigate();
   const { projectId, modelId } = useParams();
+  const [deleteModel, { isLoading: isDeleting }] = useDeleteModelMutation();
+  const [trainModel] = useTrainModelMutation();
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const downloadLogs = useCallback((logs: ModelLog[]) => {
+    const metricKeys = [...new Set(logs.flatMap((log) => Object.keys(log.metrics)))];
+    const header = ["epoch", "timestamp", ...metricKeys].join(",");
+    const rows = logs.map((log) =>
+      [log.epoch, log.createdAt, ...metricKeys.map((key) => log.metrics[key] ?? "")].join(",")
+    );
+    const csv = [header, ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `model-${modelId}-logs.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [modelId]);
+
   const { data: model, refetch: refetchModel } = useGetModelQuery({
     projectId: Number(projectId),
     modelId: Number(modelId),
@@ -21,36 +48,50 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
     modelId: Number(modelId),
   });
 
+  const isTraining = model?.status === ModelStatusEnum.TRAINING;
+  const isActive = isTraining || model?.status === ModelStatusEnum.CONVERTING;
+
   useEffect(() => {
-    let logsInterval: NodeJS.Timeout | null = null;
-    if (!logsInterval && model && model.status === "TRAINING") {
-      logsInterval = setInterval(() => refetchLogs(), 1000);
-    }
+    if (!isTraining) return;
+    const logsInterval = setInterval(() => refetchLogs(), 1000);
+    return () => clearInterval(logsInterval);
+  }, [isTraining, refetchLogs]);
 
-    let modelInterval: NodeJS.Timeout | null = null;
-    if (
-      !modelInterval &&
-      model &&
-      (model.status === "TRAINING" || model.status === "CONVERTING")
-    ) {
-      modelInterval = setInterval(() => refetchModel(), 1000);
-    }
-
-    return () => {
-      if (logsInterval) {
-        clearInterval(logsInterval);
-      }
-      if (modelInterval) {
-        clearInterval(modelInterval);
-      }
-    };
-  }, [model]);
+  useEffect(() => {
+    if (!isActive) return;
+    const modelInterval = setInterval(() => refetchModel(), 3000);
+    return () => clearInterval(modelInterval);
+  }, [isActive, refetchModel]);
 
   return (
     <ModelLayout className={styles.modelDetailPage}>
-      <Text weight="700" className={styles.title} as="p" variant="text-20">
-        {model?.name}
-      </Text>
+      <Stack direction="row" justify="space-between" align="center">
+        <Text weight="700" className={styles.title} as="p" variant="text-20">
+          {model?.name}
+        </Text>
+        <Stack direction="row" justify="end">
+          {logs && logs.length > 0 && (
+            <Button variant="outlined" onClick={() => downloadLogs(logs)}>
+              Download Logs
+            </Button>
+          )}
+          <Button variant="danger" onClick={() => setShowDeleteDialog(true)}>
+            Delete
+          </Button>
+          {model?.status === ModelStatusEnum.DRAFT && (
+            <Button
+              onClick={async () => {
+                await trainModel({
+                  projectId: Number(projectId),
+                  modelId: Number(modelId),
+                }).unwrap();
+              }}
+            >
+              Train
+            </Button>
+          )}
+        </Stack>
+      </Stack>
       <Stack direction="row">
         <TrainingChart
           title="Accuracy"
@@ -72,10 +113,22 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
         />
       </Stack>
       <ModelLogs />
-      <Stack direction="row" justify="end">
-        <Button variant="danger">Delete</Button>
-        {model?.status === ModelStatusEnum.DRAFT && <Button>Train</Button>}
-      </Stack>
+      {showDeleteDialog && (
+        <DeleteLimitDialog
+          title="Delete this model version?"
+          description="This action cannot be undone. All training data and outputs for this version will be permanently deleted."
+          confirmLabel="Delete version"
+          isLoading={isDeleting}
+          onCancel={() => setShowDeleteDialog(false)}
+          onConfirm={async () => {
+            await deleteModel({
+              projectId: Number(projectId),
+              modelId: Number(modelId),
+            }).unwrap();
+            navigate(`/projects/${projectId}/models/new`);
+          }}
+        />
+      )}
     </ModelLayout>
   );
 };
