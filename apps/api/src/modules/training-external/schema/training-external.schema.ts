@@ -53,6 +53,7 @@ export const trainingConfigSchema = z.object({
     labels: z.number().array(),
     augmentations: z.object({type: z.enum(ModelAugmentationTypeEnum), params: z.record(z.string(), z.unknown())}).array()
   }),
+  custom_hyperparams: z.record(z.string(), z.unknown()).default({}),
 });
 
 const basePayload = z.object({

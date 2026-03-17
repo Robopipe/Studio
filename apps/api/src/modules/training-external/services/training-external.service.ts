@@ -227,6 +227,7 @@ export class TrainingExternalService {
           labels: model.labels.map((_, index) => index),
           augmentations
         },
+        custom_hyperparams: model.customHyperparams,
       },
     };
 

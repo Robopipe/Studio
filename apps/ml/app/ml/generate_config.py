@@ -130,6 +130,7 @@ def generate_loader_config(model_config: ModelConfig, dir: str) -> dict:
 
 def generate_trainer_config(model_config: ModelConfig) -> dict:
     webhook_url = get_config().webhook_url
+    has_custom = bool(model_config.training_config.custom_hyperparams)
     img_size = (
         (480, 640) if model_config.type != ModelType.CLASSIFICATION else (512, 512)
     )
@@ -141,13 +142,13 @@ def generate_trainer_config(model_config: ModelConfig) -> dict:
     config = {
         "batch_size": model_config.training_config.batch_size,
         "epochs": model_config.training_config.epochs,
-        **get_trainer_hyperparams(model_config),
+        **({} if has_custom else get_trainer_hyperparams(model_config)),
         "n_workers": 8,
         "callbacks": [
             {"name": "ExportOnTrainEnd"},
             {"name": "ArchiveOnTrainEnd"},
             {"name": "LearningRateMonitor", "params": {"logging_interval": "epoch"}},
-            *_get_model_callbacks(model_config),
+            *([] if has_custom else _get_model_callbacks(model_config)),
         ],
         "validation_interval": 1,
         "log_sub_losses": False,
@@ -189,6 +190,17 @@ def generate_tracker_config(model_config: ModelConfig, dir: str) -> dict:
     return config
 
 
+def _deep_merge(base: dict, override: dict) -> dict:
+    """Recursively merge override into base. Override values win."""
+    result = base.copy()
+    for key, value in override.items():
+        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+            result[key] = _deep_merge(result[key], value)
+        else:
+            result[key] = value
+    return result
+
+
 def generate_luxonis_config(model_config: ModelConfig, dir: str) -> str:
     config = {
         "model": generate_model_config(model_config),
@@ -196,5 +208,9 @@ def generate_luxonis_config(model_config: ModelConfig, dir: str) -> str:
         "trainer": generate_trainer_config(model_config),
         "tracker": generate_tracker_config(model_config, dir),
     }
+
+    custom = model_config.training_config.custom_hyperparams
+    if custom:
+        config = _deep_merge(config, custom)
 
     return yaml.dump(config, Dumper=_AnchorDumper)

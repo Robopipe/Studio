@@ -90,6 +90,7 @@ export class ModelService{
       splitTrain: data.splitTrain,
       splitValidate: data.splitValidate,
       splitTest: data.splitTest,
+      customHyperparams: data.customHyperparams,
     })
 
     await this.db.insert(modelLabelTable).values(labels.map((labelId) => ({
@@ -134,6 +135,7 @@ export class ModelService{
       splitTrain: data.splitTrain,
       splitValidate: data.splitValidate,
       splitTest: data.splitTest,
+      customHyperparams: data.customHyperparams,
       status: ModelStatusEnum.DRAFT
     })
 
