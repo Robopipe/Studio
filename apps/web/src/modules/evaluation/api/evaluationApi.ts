@@ -83,6 +83,7 @@ export const evaluationApi = api.injectEndpoints({
       transformResponse: (response) => evalTestCaseDetailSchema.parse(response),
       invalidatesTags: (_result, _error, { projectId }) => [
         { type: apiCacheTags.eval.testCases, id: projectId },
+        { type: apiCacheTags.eval.thresholds, id: projectId },
       ],
     }),
 
@@ -174,6 +175,7 @@ export const evaluationApi = api.injectEndpoints({
       invalidatesTags: (_result, _error, { projectId, testCaseId }) => [
         { type: apiCacheTags.eval.testCases, id: projectId },
         { type: apiCacheTags.eval.testCases, id: testCaseId },
+        { type: apiCacheTags.eval.thresholds, id: projectId },
       ],
     }),
 
