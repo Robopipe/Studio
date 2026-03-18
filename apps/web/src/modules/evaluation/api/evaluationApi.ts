@@ -7,10 +7,13 @@ import {
   EvalTestCase,
   EvalTestCaseCreateOrUpdate,
   EvalTestCaseDetail,
+  EvalTestCaseThreshold,
+  EvalThresholdCreateOrUpdate,
   evalLimitDetailSchema,
   evalLimitSchema,
   evalTestCaseDetailSchema,
   evalTestCaseSchema,
+  evalTestCaseThresholdSchema,
 } from "@repo/schema";
 import { z } from "zod";
 
@@ -80,6 +83,7 @@ export const evaluationApi = api.injectEndpoints({
       transformResponse: (response) => evalTestCaseDetailSchema.parse(response),
       invalidatesTags: (_result, _error, { projectId }) => [
         { type: apiCacheTags.eval.testCases, id: projectId },
+        { type: apiCacheTags.eval.thresholds, id: projectId },
       ],
     }),
 
@@ -171,6 +175,66 @@ export const evaluationApi = api.injectEndpoints({
       invalidatesTags: (_result, _error, { projectId, testCaseId }) => [
         { type: apiCacheTags.eval.testCases, id: projectId },
         { type: apiCacheTags.eval.testCases, id: testCaseId },
+        { type: apiCacheTags.eval.thresholds, id: projectId },
+      ],
+    }),
+
+    // Eval Thresholds
+    getEvalThresholds: builder.query<
+      EvalTestCaseThreshold[],
+      { projectId: number }
+    >({
+      query: ({ projectId }) => `/eval/${projectId}/threshold`,
+      transformResponse: (response) =>
+        z.array(evalTestCaseThresholdSchema).parse(response),
+      providesTags: (_result, _error, { projectId }) => [
+        { type: apiCacheTags.eval.thresholds, id: projectId },
+      ],
+    }),
+
+    createEvalThreshold: builder.mutation<
+      void,
+      { projectId: number; testCaseId: string; body: EvalThresholdCreateOrUpdate }
+    >({
+      query: ({ projectId, testCaseId, body }) => ({
+        url: `/eval/${projectId}/threshold/${testCaseId}`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: (_result, _error, { projectId }) => [
+        { type: apiCacheTags.eval.thresholds, id: projectId },
+      ],
+    }),
+
+    updateEvalThreshold: builder.mutation<
+      void,
+      {
+        projectId: number;
+        testCaseId: string;
+        thresholdId: string;
+        body: EvalThresholdCreateOrUpdate;
+      }
+    >({
+      query: ({ projectId, testCaseId, thresholdId, body }) => ({
+        url: `/eval/${projectId}/threshold/${testCaseId}/${thresholdId}`,
+        method: "PUT",
+        body,
+      }),
+      invalidatesTags: (_result, _error, { projectId }) => [
+        { type: apiCacheTags.eval.thresholds, id: projectId },
+      ],
+    }),
+
+    deleteEvalThreshold: builder.mutation<
+      void,
+      { projectId: number; testCaseId: string; thresholdId: string }
+    >({
+      query: ({ projectId, testCaseId, thresholdId }) => ({
+        url: `/eval/${projectId}/threshold/${testCaseId}/${thresholdId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (_result, _error, { projectId }) => [
+        { type: apiCacheTags.eval.thresholds, id: projectId },
       ],
     }),
   }),
@@ -191,4 +255,8 @@ export const {
   useUpdateEvalLimitMutation,
   useDeleteEvalLimitMutation,
   useDeleteEvalTestCaseMutation,
+  useGetEvalThresholdsQuery,
+  useCreateEvalThresholdMutation,
+  useUpdateEvalThresholdMutation,
+  useDeleteEvalThresholdMutation,
 } = evaluationApi;
