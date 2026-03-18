@@ -10,7 +10,7 @@ import {
   useDeleteDashboardConfigMutation,
 } from "../../services/dashboardConfigApi";
 import { DashboardConfigPage } from "../DashboardConfigPage";
-import { EvaluationPage } from "../EvaluationPage";
+import { EvaluationThresholdsPage } from "@/modules/evaluation";
 
 import styles from "./DashboardPage.module.scss";
 import { DashboardRuntimePage } from "../DashboardRuntimePage";
@@ -200,7 +200,7 @@ export const DashboardPage = () => {
                   <DashboardConfigPage projectId={projectId} configId={selectedConfigId} />
                 )}
                 {rightTab === "evaluation" && (
-                  <EvaluationPage projectId={projectId} configId={selectedConfigId} />
+                  <EvaluationThresholdsPage projectId={projectId} />
                 )}
                 {rightTab === "test-cases" && (
                   <TestCasesOverviewPage projectId={projectId} />
