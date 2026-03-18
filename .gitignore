@@ -67,3 +67,5 @@ storybook-static
 infra/terraform.tfstate
 infra/terraform.tfstate.backup
 infra/.terraform
+
+.claude/settings.local.json
