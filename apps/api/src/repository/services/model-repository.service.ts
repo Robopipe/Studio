@@ -23,6 +23,9 @@ export class ModelRepository {
     const models = await this.db.query.modelTable.findMany({
       where: {
         projectId,
+        deletedAt: {
+          isNull: true
+        },
       },
       with: {
         labels: {
