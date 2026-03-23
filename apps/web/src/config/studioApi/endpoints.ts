@@ -39,10 +39,6 @@ export const studioApiEndpoints = {
         `dashboard-config/${projectId}/configurations`,
       configuration: (projectId: number, configId: number) =>
         `dashboard-config/${projectId}/configurations/${configId}`,
-      items: (projectId: number, configId: number) =>
-        `dashboard-config/${projectId}/configurations/${configId}/items`,
-      item: (projectId: number, configId: number, itemId: number) =>
-        `dashboard-config/${projectId}/configurations/${configId}/items/${itemId}`,
       evaluation: (projectId: number, configId: number) =>
         `dashboard-config/${projectId}/configurations/${configId}/evaluation`,
     },
