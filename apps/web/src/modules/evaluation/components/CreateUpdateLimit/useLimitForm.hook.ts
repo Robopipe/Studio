@@ -9,12 +9,14 @@ import { limitFormOptions } from "./limitForm.options";
 
 type CreateOptions = {
   projectId: number;
+  configId: number;
   testCaseId: string;
   onSuccess: () => void;
 };
 
 type UpdateOptions = {
   projectId: number;
+  configId: number;
   testCaseId: string;
   limitId: string;
   initialValues: EvalLimitDetail;
@@ -57,6 +59,7 @@ export function useLimitForm(options: LimitFormOptions) {
       if (isUpdate(options)) {
         await updateLimit({
           projectId: options.projectId,
+          configId: options.configId,
           testCaseId: options.testCaseId,
           limitId: options.limitId,
           body: value,
@@ -64,6 +67,7 @@ export function useLimitForm(options: LimitFormOptions) {
       } else {
         await createLimit({
           projectId: options.projectId,
+          configId: options.configId,
           testCaseId: options.testCaseId,
           body: value,
         }).unwrap();

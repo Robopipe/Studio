@@ -24,6 +24,7 @@ const severityOptions = [
 
 export type UpdateTestCaseModalProps = {
   projectId: number;
+  configId: number;
   testCase: EvalTestCaseDetail;
   /** All limits available for this project (used as the draggable palette) */
   availableLimits?: EvalLimit[];
@@ -33,6 +34,7 @@ export type UpdateTestCaseModalProps = {
 
 export const UpdateTestCaseModal = ({
   projectId,
+  configId,
   testCase,
   availableLimits = [],
   open,
@@ -42,6 +44,7 @@ export const UpdateTestCaseModal = ({
 
   const { form, isSubmitting } = useTestCaseForm({
     projectId,
+    configId,
     testCaseId: testCase.id,
     initialValues: testCase,
     getLogicNodes: () => builderStateRef.current?.nodes ?? testCase.logicNodes,

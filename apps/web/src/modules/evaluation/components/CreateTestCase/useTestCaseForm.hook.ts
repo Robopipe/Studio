@@ -9,6 +9,7 @@ import { testCaseFormOptions } from "./testCaseForm.options";
 
 type CreateOptions = {
   projectId: number;
+  configId: number;
   testCaseId?: never;
   initialValues?: never;
   getLogicNodes?: never;
@@ -17,6 +18,7 @@ type CreateOptions = {
 
 type UpdateOptions = {
   projectId: number;
+  configId: number;
   testCaseId: string;
   initialValues: EvalTestCaseDetail;
   /** Called at submit time to get the latest logic nodes from the builder */
@@ -55,12 +57,14 @@ export function useTestCaseForm(options: TestCaseFormOptions) {
       if (isUpdate(options)) {
         await updateTestCase({
           projectId: options.projectId,
+          configId: options.configId,
           testCaseId: options.testCaseId,
           body: { ...value, logicNodes: options.getLogicNodes() },
         }).unwrap();
       } else {
         await createTestCase({
           projectId: options.projectId,
+          configId: options.configId,
           body: value,
         }).unwrap();
       }

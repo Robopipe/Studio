@@ -11,14 +11,16 @@ export class EvalTestCaseRepository {
   constructor(@Inject(DB_CONNECTION) private readonly db: DbConnection){}
 
   /**
-   * Get all by project ID
+   * Get all by project ID, optionally filtered by dashboard configuration
    * @param projectId
+   * @param dashboardConfigurationId - optional filter
    * @returns EvalTestCaseEntity[]
    */
-  public async getAllByProjectId(projectId: number): Promise<EvalTestCaseEntity[]>{
+  public async getAllByProjectId(projectId: number, dashboardConfigurationId?: number): Promise<EvalTestCaseEntity[]>{
     const testCases = await this.db.query.evalTestCaseTable.findMany({
       where: {
-        projectId
+        projectId,
+        ...(dashboardConfigurationId !== undefined && { dashboardConfigurationId }),
       },
       columns: {
         logicNodes: false,
@@ -39,14 +41,16 @@ export class EvalTestCaseRepository {
   }
 
   /**
-   * Get all thresholds by project id
+   * Get all thresholds by project id, optionally filtered by dashboard configuration
    * @param projectId
+   * @param dashboardConfigurationId - optional filter
    * @returns EvalTestCaseThresholdEntity[]
    */
-  public async getAllThresholdsByProjectId(projectId: number): Promise<EvalTestCaseThresholdEntity[]>{
+  public async getAllThresholdsByProjectId(projectId: number, dashboardConfigurationId?: number): Promise<EvalTestCaseThresholdEntity[]>{
     const testCases = await this.db.query.evalTestCaseTable.findMany({
       where: {
         projectId,
+        ...(dashboardConfigurationId !== undefined && { dashboardConfigurationId }),
       },
       with: {
         thresholds: {
@@ -98,6 +102,44 @@ export class EvalTestCaseRepository {
   }
 
   /**
+   * Verify test case exists and belongs to the given project and config.
+   * Lightweight query — no relations loaded.
+   * @throws NotFoundException
+   */
+   public async verifyOwnership(id: string, projectId: number, dashboardConfigurationId: number): Promise<void>{
+     const testCase = await this.db.query.evalTestCaseTable.findFirst({
+       where: { id, projectId, dashboardConfigurationId },
+       columns: { id: true },
+     })
+     if(!testCase){
+       throw new NotFoundException('Test case not found')
+     }
+   }
+
+  /**
+   * Get test case detail by id, scoped to project and config.
+   * @throws NotFoundException
+   */
+   public async getDetailOrThrow(id: string, projectId: number, dashboardConfigurationId: number): Promise<EvalTestCaseDetailEntity>{
+     const testCase = await this.db.query.evalTestCaseTable.findFirst({
+       where: { id, projectId, dashboardConfigurationId },
+       with: {
+         limits: {
+           with: {
+             targetLabel: true,
+             targetParentLabel: true
+           },
+           orderBy: (limit) => asc(limit.createdAt)
+         }
+       }
+     })
+     if(!testCase){
+       throw new NotFoundException('Test case not found')
+     }
+     return new EvalTestCaseDetailEntity(testCase as EvalTestCaseDetailSelect)
+   }
+
+  /**
    * Get test case by id and project id
    * @param id
    * @param projectId
@@ -143,14 +185,16 @@ export class EvalTestCaseRepository {
    /**
     * Create test case
     * @param projectId
+    * @param dashboardConfigurationId
     * @param data
     * @throws InternalServerErrorException - Failed creating test case
     * @returns EvalTestCaseDetailEntity
     */
-   public async create(projectId: number, data: EvalTestCaseInsert): Promise<EvalTestCaseDetailEntity>{
+   public async create(projectId: number, dashboardConfigurationId: number, data: EvalTestCaseInsert): Promise<EvalTestCaseDetailEntity>{
      const [createdTestCase] = await this.db.insert(evalTestCaseTable).values({
        ...data,
        projectId,
+       dashboardConfigurationId,
      }).returning()
 
      if(!createdTestCase){

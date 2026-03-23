@@ -16,7 +16,6 @@ import {
   DashboardConfigurationCreateRequest,
   DashboardConfigurationResponse,
   DashboardConfigurationUpdateRequest,
-  DashboardConfigurationWithItemsResponse,
 } from "../dto/dashboard-configuration.dto";
 
 @Controller("dashboard-config/:projectId/configurations")
@@ -34,9 +33,9 @@ export class DashboardConfigurationController {
   public async getById(
     @ProjectId() projectId: number,
     @Param("configId", ParseIntPipe) configId: number,
-  ): Promise<DashboardConfigurationWithItemsResponse> {
+  ): Promise<DashboardConfigurationResponse> {
     const config = await this.dashboardService.getConfigurationById(configId, projectId);
-    return config.toResponseWithItems();
+    return config.toResponse();
   }
 
   @Post()

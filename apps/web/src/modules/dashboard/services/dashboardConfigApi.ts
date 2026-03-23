@@ -4,17 +4,13 @@ import { HttpMethod } from "@/types";
 import { createApi } from "@reduxjs/toolkit/query/react";
 import {
   CreateDashboardConfiguration,
-  CreateDashboardConfigurationItem,
   DashboardConfiguration,
-  DashboardConfigurationItem,
-  DashboardConfigurationWithItems,
   DashboardEvaluation,
   UpsertDashboardEvaluation,
 } from "@repo/schema";
 
 export enum DashboardConfigApiTagType {
   DashboardConfigs = "DashboardConfigs",
-  DashboardConfigItems = "DashboardConfigItems",
   DashboardEvaluation = "DashboardEvaluation",
 }
 
@@ -39,7 +35,7 @@ export const dashboardConfigApi = createApi({
       ],
     }),
     getDashboardConfig: builder.query<
-      DashboardConfigurationWithItems,
+      DashboardConfiguration,
       { projectId: number; configId: number }
     >({
       query: ({ projectId, configId }) => ({
@@ -47,7 +43,7 @@ export const dashboardConfigApi = createApi({
         method: HttpMethod.GET,
       }),
       providesTags: (_result, _error, { configId }) => [
-        { type: DashboardConfigApiTagType.DashboardConfigItems, id: configId },
+        { type: DashboardConfigApiTagType.DashboardConfigs, id: configId },
       ],
     }),
     createDashboardConfig: builder.mutation<
@@ -89,58 +85,6 @@ export const dashboardConfigApi = createApi({
       ],
     }),
 
-    // --- Dashboard Configuration Item endpoints ---
-    getDashboardConfigItems: builder.query<
-      DashboardConfigurationItem[],
-      { projectId: number; configId: number }
-    >({
-      query: ({ projectId, configId }) => ({
-        url: dashboardConfig.items(projectId, configId),
-        method: HttpMethod.GET,
-      }),
-      providesTags: (_result, _error, { configId }) => [
-        { type: DashboardConfigApiTagType.DashboardConfigItems, id: configId },
-      ],
-    }),
-    createDashboardConfigItem: builder.mutation<
-      DashboardConfigurationItem,
-      CreateDashboardConfigurationItem & { projectId: number; configId: number }
-    >({
-      query: ({ projectId, configId, ...body }) => ({
-        url: dashboardConfig.items(projectId, configId),
-        method: HttpMethod.POST,
-        body,
-      }),
-      invalidatesTags: (_result, _error, { configId }) => [
-        { type: DashboardConfigApiTagType.DashboardConfigItems, id: configId },
-      ],
-    }),
-    updateDashboardConfigItem: builder.mutation<
-      DashboardConfigurationItem,
-      CreateDashboardConfigurationItem & { projectId: number; configId: number; itemId: number }
-    >({
-      query: ({ projectId, configId, itemId, ...body }) => ({
-        url: dashboardConfig.item(projectId, configId, itemId),
-        method: HttpMethod.PUT,
-        body,
-      }),
-      invalidatesTags: (_result, _error, { configId }) => [
-        { type: DashboardConfigApiTagType.DashboardConfigItems, id: configId },
-      ],
-    }),
-    deleteDashboardConfigItem: builder.mutation<
-      void,
-      { projectId: number; configId: number; itemId: number }
-    >({
-      query: ({ projectId, configId, itemId }) => ({
-        url: dashboardConfig.item(projectId, configId, itemId),
-        method: HttpMethod.DELETE,
-      }),
-      invalidatesTags: (_result, _error, { configId }) => [
-        { type: DashboardConfigApiTagType.DashboardConfigItems, id: configId },
-      ],
-    }),
-
     // --- Dashboard Evaluation endpoints ---
     getDashboardEvaluation: builder.query<
       DashboardEvaluation | null,
@@ -176,10 +120,6 @@ export const {
   useCreateDashboardConfigMutation,
   useUpdateDashboardConfigMutation,
   useDeleteDashboardConfigMutation,
-  useGetDashboardConfigItemsQuery,
-  useCreateDashboardConfigItemMutation,
-  useUpdateDashboardConfigItemMutation,
-  useDeleteDashboardConfigItemMutation,
   useGetDashboardEvaluationQuery,
   useUpsertDashboardEvaluationMutation,
 } = dashboardConfigApi;

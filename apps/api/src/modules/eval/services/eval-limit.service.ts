@@ -19,44 +19,27 @@ export class EvalLimitService {
   ){}
 
   /**
-   * Get eval limits for test case
-   * @param projectId
-   * @param testCaseId
-   * @throws NotFoundException - Test case not found
-   * @returns EvalLimitEntity[]
+   * Get eval limits for test case.
+   * Single lightweight query verifies project + config + test case ownership.
    */
-  public async getTestCaseLimits(projectId: number, testCaseId: string): Promise<EvalLimitEntity[]>{
-    await this.evalTestCaseRepository.getByIdAndProjectIdOrThrow(testCaseId, projectId)
+  public async getTestCaseLimits(projectId: number, configId: number, testCaseId: string): Promise<EvalLimitEntity[]>{
+    await this.evalTestCaseRepository.verifyOwnership(testCaseId, projectId, configId);
     return this.evalLimitRepository.getAllByTestCaseId(testCaseId)
   }
 
-
   /**
-   * Get eval limit detail
-   * @param projectId
-   * @param testCaseId
-   * @param limitId
-   * @throws NotFoundException - Test case not found
-   * @throws NotFoundException - Limit not found
-   * @returns EvalLimitDetailEntity
+   * Get eval limit detail.
    */
-  public async getLimitDetail(projectId: number, testCaseId: string, limitId: string): Promise<EvalLimitDetailEntity>{
-    await this.evalTestCaseRepository.getByIdAndProjectIdOrThrow(testCaseId, projectId)
+  public async getLimitDetail(projectId: number, configId: number, testCaseId: string, limitId: string): Promise<EvalLimitDetailEntity>{
+    await this.evalTestCaseRepository.verifyOwnership(testCaseId, projectId, configId);
     return this.evalLimitRepository.getByIdAndTestCaseIdOrThrow(limitId, testCaseId)
   }
 
-
   /**
-   * Create limit
-   * @param projectId
-   * @param testCaseId
-   * @param data - EvalLimitCreateOrUpdateDto
-   * @throws BadRequestException - Target label not found
-   * @throws BadRequestException - Target parent label not found
-   * @returns EvalLimitDetailEntity
+   * Create limit.
    */
-  public async createLimit(projectId: number, testCaseId: string, data: EvalLimitCreateOrUpdateDto): Promise<EvalLimitDetailEntity>{
-    await this.evalTestCaseRepository.getByIdAndProjectIdOrThrow(testCaseId, projectId)
+  public async createLimit(projectId: number, configId: number, testCaseId: string, data: EvalLimitCreateOrUpdateDto): Promise<EvalLimitDetailEntity>{
+    await this.evalTestCaseRepository.verifyOwnership(testCaseId, projectId, configId);
     await this.validateLabelsInProject(data, projectId)
     const createdLimit = await this.evalLimitRepository.create(testCaseId, data)
 
@@ -77,17 +60,10 @@ export class EvalLimitService {
   }
 
   /**
-   * Update limit
-   * @param projectId
-   * @param testCaseId
-   * @param limitId
-   * @param data - EvalLimitCreateOrUpdateDto
-   * @throws BadRequestException - Target label not found
-   * @throws BadRequestException - Target parent label not found
-   * @returns EvalLimitDetailEntity
+   * Update limit.
    */
-  public async updateLimit(projectId: number, testCaseId: string, limitId: string, data: EvalLimitCreateOrUpdateDto): Promise<EvalLimitDetailEntity> {
-    await this.evalTestCaseRepository.getByIdAndProjectIdOrThrow(testCaseId, projectId)
+  public async updateLimit(projectId: number, configId: number, testCaseId: string, limitId: string, data: EvalLimitCreateOrUpdateDto): Promise<EvalLimitDetailEntity> {
+    await this.evalTestCaseRepository.verifyOwnership(testCaseId, projectId, configId);
     await this.validateLabelsInProject(data, projectId)
     const existingLimit = await this.evalLimitRepository.getByIdAndTestCaseIdOrThrow(limitId, testCaseId)
 
@@ -99,10 +75,7 @@ export class EvalLimitService {
   }
 
   /**
-   * Validate that targetLabelId and targetParentLabelId belong to the project
-   * @param data - EvalLimitCreateOrUpdateDto
-   * @param projectId
-   * @throws BadRequestException
+   * Validate that targetLabelId and targetParentLabelId belong to the project.
    */
   private async validateLabelsInProject(data: EvalLimitCreateOrUpdateDto, projectId: number): Promise<void>{
     const labelIds: number[] = [data.targetLabelId];
@@ -121,7 +94,7 @@ export class EvalLimitService {
   }
 
   /**
-   * Diff limit items — delete removed, update existing, insert new
+   * Diff limit items — delete removed, update existing, insert new.
    */
   private async diffLimitItems(
     limitId: string,
@@ -173,14 +146,10 @@ export class EvalLimitService {
   }
 
   /**
-   * Delete limit
-   * @param projectId
-   * @param testCaseId
-   * @param limitId
-   * @throws NotFoundException - Test case not found
+   * Delete limit.
    */
-  public async deleteLimit(projectId: number, testCaseId: string, limitId: string): Promise<void>{
-    await this.evalTestCaseRepository.getByIdAndProjectIdOrThrow(testCaseId, projectId)
+  public async deleteLimit(projectId: number, configId: number, testCaseId: string, limitId: string): Promise<void>{
+    await this.evalTestCaseRepository.verifyOwnership(testCaseId, projectId, configId);
     await this.evalLimitRepository.delete(limitId, testCaseId)
   }
 }

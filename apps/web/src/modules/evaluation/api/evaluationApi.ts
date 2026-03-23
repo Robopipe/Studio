@@ -22,23 +22,23 @@ export const evaluationApi = api.injectEndpoints({
     // Eval Limits
     getEvalLimits: builder.query<
       EvalLimit[],
-      { projectId: number; testCaseId: string }
+      { projectId: number; configId: number; testCaseId: string }
     >({
-      query: ({ projectId, testCaseId }) =>
-        `/eval/${projectId}/limit/${testCaseId}`,
+      query: ({ projectId, configId, testCaseId }) =>
+        `/eval/${projectId}/config/${configId}/limit/${testCaseId}`,
       transformResponse: (response) =>
         z.array(evalLimitSchema).parse(response),
-      providesTags: (_result, _error, { projectId }) => [
-        { type: apiCacheTags.eval.limits, id: projectId },
+      providesTags: (_result, _error, { testCaseId }) => [
+        { type: apiCacheTags.eval.limits, id: testCaseId },
       ],
     }),
 
     getEvalLimit: builder.query<
       EvalLimitDetail,
-      { projectId: number; testCaseId: string; limitId: string }
+      { projectId: number; configId: number; testCaseId: string; limitId: string }
     >({
-      query: ({ projectId, testCaseId, limitId }) =>
-        `/eval/${projectId}/limit/${testCaseId}/${limitId}`,
+      query: ({ projectId, configId, testCaseId, limitId }) =>
+        `/eval/${projectId}/config/${configId}/limit/${testCaseId}/${limitId}`,
       transformResponse: (response) => evalLimitDetailSchema.parse(response),
       providesTags: (_result, _error, { limitId }) => [
         { type: apiCacheTags.eval.limits, id: limitId },
@@ -48,22 +48,23 @@ export const evaluationApi = api.injectEndpoints({
     // Eval Test Cases
     getEvalTestCases: builder.query<
       EvalTestCase[],
-      { projectId: number }
+      { projectId: number; configId: number }
     >({
-      query: ({ projectId }) => `/eval/${projectId}/test-case`,
+      query: ({ projectId, configId }) =>
+        `/eval/${projectId}/config/${configId}/test-case`,
       transformResponse: (response) =>
         z.array(evalTestCaseSchema).parse(response),
-      providesTags: (_result, _error, { projectId }) => [
-        { type: apiCacheTags.eval.testCases, id: projectId },
+      providesTags: (_result, _error, { configId }) => [
+        { type: apiCacheTags.eval.testCases, id: configId },
       ],
     }),
 
     getEvalTestCase: builder.query<
       EvalTestCaseDetail,
-      { projectId: number; testCaseId: string }
+      { projectId: number; configId: number; testCaseId: string }
     >({
-      query: ({ projectId, testCaseId }) =>
-        `/eval/${projectId}/test-case/${testCaseId}`,
+      query: ({ projectId, configId, testCaseId }) =>
+        `/eval/${projectId}/config/${configId}/test-case/${testCaseId}`,
       transformResponse: (response) => evalTestCaseDetailSchema.parse(response),
       providesTags: (_result, _error, { testCaseId }) => [
         { type: apiCacheTags.eval.testCases, id: testCaseId },
@@ -73,17 +74,17 @@ export const evaluationApi = api.injectEndpoints({
     // Eval Test Case Mutations
     createEvalTestCase: builder.mutation<
       EvalTestCaseDetail,
-      { projectId: number; body: EvalTestCaseCreateOrUpdate }
+      { projectId: number; configId: number; body: EvalTestCaseCreateOrUpdate }
     >({
-      query: ({ projectId, body }) => ({
-        url: `/eval/${projectId}/test-case`,
+      query: ({ projectId, configId, body }) => ({
+        url: `/eval/${projectId}/config/${configId}/test-case`,
         method: "POST",
         body,
       }),
       transformResponse: (response) => evalTestCaseDetailSchema.parse(response),
-      invalidatesTags: (_result, _error, { projectId }) => [
-        { type: apiCacheTags.eval.testCases, id: projectId },
-        { type: apiCacheTags.eval.thresholds, id: projectId },
+      invalidatesTags: (_result, _error, { configId }) => [
+        { type: apiCacheTags.eval.testCases, id: configId },
+        { type: apiCacheTags.eval.thresholds, id: configId },
       ],
     }),
 
@@ -91,18 +92,19 @@ export const evaluationApi = api.injectEndpoints({
       EvalTestCaseDetail,
       {
         projectId: number;
+        configId: number;
         testCaseId: string;
         body: EvalTestCaseCreateOrUpdate;
       }
     >({
-      query: ({ projectId, testCaseId, body }) => ({
-        url: `/eval/${projectId}/test-case/${testCaseId}`,
+      query: ({ projectId, configId, testCaseId, body }) => ({
+        url: `/eval/${projectId}/config/${configId}/test-case/${testCaseId}`,
         method: "PUT",
         body,
       }),
       transformResponse: (response) => evalTestCaseDetailSchema.parse(response),
-      invalidatesTags: (_result, _error, { projectId, testCaseId }) => [
-        { type: apiCacheTags.eval.testCases, id: projectId },
+      invalidatesTags: (_result, _error, { configId, testCaseId }) => [
+        { type: apiCacheTags.eval.testCases, id: configId },
         { type: apiCacheTags.eval.testCases, id: testCaseId },
       ],
     }),
@@ -110,17 +112,17 @@ export const evaluationApi = api.injectEndpoints({
     // Eval Limit Mutations
     createEvalLimit: builder.mutation<
       EvalLimitDetail,
-      { projectId: number; testCaseId: string; body: EvalLimitCreateOrUpdate }
+      { projectId: number; configId: number; testCaseId: string; body: EvalLimitCreateOrUpdate }
     >({
-      query: ({ projectId, testCaseId, body }) => ({
-        url: `/eval/${projectId}/limit/${testCaseId}`,
+      query: ({ projectId, configId, testCaseId, body }) => ({
+        url: `/eval/${projectId}/config/${configId}/limit/${testCaseId}`,
         method: "POST",
         body,
       }),
       transformResponse: (response) => evalLimitDetailSchema.parse(response),
-      invalidatesTags: (_result, _error, { projectId, testCaseId }) => [
-        { type: apiCacheTags.eval.limits, id: projectId },
-        { type: apiCacheTags.eval.testCases, id: projectId },
+      invalidatesTags: (_result, _error, { configId, testCaseId }) => [
+        { type: apiCacheTags.eval.limits, id: testCaseId },
+        { type: apiCacheTags.eval.testCases, id: configId },
         { type: apiCacheTags.eval.testCases, id: testCaseId },
       ],
     }),
@@ -129,80 +131,81 @@ export const evaluationApi = api.injectEndpoints({
       EvalLimitDetail,
       {
         projectId: number;
+        configId: number;
         testCaseId: string;
         limitId: string;
         body: EvalLimitCreateOrUpdate;
       }
     >({
-      query: ({ projectId, testCaseId, limitId, body }) => ({
-        url: `/eval/${projectId}/limit/${testCaseId}/${limitId}`,
+      query: ({ projectId, configId, testCaseId, limitId, body }) => ({
+        url: `/eval/${projectId}/config/${configId}/limit/${testCaseId}/${limitId}`,
         method: "PUT",
         body,
       }),
       transformResponse: (response) => evalLimitDetailSchema.parse(response),
-      invalidatesTags: (_result, _error, { projectId, testCaseId, limitId }) => [
-        { type: apiCacheTags.eval.limits, id: projectId },
+      invalidatesTags: (_result, _error, { configId, testCaseId, limitId }) => [
+        { type: apiCacheTags.eval.limits, id: testCaseId },
         { type: apiCacheTags.eval.limits, id: limitId },
-        { type: apiCacheTags.eval.testCases, id: projectId },
+        { type: apiCacheTags.eval.testCases, id: configId },
         { type: apiCacheTags.eval.testCases, id: testCaseId },
       ],
     }),
 
     deleteEvalLimit: builder.mutation<
       void,
-      { projectId: number; testCaseId: string; limitId: string }
+      { projectId: number; configId: number; testCaseId: string; limitId: string }
     >({
-      query: ({ projectId, testCaseId, limitId }) => ({
-        url: `/eval/${projectId}/limit/${testCaseId}/${limitId}`,
+      query: ({ projectId, configId, testCaseId, limitId }) => ({
+        url: `/eval/${projectId}/config/${configId}/limit/${testCaseId}/${limitId}`,
         method: "DELETE",
       }),
-      invalidatesTags: (_result, _error, { projectId, testCaseId, limitId }) => [
-        { type: apiCacheTags.eval.limits, id: projectId },
+      invalidatesTags: (_result, _error, { configId, testCaseId, limitId }) => [
+        { type: apiCacheTags.eval.limits, id: testCaseId },
         { type: apiCacheTags.eval.limits, id: limitId },
-        { type: apiCacheTags.eval.testCases, id: projectId },
+        { type: apiCacheTags.eval.testCases, id: configId },
         { type: apiCacheTags.eval.testCases, id: testCaseId },
       ],
     }),
 
     deleteEvalTestCase: builder.mutation<
       void,
-      { projectId: number; testCaseId: string }
+      { projectId: number; configId: number; testCaseId: string }
     >({
-      query: ({ projectId, testCaseId }) => ({
-        url: `/eval/${projectId}/test-case/${testCaseId}`,
+      query: ({ projectId, configId, testCaseId }) => ({
+        url: `/eval/${projectId}/config/${configId}/test-case/${testCaseId}`,
         method: "DELETE",
       }),
-      invalidatesTags: (_result, _error, { projectId, testCaseId }) => [
-        { type: apiCacheTags.eval.testCases, id: projectId },
-        { type: apiCacheTags.eval.testCases, id: testCaseId },
-        { type: apiCacheTags.eval.thresholds, id: projectId },
+      invalidatesTags: (_result, _error, { configId }) => [
+        { type: apiCacheTags.eval.testCases, id: configId },
+        { type: apiCacheTags.eval.thresholds, id: configId },
       ],
     }),
 
     // Eval Thresholds
     getEvalThresholds: builder.query<
       EvalTestCaseThreshold[],
-      { projectId: number }
+      { projectId: number; configId: number }
     >({
-      query: ({ projectId }) => `/eval/${projectId}/threshold`,
+      query: ({ projectId, configId }) =>
+        `/eval/${projectId}/config/${configId}/threshold`,
       transformResponse: (response) =>
         z.array(evalTestCaseThresholdSchema).parse(response),
-      providesTags: (_result, _error, { projectId }) => [
-        { type: apiCacheTags.eval.thresholds, id: projectId },
+      providesTags: (_result, _error, { configId }) => [
+        { type: apiCacheTags.eval.thresholds, id: configId },
       ],
     }),
 
     createEvalThreshold: builder.mutation<
       void,
-      { projectId: number; testCaseId: string; body: EvalThresholdCreateOrUpdate }
+      { projectId: number; configId: number; testCaseId: string; body: EvalThresholdCreateOrUpdate }
     >({
-      query: ({ projectId, testCaseId, body }) => ({
-        url: `/eval/${projectId}/threshold/${testCaseId}`,
+      query: ({ projectId, configId, testCaseId, body }) => ({
+        url: `/eval/${projectId}/config/${configId}/threshold/${testCaseId}`,
         method: "POST",
         body,
       }),
-      invalidatesTags: (_result, _error, { projectId }) => [
-        { type: apiCacheTags.eval.thresholds, id: projectId },
+      invalidatesTags: (_result, _error, { configId }) => [
+        { type: apiCacheTags.eval.thresholds, id: configId },
       ],
     }),
 
@@ -210,31 +213,32 @@ export const evaluationApi = api.injectEndpoints({
       void,
       {
         projectId: number;
+        configId: number;
         testCaseId: string;
         thresholdId: string;
         body: EvalThresholdCreateOrUpdate;
       }
     >({
-      query: ({ projectId, testCaseId, thresholdId, body }) => ({
-        url: `/eval/${projectId}/threshold/${testCaseId}/${thresholdId}`,
+      query: ({ projectId, configId, testCaseId, thresholdId, body }) => ({
+        url: `/eval/${projectId}/config/${configId}/threshold/${testCaseId}/${thresholdId}`,
         method: "PUT",
         body,
       }),
-      invalidatesTags: (_result, _error, { projectId }) => [
-        { type: apiCacheTags.eval.thresholds, id: projectId },
+      invalidatesTags: (_result, _error, { configId }) => [
+        { type: apiCacheTags.eval.thresholds, id: configId },
       ],
     }),
 
     deleteEvalThreshold: builder.mutation<
       void,
-      { projectId: number; testCaseId: string; thresholdId: string }
+      { projectId: number; configId: number; testCaseId: string; thresholdId: string }
     >({
-      query: ({ projectId, testCaseId, thresholdId }) => ({
-        url: `/eval/${projectId}/threshold/${testCaseId}/${thresholdId}`,
+      query: ({ projectId, configId, testCaseId, thresholdId }) => ({
+        url: `/eval/${projectId}/config/${configId}/threshold/${testCaseId}/${thresholdId}`,
         method: "DELETE",
       }),
-      invalidatesTags: (_result, _error, { projectId }) => [
-        { type: apiCacheTags.eval.thresholds, id: projectId },
+      invalidatesTags: (_result, _error, { configId }) => [
+        { type: apiCacheTags.eval.thresholds, id: configId },
       ],
     }),
   }),

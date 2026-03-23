@@ -21,17 +21,20 @@ const severityOptions = [
 
 export type CreateTestCaseModalProps = {
   projectId: number;
+  configId: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
 
 export const CreateTestCaseModal = ({
   projectId,
+  configId,
   open,
   onOpenChange,
 }: CreateTestCaseModalProps) => {
   const { form, isSubmitting } = useTestCaseForm({
     projectId,
+    configId,
     onSuccess: () => onOpenChange(false),
   });
 
