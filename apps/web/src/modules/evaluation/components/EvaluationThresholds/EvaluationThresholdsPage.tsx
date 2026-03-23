@@ -13,6 +13,7 @@ import { EvaluationItemCard } from "./EvaluationItemCard";
 
 export interface EvaluationThresholdsPageProps {
   projectId: number;
+  configId: number;
 }
 
 interface EditModalState {
@@ -22,8 +23,9 @@ interface EditModalState {
 
 export function EvaluationThresholdsPage({
   projectId,
+  configId,
 }: EvaluationThresholdsPageProps) {
-  const { data: serverData = [] } = useGetEvalThresholdsQuery({ projectId });
+  const { data: serverData = [] } = useGetEvalThresholdsQuery({ projectId, configId });
 
   const [createThreshold] = useCreateEvalThresholdMutation();
   const [updateThreshold] = useUpdateEvalThresholdMutation();
@@ -77,6 +79,7 @@ export function EvaluationThresholdsPage({
     if (!addModalTestCaseId) return;
     await createThreshold({
       projectId,
+      configId,
       testCaseId: addModalTestCaseId,
       body: data,
     }).unwrap();
@@ -92,6 +95,7 @@ export function EvaluationThresholdsPage({
       localValues[editModal.threshold.id] ?? editModal.threshold.value;
     await updateThreshold({
       projectId,
+      configId,
       testCaseId: editModal.testCaseId,
       thresholdId: editModal.threshold.id,
       body: { name: data.name, color: data.color, value: currentValue },
@@ -113,6 +117,7 @@ export function EvaluationThresholdsPage({
             if (original) {
               return updateThreshold({
                 projectId,
+                configId,
                 testCaseId: tc.id,
                 thresholdId,
                 body: {

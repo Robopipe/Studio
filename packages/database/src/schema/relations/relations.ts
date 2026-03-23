@@ -91,13 +91,13 @@ export const relationBase = defineRelations(schema, (r) => ({
       from: r.dashboardConfigurationTable.projectId,
       to: r.projectTable.id,
     }),
-    items: r.many.dashboardConfigurationItemTable({
-      from: r.dashboardConfigurationTable.id,
-      to: r.dashboardConfigurationItemTable.dashboardConfigurationId,
-    }),
     evaluation: r.one.dashboardEvaluationTable({
       from: r.dashboardConfigurationTable.id,
       to: r.dashboardEvaluationTable.dashboardConfigurationId,
+    }),
+    testCases: r.many.evalTestCaseTable({
+      from: r.dashboardConfigurationTable.id,
+      to: r.evalTestCaseTable.dashboardConfigurationId,
     }),
   },
   dashboardEvaluationTable: {
@@ -106,18 +106,4 @@ export const relationBase = defineRelations(schema, (r) => ({
       to: r.dashboardConfigurationTable.id,
     }),
   },
-  dashboardConfigurationItemTable: {
-    dashboardConfiguration: r.one.dashboardConfigurationTable({
-      from: r.dashboardConfigurationItemTable.dashboardConfigurationId,
-      to: r.dashboardConfigurationTable.id,
-    }),
-    targetLabel: r.one.projectLabelTable({
-      from: r.dashboardConfigurationItemTable.targetLabelId,
-      to: r.projectLabelTable.id,
-    }),
-    targetParentLabel: r.one.projectLabelTable({
-      from: r.dashboardConfigurationItemTable.targetParentLabelId,
-      to: r.projectLabelTable.id,
-    }),
-  }
 }));

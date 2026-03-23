@@ -15,6 +15,7 @@ import { useLimitForm } from "./useLimitForm.hook";
 
 export type CreateLimitModalProps = {
   projectId: number;
+  configId: number;
   testCaseId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -22,12 +23,14 @@ export type CreateLimitModalProps = {
 
 export const CreateLimitModal = ({
   projectId,
+  configId,
   testCaseId,
   open,
   onOpenChange,
 }: CreateLimitModalProps) => {
   const { form, isSubmitting } = useLimitForm({
     projectId,
+    configId,
     testCaseId,
     onSuccess: () => onOpenChange(false),
   });

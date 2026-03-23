@@ -20,11 +20,13 @@ import { useLimitColumns } from "./useLimitColumns.hook";
 interface TestCaseSectionProps {
   testCase: EvalTestCase;
   projectId: number;
+  configId: number;
 }
 
-export function TestCaseSection({ testCase, projectId }: TestCaseSectionProps) {
+export function TestCaseSection({ testCase, projectId, configId }: TestCaseSectionProps) {
   const { data: limits = [] } = useGetEvalLimitsQuery({
     projectId,
+    configId,
     testCaseId: testCase.id,
   });
   const [isCreateLimitOpen, setIsCreateLimitOpen] = useState(false);
@@ -34,11 +36,11 @@ export function TestCaseSection({ testCase, projectId }: TestCaseSectionProps) {
   const [isDeleteTestCaseOpen, setIsDeleteTestCaseOpen] = useState(false);
 
   const { data: limitToEdit } = useGetEvalLimitQuery(
-    { projectId, testCaseId: testCase.id, limitId: limitToEditId! },
+    { projectId, configId, testCaseId: testCase.id, limitId: limitToEditId! },
     { skip: !limitToEditId },
   );
   const { data: testCaseDetail } = useGetEvalTestCaseQuery(
-    { projectId, testCaseId: testCase.id },
+    { projectId, configId, testCaseId: testCase.id },
     { skip: !isEditTestCaseOpen },
   );
 
@@ -48,7 +50,7 @@ export function TestCaseSection({ testCase, projectId }: TestCaseSectionProps) {
     useDeleteEvalTestCaseMutation();
 
   const handleDeleteTestCase = () => {
-    deleteEvalTestCase({ projectId, testCaseId: testCase.id })
+    deleteEvalTestCase({ projectId, configId, testCaseId: testCase.id })
       .unwrap()
       .then(() => setIsDeleteTestCaseOpen(false));
   };
@@ -65,6 +67,7 @@ export function TestCaseSection({ testCase, projectId }: TestCaseSectionProps) {
     if (!limitToDeleteId) return;
     deleteEvalLimit({
       projectId,
+      configId,
       testCaseId: testCase.id,
       limitId: limitToDeleteId,
     })
@@ -118,6 +121,7 @@ export function TestCaseSection({ testCase, projectId }: TestCaseSectionProps) {
       {isCreateLimitOpen && (
         <CreateLimitModal
           projectId={projectId}
+          configId={configId}
           testCaseId={testCase.id}
           open={true}
           onOpenChange={setIsCreateLimitOpen}
@@ -127,6 +131,7 @@ export function TestCaseSection({ testCase, projectId }: TestCaseSectionProps) {
       {limitToEditId && limitToEdit && (
         <UpdateLimitModal
           projectId={projectId}
+          configId={configId}
           testCaseId={testCase.id}
           limit={limitToEdit}
           open={true}
@@ -137,6 +142,7 @@ export function TestCaseSection({ testCase, projectId }: TestCaseSectionProps) {
       {isEditTestCaseOpen && testCaseDetail && (
         <UpdateTestCaseModal
           projectId={projectId}
+          configId={configId}
           testCase={testCaseDetail}
           open={true}
           onOpenChange={(open) => !open && setIsEditTestCaseOpen(false)}

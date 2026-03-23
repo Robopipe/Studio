@@ -9,16 +9,18 @@ import { TestCaseSection } from "./TestCaseSection";
 
 export type TestCasesOverviewPageProps = {
   projectId: number;
+  dashboardConfigurationId: number;
 };
 
 export const TestCasesOverviewPage = ({
   projectId,
+  dashboardConfigurationId,
 }: TestCasesOverviewPageProps) => {
   const {
     data: testCases = [],
     isLoading,
     error,
-  } = useGetEvalTestCasesQuery({ projectId });
+  } = useGetEvalTestCasesQuery({ projectId, configId: dashboardConfigurationId });
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   if (error) {
@@ -59,7 +61,7 @@ export const TestCasesOverviewPage = ({
       </div>
 
       {testCases.map((tc) => (
-        <TestCaseSection key={tc.id} testCase={tc} projectId={projectId} />
+        <TestCaseSection key={tc.id} testCase={tc} projectId={projectId} configId={dashboardConfigurationId} />
       ))}
 
       {testCases.length === 0 && (
@@ -69,6 +71,7 @@ export const TestCasesOverviewPage = ({
       {isCreateModalOpen && (
         <CreateTestCaseModal
           projectId={projectId}
+          configId={dashboardConfigurationId}
           open={true}
           onOpenChange={setIsCreateModalOpen}
         />

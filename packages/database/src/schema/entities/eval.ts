@@ -1,9 +1,9 @@
 import * as p from 'drizzle-orm/pg-core'
 import { createdAt, updatedAt, uuidId } from '../helpers'
 import { EvalLimitItemOperatorEnum, EvalLimitItemParameterEnum, EvalLogicNode, EvalTestCaseSeverityEnum, EvalTestCaseTypeEnum } from '@repo/schema'
+import { dashboardConfigurationTable } from './dashboard-configuration'
 import { projectLabelTable } from './project-label'
 import { projectTable } from './project'
-import { uuid } from 'drizzle-orm/gel-core'
 
 
 export const evalLimitItemParameterEnum = p.pgEnum("eval_limit_item_parameter_enum", [
@@ -62,6 +62,7 @@ export const evalTestCaseTable = p.pgTable("eval_test_case", {
   severity: evalTestCaseSeverityEnum("severity").notNull(),
   logicNodes: p.jsonb("logic_nodes").$type<EvalLogicNode[]>().notNull(),
   projectId: p.integer("project_id").notNull().references(() => projectTable.id, {onDelete: 'cascade'}),
+  dashboardConfigurationId: p.integer("dashboard_configuration_id").notNull().references(() => dashboardConfigurationTable.id, {onDelete: 'cascade'}),
   createdAt,
   updatedAt
 })

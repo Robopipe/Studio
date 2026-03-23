@@ -9,7 +9,6 @@ import {
   ModelOutputRepository,
 } from "./services/model-output-repository.service";
 import { ModelLogRepository } from "./services/model-log-repository.service";
-import { DashboardConfigurationItemRepository } from "./services/dashboard-configuration-item.service";
 import { DashboardConfigurationRepository } from "./services/dashboard-configuration.service";
 import { DashboardEvaluationRepository } from "./services/dashboard-evaluation.service";
 import { PasswordResetRepository } from "./services/password-reset-repository.service";
@@ -34,7 +33,7 @@ import { EvalThresholdRepository } from './services/eval-threshold.service';
     ProjectLabelRepository,
     ModelOutputRepository,
     ModelLogRepository,
-    DashboardConfigurationItemRepository,
+
     DashboardConfigurationRepository,
     DashboardEvaluationRepository,
     EvalLimitRepository,
@@ -53,7 +52,7 @@ import { EvalThresholdRepository } from './services/eval-threshold.service';
     ProjectLabelRepository,
     ModelOutputRepository,
     ModelLogRepository,
-    DashboardConfigurationItemRepository,
+
     DashboardConfigurationRepository,
     DashboardEvaluationRepository,
     EvalLimitRepository,

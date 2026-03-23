@@ -191,8 +191,8 @@ export const DashboardPage = () => {
                 </Stack>
               </div>
 
-              {/* Right panel content */}
-              <div className={styles.rightPanelContent}>
+              {/* Right panel content — key forces remount on config switch to reset local state */}
+              <div className={styles.rightPanelContent} key={selectedConfigId}>
                 {rightTab === "custom" && (
                   <DashboardRuntimePage configId={selectedConfigId} />
                 )}
@@ -200,10 +200,10 @@ export const DashboardPage = () => {
                   <DashboardConfigPage projectId={projectId} configId={selectedConfigId} />
                 )}
                 {rightTab === "evaluation" && (
-                  <EvaluationThresholdsPage projectId={projectId} />
+                  <EvaluationThresholdsPage projectId={projectId} configId={selectedConfigId} />
                 )}
                 {rightTab === "test-cases" && (
-                  <TestCasesOverviewPage projectId={projectId} />
+                  <TestCasesOverviewPage projectId={projectId} dashboardConfigurationId={selectedConfigId} />
                 )}
               </div>
             </Stack>

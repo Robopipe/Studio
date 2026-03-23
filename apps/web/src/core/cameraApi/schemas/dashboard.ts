@@ -1,15 +1,15 @@
 import {
-  dashboardConfigurationWithItemsSchema,
+  dashboardConfigurationSchema,
   labelSchema,
 } from "@repo/schema";
 import z from "zod";
 
-export const dashboardConfigurationSchema =
-  dashboardConfigurationWithItemsSchema.extend({
+export const cameraApiDashboardConfigurationSchema =
+  dashboardConfigurationSchema.extend({
     labels: z.array(labelSchema),
   });
 export type DashboardConfiguration = z.infer<
-  typeof dashboardConfigurationSchema
+  typeof cameraApiDashboardConfigurationSchema
 >;
 
 export const deployDashboardResponseSchema = z.object({

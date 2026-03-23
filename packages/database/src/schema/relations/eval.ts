@@ -7,6 +7,10 @@ export const relationEvalPart = defineRelationsPart(schema, (r) => ({
       from: r.evalTestCaseTable.projectId,
       to: r.projectTable.id
     }),
+    dashboardConfiguration: r.one.dashboardConfigurationTable({
+      from: r.evalTestCaseTable.dashboardConfigurationId,
+      to: r.dashboardConfigurationTable.id
+    }),
     limits: r.many.evalLimitTable({
       from: r.evalTestCaseTable.id,
       to: r.evalLimitTable.testCaseId,

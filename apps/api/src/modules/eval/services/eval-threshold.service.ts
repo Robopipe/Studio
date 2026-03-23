@@ -8,29 +8,23 @@ import { EvalThresholdCreateOrUpdateDto } from "../dto/eval-threshold.dto";
 export class EvalThresholdService {
   constructor(
     private readonly evalThresholdRepository: EvalThresholdRepository,
-    private readonly evalTestCaseRepository: EvalTestCaseRepository
+    private readonly evalTestCaseRepository: EvalTestCaseRepository,
   ){}
 
   /**
-   * Get project thresholds
-   * @param projectId
-   * @returns EvalTestCaseThresholdEntity[]
+   * Get thresholds for a dashboard configuration.
+   * No separate config check — query filters by both projectId + configId,
+   * so a mismatched configId simply returns empty array (no data leakage).
    */
-  public async getThresholds(projectId: number): Promise<EvalTestCaseThresholdEntity[]>{
-    return this.evalTestCaseRepository.getAllThresholdsByProjectId(projectId);
+  public async getThresholds(projectId: number, configId: number): Promise<EvalTestCaseThresholdEntity[]>{
+    return this.evalTestCaseRepository.getAllThresholdsByProjectId(projectId, configId);
   }
 
   /**
-   * Create threshold
-   * @param projectId
-   * @param testCaseId
-   * @param data - EvalThresholdCreateOrUpdateDto
-   * @throws NotFoundException - Test case not found
-   * @throws BadRequestException - Threshold value can't be 0 or higher than or equal to 1
-   * @returns EvalTestCaseThresholdEntity
+   * Create threshold — single ownership query for project + config + test case.
    */
-  public async createThreshold(projectId: number, testCaseId: string, data: EvalThresholdCreateOrUpdateDto): Promise<EvalTestCaseThresholdEntity>{
-    await this.evalTestCaseRepository.getByIdAndProjectIdOrThrow(testCaseId, projectId);
+  public async createThreshold(projectId: number, configId: number, testCaseId: string, data: EvalThresholdCreateOrUpdateDto): Promise<EvalTestCaseThresholdEntity>{
+    await this.evalTestCaseRepository.verifyOwnership(testCaseId, projectId, configId);
 
     if(data.value <= 0 || data.value >= 1){
       throw new BadRequestException("Threshold value can't be 0 or higher than or equal to 1")
@@ -41,19 +35,11 @@ export class EvalThresholdService {
   }
 
   /**
-   * Update threshold
-   * @param projectId
-   * @param testCaseId
-   * @param thresholdId
-   * @param data - EvalThresholdCreateOrUpdateDto
-   * @throws NotFoundException - Test case not found
-   * @throws NotFoundException - Threshold not found
-   * @throws ConflictException - Threshold with this value already exists
-   * @throws BadRequestException - You can't update the last threshold's value
-   * @returns EvalTestCaseThresholdEntity
+   * Update threshold.
    */
-  public async updateThreshold(projectId: number, testCaseId: string, thresholdId: string, data: EvalThresholdCreateOrUpdateDto): Promise<EvalTestCaseThresholdEntity>{
-    await this.evalTestCaseRepository.getByIdAndProjectIdOrThrow(testCaseId, projectId);
+  public async updateThreshold(projectId: number, configId: number, testCaseId: string, thresholdId: string, data: EvalThresholdCreateOrUpdateDto): Promise<EvalTestCaseThresholdEntity>{
+    await this.evalTestCaseRepository.verifyOwnership(testCaseId, projectId, configId);
+
     const existingThresholds = await this.evalThresholdRepository.getAllByTestCaseId(testCaseId)
     const foundThreshold = existingThresholds.find((threshold) => threshold.id === thresholdId)
     const foundThresholdByValue = existingThresholds.find((threshold) => threshold.value === data.value && threshold.id !== thresholdId)
@@ -74,18 +60,12 @@ export class EvalThresholdService {
     return this.evalTestCaseRepository.getThresholdByIdAndProjectIdOrThrow(testCaseId, projectId)
   }
 
-
   /**
-   * Delete threshold
-   * @param projectId
-   * @param testCaseId
-   * @param thresholdId
-   * @throws NotFoundException - Test case not found
-   * @throws NotFoundException - Threshold not found
-   * @throws BadRequestException - You can't delete the last threshold
+   * Delete threshold.
    */
-  public async deleteThreshold(projectId: number, testCaseId: string, thresholdId: string): Promise<EvalTestCaseThresholdEntity>{
-    await this.evalTestCaseRepository.getByIdAndProjectIdOrThrow(testCaseId, projectId);
+  public async deleteThreshold(projectId: number, configId: number, testCaseId: string, thresholdId: string): Promise<EvalTestCaseThresholdEntity>{
+    await this.evalTestCaseRepository.verifyOwnership(testCaseId, projectId, configId);
+
     const foundThreshold = await this.evalThresholdRepository.getByIdAndTestCaseIdOrThrow(thresholdId, testCaseId)
 
     if(foundThreshold.value === 1){

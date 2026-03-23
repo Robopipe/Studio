@@ -10,6 +10,7 @@ export class EvalTestCaseEntity {
   readonly limits: EvalLimitEntity[];
   readonly severity: EvalTestCaseSeverityEnum;
   readonly projectId: number;
+  readonly dashboardConfigurationId: number;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 
@@ -21,6 +22,7 @@ export class EvalTestCaseEntity {
     this.limits = data.limits.map((limit) => new EvalLimitEntity(limit));
     this.severity = data.severity;
     this.projectId = data.projectId;
+    this.dashboardConfigurationId = data.dashboardConfigurationId;
     this.createdAt = data.createdAt;
     this.updatedAt = data.updatedAt;
   }

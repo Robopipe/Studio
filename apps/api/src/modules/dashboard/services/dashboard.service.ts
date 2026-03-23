@@ -1,17 +1,11 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { DashboardConfigurationItemRepository } from "../../../repository/services/dashboard-configuration-item.service";
 import { DashboardConfigurationRepository } from "../../../repository/services/dashboard-configuration.service";
 import { DashboardEvaluationRepository } from "../../../repository/services/dashboard-evaluation.service";
-import {
-  DashboardConfigurationItemCreateRequest,
-  DashboardConfigurationItemUpdateRequest,
-} from "../dto/dashboard-configuration-item.dto";
 import {
   DashboardConfigurationCreateRequest,
   DashboardConfigurationUpdateRequest,
 } from "../dto/dashboard-configuration.dto";
 import { DashboardEvaluationUpsertRequest } from "../dto/dashboard-evaluation.dto";
-import { DashboardConfigurationItemEntity } from "../entity/dashboard-configuration-item.entity";
 import { DashboardConfigurationEntity } from "../entity/dashboard-configuration.entity";
 import { DashboardEvaluationEntity } from "../entity/dashboard-evaluation.entity";
 
@@ -19,7 +13,6 @@ import { DashboardEvaluationEntity } from "../entity/dashboard-evaluation.entity
 export class DashboardService {
   constructor(
     private readonly dashboardConfigurationRepository: DashboardConfigurationRepository,
-    private readonly dashboardConfigurationItemRepository: DashboardConfigurationItemRepository,
     private readonly dashboardEvaluationRepository: DashboardEvaluationRepository,
   ) {}
 
@@ -89,106 +82,30 @@ export class DashboardService {
     await this.dashboardConfigurationRepository.delete(id);
   }
 
-  // --- Dashboard Configuration Item methods ---
-
-  /**
-   * Get all items for a dashboard configuration
-   * @param dashboardConfigurationId
-   * @returns DashboardConfigurationItemEntity[]
-   */
-  public async getAllItems(dashboardConfigurationId: number): Promise<DashboardConfigurationItemEntity[]> {
-    return this.dashboardConfigurationItemRepository.getAllByDashboardConfigurationId(dashboardConfigurationId);
-  }
-
-  /**
-   * Get item by ID, scoped to dashboard configuration
-   * @param id
-   * @param dashboardConfigurationId
-   * @throws NotFoundException
-   * @returns DashboardConfigurationItemEntity
-   */
-  public async getItemById(id: number, dashboardConfigurationId: number): Promise<DashboardConfigurationItemEntity> {
-    const item = await this.dashboardConfigurationItemRepository.getByIdAndDashboardConfigurationId(id, dashboardConfigurationId);
-
-    if (!item) {
-      throw new NotFoundException("Dashboard configuration item not found");
-    }
-
-    return item;
-  }
-
-  /**
-   * Create a new dashboard configuration item
-   * @param dashboardConfigurationId
-   * @param data
-   * @returns created DashboardConfigurationItemEntity
-   */
-  public async createItem(dashboardConfigurationId: number, data: DashboardConfigurationItemCreateRequest): Promise<DashboardConfigurationItemEntity> {
-    return this.dashboardConfigurationItemRepository.create({
-      dashboardConfigurationId,
-      name: data.name,
-      type: data.type,
-      severity: data.severity,
-      position: data.position,
-      unit: data.unit,
-      targetLabelId: data.targetLabelId,
-      targetParentLabelId: data.targetParentLabelId,
-      limits: data.limits,
-    });
-  }
-
-  /**
-   * Update a dashboard configuration item
-   * @param id
-   * @param dashboardConfigurationId
-   * @param data
-   * @throws NotFoundException
-   * @returns updated DashboardConfigurationItemEntity
-   */
-  public async updateItem(id: number, dashboardConfigurationId: number, data: DashboardConfigurationItemUpdateRequest): Promise<DashboardConfigurationItemEntity> {
-    await this.getItemById(id, dashboardConfigurationId);
-
-    return this.dashboardConfigurationItemRepository.update(id, {
-      name: data.name,
-      type: data.type,
-      severity: data.severity,
-      position: data.position,
-      unit: data.unit,
-      targetLabelId: data.targetLabelId,
-      targetParentLabelId: data.targetParentLabelId,
-      limits: data.limits,
-    });
-  }
-
-  /**
-   * Delete a dashboard configuration item
-   * @param id
-   * @param dashboardConfigurationId
-   * @throws NotFoundException
-   */
-  public async deleteItem(id: number, dashboardConfigurationId: number): Promise<void> {
-    await this.getItemById(id, dashboardConfigurationId);
-    await this.dashboardConfigurationItemRepository.delete(id);
-  }
-
   // --- Dashboard Evaluation methods ---
 
   /**
    * Get evaluation for a dashboard configuration
    * @param dashboardConfigurationId
+   * @param projectId
+   * @throws NotFoundException - if config doesn't belong to project
    * @returns DashboardEvaluationEntity or null
    */
-  public async getEvaluation(dashboardConfigurationId: number): Promise<DashboardEvaluationEntity | null> {
+  public async getEvaluation(dashboardConfigurationId: number, projectId: number): Promise<DashboardEvaluationEntity | null> {
+    await this.getConfigurationById(dashboardConfigurationId, projectId);
     return this.dashboardEvaluationRepository.getByDashboardConfigurationId(dashboardConfigurationId);
   }
 
   /**
    * Create or update evaluation for a dashboard configuration
    * @param dashboardConfigurationId
+   * @param projectId
    * @param data
+   * @throws NotFoundException - if config doesn't belong to project
    * @returns upserted DashboardEvaluationEntity
    */
-  public async upsertEvaluation(dashboardConfigurationId: number, data: DashboardEvaluationUpsertRequest): Promise<DashboardEvaluationEntity> {
+  public async upsertEvaluation(dashboardConfigurationId: number, projectId: number, data: DashboardEvaluationUpsertRequest): Promise<DashboardEvaluationEntity> {
+    await this.getConfigurationById(dashboardConfigurationId, projectId);
     return this.dashboardEvaluationRepository.upsert({
       dashboardConfigurationId,
       grade1AlertsBelow: data.grade1AlertsBelow,

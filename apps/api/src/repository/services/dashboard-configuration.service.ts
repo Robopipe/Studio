@@ -8,7 +8,6 @@ import {
   DashboardConfigurationInsert,
   DashboardConfigurationUpdate,
   DashboardConfigurationSelect,
-  DashboardConfigurationWithItemsSelect,
 } from "../types/dashboard-configuration";
 
 @Injectable()
@@ -37,17 +36,9 @@ export class DashboardConfigurationRepository {
   public async getByIdAndProjectId(id: number, projectId: number): Promise<DashboardConfigurationEntity | null> {
     const config = await this.db.query.dashboardConfigurationTable.findFirst({
       where: { id, projectId },
-      with: {
-        items: {
-          with: {
-            targetLabel: true,
-            targetParentLabel: true,
-          },
-        },
-      },
     });
 
-    return config ? new DashboardConfigurationEntity(config as DashboardConfigurationWithItemsSelect) : null;
+    return config ? new DashboardConfigurationEntity(config as DashboardConfigurationSelect) : null;
   }
 
   /**
