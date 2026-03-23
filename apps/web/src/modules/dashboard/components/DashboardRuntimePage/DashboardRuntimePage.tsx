@@ -4,8 +4,13 @@ import {
   useListCamerasQuery,
   useListStreamsQuery,
 } from "@/core/cameraApi";
-// import { useCameraApiUrl } from "@/hooks";
 import { useCameraApiUrl } from "@/hooks";
+import {
+  useGetEvalTestCasesQuery,
+  useGetEvalThresholdsQuery,
+  useLazyGetEvalLimitQuery,
+  useLazyGetEvalTestCaseQuery,
+} from "@/modules/evaluation/api/evaluationApi";
 import { useGetModelQuery } from "@/modules/model/services";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import { Button, Select, Stack } from "@repo/ui";
@@ -41,20 +46,74 @@ export const DashboardRuntimePage = ({
     { projectId: activeProject!.id, configId },
     { skip: !activeProject },
   );
+  const { data: evalTestCases } = useGetEvalTestCasesQuery(
+    { projectId: activeProject!.id },
+    { skip: !activeProject },
+  );
+  const { data: evalThresholds } = useGetEvalThresholdsQuery(
+    { projectId: activeProject!.id },
+    { skip: !activeProject },
+  );
+  const [getEvalTestCase] = useLazyGetEvalTestCaseQuery();
+  const [getEvalLimit] = useLazyGetEvalLimitQuery();
   const [deployDashboard] = useDeployDashboardMutation();
   const deploy = async () => {
     if (
       !selectedCamera ||
       !selectedStream ||
       !currentNn?.model_id ||
-      !modelData
+      !modelData ||
+      !dashboardConfig
     )
       return;
-    // const currentNn = useGetNNQuery({ mxid: selectedCamera, streamName: selectedStream }, { skip: true }).data;
+
+    const testCases = (evalTestCases ?? []).map(async (tc) => {
+      const thresholdData = evalThresholds?.find((t) => t.id === tc.id);
+      return {
+        id: tc.id,
+        name: tc.name,
+        type: tc.type,
+        severity: tc.severity,
+        limits: await Promise.all(
+          tc.limits.map(async (limit) => {
+            const limitDetail = await getEvalLimit({
+              projectId: activeProject!.id,
+              testCaseId: tc.id,
+              limitId: limit.id,
+            }).unwrap();
+            return limitDetail;
+          }),
+        ),
+        logicNodes: await getEvalTestCase({
+          projectId: activeProject!.id,
+          testCaseId: tc.id,
+        })
+          .unwrap()
+          .then((data) => data.logicNodes)
+          .catch(() => []),
+        thresholds: (thresholdData?.thresholds ?? []).map((t) => ({
+          id: t.id,
+          name: t.name,
+          color: t.color,
+          value: t.value,
+          testCaseId: tc.id,
+        })),
+      };
+    });
+
     const { dashboard_url } = await deployDashboard({
       mxid: selectedCamera,
       streamName: selectedStream,
-      dashboardConfig: { ...dashboardConfig!, labels: modelData.labels },
+      dashboardConfig: {
+        id: dashboardConfig.id,
+        name: dashboardConfig.name,
+        lineDirection: dashboardConfig.lineDirection,
+        linePosition: dashboardConfig.linePosition,
+        lineFlow: dashboardConfig.lineFlow,
+        testCases: await Promise.all(testCases),
+        labels: modelData.labels,
+        remoteBackendUrl: null,
+      },
     }).unwrap();
     setDashboardUrl(`${cameraApiUrl}${dashboard_url}`);
   };
