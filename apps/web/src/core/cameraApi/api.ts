@@ -3,7 +3,7 @@ import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "./baseQuery";
 import type { DeviceInfo, SensorControl, StreamInfo } from "./schemas";
 import {
-  DashboardConfiguration,
+  CameraApiDashboardConfig,
   DeployDashboardResponse,
 } from "./schemas/dashboard";
 import { NNConfig } from "./schemas/nn";
@@ -172,7 +172,7 @@ export const cameraApi = cameraApiBase.injectEndpoints({
       {
         mxid: string;
         streamName: string;
-        dashboardConfig: DashboardConfiguration;
+        dashboardConfig: CameraApiDashboardConfig;
       }
     >({
       query: ({ mxid, streamName, dashboardConfig }) => ({
