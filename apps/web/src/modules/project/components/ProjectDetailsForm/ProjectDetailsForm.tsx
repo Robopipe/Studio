@@ -12,6 +12,8 @@ interface ProjectDetailsFormProps {
   setCameraApiUrl: (val: string) => void;
   projectType: ProjectTypeEnum;
   setProjectType?: (val: ProjectTypeEnum) => void;
+  multipleDashboardConfigs?: boolean;
+  setMultipleDashboardConfigs?: (val: boolean) => void;
 }
 
 export const ProjectDetailsForm = ({
@@ -23,6 +25,8 @@ export const ProjectDetailsForm = ({
   setCameraApiUrl,
   projectType,
   setProjectType,
+  multipleDashboardConfigs,
+  setMultipleDashboardConfigs,
 }: ProjectDetailsFormProps) => {
   const { user } = useAuth();
 
@@ -68,6 +72,17 @@ export const ProjectDetailsForm = ({
           value={cameraApiUrl ?? ""}
           onChange={(e) => setCameraApiUrl(e.target.value)}
         />
+
+        {setMultipleDashboardConfigs !== undefined && (
+          <label className={styles.checkboxRow}>
+            <input
+              type="checkbox"
+              checked={multipleDashboardConfigs ?? false}
+              onChange={(e) => setMultipleDashboardConfigs(e.target.checked)}
+            />
+            <span className={styles.checkboxLabel}>Multiple dashboard configurations</span>
+          </label>
+        )}
       </div>
     </div>
   );

@@ -91,6 +91,10 @@ export const relationBase = defineRelations(schema, (r) => ({
       from: r.dashboardConfigurationTable.projectId,
       to: r.projectTable.id,
     }),
+    model: r.one.modelTable({
+      from: r.dashboardConfigurationTable.modelId,
+      to: r.modelTable.id,
+    }),
     evaluation: r.one.dashboardEvaluationTable({
       from: r.dashboardConfigurationTable.id,
       to: r.dashboardEvaluationTable.dashboardConfigurationId,
