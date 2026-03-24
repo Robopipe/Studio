@@ -8,6 +8,7 @@ export class ProjectEntity {
   readonly organizationId: number;
   readonly type: ProjectTypeEnum;
   readonly cameraApiUrl: string | null;
+  readonly multipleDashboardConfigs: boolean;
   readonly createdAt: Date;
   readonly updatedAt: Date;
   readonly deletedAt: Date | null;
@@ -19,6 +20,7 @@ export class ProjectEntity {
     this.type = data.type;
     this.organizationId = data.organizationId;
     this.cameraApiUrl = data.cameraApiUrl;
+    this.multipleDashboardConfigs = data.multipleDashboardConfigs;
     this.createdAt = data.createdAt;
     this.updatedAt = data.updatedAt;
     this.deletedAt = data.deletedAt;
@@ -32,6 +34,7 @@ export class ProjectEntity {
       type: this.type,
       organizationId: this.organizationId,
       cameraApiUrl: this.cameraApiUrl,
+      multipleDashboardConfigs: this.multipleDashboardConfigs,
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),
       deletedAt: this.deletedAt ? this.deletedAt.toISOString() : null,
