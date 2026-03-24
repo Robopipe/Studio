@@ -4,6 +4,7 @@ import type { DbConnection } from "src/core/database/types/database.types";
 import { EvalTestCaseDetailEntity, EvalTestCaseEntity, EvalTestCaseThresholdEntity } from "src/modules/eval/entities/eval-test-case.entity";
 import { EvalTestCaseDetailSelect, EvalTestCaseInsert, EvalTestCaseSelect } from "../types/eval";
 import { evalTestCaseTable } from "@repo/database";
+import type { EvalLogicNode } from "@repo/schema";
 import { and, asc, eq } from "drizzle-orm";
 
 @Injectable()
@@ -114,6 +115,21 @@ export class EvalTestCaseRepository {
      if(!testCase){
        throw new NotFoundException('Test case not found')
      }
+   }
+
+  /**
+   * Get logic nodes for a test case. Lightweight — only fetches logicNodes column.
+   * @throws NotFoundException
+   */
+   public async getLogicNodes(id: string, projectId: number, dashboardConfigurationId: number): Promise<EvalLogicNode[]>{
+     const testCase = await this.db.query.evalTestCaseTable.findFirst({
+       where: { id, projectId, dashboardConfigurationId },
+       columns: { logicNodes: true },
+     })
+     if(!testCase){
+       throw new NotFoundException('Test case not found')
+     }
+     return testCase.logicNodes ?? []
    }
 
   /**

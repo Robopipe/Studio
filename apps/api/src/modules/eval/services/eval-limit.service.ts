@@ -8,6 +8,7 @@ import type { DbConnection } from "src/core/database/types/database.types";
 import { evalLimitItemTable } from "@repo/database";
 import { and, eq, inArray } from "drizzle-orm";
 import { ProjectLabelRepository } from "src/repository/services/project-label-repository.service";
+import type { EvalLogicNode, EvalLogicNodeTypeEnum } from "@repo/schema";
 
 @Injectable()
 export class EvalLimitService {
@@ -146,10 +147,31 @@ export class EvalLimitService {
   }
 
   /**
-   * Delete limit.
+   * Check if a limit ID is referenced in logic nodes (recursively).
    */
-  public async deleteLimit(projectId: number, configId: number, testCaseId: string, limitId: string): Promise<void>{
-    await this.evalTestCaseRepository.verifyOwnership(testCaseId, projectId, configId);
+  private isLimitInLogicNodes(nodes: EvalLogicNode[], limitId: string): boolean {
+    for (const node of nodes) {
+      if (node.type === ("LIMIT" as EvalLogicNodeTypeEnum) && node.id === limitId) {
+        return true;
+      }
+      if ("children" in node && this.isLimitInLogicNodes(node.children as EvalLogicNode[], limitId)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Delete limit. Returns { deleted: true } if deleted, { deleted: false } if limit is used in evaluation logic.
+   */
+  public async deleteLimit(projectId: number, configId: number, testCaseId: string, limitId: string): Promise<{ deleted: boolean }>{
+    const logicNodes = await this.evalTestCaseRepository.getLogicNodes(testCaseId, projectId, configId);
+
+    if (this.isLimitInLogicNodes(logicNodes, limitId)) {
+      return { deleted: false };
+    }
+
     await this.evalLimitRepository.delete(limitId, testCaseId)
+    return { deleted: true };
   }
 }

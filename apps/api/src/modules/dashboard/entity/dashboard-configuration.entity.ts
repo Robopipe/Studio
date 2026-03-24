@@ -14,6 +14,7 @@ export class DashboardConfigurationEntity {
   readonly lineDirection: DashboardConfigurationLineDirectionEnum;
   readonly linePosition: number;
   readonly lineFlow: DashboardConfigurationLineFlowEnum;
+  readonly modelId: number | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 
@@ -24,6 +25,7 @@ export class DashboardConfigurationEntity {
     this.lineDirection = data.lineDirection;
     this.linePosition = data.linePosition;
     this.lineFlow = data.lineFlow;
+    this.modelId = data.modelId;
     this.createdAt = data.createdAt;
     this.updatedAt = data.updatedAt;
   }
@@ -36,6 +38,7 @@ export class DashboardConfigurationEntity {
       lineDirection: this.lineDirection,
       linePosition: this.linePosition,
       lineFlow: this.lineFlow,
+      modelId: this.modelId,
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),
     };

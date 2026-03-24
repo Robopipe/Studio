@@ -25,6 +25,9 @@ export const EditProjectModal = ({
   const [cameraApiUrl, setCameraApiUrl] = useState<string | null>(
     project.cameraApiUrl,
   );
+  const [multipleDashboardConfigs, setMultipleDashboardConfigs] = useState(
+    project.multipleDashboardConfigs,
+  );
 
   const { data: existingLabels } = useGetProjectLabelsQuery({
     projectId: project.id,
@@ -43,6 +46,7 @@ export const EditProjectModal = ({
         name,
         description,
         cameraApiUrl,
+        multipleDashboardConfigs,
       }).unwrap();
 
       onClose();
@@ -64,6 +68,8 @@ export const EditProjectModal = ({
           cameraApiUrl={cameraApiUrl}
           setCameraApiUrl={setCameraApiUrl}
           projectType={project.type}
+          multipleDashboardConfigs={multipleDashboardConfigs}
+          setMultipleDashboardConfigs={setMultipleDashboardConfigs}
         />
       ),
     },

@@ -66,9 +66,11 @@ export class DashboardService {
   public async updateConfiguration(id: number, projectId: number, data: DashboardConfigurationUpdateRequest): Promise<DashboardConfigurationEntity> {
     await this.getConfigurationById(id, projectId);
 
-    return this.dashboardConfigurationRepository.update(id, {
-      name: data.name,
-    });
+    const updateData: Record<string, unknown> = {};
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.modelId !== undefined) updateData.modelId = data.modelId;
+
+    return this.dashboardConfigurationRepository.update(id, updateData);
   }
 
   /**

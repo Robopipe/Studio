@@ -4,6 +4,7 @@ import { HttpMethod } from "@/types";
 import { createApi } from "@reduxjs/toolkit/query/react";
 import {
   CreateDashboardConfiguration,
+  UpdateDashboardConfiguration,
   DashboardConfiguration,
   DashboardEvaluation,
   UpsertDashboardEvaluation,
@@ -61,15 +62,16 @@ export const dashboardConfigApi = createApi({
     }),
     updateDashboardConfig: builder.mutation<
       DashboardConfiguration,
-      CreateDashboardConfiguration & { projectId: number; configId: number }
+      UpdateDashboardConfiguration & { projectId: number; configId: number }
     >({
       query: ({ projectId, configId, ...body }) => ({
         url: dashboardConfig.configuration(projectId, configId),
         method: HttpMethod.PUT,
         body,
       }),
-      invalidatesTags: (_result, _error, { projectId }) => [
+      invalidatesTags: (_result, _error, { projectId, configId }) => [
         { type: DashboardConfigApiTagType.DashboardConfigs, id: projectId },
+        { type: DashboardConfigApiTagType.DashboardConfigs, id: configId },
       ],
     }),
     deleteDashboardConfig: builder.mutation<

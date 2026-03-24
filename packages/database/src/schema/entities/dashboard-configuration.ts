@@ -4,6 +4,7 @@ import {
 } from "@repo/schema";
 import * as p from "drizzle-orm/pg-core";
 import { createdAt, id, updatedAt } from "../helpers";
+import { modelTable } from "./model";
 import { projectTable } from "./project";
 
 export const dashboardConfigurationLineDirectionEnum = p.pgEnum(
@@ -39,6 +40,9 @@ export const dashboardConfigurationTable = p.pgTable(
     lineFlow: dashboardConfigurationLineFlowEnum("line_flow")
       .notNull()
       .default(DashboardConfigurationLineFlowEnum.POSITIVE),
+    modelId: p
+      .integer("model_id")
+      .references(() => modelTable.id, { onDelete: "set null" }),
     createdAt,
     updatedAt,
   },
