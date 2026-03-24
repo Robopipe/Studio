@@ -23,6 +23,11 @@ interface TestCaseSectionProps {
   configId: number;
 }
 
+type DeleteState =
+  | { type: "confirm"; limitId: string }
+  | { type: "blocked"; limitId: string }
+  | null;
+
 export function TestCaseSection({ testCase, projectId, configId }: TestCaseSectionProps) {
   const { data: limits = [] } = useGetEvalLimitsQuery({
     projectId,
@@ -31,7 +36,7 @@ export function TestCaseSection({ testCase, projectId, configId }: TestCaseSecti
   });
   const [isCreateLimitOpen, setIsCreateLimitOpen] = useState(false);
   const [limitToEditId, setLimitToEditId] = useState<string | null>(null);
-  const [limitToDeleteId, setLimitToDeleteId] = useState<string | null>(null);
+  const [deleteState, setDeleteState] = useState<DeleteState>(null);
   const [isEditTestCaseOpen, setIsEditTestCaseOpen] = useState(false);
   const [isDeleteTestCaseOpen, setIsDeleteTestCaseOpen] = useState(false);
 
@@ -60,22 +65,27 @@ export function TestCaseSection({ testCase, projectId, configId }: TestCaseSecti
   };
 
   const handleDeleteLimit = (limit: EvalLimit) => {
-    setLimitToDeleteId(limit.id);
+    setDeleteState({ type: "confirm", limitId: limit.id });
   };
 
   const handleConfirmDelete = () => {
-    if (!limitToDeleteId) return;
+    if (!deleteState) return;
     deleteEvalLimit({
       projectId,
       configId,
       testCaseId: testCase.id,
-      limitId: limitToDeleteId,
+      limitId: deleteState.limitId,
     })
       .unwrap()
-      .then(() => setLimitToDeleteId(null));
+      .then((result) => {
+        if (result.deleted) {
+          setDeleteState(null);
+        } else {
+          setDeleteState({ type: "blocked", limitId: deleteState.limitId });
+        }
+      });
   };
 
-  const limitToDelete = limits.find((l) => l.id === limitToDeleteId) ?? null;
   const columns = useLimitColumns(handleEditLimit, handleDeleteLimit);
 
   return (
@@ -160,11 +170,21 @@ export function TestCaseSection({ testCase, projectId, configId }: TestCaseSecti
         />
       )}
 
-      {limitToDelete && (
+      {deleteState?.type === "confirm" && (
         <DeleteLimitDialog
-          onCancel={() => setLimitToDeleteId(null)}
+          onCancel={() => setDeleteState(null)}
           onConfirm={handleConfirmDelete}
           isLoading={isDeleting}
+        />
+      )}
+
+      {deleteState?.type === "blocked" && (
+        <DeleteLimitDialog
+          title="Cannot delete this limit"
+          description="This limit is used in the evaluation logic. Remove it from the evaluation logic first, then you can delete it."
+          confirmLabel="OK"
+          onCancel={() => setDeleteState(null)}
+          onConfirm={() => setDeleteState(null)}
         />
       )}
     </Card>

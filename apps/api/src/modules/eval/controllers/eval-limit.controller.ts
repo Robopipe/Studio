@@ -61,7 +61,7 @@ export class EvalLimitController {
     @Param("configId", ParseIntPipe) configId: number,
     @Param("testCaseId") testCaseId: string,
     @Param("limitId") limitId: string
-  ): Promise<void> {
+  ): Promise<{ deleted: boolean }> {
     return this.evalLimitService.deleteLimit(projectId, configId, testCaseId, limitId)
   }
 }

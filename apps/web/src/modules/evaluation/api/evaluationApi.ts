@@ -152,7 +152,7 @@ export const evaluationApi = api.injectEndpoints({
     }),
 
     deleteEvalLimit: builder.mutation<
-      void,
+      { deleted: boolean },
       { projectId: number; configId: number; testCaseId: string; limitId: string }
     >({
       query: ({ projectId, configId, testCaseId, limitId }) => ({

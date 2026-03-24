@@ -72,6 +72,7 @@ export const projectApi = projectApiBase.injectEndpoints({
         name: string;
         description: string;
         cameraApiUrl: string | null;
+        multipleDashboardConfigs?: boolean;
       }
     >({
       query: ({ projectId, ...body }) => ({

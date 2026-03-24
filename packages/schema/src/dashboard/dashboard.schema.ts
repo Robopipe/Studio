@@ -18,6 +18,7 @@ export const dashboardConfigurationSchema = z.object({
   lineDirection: z.enum(DashboardConfigurationLineDirectionEnum),
   linePosition: z.number(),
   lineFlow: z.enum(DashboardConfigurationLineFlowEnum),
+  modelId: z.number().nullable(),
   createdAt: timestampsSchema.createdAt,
   updatedAt: timestampsSchema.updatedAt,
 });
@@ -26,8 +27,10 @@ export const createDashboardConfigurationSchema = z.object({
   name: z.string().min(1).max(256),
 });
 
-export const updateDashboardConfigurationSchema =
-  createDashboardConfigurationSchema;
+export const updateDashboardConfigurationSchema = z.object({
+  name: z.string().min(1).max(256).optional(),
+  modelId: z.number().nullable().optional(),
+});
 
 const gradeFields = {
   grade1AlertsBelow: z.number().min(0).max(100),
