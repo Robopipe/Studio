@@ -22,8 +22,6 @@ interface DashboardConfigPageProps {
   configId: number;
 }
 
-const NO_MODEL = "__none__";
-
 export const DashboardConfigPage = ({
   projectId,
   configId,
@@ -37,19 +35,19 @@ export const DashboardConfigPage = ({
     (m) => m.status === ModelStatusEnum.DONE,
   );
 
-  const [selectedModelId, setSelectedModelId] = useState<string>(NO_MODEL);
+  const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
 
   useEffect(() => {
     if (config?.modelId != null) {
       setSelectedModelId(String(config.modelId));
     } else {
-      setSelectedModelId(NO_MODEL);
+      setSelectedModelId(null);
     }
   }, [config?.modelId]);
 
   const hasChanges =
     config != null &&
-    (selectedModelId === NO_MODEL
+    (selectedModelId === null
       ? config.modelId != null
       : Number(selectedModelId) !== config.modelId);
 
@@ -57,7 +55,7 @@ export const DashboardConfigPage = ({
     await updateConfig({
       projectId,
       configId,
-      modelId: selectedModelId === NO_MODEL ? null : Number(selectedModelId),
+      modelId: selectedModelId === null ? null : Number(selectedModelId),
     }).unwrap();
   };
 
@@ -77,30 +75,47 @@ export const DashboardConfigPage = ({
             </label>
             <Select
               value={selectedModelId}
-              onValueChange={(value) => setSelectedModelId(value ?? NO_MODEL)}
+              onValueChange={(value) => setSelectedModelId(value)}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="No model selected" />
+                <SelectValue placeholder="None selected">
+                  {trainedModels.find((m) => String(m.id) === selectedModelId)?.name}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={NO_MODEL}>No model</SelectItem>
                 {trainedModels.map((model) => (
                   <SelectItem key={model.id} value={String(model.id)}>
                     {model.name}
                   </SelectItem>
                 ))}
+                {trainedModels.length === 0 && (
+                  <p className="px-2 py-1.5 text-sm text-muted-foreground">
+                    No trained models
+                  </p>
+                )}
               </SelectContent>
             </Select>
           </div>
 
-          <Button
-            size="sm"
-            onClick={handleSave}
-            disabled={!hasChanges || isSaving}
-          >
-            <Save className="size-4" />
-            {isSaving ? "Saving..." : "Save"}
-          </Button>
+          <div className="flex gap-2">
+            {selectedModelId !== null && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setSelectedModelId(null)}
+              >
+                Clear
+              </Button>
+            )}
+            <Button
+              size="sm"
+              onClick={handleSave}
+              disabled={!hasChanges || isSaving}
+            >
+              <Save className="size-4" />
+              {isSaving ? "Saving..." : "Save"}
+            </Button>
+          </div>
         </div>
 
         {trainedModels.length === 0 && (
