@@ -15,6 +15,8 @@ export class DashboardConfigurationEntity {
   readonly linePosition: number;
   readonly lineFlow: DashboardConfigurationLineFlowEnum;
   readonly modelId: number | null;
+  readonly cameraMxid: string | null;
+  readonly streamName: string | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 
@@ -26,6 +28,8 @@ export class DashboardConfigurationEntity {
     this.linePosition = data.linePosition;
     this.lineFlow = data.lineFlow;
     this.modelId = data.modelId;
+    this.cameraMxid = data.cameraMxid;
+    this.streamName = data.streamName;
     this.createdAt = data.createdAt;
     this.updatedAt = data.updatedAt;
   }
@@ -39,6 +43,8 @@ export class DashboardConfigurationEntity {
       linePosition: this.linePosition,
       lineFlow: this.lineFlow,
       modelId: this.modelId,
+      cameraMxid: this.cameraMxid,
+      streamName: this.streamName,
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),
     };

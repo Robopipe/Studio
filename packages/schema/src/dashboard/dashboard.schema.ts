@@ -19,6 +19,8 @@ export const dashboardConfigurationSchema = z.object({
   linePosition: z.number(),
   lineFlow: z.enum(DashboardConfigurationLineFlowEnum),
   modelId: z.number().nullable(),
+  cameraMxid: z.string().nullable(),
+  streamName: z.string().nullable(),
   createdAt: timestampsSchema.createdAt,
   updatedAt: timestampsSchema.updatedAt,
 });
@@ -30,6 +32,11 @@ export const createDashboardConfigurationSchema = z.object({
 export const updateDashboardConfigurationSchema = z.object({
   name: z.string().min(1).max(256).optional(),
   modelId: z.number().nullable().optional(),
+  lineDirection: z.enum(DashboardConfigurationLineDirectionEnum).optional(),
+  linePosition: z.number().min(0).max(1).optional(),
+  lineFlow: z.enum(DashboardConfigurationLineFlowEnum).optional(),
+  cameraMxid: z.string().nullable().optional(),
+  streamName: z.string().nullable().optional(),
 });
 
 const gradeFields = {
