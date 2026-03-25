@@ -32,6 +32,7 @@ export class ModelRepository {
           orderBy: (l) => asc(l.id),
         },
       },
+      orderBy: (m) => asc(m.createdAt)
     });
 
     return models.map((model) => new ModelEntity(model))
