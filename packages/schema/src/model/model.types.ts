@@ -1,4 +1,5 @@
 import z from "zod";
+import { hyperparamsConfigSchema } from "./hyperparams-config.schema";
 import {
   createModelSchema,
   modelAugmentationSchema,
@@ -8,6 +9,7 @@ import {
   modelSchema,
 } from "./model.schema";
 
+export type HyperparamsConfig = z.infer<typeof hyperparamsConfigSchema>;
 export type ModelLogMetrics = z.infer<typeof modelLogMetricsSchema>;
 export type ModelLog = z.infer<typeof modelLogSchema>;
 export type ModelAugmentation = z.infer<typeof modelAugmentationSchema>;

@@ -1,5 +1,6 @@
 import z from "zod";
 import { timestampsSchema } from "../helpers";
+import { hyperparamsConfigSchema } from "./hyperparams-config.schema";
 import { labelSchema } from "../label";
 import { ProjectTypeEnum } from "../projects";
 import { TaskFileTypeEnum } from "../task";
@@ -91,7 +92,7 @@ export const createModelSchema = modelSchema
       })
       .array()
       .default([]),
-    customHyperparams: z.record(z.string(), z.unknown()).default({}),
+    customHyperparams: hyperparamsConfigSchema.default({}),
   })
   .refine(
     (data) => {
