@@ -13,7 +13,6 @@ import {
 import { DatasetSplit, DatasetSplitSettings } from "../DatasetSplitSettings";
 import { ModelLayout } from "../ModelLayout/ModelLayout";
 import { ModelTypeSettings } from "../ModelTypeSettings";
-import { OutputSettings } from "../OutputSettings";
 import { SettingsCard } from "../SettingsCard";
 import { SourceImagesSettings } from "../SourceImagesSettings";
 import styles from "./ModelNewPage.module.scss";
@@ -29,6 +28,7 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
   const [trainModel] = useTrainModelMutation();
   const [outputs, setOutputs] = useState<ModelOutputTypeEnum[]>([
     ModelOutputTypeEnum.RAW,
+    ModelOutputTypeEnum.RVC4,
   ]);
   const [activeLabels, setActiveLabels] = useState<Label[]>([]);
   const [datasetSplit, setDatasetSplit] = useState<DatasetSplit>({
@@ -133,13 +133,43 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
           augmentations={augmentations}
           onChange={setAugmentations}
         />
-        <OutputSettings outputs={outputs} setOutputs={setOutputs} />
 
         <SettingsCard
-          stepNumber={6}
+          stepNumber={5}
           state={customHyperparams.trim() ? "complete" : "pending"}
           title="Advanced Options"
         >
+          <Stack style={{ flex: 1 }}>
+          <Collapsible>
+            <CollapsibleTrigger>Output Formats</CollapsibleTrigger>
+            <CollapsiblePanel>
+              <Stack gap={8}>
+                <Text variant="text-12">
+                  Choose which export formats to generate after training. RAW is
+                  the unoptimized ONNX model. RVC2, RVC3, and RVC4 produce
+                  hardware-optimized blobs for Luxonis cameras — select the
+                  format matching your target device.
+                </Text>
+                <Stack direction="row" gap={8}>
+                  {Object.values(ModelOutputTypeEnum).map((outputType) => (
+                    <Button
+                      key={outputType}
+                      variant={outputs.includes(outputType) ? "filled" : "outlined"}
+                      onClick={() => {
+                        if (outputs.includes(outputType)) {
+                          setOutputs(outputs.filter((t) => t !== outputType));
+                        } else {
+                          setOutputs([...outputs, outputType]);
+                        }
+                      }}
+                    >
+                      {outputType}
+                    </Button>
+                  ))}
+                </Stack>
+              </Stack>
+            </CollapsiblePanel>
+          </Collapsible>
           <Collapsible>
             <CollapsibleTrigger>Custom Training Hyperparameters</CollapsibleTrigger>
             <CollapsiblePanel>
@@ -165,6 +195,7 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
               </Stack>
             </CollapsiblePanel>
           </Collapsible>
+          </Stack>
         </SettingsCard>
 
         <Stack direction="row" justify="end">
