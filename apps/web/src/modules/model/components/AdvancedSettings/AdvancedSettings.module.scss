@@ -1,0 +1,17 @@
+.hyperparamsSummary {
+  font-family: monospace;
+  font-size: 12px;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 4px;
+  padding: 8px;
+  max-height: 80px;
+  overflow: hidden;
+  white-space: pre;
+  color: var(--color-text-secondary);
+}
+
+.editRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
