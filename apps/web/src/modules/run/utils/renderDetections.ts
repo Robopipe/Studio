@@ -29,6 +29,7 @@ export const renderBBoxDetection: DetectionRenderer = (
 ) => {
   if (!isBBDetection(detection)) return;
   const label = labels[detection.label];
+  if (!label) return;
   const [xmin, ymin, xmax, ymax] = detection.coords;
   const { width, height } = ctx.canvas;
   const [x, y, w, h] = [
@@ -61,6 +62,7 @@ export const renderClassificationDetection: DetectionRenderer = (
 ) => {
   if (!isClassificationDetection(detection)) return;
   const label = labels[detection.label];
+  if (!label) return;
   const text = `${label.name} (${(detection.confidence * 100).toFixed(1)}%)`;
   ctx.font = "16px Inter";
   ctx.fillStyle = label.color;
@@ -94,7 +96,9 @@ export const renderSegmentationMask = (
       const labelId = masks[y][x];
       if (labelId === -1) continue; // background
       const detLabel = detections.detections[labelId];
+      if (!detLabel) continue;
       const label = labels[detLabel.label];
+      if (!label) continue;
       const color = label.color;
       const r = parseInt(color.slice(1, 3), 16);
       const g = parseInt(color.slice(3, 5), 16);

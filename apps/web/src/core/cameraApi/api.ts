@@ -2,10 +2,7 @@ import { HttpMethod } from "@/types";
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "./baseQuery";
 import type { DeviceInfo, SensorControl, StreamInfo } from "./schemas";
-import {
-  CameraApiDashboardConfig,
-  DeployDashboardResponse,
-} from "./schemas/dashboard";
+import { DeployDashboardConfig, DeployDashboardResponse } from "./schemas/dashboard";
 import { NNConfig } from "./schemas/nn";
 import { CameraApiTagType } from "./tagType";
 
@@ -172,14 +169,25 @@ export const cameraApi = cameraApiBase.injectEndpoints({
       {
         mxid: string;
         streamName: string;
-        dashboardConfig: CameraApiDashboardConfig;
+        dashboardConfig: DeployDashboardConfig;
+        model?: File;
+        config?: NNConfig;
       }
     >({
-      query: ({ mxid, streamName, dashboardConfig }) => ({
-        url: `/cameras/${mxid}/streams/${streamName}/dashboard`,
-        method: HttpMethod.POST,
-        body: dashboardConfig,
-      }),
+      query: ({ mxid, streamName, dashboardConfig, model, config }) => {
+        const data = new FormData();
+        data.append("dashboard_config", JSON.stringify(dashboardConfig));
+        if (model) data.append("model", model);
+        if (config) data.append("config", JSON.stringify(config));
+        return {
+          url: `/cameras/${mxid}/streams/${streamName}/dashboard`,
+          method: HttpMethod.POST,
+          body: data,
+        };
+      },
+      invalidatesTags: (_result, _error, { mxid, streamName }) => [
+        { type: CameraApiTagType.NN, id: `${mxid}-${streamName}` },
+      ],
     }),
 
     removeDashboard: builder.mutation<
