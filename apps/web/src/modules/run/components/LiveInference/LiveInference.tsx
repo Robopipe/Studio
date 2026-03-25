@@ -9,22 +9,19 @@ import styles from "./LiveInference.module.scss";
 export interface LiveInferenceProps {
   selectedCamera: string | null;
   selectedStream: string | null;
-  selectedModelId: string | null;
-  selectedOutputId: string | null;
 }
 
 export const LiveInference = ({
   selectedCamera,
   selectedStream,
-  selectedModelId,
-  selectedOutputId,
 }: LiveInferenceProps) => {
-  const canShowInference =
-    selectedCamera && selectedStream && selectedModelId && selectedOutputId;
   const { data: nnInfo } = useGetNNQuery(
     { mxid: selectedCamera!, streamName: selectedStream! },
     { skip: !selectedCamera || !selectedStream },
   );
+  const modelId = nnInfo?.model_id ?? 0;
+  const hasNN = !!nnInfo?.model_id;
+
   const [activeProject] = useActiveProject();
   const { videoRef, isStreaming } = useWebRTCStream({
     selectedMxid: selectedCamera || "",
@@ -33,22 +30,21 @@ export const LiveInference = ({
   const { canvasRef, renderDetections } = useDetectionsRenderer({
     videoRef,
     projectId: activeProject?.id || 0,
-    modelId: Number(selectedModelId) || 0,
-    enabled: !!canShowInference && !!selectedModelId && !!selectedOutputId,
+    modelId,
+    enabled: hasNN,
   });
   const { isConnected } = useDetections({
     selectedMxid: selectedCamera || "",
     selectedSensorName: selectedStream || "",
     onDetections: renderDetections,
-    enabled:
-      !!canShowInference && !!selectedModelId && !!selectedOutputId && !!nnInfo,
+    enabled: hasNN && !!nnInfo,
   });
 
   if (!selectedCamera || !selectedStream) {
     return (
       <Stack className={styles.container} align="center" justify="center">
         <Text variant="text-16" className={styles.placeholder}>
-          Select a camera and sensor to start streaming
+          Configure a camera and sensor in the Configuration tab
         </Text>
       </Stack>
     );
@@ -62,9 +58,7 @@ export const LiveInference = ({
 
       <div className={styles.videoWrapper}>
         {isStreaming && <span className={styles.liveLabel}>LIVE</span>}
-        {canShowInference && isConnected && (
-          <span className={styles.nnLabel}>NN</span>
-        )}
+        {hasNN && isConnected && <span className={styles.nnLabel}>NN</span>}
 
         <video
           ref={videoRef}
@@ -83,9 +77,9 @@ export const LiveInference = ({
         <canvas ref={canvasRef} className={styles.detectionsOverlay} />
       </div>
 
-      {!canShowInference && selectedCamera && selectedStream && (
+      {!hasNN && (
         <Text variant="text-14" className={styles.hint}>
-          Select a model and output type to see inference results
+          Deploy to see inference results
         </Text>
       )}
     </Stack>

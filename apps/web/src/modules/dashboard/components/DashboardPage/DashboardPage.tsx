@@ -10,21 +10,28 @@ import {
   useUpdateDashboardConfigMutation,
   useDeleteDashboardConfigMutation,
 } from "../../services/dashboardConfigApi";
-import { DashboardConfigPage } from "../DashboardConfigPage";
 import { EvaluationThresholdsPage } from "@/modules/evaluation";
 
 import styles from "./DashboardPage.module.scss";
 import { DashboardRuntimePage } from "../DashboardRuntimePage";
 import { TestCasesOverviewPage } from "@/modules/evaluation";
 
-type RightPanelTab = "custom" | "configuration" | "evaluation" | "test-cases";
+type RightPanelTab = "custom" | "evaluation" | "test-cases";
 
-export const DashboardPage = () => {
+export interface DashboardPageProps {
+  dashboardUrl: string | null;
+  onConfigChange: (configId: number | null) => void;
+}
+
+export const DashboardPage = ({
+  dashboardUrl,
+  onConfigChange,
+}: DashboardPageProps) => {
   const { projectId: projectIdParam } = useParams<{ projectId: string }>();
   const projectId = Number(projectIdParam);
 
   const [selectedConfigId, setSelectedConfigId] = useState<number | null>(null);
-  const [rightTab, setRightTab] = useState<RightPanelTab>("configuration");
+  const [rightTab, setRightTab] = useState<RightPanelTab>("custom");
   const [isCreating, setIsCreating] = useState(false);
   const [newConfigName, setNewConfigName] = useState("");
   const [editingConfig, setEditingConfig] = useState<DashboardConfiguration | null>(null);
@@ -44,6 +51,15 @@ export const DashboardPage = () => {
       setSelectedConfigId(configs[0].id);
     }
   }, [configs, selectedConfigId]);
+
+  const activeConfigId = showMultipleConfigs
+    ? selectedConfigId
+    : configs[0]?.id ?? null;
+
+  // Notify parent of active config changes
+  useEffect(() => {
+    onConfigChange(activeConfigId);
+  }, [activeConfigId, onConfigChange]);
 
   const handleCreateConfig = async () => {
     if (!newConfigName.trim()) return;
@@ -71,10 +87,6 @@ export const DashboardPage = () => {
     setEditingConfig(config);
     setEditName(config.name);
   };
-
-  const activeConfigId = showMultipleConfigs
-    ? selectedConfigId
-    : configs[0]?.id ?? null;
 
   return (
     <Stack className={styles.pageWrapper} gap={0}>
@@ -188,12 +200,6 @@ export const DashboardPage = () => {
                     <Text variant="text-14" weight="500">Custom dashboard</Text>
                   </button>
                   <button
-                    className={clsx(styles.tab, rightTab === "configuration" && styles.active)}
-                    onClick={() => setRightTab("configuration")}
-                  >
-                    <Text variant="text-14" weight="500">Configuration</Text>
-                  </button>
-                  <button
                     className={clsx(styles.tab, rightTab === "test-cases" && styles.active)}
                     onClick={() => setRightTab("test-cases")}
                   >
@@ -211,10 +217,7 @@ export const DashboardPage = () => {
               {/* Right panel content — key forces remount on config switch to reset local state */}
               <div className={styles.rightPanelContent} key={activeConfigId}>
                 {rightTab === "custom" && (
-                  <DashboardRuntimePage configId={activeConfigId} />
-                )}
-                {rightTab === "configuration" && (
-                  <DashboardConfigPage projectId={projectId} configId={activeConfigId} />
+                  <DashboardRuntimePage configId={activeConfigId} dashboardUrl={dashboardUrl} />
                 )}
                 {rightTab === "evaluation" && (
                   <EvaluationThresholdsPage projectId={projectId} configId={activeConfigId} />

@@ -3,7 +3,7 @@
   flex-direction: column;
   flex: 1;
   min-height: 0;
-  background: #fff;
+  background: var(--color-gray-50);
 }
 
 .twoPanel {
@@ -78,6 +78,8 @@
   flex: 1;
   overflow-y: auto;
   padding: 1rem;
+  display: flex;
+  flex-direction: column;
 }
 
 .createForm {

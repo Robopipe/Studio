@@ -7,20 +7,32 @@ import {
 } from "@/modules/shadcn/ui/select";
 import { Button } from "@/modules/shadcn/ui/button";
 import { useGetModelsQuery } from "@/modules/model/services";
-import { ModelStatusEnum } from "@repo/schema";
-import { Stack } from "@repo/ui";
+import {
+  DashboardConfigurationLineDirectionEnum,
+  DashboardConfigurationLineFlowEnum,
+  ModelStatusEnum,
+} from "@repo/schema";
 import { Save } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   useGetDashboardConfigQuery,
   useUpdateDashboardConfigMutation,
 } from "../../services/dashboardConfigApi";
-import { DashboardLineConfiguration } from "../DashboardLineConfiguration";
+import {
+  DashboardLineConfiguration,
+  LineConfig,
+} from "../DashboardLineConfiguration";
 
 interface DashboardConfigPageProps {
   projectId: number;
   configId: number;
 }
+
+const defaultLineConfig: LineConfig = {
+  lineDirection: DashboardConfigurationLineDirectionEnum.HORIZONTAL,
+  linePosition: 50,
+  lineFlow: DashboardConfigurationLineFlowEnum.POSITIVE,
+};
 
 export const DashboardConfigPage = ({
   projectId,
@@ -36,32 +48,54 @@ export const DashboardConfigPage = ({
   );
 
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
+  const [lineConfig, setLineConfig] = useState<LineConfig>(defaultLineConfig);
 
   useEffect(() => {
-    if (config?.modelId != null) {
-      setSelectedModelId(String(config.modelId));
-    } else {
-      setSelectedModelId(null);
+    if (config) {
+      setSelectedModelId(
+        config.modelId != null ? String(config.modelId) : null,
+      );
+      setLineConfig({
+        lineDirection: config.lineDirection,
+        // DB stores 0-1, UI uses 0-100
+        linePosition: Math.round(config.linePosition * 100),
+        lineFlow: config.lineFlow,
+      });
     }
-  }, [config?.modelId]);
+  }, [config]);
 
-  const hasChanges =
+  const hasModelChanges =
     config != null &&
     (selectedModelId === null
       ? config.modelId != null
       : Number(selectedModelId) !== config.modelId);
+
+  const hasLineChanges =
+    config != null &&
+    (lineConfig.lineDirection !== config.lineDirection ||
+      lineConfig.linePosition !== Math.round(config.linePosition * 100) ||
+      lineConfig.lineFlow !== config.lineFlow);
+
+  const hasChanges = hasModelChanges || hasLineChanges;
 
   const handleSave = async () => {
     await updateConfig({
       projectId,
       configId,
       modelId: selectedModelId === null ? null : Number(selectedModelId),
+      lineDirection: lineConfig.lineDirection,
+      linePosition: lineConfig.linePosition / 100,
+      lineFlow: lineConfig.lineFlow,
     }).unwrap();
   };
 
   return (
-    <Stack fullWidth gap="md">
-      <DashboardLineConfiguration projectId={projectId} configId={configId} />
+    <div className="flex w-full flex-col gap-6">
+      <DashboardLineConfiguration
+        projectId={projectId}
+        value={lineConfig}
+        onChange={setLineConfig}
+      />
 
       <div className="flex flex-col gap-3">
         <h5 className="text-[10px] font-bold uppercase leading-4 tracking-[1px] text-foreground">
@@ -97,25 +131,15 @@ export const DashboardConfigPage = ({
             </Select>
           </div>
 
-          <div className="flex gap-2">
-            {selectedModelId !== null && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setSelectedModelId(null)}
-              >
-                Clear
-              </Button>
-            )}
+          {selectedModelId !== null && (
             <Button
               size="sm"
-              onClick={handleSave}
-              disabled={!hasChanges || isSaving}
+              variant="outline"
+              onClick={() => setSelectedModelId(null)}
             >
-              <Save className="size-4" />
-              {isSaving ? "Saving..." : "Save"}
+              Clear
             </Button>
-          </div>
+          )}
         </div>
 
         {trainedModels.length === 0 && (
@@ -124,6 +148,17 @@ export const DashboardConfigPage = ({
           </p>
         )}
       </div>
-    </Stack>
+
+      <div className="flex">
+        <Button
+          size="sm"
+          onClick={handleSave}
+          disabled={!hasChanges || isSaving}
+        >
+          <Save className="size-4" />
+          {isSaving ? "Saving..." : "Save"}
+        </Button>
+      </div>
+    </div>
   );
 };

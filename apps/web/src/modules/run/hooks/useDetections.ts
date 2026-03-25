@@ -41,6 +41,8 @@ export const useDetections = ({
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
+  const onDetectionsRef = useRef(onDetections);
+  onDetectionsRef.current = onDetections;
 
   const cleanup = useCallback(() => {
     if (reconnectTimeoutRef.current) {
@@ -93,7 +95,7 @@ export const useDetections = ({
               ? { detections: data }
               : data;
             setDetections(parsed);
-            onDetections?.(parsed);
+            onDetectionsRef.current?.(parsed);
           } catch {}
         };
 
