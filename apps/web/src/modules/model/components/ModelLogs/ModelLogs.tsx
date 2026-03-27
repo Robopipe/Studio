@@ -1,7 +1,7 @@
 import { Stack, Text } from "@repo/ui";
 import { useEffect, useRef } from "react";
 import { useModelParams } from "../../hooks/useModelParams";
-import { useGetModelLogsQuery } from "../../services";
+import { useGetModelLogsQuery, useGetModelQuery } from "../../services";
 import styles from "./ModelLogs.module.scss";
 
 export interface ModelLogsProps {}
@@ -16,6 +16,7 @@ const formatMetricValue = (value: unknown): string => {
 
 export const ModelLogs = ({}: ModelLogsProps) => {
   const { projectId, modelId } = useModelParams();
+  const { data: model } = useGetModelQuery({ projectId, modelId });
   const { data: logs } = useGetModelLogsQuery({ projectId, modelId });
   const scrollRef = useRef<HTMLDivElement>(null);
   const isUserScrolledUp = useRef(false);
@@ -65,6 +66,12 @@ export const ModelLogs = ({}: ModelLogsProps) => {
             <span className={styles.brace}>{"}"}</span>
           </Text>
         ))}
+        {model?.errorMessage && (
+          <Text color="red-500" variant="code-14">
+            <span className={styles.timestamp}>[{model.updatedAt}]</span> Error:{" "}
+            {model.errorMessage}
+          </Text>
+        )}
       </Stack>
     </div>
   );

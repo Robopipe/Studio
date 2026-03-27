@@ -1,8 +1,8 @@
 import { Model } from "@repo/schema";
 import { Badge, BadgeVariant, Container, Stack, Text } from "@repo/ui";
+import clsx from "clsx";
 import { Link, useParams } from "react-router";
 import styles from "./ModelCard.module.scss";
-import clsx from "clsx";
 
 export interface ModelCardProps {
   model: Model;
@@ -19,6 +19,8 @@ export const ModelCard = ({ model, order }: ModelCardProps) => {
         return "neutral";
       case "CONVERTING":
         return "neutral";
+      case "ERROR":
+        return "error";
       default:
         return "success";
     }
