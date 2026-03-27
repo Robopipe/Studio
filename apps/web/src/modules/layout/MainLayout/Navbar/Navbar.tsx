@@ -1,17 +1,16 @@
 import { useLogoutMutation, useProfileQuery } from "@/core/auth/services";
+import { CreateProjectModal } from "@/modules/project/components/CreateProjectModal";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import {
   useGetProjectQuery,
   useGetProjectsQuery,
 } from "@/modules/project/services/projectApi";
-import { CreateProjectModal } from "@/modules/project/components/CreateProjectModal";
 import { Logo } from "@/modules/ui";
 import {
   AiPowerIcon,
   AnnotateIcon,
   BoxIcon,
   CameraIcon,
-  ChartIcon,
   LogoutIcon,
   RunIcon,
   Stack,
@@ -19,12 +18,12 @@ import {
 } from "@repo/ui";
 import { Link, matchPath, useLocation, useNavigate } from "react-router";
 
+import { webConfig } from "@/config/web";
 import { useEffect, useState } from "react";
 import styles from "./Navbar.module.scss";
 import { NavDropdown } from "./components/NavDropdown";
 import { NavItem } from "./components/NavItem";
 import { OrgDropdown } from "./components/OrgDropdown";
-import { webConfig } from "@/config/web";
 
 export const Navbar = () => {
   const navigate = useNavigate();
@@ -63,14 +62,16 @@ export const Navbar = () => {
   }, [isProjectRoute, activeId, isError, isLoading, navigate]);
 
   useEffect(() => {
-  if (activeId && projects) {
-    const matchingProject = projects.find((p) => String(p.id) === String(activeId));
+    if (activeId && projects) {
+      const matchingProject = projects.find(
+        (p) => String(p.id) === String(activeId),
+      );
 
-    if (matchingProject && matchingProject.id !== activeProject?.id) {
-      setActiveProject(matchingProject);
+      if (matchingProject && matchingProject.id !== activeProject?.id) {
+        setActiveProject(matchingProject);
+      }
     }
-  }
-}, [activeId, projects, setActiveProject, activeProject?.id]);
+  }, [activeId, projects, setActiveProject, activeProject?.id]);
 
   const handleLogout = async () => {
     try {
@@ -155,11 +156,6 @@ export const Navbar = () => {
             label="Run"
             icon={<RunIcon />}
           />
-          <NavItem
-            to={`/projects/${activeId}/analytics`}
-            label="Analytics"
-            icon={<ChartIcon />}
-          />
         </Stack>
       )}
 
@@ -167,10 +163,14 @@ export const Navbar = () => {
       <Stack direction="row" align="center" gap={12} className={styles.right}>
         <OrgDropdown />
         <div className={styles.divider} />
-        <Link to={webConfig.routes.account} className={styles.userAvatar}>{initials}</Link>
+        <Link to={webConfig.routes.account} className={styles.userAvatar}>
+          {initials}
+        </Link>
         <button
           className={styles.iconBtn}
-          onClick={() => window.open("https://robopipe.gitbook.io/doc", "_blank")}
+          onClick={() =>
+            window.open("https://robopipe.gitbook.io/doc", "_blank")
+          }
         >
           <SupportIcon />
           <span className={styles.btnText}>Help</span>
