@@ -1,6 +1,10 @@
-import { ModelStatusEnum, ModelOutputTypeEnum, ProjectTypeEnum } from "@repo/schema";
-import { ProjectLabelEntity } from "../../project/entities/project-label.entity";
+import {
+  ModelOutputTypeEnum,
+  ModelStatusEnum,
+  ProjectTypeEnum,
+} from "@repo/schema";
 import { ModelSelect } from "../../../repository/types/model";
+import { ProjectLabelEntity } from "../../project/entities/project-label.entity";
 import { ModelResponse } from "../dto/model.dto";
 
 export class ModelEntity {
@@ -16,6 +20,7 @@ export class ModelEntity {
   readonly splitValidate: number;
   readonly splitTest: number;
   readonly customHyperparams: Record<string, unknown>;
+  readonly errorMessage: string | null;
   readonly labels: ProjectLabelEntity[];
   readonly createdAt: Date;
   readonly updatedAt: Date;
@@ -33,11 +38,15 @@ export class ModelEntity {
     this.splitTrain = data.splitTrain;
     this.splitValidate = data.splitValidate;
     this.splitTest = data.splitTest;
-    this.customHyperparams = (data.customHyperparams ?? {}) as Record<string, unknown>;
+    this.customHyperparams = (data.customHyperparams ?? {}) as Record<
+      string,
+      unknown
+    >;
     this.createdAt = data.createdAt;
     this.updatedAt = data.updatedAt;
     this.deletedAt = data.deletedAt;
-    this.labels = data.labels.map((label) => new ProjectLabelEntity(label))
+    this.errorMessage = data.errorMessage;
+    this.labels = data.labels.map((label) => new ProjectLabelEntity(label));
   }
 
   public toResponse(): ModelResponse {
@@ -54,9 +63,10 @@ export class ModelEntity {
       splitValidate: this.splitValidate,
       splitTest: this.splitTest,
       customHyperparams: this.customHyperparams,
+      errorMessage: this.errorMessage,
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),
       deletedAt: this.deletedAt ? this.deletedAt.toISOString() : null,
-    }
+    };
   }
 }

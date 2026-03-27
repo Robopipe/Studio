@@ -10,6 +10,7 @@ export enum ModelStatusEnum {
   TRAINING = "TRAINING",
   CONVERTING = "CONVERTING",
   DONE = "DONE",
+  ERROR = "ERROR",
 }
 export enum ModelOutputTypeEnum {
   RAW = "RAW",
@@ -48,6 +49,7 @@ export const modelSchema = z.object({
   splitValidate: z.number(),
   splitTest: z.number(),
   customHyperparams: z.record(z.string(), z.unknown()),
+  errorMessage: z.string().nullable(),
   ...timestampsSchema,
 });
 
