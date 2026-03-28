@@ -35,6 +35,13 @@ export enum ModelAugmentationTypeEnum {
   MOSAIC = "MOSAIC",
 }
 
+export const modelAugmentationSchema = z.object({
+  id: z.number(),
+  modelId: z.number(),
+  type: z.enum(ModelAugmentationTypeEnum),
+  params: z.record(z.string(), z.unknown()),
+});
+
 export const modelSchema = z.object({
   id: z.number(),
   name: z.string(),
@@ -49,6 +56,7 @@ export const modelSchema = z.object({
   splitValidate: z.number(),
   splitTest: z.number(),
   customHyperparams: z.record(z.string(), z.unknown()),
+  augmentations: modelAugmentationSchema.pick({ type: true, params: true }).array(),
   errorMessage: z.string().nullable(),
   ...timestampsSchema,
 });
@@ -65,13 +73,6 @@ export const modelLogSchema = z.object({
   epoch: z.number(),
   metrics: modelLogMetricsSchema,
   createdAt: z.iso.datetime(),
-});
-
-export const modelAugmentationSchema = z.object({
-  id: z.number(),
-  modelId: z.number(),
-  type: z.enum(ModelAugmentationTypeEnum),
-  params: z.record(z.string(), z.unknown()),
 });
 
 export const createModelSchema = modelSchema

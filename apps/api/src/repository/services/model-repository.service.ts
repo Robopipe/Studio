@@ -31,6 +31,7 @@ export class ModelRepository {
         labels: {
           orderBy: (l) => asc(l.id),
         },
+        augmentations: true,
       },
       orderBy: (m) => asc(m.createdAt)
     });
@@ -52,6 +53,7 @@ export class ModelRepository {
         labels: {
           orderBy: (l) => asc(l.id),
         },
+        augmentations: true,
       },
     });
 
@@ -73,7 +75,8 @@ export class ModelRepository {
       with: {
         labels: {
           orderBy: (l) => asc(l.id)
-        }
+        },
+        augmentations: true,
       }
     })
 
@@ -92,7 +95,7 @@ export class ModelRepository {
       throw new InternalServerErrorException("Failed creating model")
     }
 
-    return new ModelEntity({...createdModel, labels: []})
+    return new ModelEntity({...createdModel, labels: [], augmentations: []})
   }
 
 
@@ -120,7 +123,11 @@ export class ModelRepository {
     })
     const labels = modelLabels.map((modelLabel) => modelLabel.label).filter((l) => !!l)
 
-    return new ModelEntity({...updatedModel, labels})
+    const augmentations = await this.db.query.modelAugmentationTable.findMany({
+      where: { modelId: id },
+    })
+
+    return new ModelEntity({...updatedModel, labels, augmentations})
   }
 
   /**
