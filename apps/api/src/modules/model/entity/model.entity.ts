@@ -1,9 +1,10 @@
 import {
+  ModelAugmentationTypeEnum,
   ModelOutputTypeEnum,
   ModelStatusEnum,
   ProjectTypeEnum,
 } from "@repo/schema";
-import { ModelSelect } from "../../../repository/types/model";
+import { ModelAugmentationSelect, ModelSelect } from "../../../repository/types/model";
 import { ProjectLabelEntity } from "../../project/entities/project-label.entity";
 import { ModelResponse } from "../dto/model.dto";
 
@@ -22,6 +23,7 @@ export class ModelEntity {
   readonly customHyperparams: Record<string, unknown>;
   readonly errorMessage: string | null;
   readonly labels: ProjectLabelEntity[];
+  readonly augmentations: ModelAugmentationSelect[];
   readonly createdAt: Date;
   readonly updatedAt: Date;
   readonly deletedAt: Date | null;
@@ -47,6 +49,7 @@ export class ModelEntity {
     this.deletedAt = data.deletedAt;
     this.errorMessage = data.errorMessage;
     this.labels = data.labels.map((label) => new ProjectLabelEntity(label));
+    this.augmentations = data.augmentations;
   }
 
   public toResponse(): ModelResponse {
@@ -63,6 +66,10 @@ export class ModelEntity {
       splitValidate: this.splitValidate,
       splitTest: this.splitTest,
       customHyperparams: this.customHyperparams,
+      augmentations: this.augmentations.map((aug) => ({
+        type: aug.type as ModelAugmentationTypeEnum,
+        params: (aug.params ?? {}) as Record<string, unknown>,
+      })),
       errorMessage: this.errorMessage,
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),

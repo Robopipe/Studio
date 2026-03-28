@@ -51,6 +51,10 @@ export const relationBase = defineRelations(schema, (r) => ({
       from: r.modelTable.id,
       to: r.modelOutputTable.modelId,
     }),
+    augmentations: r.many.modelAugmentationTable({
+      from: r.modelTable.id,
+      to: r.modelAugmentationTable.modelId,
+    }),
   },
   modelLabelTable: {
     model: r.one.modelTable({

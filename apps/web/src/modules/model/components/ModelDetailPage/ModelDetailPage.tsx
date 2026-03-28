@@ -1,8 +1,8 @@
 import { Skeleton } from "@/modules/shadcn/ui/skeleton";
 import { DeleteLimitDialog } from "@/modules/dashboard/components/DeleteLimitDialog/DeleteLimitDialog";
-import { ModelLog, ModelStatusEnum } from "@repo/schema";
-import { Button, Stack, Text } from "@repo/ui";
-import { useCallback, useEffect, useState } from "react";
+import { ModelStatusEnum } from "@repo/schema";
+import { Button, DeleteIcon, Stack, Text } from "@repo/ui";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import {
   useDeleteModelMutation,
@@ -12,6 +12,7 @@ import {
 } from "../../services";
 import { ModelLayout } from "../ModelLayout";
 import { ModelLogs } from "../ModelLogs";
+import { ModelParametersDialog } from "../ModelParametersDialog";
 import { TrainingChart } from "../TrainingChart";
 import styles from "./ModelDetailPage.module.scss";
 
@@ -23,22 +24,7 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
   const [deleteModel, { isLoading: isDeleting }] = useDeleteModelMutation();
   const [trainModel] = useTrainModelMutation();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-
-  const downloadLogs = useCallback((logs: ModelLog[]) => {
-    const metricKeys = [...new Set(logs.flatMap((log) => Object.keys(log.metrics)))];
-    const header = ["epoch", "timestamp", ...metricKeys].join(",");
-    const rows = logs.map((log) =>
-      [log.epoch, log.createdAt, ...metricKeys.map((key) => log.metrics[key] ?? "")].join(",")
-    );
-    const csv = [header, ...rows].join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `model-${modelId}-logs.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [modelId]);
+  const [showParamsDialog, setShowParamsDialog] = useState(false);
 
   const {
     data: model,
@@ -126,16 +112,14 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
           {model?.name}
         </Text>
         <Stack direction="row" justify="end">
-          {logs && logs.length > 0 && (
-            <Button variant="outlined" onClick={() => downloadLogs(logs)}>
-              Download Logs
+          {model && (
+            <Button variant="outlined" size="sm" onClick={() => setShowParamsDialog(true)}>
+              Show parameters
             </Button>
           )}
-          <Button variant="danger" onClick={() => setShowDeleteDialog(true)}>
-            Delete
-          </Button>
           {model?.status === ModelStatusEnum.DRAFT && (
             <Button
+              size="sm"
               onClick={async () => {
                 await trainModel({
                   projectId: Number(projectId),
@@ -146,6 +130,14 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
               Train
             </Button>
           )}
+          <Button
+            variant="danger"
+            size="sm"
+            className={styles.deleteButton}
+            onClick={() => setShowDeleteDialog(true)}
+          >
+            <DeleteIcon width={16} height={16} />
+          </Button>
         </Stack>
       </Stack>
       <Stack direction="row">
@@ -183,6 +175,13 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
             }).unwrap();
             navigate(`/projects/${projectId}/models/new`);
           }}
+        />
+      )}
+      {model && (
+        <ModelParametersDialog
+          model={model}
+          open={showParamsDialog}
+          onClose={() => setShowParamsDialog(false)}
         />
       )}
     </ModelLayout>
