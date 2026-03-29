@@ -2,6 +2,7 @@ import { Button } from "@/modules/shadcn/ui/button";
 import { Stack, Text } from "@repo/ui";
 import clsx from "clsx";
 import { Play, Square } from "lucide-react";
+import type { ReactNode } from "react";
 import styles from "./RunSubheader.module.scss";
 
 export type RunTab = "inference" | "dashboard" | "configuration";
@@ -14,6 +15,7 @@ interface RunSubheaderProps {
   isDeploying: boolean;
   canDeploy: boolean;
   isDeployed: boolean;
+  configSelector?: ReactNode;
 }
 
 export const RunSubheader = ({
@@ -24,6 +26,7 @@ export const RunSubheader = ({
   isDeploying,
   canDeploy,
   isDeployed,
+  configSelector,
 }: RunSubheaderProps) => {
   return (
     <div className={styles.subheader}>
@@ -55,6 +58,8 @@ export const RunSubheader = ({
       </Stack>
 
       <div className={styles.buttonGroup}>
+        {configSelector}
+        <div className={styles.divider} />
         <Button
           size="sm"
           variant="outline"

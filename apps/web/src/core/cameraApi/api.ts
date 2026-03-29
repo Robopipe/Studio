@@ -2,7 +2,7 @@ import { HttpMethod } from "@/types";
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "./baseQuery";
 import type { DeviceInfo, SensorControl, StreamInfo } from "./schemas";
-import { DeployDashboardConfig, DeployDashboardResponse } from "./schemas/dashboard";
+import { DeployConfigEntry, DeployDashboardResponse } from "./schemas/dashboard";
 import { NNConfig } from "./schemas/nn";
 import { CameraApiTagType } from "./tagType";
 
@@ -169,16 +169,14 @@ export const cameraApi = cameraApiBase.injectEndpoints({
       {
         mxid: string;
         streamName: string;
-        dashboardConfig: DeployDashboardConfig;
-        model?: File;
-        config?: NNConfig;
+        configs: DeployConfigEntry[];
+        models: File[];
       }
     >({
-      query: ({ mxid, streamName, dashboardConfig, model, config }) => {
+      query: ({ mxid, streamName, configs, models }) => {
         const data = new FormData();
-        data.append("dashboard_config", JSON.stringify(dashboardConfig));
-        if (model) data.append("model", model);
-        if (config) data.append("config", JSON.stringify(config));
+        data.append("configs", JSON.stringify(configs));
+        models.forEach((model) => data.append("models", model));
         return {
           url: `/cameras/${mxid}/streams/${streamName}/dashboard`,
           method: HttpMethod.POST,
