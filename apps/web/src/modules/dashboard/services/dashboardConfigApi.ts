@@ -118,6 +118,7 @@ export const dashboardConfigApi = createApi({
 
 export const {
   useGetDashboardConfigsQuery,
+  useLazyGetDashboardConfigsQuery,
   useGetDashboardConfigQuery,
   useCreateDashboardConfigMutation,
   useUpdateDashboardConfigMutation,

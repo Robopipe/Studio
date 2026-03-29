@@ -1,5 +1,6 @@
 import { dashboardConfigurationSchema, labelSchema } from "@repo/schema";
 import z from "zod";
+import type { NNConfig } from "./nn";
 
 export const cameraApiDashboardConfigurationSchema =
   dashboardConfigurationSchema.extend({
@@ -11,10 +12,16 @@ export type DashboardConfiguration = z.infer<
 
 export const deployDashboardResponseSchema = z.object({
   dashboard_url: z.string(),
+  configs_count: z.number(),
 });
 export type DeployDashboardResponse = z.infer<
   typeof deployDashboardResponseSchema
 >;
+
+export type DeployConfigEntry = {
+  dashboard_config: DeployDashboardConfig;
+  nn_config: NNConfig;
+};
 
 // Types for the deploy payload sent to the camera Python API (DashboardConfig)
 

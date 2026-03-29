@@ -260,6 +260,7 @@ export const {
   useDeleteEvalLimitMutation,
   useDeleteEvalTestCaseMutation,
   useGetEvalThresholdsQuery,
+  useLazyGetEvalThresholdsQuery,
   useCreateEvalThresholdMutation,
   useUpdateEvalThresholdMutation,
   useDeleteEvalThresholdMutation,

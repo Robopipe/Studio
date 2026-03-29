@@ -41,3 +41,9 @@
   align-items: center;
   gap: 8px;
 }
+
+.divider {
+  width: 1px;
+  height: 16px;
+  background: var(--color-gray-200, #e5e7eb);
+}
