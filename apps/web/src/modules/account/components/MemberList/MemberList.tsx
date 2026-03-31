@@ -15,9 +15,11 @@ import {
 import { FormEvent } from "react";
 import { toast } from "sonner";
 import {
+  useGetInvitationsQuery,
   useGetMembersQuery,
   useInviteUserMutation,
   useRemoveMemberMutation,
+  useRevokeInvitationMutation,
   useUpdateMemberRoleMutation,
 } from "../../services";
 import styles from "./MemberList.module.scss";
@@ -36,6 +38,8 @@ export const MemberList = () => {
   const canManage =
     currentUserRole === OrgMemberRoleEnum.ADMIN ||
     currentUserRole === OrgMemberRoleEnum.OWNER;
+  const { data: invitations } = useGetInvitationsQuery(undefined, { skip: !canManage });
+  const [revokeInvitation] = useRevokeInvitationMutation();
 
   const handleInvite = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -69,6 +73,15 @@ export const MemberList = () => {
       toast.success("Member removed");
     } catch {
       toast.error("Failed to remove member");
+    }
+  };
+
+  const handleRevoke = async (invitationId: number) => {
+    try {
+      await revokeInvitation(invitationId).unwrap();
+      toast.success("Invitation revoked");
+    } catch {
+      toast.error("Failed to revoke invitation");
     }
   };
 
@@ -127,6 +140,38 @@ export const MemberList = () => {
           </div>
         ))}
       </Stack>
+
+      {canManage && invitations && invitations.length > 0 && (
+        <>
+          <div className={styles.divider} />
+          <Heading variant="h5" weight="600">
+            Pending Invitations
+          </Heading>
+
+          <Stack gap={12}>
+            {invitations.map((invitation) => (
+              <div key={invitation.id} className={styles.memberRow}>
+                <Stack gap={2}>
+                  <Text weight="600">{invitation.email}</Text>
+                  <Text variant="text-14" color="text-secondary">
+                    Invited {new Date(invitation.createdAt).toLocaleDateString()}
+                  </Text>
+                </Stack>
+                <div className={styles.memberActions}>
+                  <Badge variant="neutral">Pending</Badge>
+                  <button
+                    className={styles.removeButton}
+                    onClick={() => handleRevoke(invitation.id)}
+                    aria-label="Revoke invitation"
+                  >
+                    <CloseIcon width={16} height={16} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </Stack>
+        </>
+      )}
 
       {canManage && (
         <>
