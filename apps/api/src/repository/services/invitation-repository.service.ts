@@ -75,6 +75,23 @@ export class InvitationRepository {
   }
 
   /**
+   * Returns pending, non-expired invitations for the given organization.
+   * @param organizationId - organization ID
+   * @returns matching invitations
+   */
+  public async findPendingByOrganizationId(organizationId: number): Promise<InvitationEntity[]> {
+    const rows = await this.db.query.invitationTable.findMany({
+      where: {
+        organizationId,
+        status: InvitationStatusEnum.PENDING,
+        expiresAt: { gt: new Date() },
+      },
+    });
+
+    return rows.map((r) => new InvitationEntity(r));
+  }
+
+  /**
    * @param id - invitation ID
    * @param status - new status to set
    */

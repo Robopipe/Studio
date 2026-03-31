@@ -4,7 +4,7 @@ import { AdminGuard } from 'src/modules/auth/guards/admin.guard';
 import { User } from 'src/modules/auth/decorators/user.decorator';
 import type { SessionUser } from 'src/modules/auth/strategies/jwt.strategy';
 import { OrganizationService } from '../services/organization.service';
-import type { OrganizationMembersResponse } from '@repo/schema';
+import type { Invitation, OrganizationMembersResponse } from '@repo/schema';
 import {
   OrganizationResponse,
   OrganizationUpdateRequest,
@@ -77,6 +77,36 @@ export class OrganizationController {
       user.id,
     );
     return { message: "Invitation sent successfully." };
+  }
+
+  /**
+   * List pending invitations for the current organization. Requires ADMIN or OWNER role.
+   * @param organizationId - from session JWT
+   * @returns pending invitations
+   */
+  @Get("current/invitations")
+  @UseGuards(AdminGuard)
+  public async getInvitations(
+    @User("organizationId") organizationId: number,
+  ): Promise<Invitation[]> {
+    const invitations = await this.organizationService.getInvitations(organizationId);
+    return invitations.map((inv) => inv.toDto());
+  }
+
+  /**
+   * Revoke a pending invitation. Requires ADMIN or OWNER role.
+   * @param user - session user (for org context)
+   * @param invitationId - invitation to revoke
+   * @returns success message
+   */
+  @Delete("current/invitations/:invitationId")
+  @UseGuards(AdminGuard)
+  public async revokeInvitation(
+    @User("organizationId") organizationId: number,
+    @Param("invitationId", ParseIntPipe) invitationId: number,
+  ): Promise<{ message: string }> {
+    await this.organizationService.revokeInvitation(organizationId, invitationId);
+    return { message: "Invitation revoked." };
   }
 
   /**
