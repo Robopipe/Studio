@@ -101,4 +101,5 @@ export const {
   useDeleteModelMutation,
   useGetModelLogsQuery,
   useGetModelOutputsQuery,
+  useLazyGetModelOutputsQuery,
 } = modelApi;

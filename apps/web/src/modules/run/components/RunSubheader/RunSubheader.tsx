@@ -1,15 +1,33 @@
+import { Button } from "@/modules/shadcn/ui/button";
 import { Stack, Text } from "@repo/ui";
 import clsx from "clsx";
+import { Play, Square } from "lucide-react";
+import type { ReactNode } from "react";
 import styles from "./RunSubheader.module.scss";
 
-export type RunTab = "inference" | "dashboard";
+export type RunTab = "inference" | "dashboard" | "configuration";
 
 interface RunSubheaderProps {
   activeTab: RunTab;
   onTabChange: (tab: RunTab) => void;
+  onDeploy: () => void;
+  onStop: () => void;
+  isDeploying: boolean;
+  canDeploy: boolean;
+  isDeployed: boolean;
+  configSelector?: ReactNode;
 }
 
-export const RunSubheader = ({ activeTab, onTabChange }: RunSubheaderProps) => {
+export const RunSubheader = ({
+  activeTab,
+  onTabChange,
+  onDeploy,
+  onStop,
+  isDeploying,
+  canDeploy,
+  isDeployed,
+  configSelector,
+}: RunSubheaderProps) => {
   return (
     <div className={styles.subheader}>
       <Stack direction="row" align="center" gap={24}>
@@ -29,7 +47,37 @@ export const RunSubheader = ({ activeTab, onTabChange }: RunSubheaderProps) => {
             Dashboard
           </Text>
         </button>
+        <button
+          className={clsx(styles.tab, activeTab === "configuration" && styles.active)}
+          onClick={() => onTabChange("configuration")}
+        >
+          <Text variant="text-14" weight="500">
+            Configuration
+          </Text>
+        </button>
       </Stack>
+
+      <div className={styles.buttonGroup}>
+        {configSelector}
+        <div className={styles.divider} />
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={onStop}
+          disabled={!isDeployed}
+        >
+          <Square className="size-4" />
+          Stop
+        </Button>
+        <Button
+          size="sm"
+          onClick={onDeploy}
+          disabled={!canDeploy || isDeploying}
+        >
+          <Play className="size-4" />
+          {isDeploying ? "Deploying..." : "Deploy"}
+        </Button>
+      </div>
     </div>
   );
 };

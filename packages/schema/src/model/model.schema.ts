@@ -1,5 +1,6 @@
 import z from "zod";
 import { timestampsSchema } from "../helpers";
+import { hyperparamsConfigSchema } from "./hyperparams-config.schema";
 import { labelSchema } from "../label";
 import { ProjectTypeEnum } from "../projects";
 import { TaskFileTypeEnum } from "../task";
@@ -9,6 +10,7 @@ export enum ModelStatusEnum {
   TRAINING = "TRAINING",
   CONVERTING = "CONVERTING",
   DONE = "DONE",
+  ERROR = "ERROR",
 }
 export enum ModelOutputTypeEnum {
   RAW = "RAW",
@@ -33,6 +35,13 @@ export enum ModelAugmentationTypeEnum {
   MOSAIC = "MOSAIC",
 }
 
+export const modelAugmentationSchema = z.object({
+  id: z.number(),
+  modelId: z.number(),
+  type: z.enum(ModelAugmentationTypeEnum),
+  params: z.record(z.string(), z.unknown()),
+});
+
 export const modelSchema = z.object({
   id: z.number(),
   name: z.string(),
@@ -47,6 +56,8 @@ export const modelSchema = z.object({
   splitValidate: z.number(),
   splitTest: z.number(),
   customHyperparams: z.record(z.string(), z.unknown()),
+  augmentations: modelAugmentationSchema.pick({ type: true, params: true }).array(),
+  errorMessage: z.string().nullable(),
   ...timestampsSchema,
 });
 
@@ -62,13 +73,6 @@ export const modelLogSchema = z.object({
   epoch: z.number(),
   metrics: modelLogMetricsSchema,
   createdAt: z.iso.datetime(),
-});
-
-export const modelAugmentationSchema = z.object({
-  id: z.number(),
-  modelId: z.number(),
-  type: z.enum(ModelAugmentationTypeEnum),
-  params: z.record(z.string(), z.unknown()),
 });
 
 export const createModelSchema = modelSchema
@@ -91,7 +95,7 @@ export const createModelSchema = modelSchema
       })
       .array()
       .default([]),
-    customHyperparams: z.record(z.string(), z.unknown()).default({}),
+    customHyperparams: hyperparamsConfigSchema.default({}),
   })
   .refine(
     (data) => {

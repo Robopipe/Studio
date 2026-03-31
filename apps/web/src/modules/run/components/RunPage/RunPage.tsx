@@ -1,69 +1,251 @@
 import { useListCamerasQuery } from "@/core/cameraApi";
+import { useCameraApiUrl } from "@/hooks";
 import { DashboardPage } from "@/modules/dashboard";
+import {
+  useGetDashboardConfigQuery,
+  useGetDashboardConfigsQuery,
+} from "@/modules/dashboard/services/dashboardConfigApi";
+import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
+import { Button } from "@/modules/shadcn/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/modules/shadcn/ui/dialog";
 import { NoCameraDetected, SearchingForCamera } from "@/modules/ui";
-import { Stack } from "@repo/ui";
-import { useState } from "react";
+import { Stack, Text } from "@repo/ui";
+import { Settings, TriangleAlert, Video } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import type { ConfigSelection } from "../../hooks/useRunDeploy";
+import { useRunDeploy } from "../../hooks/useRunDeploy";
+import { ConfigurationTab } from "../ConfigurationTab";
+import { DeployConfigSelector } from "../DeployConfigSelector/DeployConfigSelector";
 import { LiveInference } from "../LiveInference";
-import { RunSidebar } from "../RunSidebar";
 import { RunSubheader, RunTab } from "../RunSubheader";
 import styles from "./RunPage.module.scss";
 
 export const RunPage = () => {
-  const [activeTab, setActiveTab] = useState<RunTab>("inference");
+  const [activeTab, setActiveTab] = useState<RunTab>("configuration");
+  const [activeConfigId, setActiveConfigId] = useState<number | null>(null);
+  const [selectedConfigs, setSelectedConfigs] = useState<ConfigSelection[]>([]);
+
+  const [activeProject] = useActiveProject();
+  const projectId = activeProject?.id;
+  const cameraApiUrl = useCameraApiUrl();
+
+  // Fetch configs list so we can auto-select on mount (regardless of active tab)
+  const { data: configs = [] } = useGetDashboardConfigsQuery(
+    { projectId: projectId! },
+    { skip: !projectId },
+  );
+
+  useEffect(() => {
+    if (activeConfigId === null && configs.length > 0) {
+      setActiveConfigId(configs[0].id);
+    }
+  }, [configs, activeConfigId]);
+
+  const {
+    data: cameras,
+    isLoading: camerasLoading,
+    refetch: refetchCameras,
+    isFetching: camerasFetching,
+  } = useListCamerasQuery();
+
+  // Read camera/stream from persisted dashboard config
+  const { data: dashboardConfig } = useGetDashboardConfigQuery(
+    { projectId: projectId!, configId: activeConfigId! },
+    { skip: !projectId || !activeConfigId },
+  );
+
+  const selectedCamera = dashboardConfig?.cameraMxid ?? null;
+  const selectedStream = dashboardConfig?.streamName ?? null;
+  const selectedCameraInfo = cameras?.find((c) => c.mxid === selectedCamera);
+
+  const {
+    handleDeploy,
+    handleStop,
+    isDeploying,
+    dashboardUrl,
+    canDeploy,
+    showDeployConfirm,
+    handleConfirmDeploy,
+    handleCancelDeploy,
+  } = useRunDeploy({
+    selectedCamera,
+    selectedStream,
+    selectedCameraInfo,
+    activeConfigId,
+    cameraApiUrl,
+    selectedConfigs,
+  });
+
+  const configSelector = projectId ? (
+    <DeployConfigSelector
+      activeProjectId={projectId}
+      activeConfigId={activeConfigId}
+      selectedConfigs={selectedConfigs}
+      onSelectionChange={setSelectedConfigs}
+    />
+  ) : undefined;
+
+  const handleConfigChange = useCallback((configId: number | null) => {
+    setActiveConfigId(configId);
+  }, []);
+
+  const hasCameras = cameras && cameras.length > 0;
+
+  if (camerasLoading) {
+    return (
+      <Stack className={styles.pageWrapper} gap={0}>
+        <RunSubheader
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          onDeploy={handleDeploy}
+          onStop={handleStop}
+          isDeploying={isDeploying}
+          canDeploy={false}
+          isDeployed={!!dashboardUrl}
+          configSelector={configSelector}
+        />
+        <SearchingForCamera />
+      </Stack>
+    );
+  }
+
+  if (!hasCameras) {
+    return (
+      <Stack className={styles.pageWrapper} gap={0}>
+        <RunSubheader
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          onDeploy={handleDeploy}
+          onStop={handleStop}
+          isDeploying={isDeploying}
+          canDeploy={false}
+          isDeployed={!!dashboardUrl}
+          configSelector={configSelector}
+        />
+        <NoCameraDetected
+          onRefresh={refetchCameras}
+          isRefreshing={camerasFetching}
+        />
+      </Stack>
+    );
+  }
 
   return (
     <Stack className={styles.pageWrapper} gap={0}>
-      <RunSubheader activeTab={activeTab} onTabChange={setActiveTab} />
-      {activeTab === "inference" && <InferenceContent />}
-      {activeTab === "dashboard" && <DashboardPage />}
+      <RunSubheader
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onDeploy={handleDeploy}
+        onStop={handleStop}
+        isDeploying={isDeploying}
+        canDeploy={canDeploy}
+        isDeployed={!!dashboardUrl}
+        configSelector={configSelector}
+      />
+      <div className={styles.content}>
+        {activeTab === "inference" && (
+          <InferenceContent
+            selectedCamera={selectedCamera}
+            selectedStream={selectedStream}
+            onGoToConfiguration={() => setActiveTab("configuration")}
+          />
+        )}
+        {activeTab === "dashboard" && (
+          <DashboardPage
+            dashboardUrl={dashboardUrl}
+            onConfigChange={handleConfigChange}
+          />
+        )}
+        {activeTab === "configuration" && projectId && (
+          <ConfigurationTab projectId={projectId} configId={activeConfigId} />
+        )}
+      </div>
+
+      <DeployConfirmDialog
+        open={showDeployConfirm}
+        onConfirm={handleConfirmDeploy}
+        onCancel={handleCancelDeploy}
+      />
     </Stack>
   );
 };
 
-const InferenceContent = () => {
-  const {
-    data: cameras,
-    isLoading,
-    refetch,
-    isFetching,
-  } = useListCamerasQuery();
+const DeployConfirmDialog = ({
+  open,
+  onConfirm,
+  onCancel,
+}: {
+  open: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) => (
+  <Dialog open={open} onOpenChange={(open) => !open && onCancel()}>
+    <DialogContent showCloseButton={false}>
+      <DialogHeader>
+        <Stack direction="row" align="center" gap={8}>
+          <TriangleAlert className="size-5 text-amber-500" />
+          <DialogTitle>Dashboard already running</DialogTitle>
+        </Stack>
+        <DialogDescription>
+          There is already a dashboard running. Deploying again will override the
+          current configuration.
+        </DialogDescription>
+      </DialogHeader>
+      <DialogFooter>
+        <Button variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button onClick={onConfirm}>Deploy anyway</Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+);
 
-  const [selectedCamera, setSelectedCamera] = useState<string | null>(null);
-  const [selectedStream, setSelectedStream] = useState<string | null>(null);
-  const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
-  const [selectedOutputId, setSelectedOutputId] = useState<string | null>(null);
-
-  const hasCameras = cameras && cameras.length > 0;
-
-  if (isLoading) {
-    return <SearchingForCamera />;
-  }
-
-  if (!hasCameras) {
-    return <NoCameraDetected onRefresh={refetch} isRefreshing={isFetching} />;
+const InferenceContent = ({
+  selectedCamera,
+  selectedStream,
+  onGoToConfiguration,
+}: {
+  selectedCamera: string | null;
+  selectedStream: string | null;
+  onGoToConfiguration: () => void;
+}) => {
+  if (!selectedCamera || !selectedStream) {
+    return (
+      <Stack align="center" justify="center" className={styles.placeholder}>
+        <div className={styles.placeholderIcon}>
+          <Video />
+        </div>
+        <Text
+          variant="text-16"
+          weight="600"
+          className={styles.placeholderTitle}
+        >
+          No live stream available
+        </Text>
+        <Text variant="text-14" className={styles.placeholderSubtitle}>
+          Set up a camera and sensor in the Configuration tab, then deploy to
+          see the live inference stream.
+        </Text>
+        <Button variant="outline" size="sm" onClick={onGoToConfiguration}>
+          <Settings className="size-4" />
+          Go to Configuration
+        </Button>
+      </Stack>
+    );
   }
 
   return (
-    <div className={styles.page}>
-      <RunSidebar
-        selectedCamera={selectedCamera}
-        selectedStream={selectedStream}
-        selectedModelId={selectedModelId}
-        selectedOutputId={selectedOutputId}
-        onSelectCamera={(camera) => {
-          setSelectedCamera(camera);
-          setSelectedStream(null);
-        }}
-        onSelectStream={setSelectedStream}
-        onSelectModel={setSelectedModelId}
-        onSelectOutput={setSelectedOutputId}
-      />
-      <LiveInference
-        selectedCamera={selectedCamera}
-        selectedStream={selectedStream}
-        selectedModelId={selectedModelId}
-        selectedOutputId={selectedOutputId}
-      />
-    </div>
+    <LiveInference
+      selectedCamera={selectedCamera}
+      selectedStream={selectedStream}
+    />
   );
 };

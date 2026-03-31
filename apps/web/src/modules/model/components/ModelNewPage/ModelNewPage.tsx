@@ -1,11 +1,10 @@
-import { Collapsible, CollapsiblePanel, CollapsibleTrigger } from "@/modules/shadcn/ui/collapsible";
-import { Textarea } from "@/modules/shadcn/ui/textarea";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
-import { Label, ModelOutputTypeEnum, ProjectTypeEnum } from "@repo/schema";
+import { hyperparamsConfigSchema, Label, ModelOutputTypeEnum, ProjectTypeEnum } from "@repo/schema";
 import { Button, NumberInput, Stack, Text, TextInput } from "@repo/ui";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { useCreateModelMutation, useTrainModelMutation } from "../../services";
+import { AdvancedSettings } from "../AdvancedSettings";
 import {
   AppliedAugmentation,
   AugmentationSettings,
@@ -13,8 +12,6 @@ import {
 import { DatasetSplit, DatasetSplitSettings } from "../DatasetSplitSettings";
 import { ModelLayout } from "../ModelLayout/ModelLayout";
 import { ModelTypeSettings } from "../ModelTypeSettings";
-import { OutputSettings } from "../OutputSettings";
-import { SettingsCard } from "../SettingsCard";
 import { SourceImagesSettings } from "../SourceImagesSettings";
 import styles from "./ModelNewPage.module.scss";
 
@@ -29,6 +26,7 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
   const [trainModel] = useTrainModelMutation();
   const [outputs, setOutputs] = useState<ModelOutputTypeEnum[]>([
     ModelOutputTypeEnum.RAW,
+    ModelOutputTypeEnum.RVC4,
   ]);
   const [activeLabels, setActiveLabels] = useState<Label[]>([]);
   const [datasetSplit, setDatasetSplit] = useState<DatasetSplit>({
@@ -52,6 +50,14 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
       const parsed = JSON.parse(customHyperparams);
       if (typeof parsed !== "object" || Array.isArray(parsed) || parsed === null) {
         setHyperparamsError("Must be a JSON object");
+        return undefined;
+      }
+      const result = hyperparamsConfigSchema.safeParse(parsed);
+      if (!result.success) {
+        const messages = result.error.issues
+          .map((i) => `${i.path.join(".")}: ${i.message}`)
+          .join("; ");
+        setHyperparamsError(messages);
         return undefined;
       }
       setHyperparamsError(null);
@@ -133,39 +139,15 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
           augmentations={augmentations}
           onChange={setAugmentations}
         />
-        <OutputSettings outputs={outputs} setOutputs={setOutputs} />
 
-        <SettingsCard
-          stepNumber={6}
-          state={customHyperparams.trim() ? "complete" : "pending"}
-          title="Advanced Options"
-        >
-          <Collapsible>
-            <CollapsibleTrigger>Custom Training Hyperparameters</CollapsibleTrigger>
-            <CollapsiblePanel>
-              <Stack gap={8}>
-                <Textarea
-                  placeholder='{"trainer": {"optimizer": {"params": {"lr": 0.001}}}}'
-                  value={customHyperparams}
-                  onChange={(e) => {
-                    setCustomHyperparams(e.target.value);
-                    setHyperparamsError(null);
-                  }}
-                  rows={6}
-                />
-                {hyperparamsError && (
-                  <Text variant="text-12" style={{ color: "var(--color-red-500)" }}>
-                    {hyperparamsError}
-                  </Text>
-                )}
-                <Text variant="text-12">
-                  JSON object that deep-merges with the generated config. Top-level
-                  keys: model, loader, trainer, tracker.
-                </Text>
-              </Stack>
-            </CollapsiblePanel>
-          </Collapsible>
-        </SettingsCard>
+        <AdvancedSettings
+          outputs={outputs}
+          onOutputsChange={setOutputs}
+          customHyperparams={customHyperparams}
+          onCustomHyperparamsChange={setCustomHyperparams}
+          hyperparamsError={hyperparamsError}
+          onHyperparamsErrorChange={setHyperparamsError}
+        />
 
         <Stack direction="row" justify="end">
           <Button onClick={() => saveModel()}>Save</Button>

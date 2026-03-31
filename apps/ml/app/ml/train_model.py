@@ -32,50 +32,68 @@ def __upload_model(url: str, file_path: str, api_key: str) -> None:
 
 def run_training(config: ModelConfig):
     ONNX_PATH = f"archive/{config.id}.onnx.tar.xz"
-    with tempfile.TemporaryDirectory() as dir:
-        luxonis_config = generate_luxonis_config(config, dir)
-        config_path = f"{dir}/config.yml"
-        prepare_dataset(
-            dir, config.data, config.training_config.dataset_config, config.type
-        )
-        print(luxonis_config)
-        with open(config_path, "w") as f:
-            f.write(luxonis_config)
-        model = Model(config_path, debug_mode=True)
-        model.train()
-        output_dir = next(filter(lambda x: x.startswith("0-"), os.listdir(dir)))
-
-        output_types = config.training_config.output_types
-        webhook_url = get_config().webhook_url
-        api_key = get_config().api_key
-
-        if webhook_url is None:
-            print("No webhook_url configured, skipping model upload")
-            return
-
-        if ModelOutputType.RAW in output_types:
-            __upload_model(
-                f"{webhook_url}/upload/{config.id}/raw",
-                f"{dir}/{output_dir}/{ONNX_PATH}",
-                api_key,
+    try:
+        with tempfile.TemporaryDirectory() as dir:
+            luxonis_config = generate_luxonis_config(config, dir)
+            config_path = f"{dir}/config.yml"
+            prepare_dataset(
+                dir, config.data, config.training_config.dataset_config, config.type
             )
+            print(luxonis_config)
+            with open(config_path, "w") as f:
+                f.write(luxonis_config)
+            model = Model(config_path, debug_mode=True)
+            model.train()
+            output_dir = next(filter(lambda x: x.startswith("0-"), os.listdir(dir)))
 
-        for output_type in filter(lambda x: x != ModelOutputType.RAW, output_types):
-            try:
-                print(f"Converting model to {output_type.value}...")
-                res = convert_model(
-                    path=f"{dir}/{output_dir}/{ONNX_PATH}",
-                    output_dir=f"{dir}/converted/{output_type.value}",
-                    target_format=output_type,
-                )
-                print(f"Conversion complete, uploading {output_type.value}...")
+            output_types = config.training_config.output_types
+            webhook_url = get_config().webhook_url
+            api_key = get_config().api_key
+
+            if webhook_url is None:
+                print("No webhook_url configured, skipping model upload")
+                return
+
+            if ModelOutputType.RAW in output_types:
                 __upload_model(
-                    f"{webhook_url}/upload/{config.id}/{output_type.value}",
-                    res.downloaded_path,
+                    f"{webhook_url}/upload/{config.id}/raw",
+                    f"{dir}/{output_dir}/{ONNX_PATH}",
                     api_key,
                 )
-            except Exception as e:
-                print(f"Failed to convert/upload {output_type.value}: {e}")
+
+            for output_type in filter(lambda x: x != ModelOutputType.RAW, output_types):
+                try:
+                    print(f"Converting model to {output_type.value}...")
+                    res = convert_model(
+                        path=f"{dir}/{output_dir}/{ONNX_PATH}",
+                        output_dir=f"{dir}/converted/{output_type.value}",
+                        target_format=output_type,
+                    )
+                    print(f"Conversion complete, uploading {output_type.value}...")
+                    __upload_model(
+                        f"{webhook_url}/upload/{config.id}/{output_type.value}",
+                        res.downloaded_path,
+                        api_key,
+                    )
+                except Exception as e:
+                    print(f"Failed to convert/upload {output_type.value}: {e}")
+    except Exception as e:
+        url = get_config().webhook_url
+        api_key = get_config().api_key
+        error_message = str(e)
+        if url is not None:
+            try:
+                response = requests.post(
+                    f"{url}/progress/{config.id}",
+                    json={"progress": {"type": "error", "errorMessage": error_message}},
+                    headers={"Authorization": api_key},
+                )
+                response.raise_for_status()
+                print(f"Successfully sent error message to {url}")
+            except requests.exceptions.RequestException as req_e:
+                print(f"Failed to send error message to {url}: {req_e}")
+        else:
+            print(f"Error during training: {error_message}")
 
 
 def train_model(config: ModelConfig):
