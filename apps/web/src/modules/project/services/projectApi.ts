@@ -147,10 +147,12 @@ export const projectApi = projectApiBase.injectEndpoints({
 export const {
   useCreateProjectMutation,
   useGetProjectsQuery,
+  useLazyGetProjectsQuery,
   useGetProjectQuery,
   useDeleteProjectMutation,
   useCreateProjectLabelMutation,
   useGetProjectLabelsQuery,
+  useLazyGetProjectLabelsQuery,
   useDeleteProjectLabelMutation,
   useUpdateProjectMutation,
 } = projectApi;

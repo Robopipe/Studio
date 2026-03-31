@@ -59,8 +59,11 @@ class WebhookStats(pl.Callback):
         metrics["loss"] = loss
 
         data = {
-            "epoch": trainer.current_epoch,
-            "metrics": metrics,
+            "progress": {
+                "type": "log",
+                "epoch": trainer.current_epoch,
+                "metrics": metrics,
+            }
         }
         try:
             response = requests.post(

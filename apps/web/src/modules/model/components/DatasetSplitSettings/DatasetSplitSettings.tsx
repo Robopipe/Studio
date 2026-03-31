@@ -21,7 +21,7 @@ export const DatasetSplitSettings = ({
 }: DatasetSplitSettingsProps) => {
   const { train, validation, test } = split;
   const [activeProject] = useActiveProject();
-  const { data: tasks } = useGetTasksQuery({ projectId: activeProject?.id! });
+  const { data: tasks } = useGetTasksQuery({ projectId: activeProject?.id!, annotated: "true" });
   const totalImages = tasks?.total ?? 0;
 
   return (

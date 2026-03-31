@@ -2,8 +2,10 @@ import { BadRequestException, ConflictException, Inject, Injectable, InternalSer
 import { DB_CONNECTION } from "../../../core/database/database.constant";
 import type { DbConnection } from "../../../core/database/types/database.types";
 import {
-  TrainingBasePayload,
-  TrainingPayload,
+  TrainingProgressTypeEnum,
+  type TrainingBasePayload,
+  type TrainingPayload,
+  type TrainingProgressData,
 } from "../schema/training-external.schema";
 import { ModelEntity } from "../../model/entity/model.entity";
 import {
@@ -14,7 +16,6 @@ import {
   ModelStatusEnum,
 } from "@repo/schema";
 import { HttpService } from "@nestjs/axios";
-import { TrainingProgressRequest } from "../dto/training-external.dto";
 import { ModelLogRepository } from "../../../repository/services/model-log-repository.service";
 import { ModelOutputRepository } from "../../../repository/services/model-output-repository.service";
 import { ModelRepository } from "../../../repository/services/model-repository.service";
@@ -98,17 +99,27 @@ export class TrainingExternalService {
    */
   public async updateTrainingProgress(
     modelId: number,
-    data: TrainingProgressRequest,
+    data: TrainingProgressData,
   ): Promise<void> {
     const model = await this.modelRepository.getById(modelId);
     if(!model){
       throw new NotFoundException("Model not found")
     }
 
+    const { progress } = data;
+
+    if (progress.type === TrainingProgressTypeEnum.ERROR) {
+      await this.modelRepository.update(modelId, {
+        status: ModelStatusEnum.ERROR,
+        errorMessage: progress.errorMessage,
+      });
+      return;
+    }
+
     await this.modelLogRepository.create({
       modelId,
-      epoch: data.epoch,
-      metrics: data.metrics,
+      epoch: progress.epoch,
+      metrics: progress.metrics,
     });
   }
 

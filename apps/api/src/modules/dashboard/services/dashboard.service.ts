@@ -69,6 +69,11 @@ export class DashboardService {
     const updateData: Record<string, unknown> = {};
     if (data.name !== undefined) updateData.name = data.name;
     if (data.modelId !== undefined) updateData.modelId = data.modelId;
+    if (data.lineDirection !== undefined) updateData.lineDirection = data.lineDirection;
+    if (data.linePosition !== undefined) updateData.linePosition = data.linePosition;
+    if (data.lineFlow !== undefined) updateData.lineFlow = data.lineFlow;
+    if (data.cameraMxid !== undefined) updateData.cameraMxid = data.cameraMxid;
+    if (data.streamName !== undefined) updateData.streamName = data.streamName;
 
     return this.dashboardConfigurationRepository.update(id, updateData);
   }

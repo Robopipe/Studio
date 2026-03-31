@@ -27,7 +27,10 @@ export const useDetectionsRenderer = ({
 }: UseDetectionsRendererOptions): UseDetectionsRendererReturn => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const offscreenRef = useRef<HTMLCanvasElement | null>(null);
-  const { data } = useGetModelQuery({ projectId, modelId });
+  const { data } = useGetModelQuery(
+    { projectId, modelId },
+    { skip: !projectId || !modelId },
+  );
 
   const getOffscreenCanvas = useCallback(
     (width: number, height: number): HTMLCanvasElement => {

@@ -1,6 +1,11 @@
-import { ModelStatusEnum, ModelOutputTypeEnum, ProjectTypeEnum } from "@repo/schema";
+import {
+  ModelAugmentationTypeEnum,
+  ModelOutputTypeEnum,
+  ModelStatusEnum,
+  ProjectTypeEnum,
+} from "@repo/schema";
+import { ModelAugmentationSelect, ModelSelect } from "../../../repository/types/model";
 import { ProjectLabelEntity } from "../../project/entities/project-label.entity";
-import { ModelSelect } from "../../../repository/types/model";
 import { ModelResponse } from "../dto/model.dto";
 
 export class ModelEntity {
@@ -16,7 +21,9 @@ export class ModelEntity {
   readonly splitValidate: number;
   readonly splitTest: number;
   readonly customHyperparams: Record<string, unknown>;
+  readonly errorMessage: string | null;
   readonly labels: ProjectLabelEntity[];
+  readonly augmentations: ModelAugmentationSelect[];
   readonly createdAt: Date;
   readonly updatedAt: Date;
   readonly deletedAt: Date | null;
@@ -33,11 +40,16 @@ export class ModelEntity {
     this.splitTrain = data.splitTrain;
     this.splitValidate = data.splitValidate;
     this.splitTest = data.splitTest;
-    this.customHyperparams = (data.customHyperparams ?? {}) as Record<string, unknown>;
+    this.customHyperparams = (data.customHyperparams ?? {}) as Record<
+      string,
+      unknown
+    >;
     this.createdAt = data.createdAt;
     this.updatedAt = data.updatedAt;
     this.deletedAt = data.deletedAt;
-    this.labels = data.labels.map((label) => new ProjectLabelEntity(label))
+    this.errorMessage = data.errorMessage;
+    this.labels = data.labels.map((label) => new ProjectLabelEntity(label));
+    this.augmentations = data.augmentations;
   }
 
   public toResponse(): ModelResponse {
@@ -54,9 +66,14 @@ export class ModelEntity {
       splitValidate: this.splitValidate,
       splitTest: this.splitTest,
       customHyperparams: this.customHyperparams,
+      augmentations: this.augmentations.map((aug) => ({
+        type: aug.type as ModelAugmentationTypeEnum,
+        params: (aug.params ?? {}) as Record<string, unknown>,
+      })),
+      errorMessage: this.errorMessage,
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),
       deletedAt: this.deletedAt ? this.deletedAt.toISOString() : null,
-    }
+    };
   }
 }

@@ -23,12 +23,17 @@ export class ModelRepository {
     const models = await this.db.query.modelTable.findMany({
       where: {
         projectId,
+        deletedAt: {
+          isNull: true
+        },
       },
       with: {
         labels: {
           orderBy: (l) => asc(l.id),
         },
+        augmentations: true,
       },
+      orderBy: (m) => asc(m.createdAt)
     });
 
     return models.map((model) => new ModelEntity(model))
@@ -48,6 +53,7 @@ export class ModelRepository {
         labels: {
           orderBy: (l) => asc(l.id),
         },
+        augmentations: true,
       },
     });
 
@@ -69,7 +75,8 @@ export class ModelRepository {
       with: {
         labels: {
           orderBy: (l) => asc(l.id)
-        }
+        },
+        augmentations: true,
       }
     })
 
@@ -88,7 +95,7 @@ export class ModelRepository {
       throw new InternalServerErrorException("Failed creating model")
     }
 
-    return new ModelEntity({...createdModel, labels: []})
+    return new ModelEntity({...createdModel, labels: [], augmentations: []})
   }
 
 
@@ -116,7 +123,11 @@ export class ModelRepository {
     })
     const labels = modelLabels.map((modelLabel) => modelLabel.label).filter((l) => !!l)
 
-    return new ModelEntity({...updatedModel, labels})
+    const augmentations = await this.db.query.modelAugmentationTable.findMany({
+      where: { modelId: id },
+    })
+
+    return new ModelEntity({...updatedModel, labels, augmentations})
   }
 
   /**

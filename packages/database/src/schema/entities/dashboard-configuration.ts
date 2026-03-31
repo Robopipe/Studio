@@ -43,6 +43,8 @@ export const dashboardConfigurationTable = p.pgTable(
     modelId: p
       .integer("model_id")
       .references(() => modelTable.id, { onDelete: "set null" }),
+    cameraMxid: p.varchar("camera_mxid", { length: 256 }),
+    streamName: p.varchar("stream_name", { length: 256 }),
     createdAt,
     updatedAt,
   },
