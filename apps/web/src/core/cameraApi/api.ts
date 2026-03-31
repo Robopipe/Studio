@@ -2,7 +2,10 @@ import { HttpMethod } from "@/types";
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "./baseQuery";
 import type { DeviceInfo, SensorControl, StreamInfo } from "./schemas";
-import { DeployConfigEntry, DeployDashboardResponse } from "./schemas/dashboard";
+import {
+  DeployConfigEntry,
+  DeployDashboardResponse,
+} from "./schemas/dashboard";
 import { NNConfig } from "./schemas/nn";
 import { CameraApiTagType } from "./tagType";
 
@@ -164,6 +167,20 @@ export const cameraApi = cameraApiBase.injectEndpoints({
       ],
     }),
 
+    getDashboard: builder.query<
+      string,
+      { mxid: string; streamName: string }
+    >({
+      query: ({ mxid, streamName }) => ({
+        url: `/cameras/${mxid}/streams/${streamName}/dashboard`,
+        method: HttpMethod.GET,
+        responseHandler: "text",
+      }),
+      providesTags: (_result, _error, { mxid, streamName }) => [
+        { type: CameraApiTagType.Dashboard, id: `${mxid}-${streamName}` },
+      ],
+    }),
+
     deployDashboard: builder.mutation<
       DeployDashboardResponse,
       {
@@ -185,6 +202,7 @@ export const cameraApi = cameraApiBase.injectEndpoints({
       },
       invalidatesTags: (_result, _error, { mxid, streamName }) => [
         { type: CameraApiTagType.NN, id: `${mxid}-${streamName}` },
+        { type: CameraApiTagType.Dashboard, id: `${mxid}-${streamName}` },
       ],
     }),
 
@@ -196,6 +214,9 @@ export const cameraApi = cameraApiBase.injectEndpoints({
         url: `/cameras/${mxid}/streams/${streamName}/dashboard`,
         method: HttpMethod.DELETE,
       }),
+      invalidatesTags: (_result, _error, { mxid, streamName }) => [
+        { type: CameraApiTagType.Dashboard, id: `${mxid}-${streamName}` },
+      ],
     }),
   }),
   overrideExisting: true,
@@ -222,6 +243,7 @@ export const {
   useRemoveNNMutation,
 
   // Dashboard hooks
+  useGetDashboardQuery,
   useDeployDashboardMutation,
   useRemoveDashboardMutation,
 } = cameraApi;

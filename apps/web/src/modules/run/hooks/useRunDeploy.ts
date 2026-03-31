@@ -1,5 +1,6 @@
 import {
   useDeployDashboardMutation,
+  useGetDashboardQuery,
   useRemoveDashboardMutation,
   useRemoveNNMutation,
 } from "@/core/cameraApi";
@@ -58,6 +59,23 @@ export const useRunDeploy = ({
   selectedConfigs,
 }: UseRunDeployParams) => {
   const [dashboardUrl, setDashboardUrl] = useState<string | null>(null);
+  const [showDeployConfirm, setShowDeployConfirm] = useState(false);
+
+  // Check if a dashboard is already deployed on the camera (survives refresh).
+  // The GET endpoint returns the dashboard HTML (200) or 404 if none is running.
+  const { isSuccess: isRemoteDashboardDeployed } = useGetDashboardQuery(
+    { mxid: selectedCamera!, streamName: selectedStream! },
+    { skip: !selectedCamera || !selectedStream },
+  );
+
+  // The dashboard URL is the GET endpoint itself (it serves the HTML directly).
+  // Local state (set after deploy) takes precedence over the query-derived URL.
+  const remoteDashboardUrl = isRemoteDashboardDeployed
+    ? `${cameraApiUrl}/cameras/${selectedCamera}/streams/${selectedStream}/dashboard`
+    : null;
+
+  const effectiveDashboardUrl = dashboardUrl ?? remoteDashboardUrl;
+  const isDeployed = !!effectiveDashboardUrl;
 
   // Lazy triggers for multi-config deploy
   const [triggerGetProjects] = useLazyGetProjectsQuery();
@@ -77,12 +95,20 @@ export const useRunDeploy = ({
 
   const canDeploy = !!selectedCamera && !!selectedStream;
 
-  /**
-   * Fetches all projects, collects their dashboard configs,
-   * assembles deploy payloads + model files, and sends them to the camera API.
-   * The currently active config is placed first (backend deploys it immediately).
-   */
-  const handleDeploy = async () => {
+  /** Called when user clicks Deploy. Shows confirmation if a dashboard is already running. */
+  const handleDeploy = () => {
+    if (!selectedCamera || !selectedStream || !selectedCameraInfo) return;
+
+    if (isDeployed) {
+      setShowDeployConfirm(true);
+      return;
+    }
+
+    executeDeploy();
+  };
+
+  /** Actually runs the deploy (called directly or after user confirms override). */
+  const executeDeploy = async () => {
     if (!selectedCamera || !selectedStream || !selectedCameraInfo) return;
 
     const requiredOutputType =
@@ -172,6 +198,7 @@ export const useRunDeploy = ({
       models: assembled.map((a) => a.modelFile),
     }).unwrap();
 
+    // Set URL immediately so the dashboard tab works right away
     setDashboardUrl(`${cameraApiUrl}${dashboard_url}`);
   };
 
@@ -308,5 +335,23 @@ export const useRunDeploy = ({
     setDashboardUrl(null);
   };
 
-  return { handleDeploy, handleStop, isDeploying, dashboardUrl, canDeploy };
+  const handleConfirmDeploy = () => {
+    setShowDeployConfirm(false);
+    executeDeploy();
+  };
+
+  const handleCancelDeploy = () => {
+    setShowDeployConfirm(false);
+  };
+
+  return {
+    handleDeploy,
+    handleStop,
+    isDeploying,
+    dashboardUrl: effectiveDashboardUrl,
+    canDeploy,
+    showDeployConfirm,
+    handleConfirmDeploy,
+    handleCancelDeploy,
+  };
 };

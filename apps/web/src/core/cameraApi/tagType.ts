@@ -3,4 +3,5 @@ export enum CameraApiTagType {
   Streams = "Streams",
   StreamControl = "StreamControl",
   NN = "NN",
+  Dashboard = "Dashboard",
 }
