@@ -18,6 +18,7 @@ export type DeployDashboardResponse = z.infer<
   typeof deployDashboardResponseSchema
 >;
 
+
 export type DeployConfigEntry = {
   dashboard_config: DeployDashboardConfig;
   nn_config: NNConfig;

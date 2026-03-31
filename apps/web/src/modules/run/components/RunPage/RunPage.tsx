@@ -7,9 +7,17 @@ import {
 } from "@/modules/dashboard/services/dashboardConfigApi";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import { Button } from "@/modules/shadcn/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/modules/shadcn/ui/dialog";
 import { NoCameraDetected, SearchingForCamera } from "@/modules/ui";
 import { Stack, Text } from "@repo/ui";
-import { Settings, Video } from "lucide-react";
+import { Settings, TriangleAlert, Video } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import type { ConfigSelection } from "../../hooks/useRunDeploy";
 import { useRunDeploy } from "../../hooks/useRunDeploy";
@@ -57,15 +65,23 @@ export const RunPage = () => {
   const selectedStream = dashboardConfig?.streamName ?? null;
   const selectedCameraInfo = cameras?.find((c) => c.mxid === selectedCamera);
 
-  const { handleDeploy, handleStop, isDeploying, dashboardUrl, canDeploy } =
-    useRunDeploy({
-      selectedCamera,
-      selectedStream,
-      selectedCameraInfo,
-      activeConfigId,
-      cameraApiUrl,
-      selectedConfigs,
-    });
+  const {
+    handleDeploy,
+    handleStop,
+    isDeploying,
+    dashboardUrl,
+    canDeploy,
+    showDeployConfirm,
+    handleConfirmDeploy,
+    handleCancelDeploy,
+  } = useRunDeploy({
+    selectedCamera,
+    selectedStream,
+    selectedCameraInfo,
+    activeConfigId,
+    cameraApiUrl,
+    selectedConfigs,
+  });
 
   const configSelector = projectId ? (
     <DeployConfigSelector
@@ -151,9 +167,46 @@ export const RunPage = () => {
           <ConfigurationTab projectId={projectId} configId={activeConfigId} />
         )}
       </div>
+
+      <DeployConfirmDialog
+        open={showDeployConfirm}
+        onConfirm={handleConfirmDeploy}
+        onCancel={handleCancelDeploy}
+      />
     </Stack>
   );
 };
+
+const DeployConfirmDialog = ({
+  open,
+  onConfirm,
+  onCancel,
+}: {
+  open: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) => (
+  <Dialog open={open} onOpenChange={(open) => !open && onCancel()}>
+    <DialogContent showCloseButton={false}>
+      <DialogHeader>
+        <Stack direction="row" align="center" gap={8}>
+          <TriangleAlert className="size-5 text-amber-500" />
+          <DialogTitle>Dashboard already running</DialogTitle>
+        </Stack>
+        <DialogDescription>
+          There is already a dashboard running. Deploying again will override the
+          current configuration.
+        </DialogDescription>
+      </DialogHeader>
+      <DialogFooter>
+        <Button variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button onClick={onConfirm}>Deploy anyway</Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+);
 
 const InferenceContent = ({
   selectedCamera,
