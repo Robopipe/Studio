@@ -1,9 +1,10 @@
-import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import type { UpdateOrganizationRequest } from '@repo/schema';
 import { InvitationStatusEnum, OrgMemberRoleEnum } from '@repo/schema';
 import { randomBytes } from 'crypto';
 import { AppConfig } from 'src/core/configuration/app.config';
 import { EmailService } from 'src/modules/email/email.service';
+import { InvitationEntity } from '../entities/invitation.entity';
 import { OrganizationMemberEntity } from '../entities/organization-member.entity';
 import { OrganizationEntity } from '../entities/organization.entity';
 import { InvitationRepository } from 'src/repository/services/invitation-repository.service';
@@ -55,6 +56,38 @@ export class OrganizationService {
    */
   public async getMembers(organizationId: number): Promise<OrganizationMemberEntity[]> {
     return this.organizationMemberRepository.getAllByOrgId(organizationId);
+  }
+
+  /**
+   * @param organizationId - organization ID
+   * @returns pending invitations for this organization
+   */
+  public async getInvitations(organizationId: number): Promise<InvitationEntity[]> {
+    return this.invitationRepository.findPendingByOrganizationId(organizationId);
+  }
+
+  /**
+   * Revokes a pending invitation by marking it as expired.
+   * @param organizationId - organization context (for ownership validation)
+   * @param invitationId - invitation to revoke
+   * @throws {NotFoundException} if the invitation doesn't exist
+   * @throws {BadRequestException} if the invitation doesn't belong to this org or is not pending
+   */
+  public async revokeInvitation(organizationId: number, invitationId: number): Promise<void> {
+    const invitation = await this.invitationRepository.findById(invitationId);
+    if (!invitation) {
+      throw new NotFoundException('Invitation not found');
+    }
+
+    if (invitation.organizationId !== organizationId) {
+      throw new NotFoundException('Invitation not found');
+    }
+
+    if (!invitation.isValid()) {
+      throw new BadRequestException('Invitation is no longer pending');
+    }
+
+    await this.invitationRepository.updateStatus(invitationId, InvitationStatusEnum.EXPIRED);
   }
 
   /**

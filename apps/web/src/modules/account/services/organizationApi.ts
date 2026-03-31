@@ -2,13 +2,14 @@ import { appConfig } from "@/config";
 import { baseRefreshingQuery } from "@/core/api/baseQuery";
 import { HttpMethod } from "@/types";
 import { createApi } from "@reduxjs/toolkit/query/react";
-import { InviteUser, OrganizationMember, OrganizationMembersResponse, UpdateMemberRole } from "@repo/schema";
+import { Invitation, InviteUser, OrganizationMember, OrganizationMembersResponse, UpdateMemberRole } from "@repo/schema";
 
 const { organizations } = appConfig.studioApi.endpoints;
 
 export enum OrganizationApiTagType {
   Organization = "Organization",
   OrganizationMembers = "OrganizationMembers",
+  OrganizationInvitations = "OrganizationInvitations",
 }
 
 const organizationApiBase = createApi({
@@ -50,7 +51,21 @@ export const organizationApi = organizationApiBase.injectEndpoints({
         method: HttpMethod.POST,
         body: data,
       }),
-      invalidatesTags: [OrganizationApiTagType.OrganizationMembers],
+      invalidatesTags: [OrganizationApiTagType.OrganizationMembers, OrganizationApiTagType.OrganizationInvitations],
+    }),
+    getInvitations: builder.query<Invitation[], void>({
+      query: () => ({
+        url: organizations.invitations,
+        method: HttpMethod.GET,
+      }),
+      providesTags: [OrganizationApiTagType.OrganizationInvitations],
+    }),
+    revokeInvitation: builder.mutation<{ message: string }, number>({
+      query: (invitationId) => ({
+        url: organizations.invitation(invitationId),
+        method: HttpMethod.DELETE,
+      }),
+      invalidatesTags: [OrganizationApiTagType.OrganizationInvitations],
     }),
     removeMember: builder.mutation<{ message: string }, number>({
       query: (userId) => ({
@@ -78,4 +93,6 @@ export const {
   useInviteUserMutation,
   useRemoveMemberMutation,
   useUpdateMemberRoleMutation,
+  useGetInvitationsQuery,
+  useRevokeInvitationMutation,
 } = organizationApi;
