@@ -3,7 +3,6 @@ import { useCallback, useState } from "react";
 import {
   AppliedAugmentation,
   AugmentationDefinition,
-  getAugmentationById,
   getDefaultValues,
   IMAGE_AUGMENTATIONS,
 } from "../augmentationTypes";
@@ -14,6 +13,9 @@ export interface AugmentationDialogProps {
   editing: AppliedAugmentation | null;
   onClose: () => void;
   onApply: (aug: AppliedAugmentation) => void;
+  title?: string;
+  categoryTitle?: string;
+  definitions?: AugmentationDefinition[];
 }
 
 export const AugmentationDialog = ({
@@ -21,9 +23,12 @@ export const AugmentationDialog = ({
   editing,
   onClose,
   onApply,
+  title = "Augmentation",
+  categoryTitle = "Image Level Augmentations",
+  definitions = IMAGE_AUGMENTATIONS,
 }: AugmentationDialogProps) => {
   const [selectedDef, setSelectedDef] = useState<AugmentationDefinition | null>(
-    editing ? (getAugmentationById(editing.type) ?? null) : null,
+    editing ? (definitions.find((d) => d.id === editing.type) ?? null) : null,
   );
   const [paramValues, setParamValues] = useState<
     Record<string, number | boolean | string>
@@ -65,7 +70,7 @@ export const AugmentationDialog = ({
         {/* Header */}
         <div className={styles.dialogHeader}>
           <Text weight="600" variant="text-16">
-            Augmentation
+            {title}
           </Text>
           <button className={styles.dialogClose} onClick={onClose}>
             <CloseIcon />
@@ -77,10 +82,10 @@ export const AugmentationDialog = ({
           {/* Left: augmentation grid */}
           <div className={styles.dialogLeft}>
             <Text className={styles.categoryTitle}>
-              Image Level Augmentations
+              {categoryTitle}
             </Text>
             <div className={styles.augGrid}>
-              {IMAGE_AUGMENTATIONS.map((def) => {
+              {definitions.map((def) => {
                 const isSelected = selectedDef?.id === def.id;
                 const isApplied =
                   appliedIds.has(def.id) && editing?.type !== def.id;

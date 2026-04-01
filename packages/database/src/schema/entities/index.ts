@@ -2,6 +2,7 @@ export * from "./classification-annotation";
 export * from "./invitation";
 export * from "./model";
 export * from "./model-augmentation";
+export * from "./model-preprocessing";
 export * from "./model-label";
 export * from "./model-log";
 export * from "./model-output";

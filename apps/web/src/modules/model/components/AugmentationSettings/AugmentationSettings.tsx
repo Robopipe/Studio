@@ -52,7 +52,7 @@ export const AugmentationSettings = ({
     <>
       <SettingsCard
         state={augmentations.length > 0 ? "complete" : "pending"}
-        stepNumber={4}
+        stepNumber={5}
         title="Augmentation"
       >
         <Stack direction="row" gap={8} className={styles.augmentationSettings}>

@@ -42,6 +42,13 @@ export const modelAugmentationSchema = z.object({
   params: z.record(z.string(), z.unknown()),
 });
 
+export const modelPreprocessingSchema = z.object({
+  id: z.number(),
+  modelId: z.number(),
+  type: z.enum(ModelAugmentationTypeEnum),
+  params: z.record(z.string(), z.unknown()),
+});
+
 export const modelSchema = z.object({
   id: z.number(),
   name: z.string(),
@@ -57,6 +64,8 @@ export const modelSchema = z.object({
   splitTest: z.number(),
   customHyperparams: z.record(z.string(), z.unknown()),
   augmentations: modelAugmentationSchema.pick({ type: true, params: true }).array(),
+  preprocessings: modelPreprocessingSchema.pick({ type: true, params: true }).array(),
+  preprocessingKeepOriginals: z.boolean(),
   errorMessage: z.string().nullable(),
   ...timestampsSchema,
 });
@@ -95,6 +104,14 @@ export const createModelSchema = modelSchema
       })
       .array()
       .default([]),
+    preprocessings: z
+      .object({
+        type: z.enum(ModelAugmentationTypeEnum),
+        params: z.record(z.string(), z.unknown()),
+      })
+      .array()
+      .default([]),
+    preprocessingKeepOriginals: z.boolean().default(true),
     customHyperparams: hyperparamsConfigSchema.default({}),
   })
   .refine(
