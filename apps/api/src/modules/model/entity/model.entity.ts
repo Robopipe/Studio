@@ -21,7 +21,6 @@ export class ModelEntity {
   readonly splitValidate: number;
   readonly splitTest: number;
   readonly customHyperparams: Record<string, unknown>;
-  readonly preprocessingKeepOriginals: boolean;
   readonly errorMessage: string | null;
   readonly labels: ProjectLabelEntity[];
   readonly augmentations: ModelAugmentationSelect[];
@@ -46,7 +45,6 @@ export class ModelEntity {
       string,
       unknown
     >;
-    this.preprocessingKeepOriginals = data.preprocessingKeepOriginals;
     this.createdAt = data.createdAt;
     this.updatedAt = data.updatedAt;
     this.deletedAt = data.deletedAt;
@@ -77,8 +75,8 @@ export class ModelEntity {
       preprocessings: this.preprocessings.map((pp) => ({
         type: pp.type as ModelAugmentationTypeEnum,
         params: (pp.params ?? {}) as Record<string, unknown>,
+        keepOriginal: pp.keepOriginal,
       })),
-      preprocessingKeepOriginals: this.preprocessingKeepOriginals,
       errorMessage: this.errorMessage,
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),

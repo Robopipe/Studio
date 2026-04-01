@@ -1,9 +1,10 @@
 """
 Dataset preprocessing — applies deterministic transforms to images before training.
 
-All preprocessing transforms are composed into a single pipeline and applied
-once per image. If keep_originals is True, a preprocessed copy is saved alongside
-the original. If False, the original is overwritten with the preprocessed version.
+Entries are grouped by their per-entry keep_original flag:
+- Overwrite (keep_original=False): compose into one pipeline, overwrite originals
+- Duplicate (keep_original=True): compose into one pipeline, save copies alongside originals
+Overwrite is applied first, then duplicate (so duplicates are based on preprocessed images).
 """
 
 import os
@@ -265,37 +266,22 @@ def _process_segmentation(
     return count
 
 
-def preprocess_dataset(
-    dir: str,
-    preprocessings: list[Augmentation],
+def _run_pipeline(
+    dataset_dir: str,
+    entries: list[Augmentation],
     task_type: ModelType,
-    keep_originals: bool = True,
-):
-    """
-    Compose all preprocessing transforms into a single pipeline and apply it
-    once to every image in the dataset.
-
-    When keep_originals is True, preprocessed copies are saved alongside originals
-    (with a '_preprocessed' suffix). When False, originals are overwritten in place.
-
-    Args:
-        dir: Base temp directory containing the dataset/ subdirectory
-        preprocessings: List of preprocessing transforms to compose into one pipeline
-        task_type: Classification, Detection, or Segmentation
-        keep_originals: Whether to keep original images alongside preprocessed ones
-    """
-    dataset_dir = f"{dir}/{DATASET_DIR}"
+    keep_originals: bool,
+) -> int:
+    """Run a single preprocessing pass (overwrite or duplicate) for a group of entries."""
     img_size = (480, 640) if task_type != ModelType.CLASSIFICATION else (512, 512)
     val_dir = "valid" if task_type == ModelType.CLASSIFICATION else VAL_DIR
-
-    transforms = _build_transform_pipeline(preprocessings, img_size)
-    if not transforms:
-        print("No valid preprocessing transforms found, skipping")
-        return
-
-    total = 0
     split_names = [TRAIN_DIR, val_dir, TEST_DIR]
 
+    transforms = _build_transform_pipeline(entries, img_size)
+    if not transforms:
+        return 0
+
+    total = 0
     if task_type == ModelType.CLASSIFICATION:
         pipeline = A.Compose(transforms)
         for split_name in split_names:
@@ -316,5 +302,43 @@ def preprocess_dataset(
             if os.path.isdir(img_split):
                 total += process_fn(img_split, lbl_split, transforms, keep_originals)
 
-    mode = "copies created" if keep_originals else "images overwritten"
-    print(f"Preprocessing complete: {total} {mode}")
+    return total
+
+
+def preprocess_dataset(
+    dir: str,
+    preprocessings: list[Augmentation],
+    task_type: ModelType,
+):
+    """
+    Compose preprocessing transforms into pipelines and apply them to the dataset.
+
+    Entries are split by their keep_original flag:
+    1. Overwrite group (keep_original=False): applied first, overwrites originals
+    2. Duplicate group (keep_original=True): applied second on already-preprocessed
+       images, saves copies with '_preprocessed' suffix alongside originals
+
+    Args:
+        dir: Base temp directory containing the dataset/ subdirectory
+        preprocessings: List of preprocessing transforms with per-entry keep_original
+        task_type: Classification, Detection, or Segmentation
+    """
+    dataset_dir = f"{dir}/{DATASET_DIR}"
+
+    overwrite_entries = [p for p in preprocessings if not p.keep_original]
+    duplicate_entries = [p for p in preprocessings if p.keep_original]
+
+    total = 0
+
+    if overwrite_entries:
+        count = _run_pipeline(dataset_dir, overwrite_entries, task_type, False)
+        print(f"Preprocessing (overwrite): {count} images overwritten")
+        total += count
+
+    if duplicate_entries:
+        count = _run_pipeline(dataset_dir, duplicate_entries, task_type, True)
+        print(f"Preprocessing (duplicate): {count} copies created")
+        total += count
+
+    if total == 0:
+        print("No valid preprocessing transforms found, skipping")

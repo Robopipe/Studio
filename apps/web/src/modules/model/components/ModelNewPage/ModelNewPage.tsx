@@ -37,7 +37,6 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
   });
   const [augmentations, setAugmentations] = useState<AppliedAugmentation[]>([]);
   const [preprocessings, setPreprocessings] = useState<AppliedAugmentation[]>([]);
-  const [preprocessingKeepOriginals, setPreprocessingKeepOriginals] = useState(true);
   const [trainingType, setTrainingType] = useState<ProjectTypeEnum>(
     activeProject?.type ?? ProjectTypeEnum.DETECTION,
   );
@@ -75,6 +74,25 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
     const parsedHyperparams = parseHyperparams();
     if (parsedHyperparams === undefined) return;
 
+    const normalAugs = augmentations.filter((a) => !a.duplicateImage);
+    const duplicateAugs = augmentations.filter((a) => a.duplicateImage);
+
+    const allPreprocessings = [
+      ...preprocessings.map((p) => ({
+        type: p.type,
+        params: p.params,
+        keepOriginal: false,
+      })),
+      ...duplicateAugs.map((a) => {
+        const { p: _p, ...paramsWithoutP } = a.params;
+        return {
+          type: a.type,
+          params: paramsWithoutP,
+          keepOriginal: true,
+        };
+      }),
+    ];
+
     const newModel = await createModel({
       epochs,
       labelIds: activeLabels?.map((label) => label.id) || [],
@@ -86,9 +104,11 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
       outputTypes: outputs,
       trainingType,
       annotationsUsed,
-      augmentations,
-      preprocessings,
-      preprocessingKeepOriginals,
+      augmentations: normalAugs.map((a) => ({
+        type: a.type,
+        params: a.params,
+      })),
+      preprocessings: allPreprocessings,
       customHyperparams: parsedHyperparams,
     }).unwrap();
     if (train) {
@@ -143,8 +163,6 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
         <PreprocessingSettings
           preprocessings={preprocessings}
           onChange={setPreprocessings}
-          keepOriginals={preprocessingKeepOriginals}
-          onKeepOriginalsChange={setPreprocessingKeepOriginals}
         />
         <AugmentationSettings
           augmentations={augmentations}
