@@ -43,9 +43,7 @@ export const HyperparamsModal = ({
   onApply,
   onClose,
 }: HyperparamsModalProps) => {
-  const [editorValue, setEditorValue] = useState(
-    value.trim() || "{\n  \n}",
-  );
+  const [editorValue, setEditorValue] = useState(value.trim() || "{\n  \n}");
   const [errors, setErrors] = useState<string[]>([]);
   const [selectedPreset, setSelectedPreset] = useState("");
 
@@ -80,7 +78,9 @@ export const HyperparamsModal = ({
 
     const currentTrimmed = editorValue.trim();
     const isEmpty =
-      !currentTrimmed || currentTrimmed === "{}" || currentTrimmed === "{\n  \n}";
+      !currentTrimmed ||
+      currentTrimmed === "{}" ||
+      currentTrimmed === "{\n  \n}";
 
     if (!isEmpty) {
       const confirmed = window.confirm(
@@ -176,9 +176,18 @@ export const HyperparamsModal = ({
             </ul>
           )}
 
-          <Text variant="text-12" color="text-secondary">
-            JSON object that deep-merges with the generated config. Top-level
-            keys: model, loader, trainer, tracker.
+          <Text variant="text-12" color="text-secondary" className={styles.infoText}>
+            Override training config with a JSON object. Supported top-level
+            keys: <code>model</code>, <code>loader</code>, <code>trainer</code>,{" "}
+            <code>tracker</code>.{" "}
+            <a
+              href="https://github.com/luxonis/luxonis-train/blob/main/configs/README.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.docsLink}
+            >
+              View full config reference →
+            </a>
           </Text>
         </div>
 

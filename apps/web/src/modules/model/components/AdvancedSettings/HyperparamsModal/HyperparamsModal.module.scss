@@ -43,6 +43,26 @@
   }
 }
 
+.infoText {
+  code {
+    font-family: monospace;
+    background-color: rgba(0, 0, 0, 0.06);
+    padding: 1px 4px;
+    border-radius: 3px;
+    color: var(--color-emerald-700, var(--color-emerald-600));
+  }
+}
+
+.docsLink {
+  color: var(--color-emerald-600);
+  text-decoration: none;
+  white-space: nowrap;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
 .dialogBody {
   display: flex;
   flex-direction: column;
