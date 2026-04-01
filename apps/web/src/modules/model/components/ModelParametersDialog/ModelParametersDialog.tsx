@@ -12,6 +12,10 @@ import {
   getAugmentationById,
   getAugmentationSummary,
 } from "../AugmentationSettings/augmentationTypes";
+import {
+  getPreprocessingById,
+  getPreprocessingSummary,
+} from "../PreprocessingSettings/preprocessingTypes";
 import styles from "./ModelParametersDialog.module.scss";
 
 export interface ModelParametersDialogProps {
@@ -111,6 +115,43 @@ export const ModelParametersDialog = ({
             />
           </div>
         </div>
+
+        {model.preprocessings.length > 0 && (
+          <>
+            <Separator />
+            <div className={styles.section}>
+              <Text
+                variant="text-10"
+                weight="700"
+                className={styles.sectionTitle}
+              >
+                Preprocessing
+              </Text>
+              <div className={styles.paramsGrid}>
+                <ParamItem
+                  label="Keep originals"
+                  value={model.preprocessingKeepOriginals ? "Yes" : "No"}
+                />
+                {model.preprocessings.map((pp) => {
+                  const def = getPreprocessingById(pp.type);
+                  const summary = def
+                    ? getPreprocessingSummary(
+                        def,
+                        pp.params as Record<string, number | boolean | string>,
+                      )
+                    : JSON.stringify(pp.params);
+                  return (
+                    <ParamItem
+                      key={pp.type}
+                      label={def?.name ?? pp.type}
+                      value={summary}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          </>
+        )}
 
         {model.augmentations.length > 0 && (
           <>

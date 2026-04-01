@@ -9,6 +9,7 @@ import {
   AppliedAugmentation,
   AugmentationSettings,
 } from "../AugmentationSettings";
+import { PreprocessingSettings } from "../PreprocessingSettings";
 import { DatasetSplit, DatasetSplitSettings } from "../DatasetSplitSettings";
 import { ModelLayout } from "../ModelLayout/ModelLayout";
 import { ModelTypeSettings } from "../ModelTypeSettings";
@@ -35,6 +36,8 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
     test: 10,
   });
   const [augmentations, setAugmentations] = useState<AppliedAugmentation[]>([]);
+  const [preprocessings, setPreprocessings] = useState<AppliedAugmentation[]>([]);
+  const [preprocessingKeepOriginals, setPreprocessingKeepOriginals] = useState(true);
   const [trainingType, setTrainingType] = useState<ProjectTypeEnum>(
     activeProject?.type ?? ProjectTypeEnum.DETECTION,
   );
@@ -84,6 +87,8 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
       trainingType,
       annotationsUsed,
       augmentations,
+      preprocessings,
+      preprocessingKeepOriginals,
       customHyperparams: parsedHyperparams,
     }).unwrap();
     if (train) {
@@ -135,6 +140,12 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
           activeLabels={activeLabels}
         />
         <DatasetSplitSettings split={datasetSplit} onChange={setDatasetSplit} />
+        <PreprocessingSettings
+          preprocessings={preprocessings}
+          onChange={setPreprocessings}
+          keepOriginals={preprocessingKeepOriginals}
+          onKeepOriginalsChange={setPreprocessingKeepOriginals}
+        />
         <AugmentationSettings
           augmentations={augmentations}
           onChange={setAugmentations}

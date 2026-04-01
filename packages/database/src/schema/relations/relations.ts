@@ -55,6 +55,10 @@ export const relationBase = defineRelations(schema, (r) => ({
       from: r.modelTable.id,
       to: r.modelAugmentationTable.modelId,
     }),
+    preprocessings: r.many.modelPreprocessingTable({
+      from: r.modelTable.id,
+      to: r.modelPreprocessingTable.modelId,
+    }),
   },
   modelLabelTable: {
     model: r.one.modelTable({
