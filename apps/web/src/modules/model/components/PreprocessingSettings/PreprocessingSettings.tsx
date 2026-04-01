@@ -1,4 +1,4 @@
-import { Stack, Switch, Text } from "@repo/ui";
+import { Stack } from "@repo/ui";
 import { useState } from "react";
 import { AppliedAugmentation } from "../AugmentationSettings/augmentationTypes";
 import { AugmentationChip } from "../AugmentationSettings/AugmentationChip";
@@ -10,15 +10,11 @@ import styles from "./PreprocessingSettings.module.scss";
 export interface PreprocessingSettingsProps {
   preprocessings: AppliedAugmentation[];
   onChange: (preprocessings: AppliedAugmentation[]) => void;
-  keepOriginals: boolean;
-  onKeepOriginalsChange: (keepOriginals: boolean) => void;
 }
 
 export const PreprocessingSettings = ({
   preprocessings,
   onChange,
-  keepOriginals,
-  onKeepOriginalsChange,
 }: PreprocessingSettingsProps) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingPp, setEditingPp] = useState<AppliedAugmentation | null>(null);
@@ -72,17 +68,6 @@ export const PreprocessingSettings = ({
             + Add
           </button>
         </Stack>
-        {preprocessings.length > 0 && (
-          <div className={styles.keepOriginalsRow}>
-            <Switch
-              checked={keepOriginals}
-              onCheckedChange={onKeepOriginalsChange}
-            />
-            <Text variant="text-14" weight="500">
-              Keep original images in dataset
-            </Text>
-          </div>
-        )}
       </SettingsCard>
 
       {dialogOpen && (

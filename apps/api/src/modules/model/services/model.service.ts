@@ -91,7 +91,6 @@ export class ModelService{
       splitValidate: data.splitValidate,
       splitTest: data.splitTest,
       customHyperparams: data.customHyperparams,
-      preprocessingKeepOriginals: data.preprocessingKeepOriginals,
     })
 
     await this.db.insert(modelLabelTable).values(labels.map((labelId) => ({
@@ -111,7 +110,8 @@ export class ModelService{
       await this.db.insert(modelPreprocessingTable).values(data.preprocessings.map(pp => ({
         modelId: createdModel.id,
         type: pp.type,
-        params: pp.params
+        params: pp.params,
+        keepOriginal: pp.keepOriginal,
       })))
     }
 
@@ -145,7 +145,6 @@ export class ModelService{
       splitValidate: data.splitValidate,
       splitTest: data.splitTest,
       customHyperparams: data.customHyperparams,
-      preprocessingKeepOriginals: data.preprocessingKeepOriginals,
       status: ModelStatusEnum.DRAFT
     })
 

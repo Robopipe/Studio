@@ -84,6 +84,7 @@ export const AugmentationSettings = ({
             setEditingAug(null);
           }}
           onApply={handleDialogApply}
+          showDuplicateToggle
         />
       )}
     </>

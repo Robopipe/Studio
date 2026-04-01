@@ -128,10 +128,6 @@ export const ModelParametersDialog = ({
                 Preprocessing
               </Text>
               <div className={styles.paramsGrid}>
-                <ParamItem
-                  label="Keep originals"
-                  value={model.preprocessingKeepOriginals ? "Yes" : "No"}
-                />
                 {model.preprocessings.map((pp) => {
                   const def = getPreprocessingById(pp.type);
                   const summary = def
@@ -140,10 +136,13 @@ export const ModelParametersDialog = ({
                         pp.params as Record<string, number | boolean | string>,
                       )
                     : JSON.stringify(pp.params);
+                  const label =
+                    (def?.name ?? pp.type) +
+                    (pp.keepOriginal ? " (Duplicate)" : "");
                   return (
                     <ParamItem
                       key={pp.type}
-                      label={def?.name ?? pp.type}
+                      label={label}
                       value={summary}
                     />
                   );

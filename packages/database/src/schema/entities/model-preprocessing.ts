@@ -11,4 +11,5 @@ export const modelPreprocessingTable = p.pgTable("model_preprocessing", {
     .notNull(),
   type: modelAugmentationTypeEnum("type").notNull(),
   params: p.jsonb("parameters").notNull().default("{}").$type<Record<string, unknown>>(),
+  keepOriginal: p.boolean("keep_original").notNull().default(false),
 });
