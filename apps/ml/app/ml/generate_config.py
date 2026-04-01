@@ -146,6 +146,47 @@ def _deep_merge(base: dict, override: dict) -> dict:
     return result
 
 
+# Config paths managed by the ML service or generated from UI controls.
+# These must never be overridden by user-supplied custom hyperparameters.
+_RESERVED_PATHS: set[str] = {
+    # ML service infrastructure
+    "model.name",
+    "model.predefined_model.name",
+    "model.predefined_model.variant",
+    "loader.params.dataset_name",
+    "loader.params.dataset_dir",
+    "tracker.is_tensorboard",
+    "tracker.is_wandb",
+    "tracker.is_mlflow",
+    "tracker.save_directory",
+    "trainer.callbacks",
+    "trainer.accelerator",
+    "trainer.n_workers",
+    "trainer.validation_interval",
+    "trainer.log_sub_losses",
+    # UI-generated
+    "trainer.epochs",
+    "trainer.preprocessing.train_image_size",
+    "trainer.preprocessing.augmentations",
+}
+
+
+def _strip_reserved_keys(obj: dict, prefix: str = "") -> dict:
+    """Recursively remove reserved keys from a config dict."""
+    result = {}
+    for key, value in obj.items():
+        path = f"{prefix}.{key}" if prefix else key
+        if path in _RESERVED_PATHS:
+            continue
+        if isinstance(value, dict):
+            nested = _strip_reserved_keys(value, path)
+            if nested:
+                result[key] = nested
+        else:
+            result[key] = value
+    return result
+
+
 def generate_luxonis_config(model_config: ModelConfig, dir: str) -> str:
     config = {
         "model": generate_model_config(model_config),
@@ -156,6 +197,7 @@ def generate_luxonis_config(model_config: ModelConfig, dir: str) -> str:
 
     custom = model_config.training_config.custom_hyperparams
     if custom:
+        custom = _strip_reserved_keys(custom)
         config = _deep_merge(config, custom)
 
     return yaml.dump(config, Dumper=_AnchorDumper)

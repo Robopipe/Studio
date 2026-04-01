@@ -1,8 +1,14 @@
 import { hyperparamsConfigSchema } from "@repo/schema";
 import { Button, CloseIcon, Text } from "@repo/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { HYPERPARAMS_PRESETS } from "../presets";
 import styles from "./HyperparamsModal.module.scss";
+import {
+  RESERVED_HYPERPARAMS_PATHS,
+  createReservedKeysLinter,
+  stripReservedKeys,
+} from "./reservedKeys";
 import { useCodeMirror } from "./useCodeMirror";
 import { createZodLinter } from "./zodLinter";
 
@@ -46,9 +52,14 @@ export const HyperparamsModal = ({
   const [editorValue, setEditorValue] = useState(value.trim() || "{\n  \n}");
   const [errors, setErrors] = useState<string[]>([]);
   const [selectedPreset, setSelectedPreset] = useState("");
+  const [showReservedPaths, setShowReservedPaths] = useState(false);
 
   const zodLinterExtension = useMemo(
     () => createZodLinter(hyperparamsConfigSchema),
+    [],
+  );
+  const reservedKeysLinterExtension = useMemo(
+    () => createReservedKeysLinter(),
     [],
   );
 
@@ -57,7 +68,7 @@ export const HyperparamsModal = ({
     onChange: (val) => {
       setEditorValue(val);
     },
-    extensions: [zodLinterExtension],
+    extensions: [zodLinterExtension, reservedKeysLinterExtension],
   });
 
   // Debounced validation for the error list below the editor
@@ -121,7 +132,20 @@ export const HyperparamsModal = ({
     }
 
     const parsed = JSON.parse(trimmed);
-    const formatted = JSON.stringify(parsed, null, 2);
+    const { cleaned, removed } = stripReservedKeys(parsed);
+
+    if (removed.length > 0) {
+      const labels = removed.map(
+        (path) => `${path}: ${RESERVED_HYPERPARAMS_PATHS[path]}`,
+      );
+      toast.warning("Some settings were ignored", {
+        description: labels.join("\n"),
+        duration: 8000,
+      });
+    }
+
+    const isEmpty = Object.keys(cleaned).length === 0;
+    const formatted = isEmpty ? "" : JSON.stringify(cleaned, null, 2);
     onApply(formatted);
   };
 
@@ -180,6 +204,15 @@ export const HyperparamsModal = ({
             Override training config with a JSON object. Supported top-level
             keys: <code>model</code>, <code>loader</code>, <code>trainer</code>,{" "}
             <code>tracker</code>.{" "}
+            Some paths are reserved and will be ignored.{" "}
+            <button
+              type="button"
+              className={styles.reservedPathsLink}
+              onClick={() => setShowReservedPaths((prev) => !prev)}
+            >
+              {showReservedPaths ? "Hide reserved paths" : "View reserved paths"}
+            </button>
+            {" · "}
             <a
               href="https://github.com/luxonis/luxonis-train/blob/main/configs/README.md"
               target="_blank"
@@ -189,6 +222,24 @@ export const HyperparamsModal = ({
               View full config reference →
             </a>
           </Text>
+
+          {showReservedPaths && (
+            <div className={styles.reservedPathsList}>
+              <Text variant="text-12" weight="600">
+                Reserved paths
+              </Text>
+              <ul>
+                {Object.entries(RESERVED_HYPERPARAMS_PATHS).map(
+                  ([path, reason]) => (
+                    <li key={path}>
+                      <code>{path}</code>
+                      <span> — {reason}</span>
+                    </li>
+                  ),
+                )}
+              </ul>
+            </div>
+          )}
         </div>
 
         <div className={styles.dialogFooter}>
