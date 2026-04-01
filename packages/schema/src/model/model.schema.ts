@@ -47,6 +47,7 @@ export const modelPreprocessingSchema = z.object({
   modelId: z.number(),
   type: z.enum(ModelAugmentationTypeEnum),
   params: z.record(z.string(), z.unknown()),
+  keepOriginal: z.boolean(),
 });
 
 export const modelSchema = z.object({
@@ -64,8 +65,7 @@ export const modelSchema = z.object({
   splitTest: z.number(),
   customHyperparams: z.record(z.string(), z.unknown()),
   augmentations: modelAugmentationSchema.pick({ type: true, params: true }).array(),
-  preprocessings: modelPreprocessingSchema.pick({ type: true, params: true }).array(),
-  preprocessingKeepOriginals: z.boolean(),
+  preprocessings: modelPreprocessingSchema.pick({ type: true, params: true, keepOriginal: true }).array(),
   errorMessage: z.string().nullable(),
   ...timestampsSchema,
 });
@@ -108,10 +108,10 @@ export const createModelSchema = modelSchema
       .object({
         type: z.enum(ModelAugmentationTypeEnum),
         params: z.record(z.string(), z.unknown()),
+        keepOriginal: z.boolean().default(false),
       })
       .array()
       .default([]),
-    preprocessingKeepOriginals: z.boolean().default(true),
     customHyperparams: hyperparamsConfigSchema.default({}),
   })
   .refine(

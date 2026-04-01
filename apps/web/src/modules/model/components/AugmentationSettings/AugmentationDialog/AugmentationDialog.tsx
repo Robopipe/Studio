@@ -16,6 +16,7 @@ export interface AugmentationDialogProps {
   title?: string;
   categoryTitle?: string;
   definitions?: AugmentationDefinition[];
+  showDuplicateToggle?: boolean;
 }
 
 export const AugmentationDialog = ({
@@ -26,6 +27,7 @@ export const AugmentationDialog = ({
   title = "Augmentation",
   categoryTitle = "Image Level Augmentations",
   definitions = IMAGE_AUGMENTATIONS,
+  showDuplicateToggle = false,
 }: AugmentationDialogProps) => {
   const [selectedDef, setSelectedDef] = useState<AugmentationDefinition | null>(
     editing ? (definitions.find((d) => d.id === editing.type) ?? null) : null,
@@ -33,6 +35,9 @@ export const AugmentationDialog = ({
   const [paramValues, setParamValues] = useState<
     Record<string, number | boolean | string>
   >(editing?.params ?? {});
+  const [duplicateImage, setDuplicateImage] = useState(
+    editing?.duplicateImage ?? false,
+  );
 
   const appliedIds = new Set(appliedAugmentations.map((a) => a.type));
 
@@ -56,10 +61,14 @@ export const AugmentationDialog = ({
 
   const handleApply = () => {
     if (!selectedDef) return;
+    const finalParams = duplicateImage
+      ? { ...paramValues, p: 1.0 }
+      : paramValues;
     onApply({
       id: editing?.id ?? `${selectedDef.id}_${Date.now()}`,
       type: selectedDef.id,
-      params: paramValues,
+      params: finalParams,
+      duplicateImage: showDuplicateToggle ? duplicateImage : undefined,
     });
   };
 
@@ -121,44 +130,88 @@ export const AugmentationDialog = ({
 
                 {selectedDef.params.length > 0 && (
                   <div className={styles.paramForm}>
-                    {selectedDef.params.map((param) => (
-                      <div key={param.key} className={styles.paramRow}>
-                        {param.type === "boolean" ? (
-                          <div className={styles.switchRow}>
-                            <Text variant="text-14" weight="500">
-                              {param.label}
-                            </Text>
-                            <Switch
-                              checked={paramValues[param.key] as boolean}
-                              onCheckedChange={(checked) =>
-                                handleParamChange(param.key, checked)
-                              }
-                            />
+                    {selectedDef.params.map((param) => {
+                      if (showDuplicateToggle && param.key === "p") {
+                        return (
+                          <div key="duplicate-and-probability">
+                            <div className={styles.paramRow}>
+                              <div className={styles.switchRow}>
+                                <Text variant="text-14" weight="500">
+                                  Duplicate image
+                                </Text>
+                                <Switch
+                                  checked={duplicateImage}
+                                  onCheckedChange={setDuplicateImage}
+                                />
+                              </div>
+                              <Text variant="text-12" color="text-secondary">
+                                Creates a transformed copy of the image, keeping the original. Replaces probability.
+                              </Text>
+                            </div>
+                            {!duplicateImage && (
+                              <div className={styles.paramRow} style={{ marginTop: 16 }}>
+                                <label className={styles.paramLabel}>
+                                  {param.label}
+                                  {param.unit ? ` (${param.unit})` : ""}
+                                </label>
+                                <input
+                                  type="number"
+                                  className={styles.paramInput}
+                                  value={paramValues[param.key] as number}
+                                  min={param.min}
+                                  max={param.max}
+                                  step={param.step}
+                                  onChange={(e) =>
+                                    handleParamChange(
+                                      param.key,
+                                      parseFloat(e.target.value) || 0,
+                                    )
+                                  }
+                                />
+                              </div>
+                            )}
                           </div>
-                        ) : (
-                          <>
-                            <label className={styles.paramLabel}>
-                              {param.label}
-                              {param.unit ? ` (${param.unit})` : ""}
-                            </label>
-                            <input
-                              type="number"
-                              className={styles.paramInput}
-                              value={paramValues[param.key] as number}
-                              min={param.min}
-                              max={param.max}
-                              step={param.step}
-                              onChange={(e) =>
-                                handleParamChange(
-                                  param.key,
-                                  parseFloat(e.target.value) || 0,
-                                )
-                              }
-                            />
-                          </>
-                        )}
-                      </div>
-                    ))}
+                        );
+                      }
+                      return (
+                        <div key={param.key} className={styles.paramRow}>
+                          {param.type === "boolean" ? (
+                            <div className={styles.switchRow}>
+                              <Text variant="text-14" weight="500">
+                                {param.label}
+                              </Text>
+                              <Switch
+                                checked={paramValues[param.key] as boolean}
+                                onCheckedChange={(checked) =>
+                                  handleParamChange(param.key, checked)
+                                }
+                              />
+                            </div>
+                          ) : (
+                            <>
+                              <label className={styles.paramLabel}>
+                                {param.label}
+                                {param.unit ? ` (${param.unit})` : ""}
+                              </label>
+                              <input
+                                type="number"
+                                className={styles.paramInput}
+                                value={paramValues[param.key] as number}
+                                min={param.min}
+                                max={param.max}
+                                step={param.step}
+                                onChange={(e) =>
+                                  handleParamChange(
+                                    param.key,
+                                    parseFloat(e.target.value) || 0,
+                                  )
+                                }
+                              />
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </>

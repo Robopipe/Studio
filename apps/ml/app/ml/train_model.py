@@ -46,7 +46,6 @@ def run_training(config: ModelConfig):
                     dir,
                     preprocess_cfg.preprocessings,
                     config.type,
-                    preprocess_cfg.preprocessing_keep_originals,
                 )
             print(luxonis_config)
             with open(config_path, "w") as f:

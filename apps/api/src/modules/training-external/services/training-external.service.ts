@@ -243,8 +243,11 @@ export class TrainingExternalService {
           ],
           labels: model.labels.map((_, index) => index),
           augmentations,
-          preprocessings,
-          preprocessing_keep_originals: model.preprocessingKeepOriginals,
+          preprocessings: preprocessings.map(pp => ({
+            type: pp.type,
+            params: pp.params,
+            keep_original: pp.keepOriginal,
+          })),
         },
         custom_hyperparams: model.customHyperparams,
       },

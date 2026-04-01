@@ -24,7 +24,12 @@ export const AugmentationChip = ({
   return (
     <div className={styles.augmentationChip}>
       <div className={styles.chipInfo}>
-        <div className={styles.chipName}>{definition.name}</div>
+        <div className={styles.chipName}>
+          {definition.name}
+          {augmentation.duplicateImage && (
+            <span className={styles.duplicateBadge}>Duplicate</span>
+          )}
+        </div>
         {summary && <div className={styles.chipSummary}>{summary}</div>}
       </div>
       <div className={styles.chipActions}>

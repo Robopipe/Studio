@@ -13,6 +13,7 @@ class Augmentation(BaseModel):
     A_TYPE: ClassVar[str]
     type: str
     params: AugmentationParams
+    keep_original: bool = False
 
     @classmethod
     def __init_subclass__(cls, A_TYPE: str, **kwargs):

@@ -53,6 +53,7 @@ export interface AppliedAugmentation {
   id: string;
   type: ModelAugmentationTypeEnum;
   params: Record<string, number | boolean | string>;
+  duplicateImage?: boolean;
 }
 
 /** Summary text for an applied augmentation */
