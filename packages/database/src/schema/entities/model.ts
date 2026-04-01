@@ -29,6 +29,7 @@ export const modelTable = p.pgTable("model", {
   splitValidate: p.integer("split_validate").notNull(),
   splitTest: p.integer("split_test").notNull(),
   customHyperparams: p.jsonb("custom_hyperparams").notNull().default({}),
+  preprocessingKeepOriginals: p.boolean("preprocessing_keep_originals").notNull().default(true),
   status: modelStatusEnum("status").notNull(),
   errorMessage: p.text("error_message"),
   projectId: p
