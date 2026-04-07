@@ -5,77 +5,235 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * Brand color scales.
+ *
+ * Declared in a plain @theme block (NOT @theme inline) so Tailwind emits
+ * each value as a real CSS variable on :root AND generates the matching
+ * utility classes (bg-emerald-500, text-pear-300, border-blue-400, ...).
+ *
+ * Theme-agnostic — identical in light and dark.
+ */
+@theme {
+    --font-sans: 'Inter Variable', sans-serif;
+
+    --color-black: #000000;
+    --color-white: #ffffff;
+
+    --color-gray-50: #f9fafb;
+    --color-gray-100: #f3f4f6;
+    --color-gray-200: #e5e7eb;
+    --color-gray-300: #d1d5db;
+    --color-gray-400: #9ca3af;
+    --color-gray-500: #6b7280;
+    --color-gray-600: #4b5563;
+    --color-gray-700: #374151;
+    --color-gray-800: #1f2937;
+    --color-gray-900: #111827;
+    --color-gray-950: #030712;
+
+    --color-emerald-50: #eefbf3;
+    --color-emerald-100: #d5f6df;
+    --color-emerald-200: #aeecc3;
+    --color-emerald-300: #79dca3;
+    --color-emerald-400: #43c47d;
+    --color-emerald-500: #20a963;
+    --color-emerald-600: #13884e;
+    --color-emerald-700: #0f6d41;
+    --color-emerald-800: #0e5734;
+    --color-emerald-900: #0d472d;
+    --color-emerald-950: #06281a;
+
+    --color-pear-50: #f8fcea;
+    --color-pear-100: #f1fac7;
+    --color-pear-200: #e8f692;
+    --color-pear-300: #e0f054;
+    --color-pear-400: #dce91d;
+    --color-pear-500: #d6da18;
+    --color-pear-600: #bcb212;
+    --color-pear-700: #968312;
+    --color-pear-800: #7d6816;
+    --color-pear-900: #6a5419;
+    --color-pear-950: #3e2f0a;
+
+    --color-neon-50: #edfffc;
+    --color-neon-100: #c0fff8;
+    --color-neon-200: #81fff4;
+    --color-neon-300: #3affee;
+    --color-neon-400: #00ebcf;
+    --color-neon-500: #00e2c8;
+    --color-neon-600: #00b7a6;
+    --color-neon-700: #009185;
+    --color-neon-800: #00726b;
+    --color-neon-900: #045d58;
+    --color-neon-950: #003a39;
+
+    --color-blue-50: #eef3ff;
+    --color-blue-100: #d9e4ff;
+    --color-blue-200: #bcd0ff;
+    --color-blue-300: #8eb3ff;
+    --color-blue-400: #5989ff;
+    --color-blue-500: #2756ff;
+    --color-blue-600: #1b3cf5;
+    --color-blue-700: #1429e1;
+    --color-blue-800: #1722b6;
+    --color-blue-900: #19248f;
+    --color-blue-950: #141857;
+
+    --color-violet-50: #fcf4ff;
+    --color-violet-100: #f8e7ff;
+    --color-violet-200: #f2d3ff;
+    --color-violet-300: #e8b0ff;
+    --color-violet-400: #db7dff;
+    --color-violet-500: #cd4bff;
+    --color-violet-600: #bf28f5;
+    --color-violet-700: #a818da;
+    --color-violet-800: #8b19b0;
+    --color-violet-900: #72168d;
+    --color-violet-950: #52016a;
+
+    --color-pink-50: #fef1f9;
+    --color-pink-100: #fee5f4;
+    --color-pink-200: #fecceb;
+    --color-pink-300: #ffa2da;
+    --color-pink-400: #fe68be;
+    --color-pink-500: #f93ba3;
+    --color-pink-600: #de1579;
+    --color-pink-700: #cb0b65;
+    --color-pink-800: #a80c53;
+    --color-pink-900: #8b1048;
+    --color-pink-950: #560128;
+
+    --color-red-50: #fef2f3;
+    --color-red-100: #fee5e7;
+    --color-red-200: #fbd0d5;
+    --color-red-300: #f8a9b2;
+    --color-red-400: #f47889;
+    --color-red-500: #e93a57;
+    --color-red-600: #d7274d;
+    --color-red-700: #b51b40;
+    --color-red-800: #98193b;
+    --color-red-900: #821938;
+    --color-red-950: #48091b;
+
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    --radius-2xl: calc(var(--radius) * 1.8);
+    --radius-3xl: calc(var(--radius) * 2.2);
+    --radius-4xl: calc(var(--radius) * 2.6);
+}
+
 :root {
+    /* shadcn semantic tokens — light mode */
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);
     --card-foreground: oklch(0.145 0 0);
     --popover: oklch(1 0 0);
     --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.4726 0.1086 156.28);
-    --primary-foreground: oklch(0.985 0 0);
+    --primary: var(--color-emerald-500);
+    --primary-foreground: oklch(1 0 0);
     --secondary: oklch(0.97 0 0);
     --secondary-foreground: oklch(0.205 0 0);
     --muted: oklch(0.97 0 0);
     --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
+    --accent: var(--color-emerald-50);
+    --accent-foreground: var(--color-emerald-700);
+    --destructive: var(--color-red-500);
     --border: oklch(0.922 0 0);
     --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.809 0.105 251.813);
-    --chart-2: oklch(0.623 0.214 259.815);
-    --chart-3: oklch(0.546 0.245 262.881);
-    --chart-4: oklch(0.488 0.243 264.376);
-    --chart-5: oklch(0.424 0.199 265.638);
+    --ring: var(--color-emerald-500);
+    --chart-1: var(--color-emerald-500);
+    --chart-2: var(--color-blue-500);
+    --chart-3: var(--color-violet-500);
+    --chart-4: var(--color-pink-500);
+    --chart-5: var(--color-pear-500);
     --radius: 0.625rem;
     --sidebar: oklch(0.985 0 0);
     --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
+    --sidebar-primary: var(--color-emerald-500);
+    --sidebar-primary-foreground: oklch(1 0 0);
+    --sidebar-accent: var(--color-emerald-50);
+    --sidebar-accent-foreground: var(--color-emerald-700);
     --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
+    --sidebar-ring: var(--color-emerald-500);
+
+    /*
+     * Legacy semantic tokens for existing SCSS modules.
+     * These mirror the variables that used to live in
+     * packages/ui/src/themes/light/colors.scss. Each entry will be removed
+     * when the consuming SCSS module is converted to Tailwind in Phase 2.
+     */
+    --color-primary: var(--color-emerald-500);
+    --color-secondary: var(--color-gray-600);
+    --color-success: var(--color-emerald-500);
+    --color-warning: var(--color-pear-500);
+    --color-error: var(--color-red-500);
+    --color-info: var(--color-neon-500);
+
+    --color-text-primary: var(--color-gray-900);
+    --color-text-secondary: var(--color-gray-600);
+    --color-text-tertiary: var(--color-gray-500);
+    --color-text-disabled: var(--color-gray-400);
+    --color-text-white-primary: rgba(255, 255, 255, 0.9);
+    --color-text-white-secondary: rgba(255, 255, 255, 0.6);
+    --color-text-white-disabled: rgba(255, 255, 255, 0.4);
+
+    --color-bg-secondary: var(--color-gray-50);
+    --color-bg-tertiary: var(--color-gray-100);
+    --color-border-primary: var(--color-gray-200);
+
+    --color-background-default: #ffffff;
+    --color-background-paper: #fafafa;
+    --color-background-gradient:
+        linear-gradient(180deg, rgba(67, 196, 125, 0.15) 0%, rgba(0, 0, 0, 0) 40%),
+        #0f0f18;
 }
 
 .dark {
+    /* Dormant — app is light-only, see web_theme_light_only memory */
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
     --card: oklch(0.205 0 0);
     --card-foreground: oklch(0.985 0 0);
     --popover: oklch(0.205 0 0);
     --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
+    --primary: var(--color-emerald-400);
+    --primary-foreground: oklch(0.145 0 0);
     --secondary: oklch(0.269 0 0);
     --secondary-foreground: oklch(0.985 0 0);
     --muted: oklch(0.269 0 0);
     --muted-foreground: oklch(0.708 0 0);
     --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
+    --accent-foreground: var(--color-emerald-300);
+    --destructive: var(--color-red-400);
     --border: oklch(1 0 0 / 10%);
     --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.809 0.105 251.813);
-    --chart-2: oklch(0.623 0.214 259.815);
-    --chart-3: oklch(0.546 0.245 262.881);
-    --chart-4: oklch(0.488 0.243 264.376);
-    --chart-5: oklch(0.424 0.199 265.638);
+    --ring: var(--color-emerald-400);
+    --chart-1: var(--color-emerald-400);
+    --chart-2: var(--color-blue-400);
+    --chart-3: var(--color-violet-400);
+    --chart-4: var(--color-pink-400);
+    --chart-5: var(--color-pear-400);
     --sidebar: oklch(0.205 0 0);
     --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-primary: var(--color-emerald-400);
+    --sidebar-primary-foreground: oklch(0.145 0 0);
     --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-accent-foreground: var(--color-emerald-300);
     --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+    --sidebar-ring: var(--color-emerald-400);
 }
 
 @theme inline {
-    --font-sans: 'Inter Variable', sans-serif;
+    /*
+     * Map shadcn semantic CSS variables (which switch between :root and .dark)
+     * to Tailwind utility names. The `inline` modifier inlines the var()
+     * reference into generated utilities so light/dark switching works at
+     * runtime via the underlying CSS variables in :root / .dark.
+     */
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -107,13 +265,6 @@
     --color-card: var(--card);
     --color-foreground: var(--foreground);
     --color-background: var(--background);
-    --radius-sm: calc(var(--radius) * 0.6);
-    --radius-md: calc(var(--radius) * 0.8);
-    --radius-lg: var(--radius);
-    --radius-xl: calc(var(--radius) * 1.4);
-    --radius-2xl: calc(var(--radius) * 1.8);
-    --radius-3xl: calc(var(--radius) * 2.2);
-    --radius-4xl: calc(var(--radius) * 2.6);
 }
 
 @layer base {
