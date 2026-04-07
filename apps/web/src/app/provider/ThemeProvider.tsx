@@ -1,4 +1,4 @@
-import React, {
+import {
   createContext,
   PropsWithChildren,
   useContext,
@@ -15,9 +15,6 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
-/**
- * Detects the system's color scheme preference
- */
 const getSystemColorScheme = (): ColorScheme => {
   if (typeof window === "undefined") {
     return "light";
@@ -31,11 +28,11 @@ export interface ThemeProviderProps extends PropsWithChildren {
   defaultTheme?: ColorScheme | "system";
 }
 
-export const ThemeProvider: React.FC<ThemeProviderProps> = ({
+export const ThemeProvider = ({
   children,
   defaultTheme = "system",
-}) => {
-  const [colorScheme, setColorSchemeState] = useState<ColorScheme>(() => {
+}: ThemeProviderProps) => {
+  const [colorScheme, setColorScheme] = useState<ColorScheme>(() => {
     if (defaultTheme === "system") {
       return getSystemColorScheme();
     }
@@ -48,9 +45,8 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     }
 
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-
     const handleChange = (e: MediaQueryListEvent) => {
-      setColorSchemeState(e.matches ? "dark" : "light");
+      setColorScheme(e.matches ? "dark" : "light");
     };
 
     mediaQuery.addEventListener("change", handleChange);
@@ -58,13 +54,10 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   }, [defaultTheme]);
 
   useEffect(() => {
-    document.documentElement.setAttribute("data-theme", colorScheme);
-    document.documentElement.style.colorScheme = colorScheme;
+    const root = document.documentElement;
+    root.classList.toggle("dark", colorScheme === "dark");
+    root.style.colorScheme = colorScheme;
   }, [colorScheme]);
-
-  const setColorScheme = (scheme: ColorScheme) => {
-    setColorSchemeState(scheme);
-  };
 
   return (
     <ThemeContext.Provider value={{ colorScheme, setColorScheme }}>
@@ -73,11 +66,6 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   );
 };
 
-/**
- * Hook to get the current color scheme
- * @returns The current color scheme ("light" or "dark")
- * @throws Error if used outside of ThemeProvider
- */
 export const useColorScheme = (): ColorScheme => {
   const context = useContext(ThemeContext);
   if (context === undefined) {
@@ -86,11 +74,6 @@ export const useColorScheme = (): ColorScheme => {
   return context.colorScheme;
 };
 
-/**
- * Hook to get the setColorScheme function
- * @returns Function to update the color scheme
- * @throws Error if used outside of ThemeProvider
- */
 export const useSetColorScheme = (): ((scheme: ColorScheme) => void) => {
   const context = useContext(ThemeContext);
   if (context === undefined) {

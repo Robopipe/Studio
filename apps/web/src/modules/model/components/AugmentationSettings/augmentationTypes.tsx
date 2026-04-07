@@ -4,6 +4,7 @@
  */
 
 import { ModelAugmentationTypeEnum } from "@repo/schema";
+import { ReactNode } from "react";
 import {
   BlurImage,
   BrightnessImage,
@@ -19,8 +20,7 @@ import {
   RotationImage,
   SaturationImage,
   ShearImage,
-} from "@repo/ui";
-import { ReactNode } from "react";
+} from "./illustrations";
 
 export type AugmentationCategory = "image" | "bbox";
 
