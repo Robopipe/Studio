@@ -1,17 +1,8 @@
 import { Project } from "@repo/schema";
-import {
-  BulbIcon,
-  CheckIcon,
-  DeleteIcon,
-  MinusIcon,
-  SettingsIcon,
-  Stack,
-  Text,
-} from "@repo/ui";
+import { Check, Lightbulb, Minus, Settings, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useDeleteProjectMutation } from "../../services/projectApi";
 import { EditProjectModal } from "../EditProjectModal";
-import styles from "./ProjectCard.module.scss";
 
 export interface ProjectCardProps {
   project: Project;
@@ -49,47 +40,51 @@ export const ProjectCard = ({ project, onClick }: ProjectCardProps) => {
 
   return (
     <>
-      <div className={styles.projectCard} onClick={onClick}>
-        <div className={styles.projectContent}>
-          <Stack direction="row" align="center" justify="space-between">
-            <Text variant="text-16" weight="600">
-              {project.name}
-            </Text>
-            <Stack direction="row" gap={8}>
-              <SettingsIcon className={styles.editIcon} onClick={handleEdit} />
-              <DeleteIcon
-                className={styles.deleteIcon}
+      <div
+        className="flex w-[21rem] cursor-pointer flex-col overflow-hidden rounded-lg border border-gray-300 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
+        onClick={onClick}
+      >
+        <div className="flex flex-col gap-4 p-5">
+          <div className="flex flex-row items-center justify-between">
+            <span className="text-base">{project.name}</span>
+            <div className="flex flex-row gap-2">
+              <Settings
+                className="size-5 cursor-pointer text-gray-800 hover:text-gray-600"
+                onClick={handleEdit}
+              />
+              <Trash2
+                className="size-5 cursor-pointer text-red-800 hover:text-red-600"
                 onClick={handleDelete}
               />
-            </Stack>
-          </Stack>
+            </div>
+          </div>
 
-          <Stack direction="row" align="center" justify="space-between">
-            <Text variant="text-14">0/0</Text>
+          <div className="flex flex-row items-center justify-between">
+            <span className="text-sm">0/0</span>
 
-            <Stack direction="row" align="center" gap={16}>
-              <div className={styles.statItem}>
-                <CheckIcon className={styles.captureIcon} />
-                <Text variant="text-14">0</Text>
+            <div className="flex flex-row items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Check className="size-5 text-emerald-600" />
+                <span className="text-sm">0</span>
               </div>
-              <div className={styles.statItem}>
-                <MinusIcon className={styles.labelIcon} />
-                <Text variant="text-14">0</Text>
+              <div className="flex items-center gap-2">
+                <Minus className="size-5 text-red-800" />
+                <span className="text-sm">0</span>
               </div>
-              <div className={styles.statItem}>
-                <BulbIcon className={styles.trainIcon} />
-                <Text variant="text-14">0</Text>
+              <div className="flex items-center gap-2">
+                <Lightbulb className="size-5 text-gray-900" />
+                <span className="text-sm">0</span>
               </div>
-            </Stack>
-          </Stack>
+            </div>
+          </div>
         </div>
-        <div className={styles.divider} />
+        <div className="h-px w-full bg-gray-300" />
 
-        <div className={styles.projectFooter}>
-          <Text variant="text-12" color="gray-950">
-            {formattedDate}
-          </Text>
-          <div className={styles.avatar}>AD</div>
+        <div className="flex items-center justify-between px-5 py-3">
+          <span className="text-xs text-gray-950">{formattedDate}</span>
+          <div className="flex h-8 w-8 items-center justify-center rounded-full border border-black/10 text-xs font-semibold text-[#495057]">
+            AD
+          </div>
         </div>
       </div>
 

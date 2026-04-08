@@ -1,10 +1,8 @@
 import { KoalaLogo, Logo } from "@/modules/ui";
-import { Container, Heading, Stack, Text } from "@repo/ui";
 import { ReactNode } from "react";
 import { Link, Outlet } from "react-router";
 import { ScreenAwareLayout } from "../ScreenAwareLayout";
 import { AuthBackground } from "./AuthBackground";
-import styles from "./AuthLayout.module.scss";
 
 export interface AuthLayoutProps {
   children?: ReactNode;
@@ -15,49 +13,40 @@ export const AuthLayout = ({ children }: AuthLayoutProps) => {
 
   return (
     <ScreenAwareLayout>
-      <Stack className={styles.authLayout} direction="row" gap={0}>
-        <Container
-          paddingX="xl"
-          paddingY="xl"
-          centered={false}
-          className={styles.leftPanel}
-          size="full"
+      <div className="flex h-screen flex-row overflow-hidden">
+        <div
+          className="relative w-full flex-[0_0_65%] overflow-hidden p-16"
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(67, 196, 125, 0.15) 0%, rgba(0, 0, 0, 0) 40%), #0f0f18",
+          }}
         >
-          <AuthBackground className={styles.background} />
-          <Stack
-            direction="column"
-            justify="space-between"
-            className={styles.leftPanelContent}
-          >
+          <AuthBackground className="absolute -right-16 top-8 z-0 h-full w-full" />
+          <div className="relative z-10 flex h-full flex-col justify-between">
             <Logo />
             <div>
-              <Heading color="emerald-100" variant="h2" weight="500">
+              <h2 className="text-[2.75rem] font-medium leading-[1.25em] tracking-[-0.06em] text-emerald-100">
                 Open-Source Solution for Industrial
-              </Heading>
-              <Heading color="emerald-400" variant="h2" weight="500">
+              </h2>
+              <h2 className="text-[2.75rem] font-medium leading-[1.25em] tracking-[-0.06em] text-emerald-400">
                 Machine Vision
-              </Heading>
-              <Stack
-                direction="row"
-                align="center"
-                gap={12}
-                className={styles.koalaLogo}
-              >
-                <Text color="emerald-100">by</Text>
+              </h2>
+              <div className="mt-8 flex flex-row items-center gap-3">
+                <span className="text-emerald-100">by</span>
                 <Link
                   to="https://koala42.com"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={styles.koalaLogoLink}
+                  className="flex items-center"
                 >
                   <KoalaLogo />
                 </Link>
-              </Stack>
+              </div>
             </div>
-          </Stack>
-        </Container>
-        <div className={styles.rightPanel}>{content}</div>
-      </Stack>
+          </div>
+        </div>
+        <div className="relative z-10 flex-[0_0_35%]">{content}</div>
+      </div>
     </ScreenAwareLayout>
   );
 };

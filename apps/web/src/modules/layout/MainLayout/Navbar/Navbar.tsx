@@ -1,4 +1,5 @@
 import { useLogoutMutation, useProfileQuery } from "@/core/auth/services";
+import { AiPowerIcon, AnnotateIcon } from "@/components/icons";
 import { CreateProjectModal } from "@/modules/project/components/CreateProjectModal";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import {
@@ -6,21 +7,11 @@ import {
   useGetProjectsQuery,
 } from "@/modules/project/services/projectApi";
 import { Logo } from "@/modules/ui";
-import {
-  AiPowerIcon,
-  AnnotateIcon,
-  BoxIcon,
-  CameraIcon,
-  LogoutIcon,
-  RunIcon,
-  Stack,
-  SupportIcon,
-} from "@repo/ui";
+import { Box, Camera, LifeBuoy, LogOut, Play } from "lucide-react";
 import { Link, matchPath, useLocation, useNavigate } from "react-router";
 
 import { webConfig } from "@/config/web";
 import { useEffect, useState } from "react";
-import styles from "./Navbar.module.scss";
 import { NavDropdown } from "./components/NavDropdown";
 import { NavItem } from "./components/NavItem";
 import { OrgDropdown } from "./components/OrgDropdown";
@@ -93,20 +84,23 @@ export const Navbar = () => {
     : "";
 
   return (
-    <nav className={styles.navbar}>
+    <nav className="relative flex h-14 flex-shrink-0 items-center justify-between border-b border-gray-800 bg-[#111114] px-6">
       {/* Left: Logo & Dropdown */}
-      <Stack direction="row" align="center" gap={24}>
-        <div className={styles.logoWrapper} onClick={() => navigate("/")}>
+      <div className="flex flex-row items-center gap-6">
+        <div
+          className="flex cursor-pointer items-center text-white transition-opacity hover:opacity-80"
+          onClick={() => navigate("/")}
+        >
           <Logo height={20} width={"100%"} />
         </div>
         {isProjectRoute && (
-          <Stack direction="row" align="center" gap={12}>
-            <div className={styles.divider} />
+          <div className="flex flex-row items-center gap-3">
+            <div className="mx-1 h-6 w-px bg-gray-700" />
             <NavDropdown
               label={activeProject?.name ?? "Select a project..."}
               title="PROJECTS"
               placeholder="Search or create projects"
-              itemIcon={<BoxIcon />}
+              itemIcon={<Box />}
               activeItemId={activeProject?.id}
               createLabel="Create"
               onCreate={(name) => {
@@ -124,22 +118,17 @@ export const Navbar = () => {
                 })) ?? []
               }
             />
-          </Stack>
+          </div>
         )}
-      </Stack>
+      </div>
 
       {/* Center: Tabs */}
       {isProjectRoute && !isLoading && !isError && (
-        <Stack
-          direction="row"
-          align="center"
-          gap={4}
-          className={styles.centerStack}
-        >
+        <div className="absolute left-1/2 flex -translate-x-1/2 flex-row items-center gap-1 whitespace-nowrap">
           <NavItem
             to={`/projects/${activeId}/capture`}
             label="Capture"
-            icon={<CameraIcon />}
+            icon={<Camera />}
           />
           <NavItem
             to={`/projects/${activeId}/label`}
@@ -154,31 +143,39 @@ export const Navbar = () => {
           <NavItem
             to={`/projects/${activeId}/run`}
             label="Run"
-            icon={<RunIcon />}
+            icon={<Play />}
           />
-        </Stack>
+        </div>
       )}
 
       {/* Right: Org Switcher & User Actions */}
-      <Stack direction="row" align="center" gap={12} className={styles.right}>
+      <div className="flex flex-row items-center gap-3">
         <OrgDropdown />
-        <div className={styles.divider} />
-        <Link to={webConfig.routes.account} className={styles.userAvatar}>
+        <div className="mx-1 h-6 w-px bg-gray-700" />
+        <Link
+          to={webConfig.routes.account}
+          className="mr-2 flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-xs font-semibold text-emerald-900"
+        >
           {initials}
         </Link>
         <button
-          className={styles.iconBtn}
+          type="button"
+          className="flex cursor-pointer items-center justify-center gap-2 rounded-md border-none bg-transparent px-3 py-2 text-gray-400 transition-all hover:bg-white/5 hover:text-white"
           onClick={() =>
             window.open("https://robopipe.gitbook.io/doc", "_blank")
           }
         >
-          <SupportIcon />
-          <span className={styles.btnText}>Help</span>
+          <LifeBuoy />
+          <span className="text-sm font-medium">Help</span>
         </button>
-        <button className={styles.iconBtn} onClick={handleLogout}>
-          <LogoutIcon />
+        <button
+          type="button"
+          className="flex cursor-pointer items-center justify-center gap-2 rounded-md border-none bg-transparent px-3 py-2 text-gray-400 transition-all hover:bg-red-500/10 hover:text-red-400"
+          onClick={handleLogout}
+        >
+          <LogOut />
         </button>
-      </Stack>
+      </div>
 
       {isCreateModalOpen && (
         <CreateProjectModal

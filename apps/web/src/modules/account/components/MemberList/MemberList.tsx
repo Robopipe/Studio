@@ -1,17 +1,18 @@
 import { useAuth } from "@/core/auth/hooks";
-import { OrgMemberRoleEnum, UpdateMemberRole } from "@repo/schema";
+import { Badge } from "@/modules/shadcn/ui/badge";
+import { Button } from "@/modules/shadcn/ui/button";
+import { Input } from "@/modules/shadcn/ui/input";
+import { Label } from "@/modules/shadcn/ui/label";
 import {
-  Badge,
-  Button,
-  CloseIcon,
-  Heading,
   Select,
-  Spinner,
-  Stack,
-  Text,
-  TextInput,
-  bui,
-} from "@repo/ui";
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/modules/shadcn/ui/select";
+import { Spinner } from "@/modules/shadcn/ui/spinner";
+import { OrgMemberRoleEnum, UpdateMemberRole } from "@repo/schema";
+import { X } from "lucide-react";
 import { FormEvent } from "react";
 import { toast } from "sonner";
 import {
@@ -22,12 +23,6 @@ import {
   useRevokeInvitationMutation,
   useUpdateMemberRoleMutation,
 } from "../../services";
-import styles from "./MemberList.module.scss";
-
-const roleItems = [
-  { label: "Admin", value: OrgMemberRoleEnum.ADMIN },
-  { label: "Member", value: OrgMemberRoleEnum.MEMBER },
-];
 
 export const MemberList = () => {
   const { user, role: currentUserRole } = useAuth();
@@ -38,7 +33,9 @@ export const MemberList = () => {
   const canManage =
     currentUserRole === OrgMemberRoleEnum.ADMIN ||
     currentUserRole === OrgMemberRoleEnum.OWNER;
-  const { data: invitations } = useGetInvitationsQuery(undefined, { skip: !canManage });
+  const { data: invitations } = useGetInvitationsQuery(undefined, {
+    skip: !canManage,
+  });
   const [revokeInvitation] = useRevokeInvitationMutation();
 
   const handleInvite = async (e: FormEvent<HTMLFormElement>) => {
@@ -60,7 +57,10 @@ export const MemberList = () => {
 
   const handleRoleChange = async (userId: number, role: string) => {
     try {
-      await updateMemberRole({ userId, role: role as UpdateMemberRole['role'] }).unwrap();
+      await updateMemberRole({
+        userId,
+        role: role as UpdateMemberRole["role"],
+      }).unwrap();
       toast.success("Role updated");
     } catch {
       toast.error("Failed to update role");
@@ -90,47 +90,59 @@ export const MemberList = () => {
   }
 
   return (
-    <Stack gap={24}>
-      <Heading variant="h5" weight="600">
-        Members
-      </Heading>
+    <div className="flex flex-col gap-6">
+      <h5 className="text-xl font-semibold">Members</h5>
 
-      <Stack gap={12}>
+      <div className="flex flex-col gap-3">
         {members?.map((member) => (
-          <div key={member.user.id} className={styles.memberRow}>
-            <Stack gap={2}>
-              <Text weight="600">{member.user.fullName}</Text>
-              <Text variant="text-14" color="text-secondary">
+          <div
+            key={member.user.id}
+            className="flex items-center justify-between border-b border-black/10 py-3 last:border-b-0"
+          >
+            <div className="flex flex-col gap-0.5">
+              <span>{member.user.fullName}</span>
+              <span className="text-sm text-muted-foreground">
                 {member.user.email}
-              </Text>
-            </Stack>
-            <div className={styles.memberActions}>
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
               {canManage && member.role !== OrgMemberRoleEnum.OWNER ? (
                 <>
-                  <div className={styles.roleSelect}>
-                    <Select<string>
-                      placeholder="Role"
-                      items={roleItems}
-                      value={member.role}
-                      onValueChange={(val) =>
-                        val && handleRoleChange(member.user.id, val)
-                      }
-                    />
-                  </div>
+                  <Select
+                    value={member.role}
+                    onValueChange={(val) =>
+                      val && handleRoleChange(member.user.id, val)
+                    }
+                  >
+                    <SelectTrigger className="w-40">
+                      <SelectValue placeholder="Role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={OrgMemberRoleEnum.ADMIN}>
+                        Admin
+                      </SelectItem>
+                      <SelectItem value={OrgMemberRoleEnum.MEMBER}>
+                        Member
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                   {member.user.id !== user?.id && (
                     <button
-                      className={styles.removeButton}
+                      type="button"
+                      className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-gray-100 hover:text-destructive"
                       onClick={() => handleRemove(member.user.id)}
                       aria-label="Remove member"
                     >
-                      <CloseIcon width={16} height={16} />
+                      <X className="size-4" />
                     </button>
                   )}
                 </>
               ) : (
                 <Badge
                   variant={
-                    member.role === OrgMemberRoleEnum.MEMBER ? "neutral" : "success"
+                    member.role === OrgMemberRoleEnum.MEMBER
+                      ? "secondary"
+                      : "default"
                   }
                 >
                   {member.role}
@@ -139,63 +151,71 @@ export const MemberList = () => {
             </div>
           </div>
         ))}
-      </Stack>
+      </div>
 
       {canManage && invitations && invitations.length > 0 && (
         <>
-          <div className={styles.divider} />
-          <Heading variant="h5" weight="600">
-            Pending Invitations
-          </Heading>
+          <div className="my-2 h-px bg-black/10" />
+          <h5 className="text-xl font-semibold">Pending Invitations</h5>
 
-          <Stack gap={12}>
+          <div className="flex flex-col gap-3">
             {invitations.map((invitation) => (
-              <div key={invitation.id} className={styles.memberRow}>
-                <Stack gap={2}>
-                  <Text weight="600">{invitation.email}</Text>
-                  <Text variant="text-14" color="text-secondary">
-                    Invited {new Date(invitation.createdAt).toLocaleDateString()}
-                  </Text>
-                </Stack>
-                <div className={styles.memberActions}>
-                  <Badge variant="neutral">Pending</Badge>
+              <div
+                key={invitation.id}
+                className="flex items-center justify-between border-b border-black/10 py-3 last:border-b-0"
+              >
+                <div className="flex flex-col gap-0.5">
+                  <span>{invitation.email}</span>
+                  <span className="text-sm text-muted-foreground">
+                    Invited{" "}
+                    {new Date(invitation.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary">Pending</Badge>
                   <button
-                    className={styles.removeButton}
+                    type="button"
+                    className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-gray-100 hover:text-destructive"
                     onClick={() => handleRevoke(invitation.id)}
                     aria-label="Revoke invitation"
                   >
-                    <CloseIcon width={16} height={16} />
+                    <X className="size-4" />
                   </button>
                 </div>
               </div>
             ))}
-          </Stack>
+          </div>
         </>
       )}
 
       {canManage && (
         <>
-          <div className={styles.divider} />
-          <Heading variant="h5" weight="600">
-            Invite Member
-          </Heading>
+          <div className="my-2 h-px bg-black/10" />
+          <h5 className="text-xl font-semibold">Invite Member</h5>
 
-          <bui.Form onSubmit={handleInvite}>
-            <Stack gap={16}>
-              <TextInput
-                label="Email"
-                name="email"
-                type="email"
-                placeholder="user@example.com"
-                required
-              />
-              <Button type="submit" disabled={isInviting}>
+          <form onSubmit={handleInvite}>
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="invite-email">Email</Label>
+                <Input
+                  id="invite-email"
+                  name="email"
+                  type="email"
+                  placeholder="user@example.com"
+                  required
+                />
+              </div>
+              <Button
+                type="submit"
+                disabled={isInviting}
+                className="w-fit"
+              >
                 {isInviting ? "Sending..." : "Send Invitation"}
               </Button>
-            </Stack>
-          </bui.Form>
+            </div>
+          </form>
         </>
       )}
-    </Stack>
+    </div>
   );
 };

@@ -1,59 +1,61 @@
-import { Button, EthernetIcon, NoCameraIcon, RefreshIcon, Spinner, Stack, Text, USBIcon } from "@repo/ui";
-import styles from "./NoCameraDetected.module.scss";
+import { EthernetIcon, NoCameraIcon } from "@/components/icons";
+import { Button } from "@/modules/shadcn/ui/button";
+import { Spinner } from "@/modules/shadcn/ui/spinner";
+import { RefreshCw, Usb } from "lucide-react";
 
 export interface NoCameraDetectedProps {
   onRefresh: () => void;
   isRefreshing?: boolean;
 }
 
-export const NoCameraDetected = ({ onRefresh, isRefreshing }: NoCameraDetectedProps) => {
+export const NoCameraDetected = ({
+  onRefresh,
+  isRefreshing,
+}: NoCameraDetectedProps) => {
   return (
-    <Stack align="center" justify="center" className={styles.container}>
-      <div className={styles.iconWrapper}>
+    <div className="flex flex-1 flex-col items-center justify-center p-8">
+      <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-destructive/10 [&_svg]:size-8 [&_svg]:text-destructive">
         <NoCameraIcon />
       </div>
 
-      <Text variant="text-20" weight="600" className={styles.title}>
+      <p className="mb-2 text-xl font-semibold text-black">
         No camera detected!
-      </Text>
+      </p>
 
-      <Text variant="text-14" className={styles.subtitle}>
+      <p className="mb-6 text-sm text-black/60">
         Please make sure camera is connected to the controller.
-      </Text>
+      </p>
 
-      <Stack direction="row" gap={16} className={styles.statusRow}>
-        <div className={styles.statusBadge}>
-          <USBIcon />
+      <div className="mb-6 flex flex-row gap-4">
+        <div className="flex items-center gap-2 rounded-lg border border-black/10 px-4 py-2 text-sm [&_svg]:size-5 [&_svg]:text-black/60">
+          <Usb />
           <span>USB</span>
-          <span className={styles.notDetected}>Not detected</span>
+          <span className="font-medium text-destructive">Not detected</span>
         </div>
-        <div className={styles.statusBadge}>
+        <div className="flex items-center gap-2 rounded-lg border border-black/10 px-4 py-2 text-sm [&_svg]:size-5 [&_svg]:text-black/60">
           <EthernetIcon />
           <span>Ethernet</span>
-          <span className={styles.notDetected}>Not detected</span>
+          <span className="font-medium text-destructive">Not detected</span>
         </div>
-      </Stack>
+      </div>
 
       <Button
-        variant="filled"
         onClick={onRefresh}
         disabled={isRefreshing}
-        className={styles.refreshButton}
+        className="mb-8"
       >
-        {isRefreshing ? <Spinner size="sm" style={{ "--color-primary": "#fff" } as React.CSSProperties} /> : <RefreshIcon />}
+        {isRefreshing ? <Spinner /> : <RefreshCw />}
         Refresh
       </Button>
 
-      <Stack gap={8} className={styles.helpLinks}>
-        <a
-          href="https://robopipe.gitbook.io/doc/getting-started/connection"
-          target="_blank"
-          rel="noopener noreferrer"
-          className={styles.helpLink}
-        >
-          Learn more how to connect camera
-        </a>
-      </Stack>
-    </Stack>
+      <a
+        href="https://robopipe.gitbook.io/doc/getting-started/connection"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-center text-sm text-primary hover:underline"
+      >
+        Learn more how to connect camera
+      </a>
+    </div>
   );
 };
