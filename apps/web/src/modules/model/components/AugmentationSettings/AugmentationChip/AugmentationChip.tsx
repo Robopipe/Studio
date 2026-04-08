@@ -21,7 +21,7 @@ export const AugmentationChip = ({
   const summary = getAugmentationSummary(definition, augmentation.params);
 
   return (
-    <div className="flex min-w-[220px] max-w-[320px] items-center gap-3 rounded-lg border border-black/10 bg-white px-4 py-3">
+    <div className="flex min-w-55 max-w-[320px] items-center gap-3 rounded-lg border border-black/10 bg-white px-4 py-3">
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5 font-semibold">
           {definition.name}
