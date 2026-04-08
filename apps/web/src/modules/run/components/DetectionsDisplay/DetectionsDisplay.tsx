@@ -1,9 +1,8 @@
+import { AnnotateIcon } from "@/components/icons";
 import { useGetModelQuery } from "@/modules/model/services";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
-import { AnnotateIcon, Stack } from "@repo/ui";
 import { CSSProperties } from "react";
 import { useDetections } from "../../hooks/useDetections";
-import styles from "./DetectionsDisplay.module.scss";
 
 export interface DetectionsDisplayProps {
   selectedMxid: string | null;
@@ -40,22 +39,21 @@ export const DetectionsDisplay = (props: DetectionsDisplayProps) => {
   );
 
   return (
-    <Stack>
+    <div className="flex flex-col gap-4">
       {Object.entries(groupedByLabel).map(([label, dets]) => (
-        <Stack key={label} gap={4}>
-          <Stack direction="row" gap={4} align="center">
+        <div key={label} className="flex flex-col gap-1">
+          <div className="flex flex-row items-center gap-1">
             <AnnotateIcon
               style={
                 {
-                  "--color-label": data?.labels?.[Number(label)].color,
+                  color: data?.labels?.[Number(label)].color,
                 } as CSSProperties
               }
-              className={styles.labelIcon}
             />
             <strong>
               {data?.labels?.[Number(label)].name || label} [{dets.length}]
             </strong>
-          </Stack>
+          </div>
           {dets.map((detection, idx) => (
             <div key={idx}>
               {detection.confidence !== undefined && (
@@ -65,8 +63,8 @@ export const DetectionsDisplay = (props: DetectionsDisplayProps) => {
               )}
             </div>
           ))}
-        </Stack>
+        </div>
       ))}
-    </Stack>
+    </div>
   );
 };

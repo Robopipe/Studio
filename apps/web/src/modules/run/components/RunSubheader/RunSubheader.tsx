@@ -1,9 +1,7 @@
+import { cn } from "@/lib/utils";
 import { Button } from "@/modules/shadcn/ui/button";
-import { Stack, Text } from "@repo/ui";
-import clsx from "clsx";
 import { Play, Square } from "lucide-react";
 import type { ReactNode } from "react";
-import styles from "./RunSubheader.module.scss";
 
 export type RunTab = "inference" | "dashboard" | "configuration";
 
@@ -18,6 +16,12 @@ interface RunSubheaderProps {
   configSelector?: ReactNode;
 }
 
+const TABS: { key: RunTab; label: string }[] = [
+  { key: "inference", label: "Inference" },
+  { key: "dashboard", label: "Dashboard" },
+  { key: "configuration", label: "Configuration" },
+];
+
 export const RunSubheader = ({
   activeTab,
   onTabChange,
@@ -29,37 +33,27 @@ export const RunSubheader = ({
   configSelector,
 }: RunSubheaderProps) => {
   return (
-    <div className={styles.subheader}>
-      <Stack direction="row" align="center" gap={24}>
-        <button
-          className={clsx(styles.tab, activeTab === "inference" && styles.active)}
-          onClick={() => onTabChange("inference")}
-        >
-          <Text variant="text-14" weight="500">
-            Inference
-          </Text>
-        </button>
-        <button
-          className={clsx(styles.tab, activeTab === "dashboard" && styles.active)}
-          onClick={() => onTabChange("dashboard")}
-        >
-          <Text variant="text-14" weight="500">
-            Dashboard
-          </Text>
-        </button>
-        <button
-          className={clsx(styles.tab, activeTab === "configuration" && styles.active)}
-          onClick={() => onTabChange("configuration")}
-        >
-          <Text variant="text-14" weight="500">
-            Configuration
-          </Text>
-        </button>
-      </Stack>
+    <div className="flex h-12 flex-shrink-0 items-center justify-between border-b border-black/10 bg-gray-100 px-6">
+      <div className="flex flex-row items-center gap-6">
+        {TABS.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            className={cn(
+              "relative cursor-pointer border-none bg-none px-0 py-3 text-gray-500 hover:text-gray-700",
+              activeTab === tab.key &&
+                "text-primary after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary after:content-['']"
+            )}
+            onClick={() => onTabChange(tab.key)}
+          >
+            <span className="text-sm font-medium">{tab.label}</span>
+          </button>
+        ))}
+      </div>
 
-      <div className={styles.buttonGroup}>
+      <div className="flex items-center gap-2">
         {configSelector}
-        <div className={styles.divider} />
+        <div className="h-4 w-px bg-gray-200" />
         <Button
           size="sm"
           variant="outline"

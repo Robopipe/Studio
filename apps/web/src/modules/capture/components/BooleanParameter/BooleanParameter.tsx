@@ -1,7 +1,6 @@
+import { Switch } from "@/modules/shadcn/ui/switch";
+import { Info } from "lucide-react";
 import { useEffect, useState } from "react";
-
-import { InformationIcon, Switch } from "@repo/ui";
-import styles from "./BooleanParameter.module.scss";
 
 export interface BooleanParameterProps {
   value: boolean | null;
@@ -25,9 +24,11 @@ export const BooleanParameter = ({
   }
 
   return (
-    <div className={styles.parameter}>
-      <InformationIcon className={styles.infoIcon} />
-      <span className={styles.label}>{label}</span>
+    <div className="flex items-center gap-2">
+      <Info className="size-4 text-black/[0.38]" />
+      <span className="overflow-hidden text-ellipsis whitespace-nowrap [width:calc(100%-8.25rem)]">
+        {label}
+      </span>
 
       <Switch
         checked={internalValue}
