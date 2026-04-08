@@ -36,16 +36,13 @@ export const SourceImagesSettings = (props: SourceImagesSettingsProps) => {
 
   return (
     <SettingsCard title="source images" state="complete" stepNumber={1}>
-      <div className="flex flex-row flex-wrap gap-4">
+      <div className="flex flex-row flex-wrap items-center gap-2">
+        <span className="mr-3 text-xs text-foreground/90">Labels</span>
         {mappedLabels.map((label) => (
-          <div
+          <button
+            type="button"
             key={label.id}
             style={{ "--label-color": label.color } as CSSProperties}
-            className={cn(
-              "flex cursor-pointer flex-row items-center gap-1.5 rounded-lg border border-transparent bg-black/10 py-1 pl-1 pr-3",
-              label.isActive &&
-                "[background-color:color-mix(in_oklab,var(--label-color),transparent_80%)] [border-color:var(--label-color)] [&_span]:font-bold"
-            )}
             onClick={() =>
               label.isActive
                 ? setActiveLabels(
@@ -53,13 +50,26 @@ export const SourceImagesSettings = (props: SourceImagesSettingsProps) => {
                   )
                 : setActiveLabels([...activeLabels, label])
             }
+            className={cn(
+              "flex cursor-pointer items-center rounded-md border border-transparent p-1 transition-colors",
+              label.isActive
+                ? "[background-color:color-mix(in_oklab,var(--label-color),transparent_85%)] [border-color:var(--label-color)]"
+                : "bg-black/10 opacity-60 hover:opacity-80",
+            )}
           >
-            <div
-              className="h-6 w-2 rounded-sm"
+            <span
+              className="h-6 w-2 shrink-0 rounded-[4px]"
               style={{ background: "var(--label-color)" }}
             />
-            <span className="text-sm">{label.name}</span>
-          </div>
+            <span
+              className={cn(
+                "px-2 text-xs leading-4 text-foreground/90",
+                label.isActive ? "font-bold" : "font-normal",
+              )}
+            >
+              {label.name}
+            </span>
+          </button>
         ))}
       </div>
     </SettingsCard>

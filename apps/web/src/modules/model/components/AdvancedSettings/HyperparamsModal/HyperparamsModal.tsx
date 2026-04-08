@@ -1,4 +1,11 @@
 import { Button } from "@/modules/shadcn/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/modules/shadcn/ui/select";
 import { hyperparamsConfigSchema } from "@repo/schema";
 import { X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -80,7 +87,7 @@ export const HyperparamsModal = ({
     return () => clearTimeout(debounceRef.current);
   }, [editorValue]);
 
-  const handlePresetChange = (presetId: string) => {
+  const handlePresetChange = (presetId: string | null) => {
     if (!presetId) return;
 
     const preset = HYPERPARAMS_PRESETS.find((p) => p.id === presetId);
@@ -172,18 +179,18 @@ export const HyperparamsModal = ({
         <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-6">
           <div className="flex items-center gap-3">
             <span className="text-sm font-medium">Preset:</span>
-            <select
-              className="min-w-[180px] cursor-pointer rounded-md border border-black/20 bg-white px-3 py-1.5 text-sm focus:border-emerald-600 focus:outline-none"
-              value={selectedPreset}
-              onChange={(e) => handlePresetChange(e.target.value)}
-            >
-              <option value="">Select a preset...</option>
-              {HYPERPARAMS_PRESETS.map((preset) => (
-                <option key={preset.id} value={preset.id}>
-                  {preset.name}
-                </option>
-              ))}
-            </select>
+            <Select value={selectedPreset} onValueChange={handlePresetChange}>
+              <SelectTrigger className="min-w-[220px]">
+                <SelectValue placeholder="Select a preset..." />
+              </SelectTrigger>
+              <SelectContent>
+                {HYPERPARAMS_PRESETS.map((preset) => (
+                  <SelectItem key={preset.id} value={preset.id}>
+                    {preset.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {selectedPresetDef && (
               <span className="text-xs italic text-muted-foreground">
                 {selectedPresetDef.description}

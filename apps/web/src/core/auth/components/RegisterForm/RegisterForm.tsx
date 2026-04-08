@@ -6,6 +6,7 @@ import { FormEvent, useState } from "react";
 import { Link, Navigate } from "react-router";
 import { useAuth } from "../../hooks";
 import { useRegisterMutation } from "../../services";
+import { FormError } from "../FormError";
 
 export const RegisterForm = () => {
   const [register, { isError, isLoading }] = useRegisterMutation();
@@ -74,14 +75,7 @@ export const RegisterForm = () => {
         </div>
 
         {isError && (
-          <div className="mb-8 overflow-hidden rounded border border-red-200 bg-red-50">
-            <div className="w-fit bg-red-600 px-2 py-0.5 text-[0.65rem] font-extrabold uppercase text-white">
-              ERROR
-            </div>
-            <div className="p-4 text-sm leading-snug text-red-900">
-              Registration failed. Please check your details and try again.
-            </div>
-          </div>
+          <FormError message="Registration failed. Please check your details and try again." />
         )}
 
         <form onSubmit={handleSubmit}>

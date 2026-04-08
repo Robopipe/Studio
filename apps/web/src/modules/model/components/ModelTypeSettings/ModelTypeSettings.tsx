@@ -63,8 +63,8 @@ export const ModelTypeSettings = ({
 
   return (
     <SettingsCard title="model type" state="complete" stepNumber={1}>
-      <div className="flex flex-row items-center gap-4">
-        <div className="flex flex-col gap-1">
+      <div className="flex flex-row items-start gap-4">
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
           <span className="text-xs font-medium">Training type</span>
           <Select
             value={trainingType}
@@ -72,7 +72,7 @@ export const ModelTypeSettings = ({
               handleTrainingTypeChange(v as ProjectTypeEnum)
             }
           >
-            <SelectTrigger>
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="Select type" />
             </SelectTrigger>
             <SelectContent>
@@ -91,7 +91,7 @@ export const ModelTypeSettings = ({
         </div>
 
         {trainingType === ProjectTypeEnum.DETECTION ? (
-          <div className="flex flex-col gap-1">
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
             <span className="text-xs font-medium">Annotations used</span>
             <Select
               value={annotationsToPreset(annotationsUsed)}
@@ -101,7 +101,7 @@ export const ModelTypeSettings = ({
                 )
               }
             >
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select annotations" />
               </SelectTrigger>
               <SelectContent>
@@ -118,7 +118,7 @@ export const ModelTypeSettings = ({
             </Select>
           </div>
         ) : (
-          <div className="flex flex-col gap-1">
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
             <span className="text-xs font-medium">Annotations used</span>
             <span className="text-sm">
               {TYPE_LABELS[trainingType]} annotations

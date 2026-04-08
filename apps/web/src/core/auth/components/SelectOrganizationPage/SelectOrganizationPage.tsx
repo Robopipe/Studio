@@ -100,8 +100,8 @@ export const SelectOrganizationPage = () => {
         </div>
 
         {error && (
-          <div className="rounded-md border border-red-200 bg-red-50 p-3">
-            <p className="text-sm text-muted-foreground">{error}</p>
+          <div className="rounded-md border border-destructive/20 bg-destructive/5 p-3">
+            <p className="text-sm text-destructive">{error}</p>
           </div>
         )}
 

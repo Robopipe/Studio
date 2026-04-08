@@ -6,7 +6,6 @@ import { CaptureSettings } from "../CaptureSettings";
 
 import { LiveCapture } from "../LiveCapture";
 import { Orientation } from "../SelectOrientation";
-import styles from "./CapturePage.module.scss";
 
 export interface CapturePageProps {}
 
@@ -29,7 +28,7 @@ export const CapturePage = ({}: CapturePageProps) => {
   }
 
   return (
-    <div className={styles.page}>
+    <div className="-m-6 grid min-h-0 flex-1 grid-cols-[minmax(250px,1fr)_minmax(500px,2fr)_minmax(250px,1fr)] grid-rows-[minmax(0,1fr)] bg-white">
       <CaptureSettings
         selectedCamera={selectedCamera}
         selectedStream={selectedStream}

@@ -1,7 +1,5 @@
 import { useWebRTCStream } from "../../hooks/useWebRTCStream";
 
-import styles from "./CameraDisplay.module.scss";
-
 interface CameraDisplayProps {
   selectedMxid: string;
   selectedSensorName: string;
@@ -17,22 +15,28 @@ export const CameraDisplay = ({
   });
 
   return (
-    <div className={styles.container}>
-      {isStreaming && <span className={styles.liveLabel}>LIVE</span>}
+    <div className="relative">
+      {isStreaming && (
+        <span className="absolute left-4 top-4 z-10 bg-emerald-700 px-2.5 py-1.5 text-base font-bold uppercase leading-tight tracking-[0.125rem] text-white">
+          LIVE
+        </span>
+      )}
 
       <video
         ref={videoRef}
         autoPlay
         muted
         playsInline
-        className={styles.stream}
+        className="aspect-video w-full rounded-2xl bg-black/5"
       ></video>
 
       {!isStreaming && !error && (
-        <div className={styles.placeholder}>Connecting to camera...</div>
+        <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
+          Connecting to camera...
+        </div>
       )}
       {error && (
-        <div className={styles.placeholder} style={{ color: "red" }}>
+        <div className="absolute inset-0 flex items-center justify-center text-sm text-destructive">
           Error: {error}
         </div>
       )}
