@@ -33,6 +33,16 @@ export enum ModelAugmentationTypeEnum {
   NOISE = "NOISE",
   CUTOUT = "CUTOUT",
   MOSAIC = "MOSAIC",
+  CLAHE = "CLAHE",
+  SHARPEN = "SHARPEN",
+  MOTION_BLUR = "MOTION_BLUR",
+  MEDIAN_BLUR = "MEDIAN_BLUR",
+  DOWNSCALE = "DOWNSCALE",
+  IMAGE_COMPRESSION = "IMAGE_COMPRESSION",
+  PERSPECTIVE = "PERSPECTIVE",
+  EQUALIZE = "EQUALIZE",
+  POSTERIZE = "POSTERIZE",
+  RGB_SHIFT = "RGB_SHIFT",
 }
 
 export const modelAugmentationSchema = z.object({
