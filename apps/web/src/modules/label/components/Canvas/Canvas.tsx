@@ -128,14 +128,17 @@ export const Canvas = ({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-black/[0.03]">
-      <div className="flex items-center gap-2 border-b border-black/10 px-4 py-2">
-        <span className="text-sm font-medium">
+      <div className="flex h-10 shrink-0 items-center gap-2 border-b border-black/10 px-4">
+        <span
+          className="min-w-0 flex-1 truncate text-sm font-medium"
+          title={task.filePath.split("/").pop() ?? "Task"}
+        >
           {task.filePath.split("/").pop() ?? "Task"}
         </span>
         <button
           type="button"
           title="Save (S)"
-          className="ml-auto cursor-pointer rounded border-none bg-primary px-3 py-1 text-xs font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+          className="shrink-0 cursor-pointer rounded border-none bg-primary px-3 py-1 text-xs font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           onClick={onSave}
           disabled={!isDirty || isSaving}
         >

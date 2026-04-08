@@ -1,3 +1,4 @@
+import { AnnotateIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import {
   Tabs,
@@ -6,7 +7,7 @@ import {
   TabsTrigger,
 } from "@/modules/shadcn/ui/tabs";
 import { Label } from "@repo/schema";
-import { Eye, EyeOff, GripVertical, Square, Trash2 } from "lucide-react";
+import { Eye, EyeOff, GripVertical, Trash2 } from "lucide-react";
 import { useDraggableList } from "../../hooks/useDraggableList";
 import { Annotation, HistoryEntry } from "../../types/annotations";
 import { HistoryTab } from "../HistoryTab";
@@ -50,7 +51,7 @@ export const AnnotationPanel = ({
       defaultValue="labels"
       className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden border-r border-border bg-black/[0.03]"
     >
-      <TabsList variant="line">
+      <TabsList variant="line" className="h-10 shrink-0">
         <TabsTrigger value="labels">Labels</TabsTrigger>
         <TabsTrigger value="info">Info</TabsTrigger>
         <TabsTrigger value="history">History</TabsTrigger>
@@ -66,7 +67,7 @@ export const AnnotationPanel = ({
           </p>
           <div className="flex flex-col gap-1">
             <ClassRow
-              icon={<Square className="size-4 text-muted-foreground" />}
+              icon={<AnnotateIcon className="size-4 text-foreground/60" />}
               name="Any"
               count={annotations.length}
             />
@@ -74,12 +75,9 @@ export const AnnotationPanel = ({
               <ClassRow
                 key={cls.id}
                 icon={
-                  <span
-                    className="size-3 shrink-0 rounded-[3px] border"
-                    style={{
-                      background: `${cls.color}33`,
-                      borderColor: cls.color,
-                    }}
+                  <AnnotateIcon
+                    className="size-4 shrink-0"
+                    style={{ color: cls.color }}
                   />
                 }
                 name={cls.name}
@@ -120,15 +118,12 @@ export const AnnotationPanel = ({
                   >
                     <GripVertical />
                   </button>
-                  <span
-                    className="size-3 shrink-0 rounded-[3px] border"
-                    style={{
-                      background: `${annotation.color}33`,
-                      borderColor: annotation.color,
-                    }}
+                  <AnnotateIcon
+                    className="size-4 shrink-0"
+                    style={{ color: annotation.color }}
                   />
                   <span
-                    className="flex h-3.5 w-6 shrink-0 items-center justify-center rounded-[3px] text-[11px] font-normal leading-none text-foreground/90"
+                    className="flex h-[14px] w-6 shrink-0 items-center justify-center rounded-[3px] px-0.5 text-[11px] leading-3 text-foreground/90"
                     style={{ background: annotation.color }}
                   >
                     {index + 1}

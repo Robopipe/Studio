@@ -1,28 +1,11 @@
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/modules/shadcn/ui/pagination";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/modules/shadcn/ui/select";
+import { PaginationNumbers } from "@/modules/shadcn/ui/pagination";
 import { cn } from "@/lib/utils";
 import { Task } from "@repo/schema";
-import { useEffect, useRef } from "react";
+import { Camera, SlidersHorizontal } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { TaskFilterDialog } from "../TaskFilterDialog";
 
 export type AnnotationFilter = "all" | "true" | "false";
-
-const FILTER_OPTIONS = [
-  { label: "All", value: "all" },
-  { label: "Annotated", value: "true" },
-  { label: "Not annotated", value: "false" },
-] as const;
 
 export interface DataSourcePanelProps {
   tasks: Task[];
@@ -48,118 +31,108 @@ export const DataSourcePanel = ({
   onAnnotationFilterChange,
 }: DataSourcePanelProps) => {
   const listRef = useRef<HTMLDivElement>(null);
+  const [filterDialogOpen, setFilterDialogOpen] = useState(false);
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: 0 });
   }, [page]);
 
   return (
-    <div className="flex max-h-full min-h-0 flex-col overflow-hidden border-r border-black/10 bg-black/[0.03] py-4 pl-4">
-      <p className="mb-3 pr-4 text-[10px] font-bold uppercase tracking-wider">
-        Data Source
-      </p>
-
-      <div className="mb-2 pr-4">
-        <Select
-          value={annotationFilter}
-          onValueChange={(val) =>
-            onAnnotationFilterChange(val as AnnotationFilter)
-          }
+    <div className="flex max-h-full min-h-0 flex-col overflow-hidden border-r border-black/10 bg-black/[0.03]">
+      <div className="flex h-10 shrink-0 items-center gap-2 border-b border-black/10 px-4">
+        <p className="flex-1 text-[10px] font-bold uppercase tracking-[1px] text-foreground/90">
+          Data source
+        </p>
+        <button
+          type="button"
+          aria-label="Filter tasks"
+          title="Filter"
+          onClick={() => setFilterDialogOpen(true)}
+          className={cn(
+            "flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent text-muted-foreground transition-colors hover:bg-black/[0.06] hover:text-foreground",
+            annotationFilter !== "all" && "bg-primary/10 text-primary",
+          )}
         >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Filter">
-              {(value: string) =>
-                FILTER_OPTIONS.find((o) => o.value === value)?.label ?? "Filter"
-              }
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {FILTER_OPTIONS.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
-                {opt.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <SlidersHorizontal className="size-4" />
+        </button>
       </div>
+
+      <TaskFilterDialog
+        open={filterDialogOpen}
+        onOpenChange={setFilterDialogOpen}
+        annotationFilter={annotationFilter}
+        onApply={onAnnotationFilterChange}
+      />
 
       <div
         ref={listRef}
-        className="flex flex-1 flex-col gap-1 overflow-y-auto pr-2"
+        className="flex flex-1 flex-col overflow-y-auto"
       >
         {tasks.map((task) => {
           const isSelected = task.id === selectedTaskId;
+          const count =
+            isSelected ? annotationCount : task.annotationCount ?? 0;
           return (
             <button
               key={task.id}
               type="button"
               className={cn(
-                "flex cursor-pointer items-center gap-2 rounded-md border-2 border-transparent bg-transparent p-1 text-left hover:bg-black/[0.04]",
-                isSelected && "border-primary bg-primary/[0.06]"
+                "flex w-full cursor-pointer items-center gap-4 border-b border-black/10 px-4 py-2 text-left transition-colors hover:bg-black/[0.04]",
+                isSelected && "bg-emerald-500/15 hover:bg-emerald-500/15",
               )}
               onClick={() => onSelectTask(task.id)}
             >
               <img
                 src={task.thumbnailUrl}
-                alt={task.filePath.split("/").pop() ?? "task"}
-                className="aspect-[4/3] w-[5.5rem] rounded bg-muted-foreground object-cover"
+                alt={`#${task.iid}`}
+                className={cn(
+                  "h-[52px] w-[60px] shrink-0 rounded bg-muted object-cover",
+                  isSelected && "border border-emerald-500",
+                )}
               />
-              <div className="flex min-w-0 flex-col gap-0.5">
-                <span className="text-xs font-bold">#{task.iid}</span>
-                <span className="text-[0.6875rem] text-muted-foreground">
-                  {new Date(task.createdAt).toLocaleString(undefined, {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                    hour: "numeric",
-                    minute: "2-digit",
-                  })}
+              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span className="truncate text-xs font-bold leading-4 text-foreground/90">
+                  #{task.iid}
                 </span>
-                <span className="text-[0.6875rem] font-semibold text-muted-foreground">
-                  {isSelected ? annotationCount : task.annotationCount ?? 0}{" "}
-                  annotations
-                </span>
+                <div className="flex items-center gap-1 text-xs leading-4 text-foreground/60">
+                  <Camera className="size-4 shrink-0" />
+                  <span className="truncate">
+                    {new Date(task.createdAt).toLocaleString(undefined, {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </div>
               </div>
+              <AnnotationChip count={count} />
             </button>
           );
         })}
       </div>
 
-      <div className="flex-shrink-0 border-t border-black/10 pr-4 pt-2">
-        <Pagination>
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (page > 1) onPageChange(page - 1);
-                }}
-                className={
-                  page <= 1 ? "pointer-events-none opacity-50" : undefined
-                }
-              />
-            </PaginationItem>
-            <PaginationItem>
-              <span className="px-2 text-sm text-muted-foreground">
-                Page {page} of {totalPages}
-              </span>
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationNext
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (page < totalPages) onPageChange(page + 1);
-                }}
-                className={
-                  page >= totalPages
-                    ? "pointer-events-none opacity-50"
-                    : undefined
-                }
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
+      <div className="flex shrink-0 items-center gap-4 border-t border-black/10 px-2 py-4">
+        <PaginationNumbers
+          currentPage={page}
+          totalPages={totalPages}
+          onPageChange={onPageChange}
+        />
       </div>
     </div>
   );
 };
+
+/**
+ * Small "annotation chip" badge: a hairline-bordered rectangle with the
+ * annotation count inside and two diagonal corner dots — matches figma's
+ * crop-mark styling on the data source rows.
+ */
+const AnnotationChip = ({ count }: { count: number }) => (
+  <div className="relative flex h-4 shrink-0 items-center justify-center rounded-[2px] border border-gray-300 bg-black/[0.03] px-1 text-[11px] leading-3 text-foreground/60">
+    {count}
+    <span className="absolute -left-[2.5px] -top-[2.5px] size-1 rounded-full bg-gray-300" />
+    <span className="absolute -bottom-[2.5px] -right-[2.5px] size-1 rounded-full bg-gray-300" />
+  </div>
+);
