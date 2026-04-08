@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import {
   Crosshair,
   Hand,
+  Info,
   MousePointer2,
   Redo2,
   Trash2,
@@ -10,6 +11,8 @@ import {
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
+import { useState } from "react";
+import { ShortcutsDialog } from "../ShortcutsDialog";
 import { ToolMode } from "../../types/annotations";
 
 export interface ToolbarProps {
@@ -44,6 +47,8 @@ export const Toolbar = ({
   showCrosshair,
   onToggleCrosshair,
 }: ToolbarProps) => {
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+
   const modeTools: {
     icon: React.ReactNode;
     title: string;
@@ -131,6 +136,15 @@ export const Toolbar = ({
           {tool.icon}
         </button>
       ))}
+      <button
+        type="button"
+        className={toolButtonClass}
+        title="Keyboard shortcuts"
+        onClick={() => setShortcutsOpen(true)}
+      >
+        <Info />
+      </button>
+      <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
     </div>
   );
 };
