@@ -94,46 +94,52 @@ export const RunPage = () => {
     setActiveConfigId(configId);
   }, []);
 
-  const hasCameras = cameras && cameras.length > 0;
+  const hasCameras = !!cameras && cameras.length > 0;
+  const cameraReady = !camerasLoading && hasCameras;
 
-  if (camerasLoading) {
-    return (
-      <div className="-m-6 flex min-h-0 flex-1 flex-col bg-white">
-        <RunSubheader
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          onDeploy={handleDeploy}
-          onStop={handleStop}
-          isDeploying={isDeploying}
-          canDeploy={false}
-          isDeployed={!!dashboardUrl}
-          configSelector={configSelector}
-        />
-        <SearchingForCamera />
-      </div>
-    );
-  }
+  // Configuration is where you set up the camera, so it's always accessible.
+  // Dashboard contains test-case and evaluation sub-tabs that don't depend on
+  // a live camera (the Custom dashboard sub-tab shows its own "not running"
+  // placeholder when no deployed URL is available). Only Inference truly
+  // requires a connected camera for the live video stream.
+  const renderTabContent = () => {
+    if (activeTab === "configuration") {
+      return projectId ? (
+        <ConfigurationTab projectId={projectId} configId={activeConfigId} />
+      ) : null;
+    }
 
-  if (!hasCameras) {
-    return (
-      <div className="-m-6 flex min-h-0 flex-1 flex-col bg-white">
-        <RunSubheader
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          onDeploy={handleDeploy}
-          onStop={handleStop}
-          isDeploying={isDeploying}
-          canDeploy={false}
-          isDeployed={!!dashboardUrl}
-          configSelector={configSelector}
+    if (activeTab === "dashboard") {
+      return (
+        <DashboardPage
+          dashboardUrl={dashboardUrl}
+          onConfigChange={handleConfigChange}
         />
+      );
+    }
+
+    // inference
+    if (camerasLoading) {
+      return <SearchingForCamera />;
+    }
+
+    if (!hasCameras) {
+      return (
         <NoCameraDetected
           onRefresh={refetchCameras}
           isRefreshing={camerasFetching}
         />
-      </div>
+      );
+    }
+
+    return (
+      <InferenceContent
+        selectedCamera={selectedCamera}
+        selectedStream={selectedStream}
+        onGoToConfiguration={() => setActiveTab("configuration")}
+      />
     );
-  }
+  };
 
   return (
     <div className="-m-6 flex min-h-0 flex-1 flex-col bg-white">
@@ -143,27 +149,12 @@ export const RunPage = () => {
         onDeploy={handleDeploy}
         onStop={handleStop}
         isDeploying={isDeploying}
-        canDeploy={canDeploy}
+        canDeploy={cameraReady && canDeploy}
         isDeployed={!!dashboardUrl}
         configSelector={configSelector}
       />
       <div className="flex min-h-0 flex-1 flex-col overflow-auto">
-        {activeTab === "inference" && (
-          <InferenceContent
-            selectedCamera={selectedCamera}
-            selectedStream={selectedStream}
-            onGoToConfiguration={() => setActiveTab("configuration")}
-          />
-        )}
-        {activeTab === "dashboard" && (
-          <DashboardPage
-            dashboardUrl={dashboardUrl}
-            onConfigChange={handleConfigChange}
-          />
-        )}
-        {activeTab === "configuration" && projectId && (
-          <ConfigurationTab projectId={projectId} configId={activeConfigId} />
-        )}
+        {renderTabContent()}
       </div>
 
       <DeployConfirmDialog

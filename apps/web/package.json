@@ -24,7 +24,6 @@
     "@hookform/resolvers": "^5.2.2",
     "@reduxjs/toolkit": "^2.11.2",
     "@repo/schema": "workspace:*",
-    "@repo/ui": "workspace:*",
     "@tailwindcss/vite": "^4.2.1",
     "@tanstack/react-form": "^1.28.5",
     "@tanstack/react-table": "^8.21.3",
