@@ -1,8 +1,8 @@
-import { Button, DownloadIcon, Stack, Text } from "@repo/ui";
+import { Button } from "@/modules/shadcn/ui/button";
+import { Download } from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
 import { useModelParams } from "../../hooks/useModelParams";
 import { useGetModelLogsQuery, useGetModelQuery } from "../../services";
-import styles from "./ModelLogs.module.scss";
 
 export interface ModelLogsProps {}
 
@@ -23,10 +23,16 @@ export const ModelLogs = ({}: ModelLogsProps) => {
 
   const downloadLogs = useCallback(() => {
     if (!logs || logs.length === 0) return;
-    const metricKeys = [...new Set(logs.flatMap((log) => Object.keys(log.metrics)))];
+    const metricKeys = [
+      ...new Set(logs.flatMap((log) => Object.keys(log.metrics))),
+    ];
     const header = ["epoch", "timestamp", ...metricKeys].join(",");
     const rows = logs.map((log) =>
-      [log.epoch, log.createdAt, ...metricKeys.map((key) => log.metrics[key] ?? "")].join(",")
+      [
+        log.epoch,
+        log.createdAt,
+        ...metricKeys.map((key) => log.metrics[key] ?? ""),
+      ].join(","),
     );
     const csv = [header, ...rows].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -54,53 +60,54 @@ export const ModelLogs = ({}: ModelLogsProps) => {
   }, [logs]);
 
   return (
-    <div className={styles.modelLogs}>
-      <Stack direction="row" justify="space-between" align="center" className={styles.logsHeader}>
-        <Text variant="text-16" weight="700" color="text-primary">
-          Logs
-        </Text>
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="flex flex-shrink-0 flex-row items-center justify-between py-2">
+        <span className="text-base font-bold">Logs</span>
         {logs && logs.length > 0 && (
-          <Button variant="text" size="sm" iconStart={<DownloadIcon width={16} height={16} />} onClick={downloadLogs}>
+          <Button variant="ghost" size="sm" onClick={downloadLogs}>
+            <Download className="size-4" />
             Export
           </Button>
         )}
-      </Stack>
-      <div className={styles.logsContent}>
-        <Stack
-          gap={2}
-          className={styles.modelLogsInner}
+      </div>
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl bg-[#0f0f18] px-4">
+        <div
           ref={scrollRef}
           onScroll={handleScroll}
+          className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto pr-2 [scrollbar-color:rgba(255,255,255,0.15)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb:hover]:bg-white/25 [&::-webkit-scrollbar-thumb]:rounded-[3px] [&::-webkit-scrollbar-thumb]:bg-white/15 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-1.5"
         >
           {logs?.map((log) => (
-            <Text key={log.id} color="text-white-secondary" variant="code-14">
-              <span className={styles.timestamp}>[{log.createdAt}]</span>{" "}
-              <span className={styles.epochLabel}>epoch</span>{" "}
-              <span className={styles.epochValue}>{log.epoch}</span>
-              <span className={styles.separator}>: </span>
-              <span className={styles.brace}>{"{"}</span>
+            <p
+              key={log.id}
+              className="font-mono text-sm text-white/60"
+            >
+              <span className="text-gray-400">[{log.createdAt}]</span>{" "}
+              <span className="text-pear-500">epoch</span>{" "}
+              <span className="text-pear-500">{log.epoch}</span>
+              <span className="text-gray-400">: </span>
+              <span className="text-gray-400">{"{"}</span>
               {Object.entries(log.metrics).map(([key, value], index, entries) => (
                 <span key={key}>
-                  <span className={styles.metricKey}>{key}</span>
-                  <span className={styles.separator}>: </span>
-                  <span className={styles.metricValue}>
+                  <span className="text-blue-200">{key}</span>
+                  <span className="text-gray-400">: </span>
+                  <span className="text-emerald-400">
                     {formatMetricValue(value)}
                   </span>
                   {index < entries.length - 1 ? (
-                    <span className={styles.separator}>, </span>
+                    <span className="text-gray-400">, </span>
                   ) : null}
                 </span>
               ))}
-              <span className={styles.brace}>{"}"}</span>
-            </Text>
+              <span className="text-gray-400">{"}"}</span>
+            </p>
           ))}
           {model?.errorMessage && (
-            <Text color="red-500" variant="code-14">
-              <span className={styles.timestamp}>[{model.updatedAt}]</span> Error:{" "}
+            <p className="font-mono text-sm text-red-500">
+              <span className="text-gray-400">[{model.updatedAt}]</span> Error:{" "}
               {model.errorMessage}
-            </Text>
+            </p>
           )}
-        </Stack>
+        </div>
       </div>
     </div>
   );

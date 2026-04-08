@@ -1,7 +1,5 @@
-import { Container, Stack } from "@repo/ui";
 import { ReactNode } from "react";
 import { ModelList } from "../ModelList/ModelList";
-import styles from "./ModelLayout.module.scss";
 
 export interface ModelLayoutProps {
   children?: ReactNode;
@@ -10,21 +8,15 @@ export interface ModelLayoutProps {
 
 export const ModelLayout = ({ children, className }: ModelLayoutProps) => {
   return (
-    <Stack
-      direction="row"
-      justify="space-between"
-      className={`${styles.modelLayout} ${className}`}
+    <div
+      className={`-m-6 flex flex-row justify-between [height:calc(100vh-3.5rem)] ${className ?? ""}`}
     >
-      <ModelList className={styles.leftPanel} />
-      <div className={styles.rightPanel}>
-        <Container
-          centered={false}
-          size="full"
-          className={styles.rightPanelContainer}
-        >
+      <ModelList className="flex-[25%]" />
+      <div className="flex min-h-0 flex-[75%] flex-col overflow-y-auto">
+        <div className="flex min-h-0 w-full flex-1 flex-col p-6">
           {children}
-        </Container>
+        </div>
       </div>
-    </Stack>
+    </div>
   );
 };

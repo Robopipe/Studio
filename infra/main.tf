@@ -4,7 +4,7 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = "~> 5.0"
+      version = "~> 6.0"
     }
     random = {
       source  = "hashicorp/random"
@@ -12,7 +12,7 @@ terraform {
     }
   }
 
-  backend "local" {}
+  backend "gcs" {}
 }
 
 provider "google" {
@@ -189,7 +189,7 @@ resource "google_cloudbuild_trigger" "api" {
     name  = "Studio"
 
     push {
-      branch = var.environment == "prod" ? "^master$" : "^dev$"
+      branch = var.environment == "prod" ? "^release$" : "^dev$"
     }
   }
 
@@ -223,7 +223,7 @@ resource "google_cloudbuild_trigger" "web" {
     name  = "Studio"
 
     push {
-      branch = var.environment == "prod" ? "^master$" : "^dev$"
+      branch = var.environment == "prod" ? "^release$" : "^dev$"
     }
   }
 
@@ -258,7 +258,7 @@ resource "google_cloudbuild_trigger" "ml" {
     name  = "Studio"
 
     push {
-      branch = var.environment == "prod" ? "^master$" : "^dev$"
+      branch = var.environment == "prod" ? "^release$" : "^dev$"
     }
   }
 

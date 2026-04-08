@@ -1,6 +1,14 @@
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
-import { hyperparamsConfigSchema, Label, ModelOutputTypeEnum, ProjectTypeEnum } from "@repo/schema";
-import { Button, NumberInput, Stack, Text, TextInput } from "@repo/ui";
+import { Button } from "@/modules/shadcn/ui/button";
+import { Input } from "@/modules/shadcn/ui/input";
+import { Label } from "@/modules/shadcn/ui/label";
+import { NumberInput } from "@/modules/shadcn/ui/number-input";
+import {
+  hyperparamsConfigSchema,
+  Label as ProjectLabel,
+  ModelOutputTypeEnum,
+  ProjectTypeEnum,
+} from "@repo/schema";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { useCreateModelMutation, useTrainModelMutation } from "../../services";
@@ -9,12 +17,14 @@ import {
   AppliedAugmentation,
   AugmentationSettings,
 } from "../AugmentationSettings";
-import { PreprocessingSettings } from "../PreprocessingSettings";
-import { DatasetSplit, DatasetSplitSettings } from "../DatasetSplitSettings";
+import {
+  DatasetSplit,
+  DatasetSplitSettings,
+} from "../DatasetSplitSettings";
 import { ModelLayout } from "../ModelLayout/ModelLayout";
 import { ModelTypeSettings } from "../ModelTypeSettings";
+import { PreprocessingSettings } from "../PreprocessingSettings";
 import { SourceImagesSettings } from "../SourceImagesSettings";
-import styles from "./ModelNewPage.module.scss";
 
 export interface ModelNewPageProps {}
 
@@ -29,14 +39,16 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
     ModelOutputTypeEnum.RAW,
     ModelOutputTypeEnum.RVC4,
   ]);
-  const [activeLabels, setActiveLabels] = useState<Label[]>([]);
+  const [activeLabels, setActiveLabels] = useState<ProjectLabel[]>([]);
   const [datasetSplit, setDatasetSplit] = useState<DatasetSplit>({
     train: 70,
     validation: 20,
     test: 10,
   });
   const [augmentations, setAugmentations] = useState<AppliedAugmentation[]>([]);
-  const [preprocessings, setPreprocessings] = useState<AppliedAugmentation[]>([]);
+  const [preprocessings, setPreprocessings] = useState<AppliedAugmentation[]>(
+    [],
+  );
   const [trainingType, setTrainingType] = useState<ProjectTypeEnum>(
     activeProject?.type ?? ProjectTypeEnum.DETECTION,
   );
@@ -50,7 +62,11 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
     if (!customHyperparams.trim()) return {};
     try {
       const parsed = JSON.parse(customHyperparams);
-      if (typeof parsed !== "object" || Array.isArray(parsed) || parsed === null) {
+      if (
+        typeof parsed !== "object" ||
+        Array.isArray(parsed) ||
+        parsed === null
+      ) {
         setHyperparamsError("Must be a JSON object");
         return undefined;
       }
@@ -122,33 +138,32 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
 
   return (
     <ModelLayout>
-      <Stack gap={16} className={styles.modelNewPage}>
-        <Text weight="700">CREATE NEW VERSION</Text>
-        <Text as="p">
+      <div className="flex flex-col gap-4 pb-4">
+        <span className="font-bold">CREATE NEW VERSION</span>
+        <p>
           Prepare your images and data for training by compiling them into a
           dataset. Experiment with different configurations to achieve better
           training results
-        </Text>
-        <Stack direction="row" align="center">
-          <Stack direction="row" align="center">
-            <Text weight="500" as="p" variant="text-14">
+        </p>
+        <div className="flex flex-row items-center gap-4">
+          <div className="flex flex-row items-center gap-4">
+            <Label htmlFor="versionName" className="text-sm font-medium">
               Version name
-            </Text>
-            <TextInput
-              label=""
+            </Label>
+            <Input
+              id="versionName"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className={styles.input}
             />
-          </Stack>
+          </div>
           <NumberInput
             label="Epochs"
             value={epochs}
             min={1}
             onChange={(e) => setEpochs(Number(e.target.value))}
-            style={{ width: "30%" }}
+            className="w-[30%]"
           />
-        </Stack>
+        </div>
         <ModelTypeSettings
           trainingType={trainingType}
           annotationsUsed={annotationsUsed}
@@ -178,11 +193,11 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
           onHyperparamsErrorChange={setHyperparamsError}
         />
 
-        <Stack direction="row" justify="end">
+        <div className="flex flex-row justify-end gap-2">
           <Button onClick={() => saveModel()}>Save</Button>
-          <Button onClick={() => saveModel(true)}>Save & Train</Button>
-        </Stack>
-      </Stack>
+          <Button onClick={() => saveModel(true)}>Save &amp; Train</Button>
+        </div>
+      </div>
     </ModelLayout>
   );
 };

@@ -1,8 +1,6 @@
+import { cn } from "@/lib/utils";
 import { ReactNode } from "react";
 import { NavLink } from "react-router";
-import { Stack, Text } from "@repo/ui";
-import clsx from "clsx";
-import styles from "./NavItem.module.scss";
 
 interface NavItemProps {
   label: string;
@@ -13,11 +11,20 @@ interface NavItemProps {
 export const NavItem = ({ label, icon, to }: NavItemProps) => (
   <NavLink
     to={to}
-    className={({ isActive }) => clsx(styles.navItem, isActive && styles.active)}
+    className={({ isActive }) =>
+      cn(
+        "block cursor-pointer rounded-lg px-3 py-1.5 text-gray-400 transition-all hover:bg-white/5 hover:text-white [&_svg]:size-5",
+        isActive && "bg-emerald-500/10 text-emerald-400"
+      )
+    }
   >
-    <Stack direction="row" align="center" gap={8}>
-      {icon && <span className={styles.navIcon}>{icon}</span>}
-      <Text variant="text-14" weight="500">{label}</Text>
-    </Stack>
+    <div className="flex flex-row items-center gap-2">
+      {icon && (
+        <span className="flex items-center justify-center text-inherit">
+          {icon}
+        </span>
+      )}
+      <span className="text-sm font-medium">{label}</span>
+    </div>
   </NavLink>
 );

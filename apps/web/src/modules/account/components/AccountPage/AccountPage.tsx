@@ -1,49 +1,64 @@
 import { useAuth } from "@/core/auth/hooks";
 import { useUpdateProfileMutation } from "@/core/auth/services";
-import { Button, Container, Heading, Stack, TextInput } from "@repo/ui";
+import { Button } from "@/modules/shadcn/ui/button";
+import { Input } from "@/modules/shadcn/ui/input";
+import { Label } from "@/modules/shadcn/ui/label";
 import { useState } from "react";
 import { toast } from "sonner";
-import styles from "./AccountPage.module.scss";
 
 export interface AccountPageProps {}
 
 export const AccountPage = ({}: AccountPageProps) => {
   const { user } = useAuth();
-  const [cameraApiUrl, setCameraApiUrl] = useState(() => user?.cameraApiUrl || '');
-  const [updateProfile, {isLoading}] = useUpdateProfileMutation();
+  const [cameraApiUrl, setCameraApiUrl] = useState(
+    () => user?.cameraApiUrl || ""
+  );
+  const [updateProfile, { isLoading }] = useUpdateProfileMutation();
 
-   const handleSave = async () => {
+  const handleSave = async () => {
     if (user) {
       try {
-        await updateProfile({cameraApiUrl, fullName: user.fullName}).unwrap();
+        await updateProfile({
+          cameraApiUrl,
+          fullName: user.fullName,
+        }).unwrap();
         toast.success("Settings saved");
       } catch {
         toast.error("Failed to save settings");
       }
     }
-  }
+  };
 
   return (
-    <Container size="sm">
-      <Stack>
-        <Heading variant="h5" weight="600">
-          Account Info
-        </Heading>
-        <Stack direction="row" className={styles.inputRow}>
-          <TextInput label="E-mail" value={user?.email} disabled />
-          <TextInput label="Full Name" value={user?.fullName} disabled />
-        </Stack>
-      </Stack>
-      <div className={styles.divider} />
-      <Stack>
-        <Heading variant="h5" weight="600">
-          Robopipe Integration
-        </Heading>
-        <TextInput label="Robopipe API" value={cameraApiUrl} onChange={(e) => setCameraApiUrl(e.target.value)} />
-        <Button onClick={handleSave} disabled={isLoading}>
+    <div className="mx-auto w-full max-w-[640px] p-6">
+      <div className="flex flex-col gap-4">
+        <h5 className="text-xl font-semibold">Account Info</h5>
+        <div className="flex flex-row gap-4 [&>*]:flex-1">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="email">E-mail</Label>
+            <Input id="email" value={user?.email ?? ""} disabled />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="fullName">Full Name</Label>
+            <Input id="fullName" value={user?.fullName ?? ""} disabled />
+          </div>
+        </div>
+      </div>
+      <div className="my-4 h-px bg-black/10" />
+      <div className="flex flex-col gap-4">
+        <h5 className="text-xl font-semibold">Robopipe Integration</h5>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="cameraApiUrl">Robopipe API</Label>
+          <Input
+            id="cameraApiUrl"
+            value={cameraApiUrl}
+            onChange={(e) => setCameraApiUrl(e.target.value)}
+          />
+        </div>
+        <Button onClick={handleSave} disabled={isLoading} className="w-fit">
           {isLoading ? "Saving..." : "Save"}
         </Button>
-      </Stack>
-    </Container>
+      </div>
+    </div>
   );
 };

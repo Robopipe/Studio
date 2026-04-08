@@ -7,9 +7,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/modules/shadcn/ui/popover";
-import { Text } from "@repo/ui";
 import { SlidersHorizontal } from "lucide-react";
-import styles from "./DeployConfigSelector.module.scss";
 
 export interface ConfigSelection {
   configId: number;
@@ -60,15 +58,16 @@ export const DeployConfigSelector = ({
           </Button>
         }
       />
-      <PopoverContent align="end" className={styles.content}>
-        <Text variant="text-14" weight="600">
-          Configurations to deploy
-        </Text>
-        <Text variant="text-12" className={styles.description}>
+      <PopoverContent
+        align="end"
+        className="flex max-h-[400px] w-[320px] flex-col gap-3"
+      >
+        <span className="text-sm">Configurations to deploy</span>
+        <span className="text-xs text-gray-500">
           The active configuration is always included. Select additional
           configurations to deploy alongside it.
-        </Text>
-        <div className={styles.list}>
+        </span>
+        <div className="flex flex-col gap-3 overflow-y-auto">
           {projects.map((project) => (
             <ProjectConfigGroup
               key={project.id}
@@ -109,18 +108,23 @@ const ProjectConfigGroup = ({
   const isActive = projectId === activeProjectId;
 
   return (
-    <div className={styles.group}>
-      <Text variant="text-12" weight="600" className={styles.groupTitle}>
+    <div className="flex flex-col gap-1.5">
+      <span className="flex items-center gap-1.5 text-xs text-gray-600">
         {projectName}
         {isActive && (
-          <span className={styles.activeTag}>current</span>
+          <span className="rounded bg-primary/10 px-1.5 text-[10px] font-medium leading-[18px] text-primary">
+            current
+          </span>
         )}
-      </Text>
+      </span>
       {deployableConfigs.map((config) => {
         const locked = isActiveConfig(config.id);
         const checked = locked || isSelected(config.id);
         return (
-          <label key={config.id} className={styles.item}>
+          <label
+            key={config.id}
+            className="flex cursor-pointer items-center gap-2 rounded py-0.5 pl-1 hover:bg-black/5"
+          >
             <Checkbox
               checked={checked}
               disabled={locked}
@@ -128,7 +132,7 @@ const ProjectConfigGroup = ({
                 onToggle(config.id, projectId, val as boolean)
               }
             />
-            <Text variant="text-12">{config.name}</Text>
+            <span className="text-xs">{config.name}</span>
           </label>
         );
       })}

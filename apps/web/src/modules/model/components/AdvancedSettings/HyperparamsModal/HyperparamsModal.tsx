@@ -1,8 +1,14 @@
+import { Button } from "@/modules/shadcn/ui/button";
 import { hyperparamsConfigSchema } from "@repo/schema";
-import { Button, CloseIcon, Text } from "@repo/ui";
+import { X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { HYPERPARAMS_PRESETS } from "../presets";
-import styles from "./HyperparamsModal.module.scss";
+import {
+  RESERVED_HYPERPARAMS_PATHS,
+  createReservedKeysLinter,
+  stripReservedKeys,
+} from "./reservedKeys";
 import { useCodeMirror } from "./useCodeMirror";
 import { createZodLinter } from "./zodLinter";
 
@@ -46,9 +52,14 @@ export const HyperparamsModal = ({
   const [editorValue, setEditorValue] = useState(value.trim() || "{\n  \n}");
   const [errors, setErrors] = useState<string[]>([]);
   const [selectedPreset, setSelectedPreset] = useState("");
+  const [showReservedPaths, setShowReservedPaths] = useState(false);
 
   const zodLinterExtension = useMemo(
     () => createZodLinter(hyperparamsConfigSchema),
+    [],
+  );
+  const reservedKeysLinterExtension = useMemo(
+    () => createReservedKeysLinter(),
     [],
   );
 
@@ -57,10 +68,9 @@ export const HyperparamsModal = ({
     onChange: (val) => {
       setEditorValue(val);
     },
-    extensions: [zodLinterExtension],
+    extensions: [zodLinterExtension, reservedKeysLinterExtension],
   });
 
-  // Debounced validation for the error list below the editor
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => {
     clearTimeout(debounceRef.current);
@@ -121,7 +131,20 @@ export const HyperparamsModal = ({
     }
 
     const parsed = JSON.parse(trimmed);
-    const formatted = JSON.stringify(parsed, null, 2);
+    const { cleaned, removed } = stripReservedKeys(parsed);
+
+    if (removed.length > 0) {
+      const labels = removed.map(
+        (path) => `${path}: ${RESERVED_HYPERPARAMS_PATHS[path]}`,
+      );
+      toast.warning("Some settings were ignored", {
+        description: labels.join("\n"),
+        duration: 8000,
+      });
+    }
+
+    const isEmpty = Object.keys(cleaned).length === 0;
+    const formatted = isEmpty ? "" : JSON.stringify(cleaned, null, 2);
     onApply(formatted);
   };
 
@@ -131,24 +154,26 @@ export const HyperparamsModal = ({
 
   return (
     <>
-      <div className={styles.dialogBackdrop} onClick={onClose} />
-      <div className={styles.dialogPopup}>
-        <div className={styles.dialogHeader}>
-          <Text weight="600" variant="text-16">
+      <div className="fixed inset-0 z-[100] bg-black/50" onClick={onClose} />
+      <div className="fixed left-1/2 top-1/2 z-[101] flex max-h-[85vh] w-[700px] max-w-[90vw] -translate-x-1/2 -translate-y-1/2 flex-col rounded-xl bg-white shadow-[0_24px_48px_rgba(0,0,0,0.15)]">
+        <div className="flex items-center justify-between border-b border-black/[0.08] px-6 py-4">
+          <span className="text-base font-semibold">
             Custom Training Hyperparameters
-          </Text>
-          <button className={styles.dialogClose} onClick={onClose}>
-            <CloseIcon />
+          </span>
+          <button
+            type="button"
+            className="flex cursor-pointer items-center border-none bg-none p-1 text-muted-foreground hover:text-foreground"
+            onClick={onClose}
+          >
+            <X className="size-4" />
           </button>
         </div>
 
-        <div className={styles.dialogBody}>
-          <div className={styles.presetRow}>
-            <Text variant="text-14" weight="500">
-              Preset:
-            </Text>
+        <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-6">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium">Preset:</span>
             <select
-              className={styles.presetSelect}
+              className="min-w-[180px] cursor-pointer rounded-md border border-black/20 bg-white px-3 py-1.5 text-sm focus:border-emerald-600 focus:outline-none"
               value={selectedPreset}
               onChange={(e) => handlePresetChange(e.target.value)}
             >
@@ -160,42 +185,72 @@ export const HyperparamsModal = ({
               ))}
             </select>
             {selectedPresetDef && (
-              <span className={styles.presetDescription}>
+              <span className="text-xs italic text-muted-foreground">
                 {selectedPresetDef.description}
               </span>
             )}
           </div>
 
-          <div ref={containerRef} className={styles.editorContainer} />
+          <div
+            ref={containerRef}
+            className="overflow-hidden rounded-md border border-black/20 [&_.cm-editor]:h-[400px] [&_.cm-editor]:max-h-[50vh] [&_.cm-scroller]:overflow-auto"
+          />
 
           {errors.length > 0 && (
-            <ul className={styles.errorList}>
+            <ul className="m-0 list-disc pl-4 text-xs text-red-500 [&_li]:mb-1">
               {errors.map((err, i) => (
                 <li key={i}>{err}</li>
               ))}
             </ul>
           )}
 
-          <Text variant="text-12" color="text-secondary" className={styles.infoText}>
+          <span className="text-xs text-muted-foreground [&_code]:rounded-[3px] [&_code]:bg-black/[0.06] [&_code]:px-1 [&_code]:py-px [&_code]:font-mono [&_code]:text-emerald-700">
             Override training config with a JSON object. Supported top-level
-            keys: <code>model</code>, <code>loader</code>, <code>trainer</code>,{" "}
-            <code>tracker</code>.{" "}
+            keys: <code>model</code>, <code>loader</code>,{" "}
+            <code>trainer</code>, <code>tracker</code>. Some paths are reserved
+            and will be ignored.{" "}
+            <button
+              type="button"
+              className="cursor-pointer whitespace-nowrap border-none bg-none p-0 text-emerald-600 hover:underline"
+              onClick={() => setShowReservedPaths((prev) => !prev)}
+            >
+              {showReservedPaths
+                ? "Hide reserved paths"
+                : "View reserved paths"}
+            </button>{" "}
+            ·{" "}
             <a
               href="https://github.com/luxonis/luxonis-train/blob/main/configs/README.md"
               target="_blank"
               rel="noopener noreferrer"
-              className={styles.docsLink}
+              className="whitespace-nowrap text-emerald-600 hover:underline"
             >
               View full config reference →
             </a>
-          </Text>
+          </span>
+
+          {showReservedPaths && (
+            <div className="flex max-h-[200px] flex-col gap-2 overflow-y-auto rounded-md border border-black/[0.08] bg-black/[0.03] p-3">
+              <span className="text-xs font-semibold">Reserved paths</span>
+              <ul className="m-0 flex list-none flex-col gap-1 p-0 [&_code]:rounded-[3px] [&_code]:bg-black/[0.06] [&_code]:px-1 [&_code]:py-px [&_code]:font-mono [&_code]:text-[11px] [&_code]:text-emerald-700 [&_li]:text-[11px] [&_li]:leading-snug [&_li]:text-muted-foreground">
+                {Object.entries(RESERVED_HYPERPARAMS_PATHS).map(
+                  ([path, reason]) => (
+                    <li key={path}>
+                      <code>{path}</code>
+                      <span> — {reason}</span>
+                    </li>
+                  ),
+                )}
+              </ul>
+            </div>
+          )}
         </div>
 
-        <div className={styles.dialogFooter}>
-          <Button variant="outlined" onClick={handleFormat}>
+        <div className="flex justify-end gap-2 border-t border-black/[0.08] px-6 py-4">
+          <Button variant="outline" onClick={handleFormat}>
             Format JSON
           </Button>
-          <Button variant="outlined" onClick={onClose}>
+          <Button variant="outline" onClick={onClose}>
             Go Back
           </Button>
           <Button onClick={handleApply}>Apply</Button>

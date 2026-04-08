@@ -1,9 +1,7 @@
 import { useGetTasksQuery } from "@/modules/capture/services/captureApi";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
-import { RangeSlider, Stack, Text } from "@repo/ui";
-import { CSSProperties } from "react";
+import { Slider } from "@/modules/shadcn/ui/slider";
 import { SettingsCard } from "../SettingsCard";
-import styles from "./DatasetSplitSettings.module.scss";
 
 export interface DatasetSplit {
   train: number;
@@ -21,27 +19,30 @@ export const DatasetSplitSettings = ({
 }: DatasetSplitSettingsProps) => {
   const { train, validation, test } = split;
   const [activeProject] = useActiveProject();
-  const { data: tasks } = useGetTasksQuery({ projectId: activeProject?.id!, annotated: "true" });
+  const { data: tasks } = useGetTasksQuery({
+    projectId: activeProject?.id!,
+    annotated: "true",
+  });
   const totalImages = tasks?.total ?? 0;
 
   return (
     <SettingsCard state="complete" stepNumber={2} title="Dataset split">
-      <Stack gap={4} className={styles.splitSettings}>
-        <Stack direction="row">
-          <Text>
+      <div className="flex w-full flex-col gap-1">
+        <div className="flex flex-row gap-4">
+          <span>
             Training set {train}% ({Math.round((train / 100) * totalImages)})
-          </Text>
-          <Text>
+          </span>
+          <span>
             Validation set {validation}% (
             {Math.round((validation / 100) * totalImages)})
-          </Text>
-          <Text>
+          </span>
+          <span>
             Testing set {test}% ({Math.round((test / 100) * totalImages)})
-          </Text>
-        </Stack>
-        <RangeSlider
+          </span>
+        </div>
+        <Slider
           value={[train, train + validation]}
-          className={styles.slider}
+          className="w-full"
           onValueChange={(val) =>
             Array.isArray(val) &&
             onChange({
@@ -50,9 +51,8 @@ export const DatasetSplitSettings = ({
               test: 100 - val[1],
             })
           }
-          style={{ "--bg-split": `${train}%` } as CSSProperties}
         />
-      </Stack>
+      </div>
     </SettingsCard>
   );
 };

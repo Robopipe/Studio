@@ -1,10 +1,7 @@
-import { Stack, Text } from "@repo/ui";
+import { CaptureStillImage } from "../CaptureStillImage";
 import { SelectCamera } from "../SelectCamera";
 import { Orientation, SelectOrientation } from "../SelectOrientation";
 import { SelectStream } from "../SelectStream";
-
-import { CaptureStillImage } from "../CaptureStillImage";
-import styles from "./CaptureSettings.module.scss";
 
 export interface CaptureSettingsProps {
   selectedCamera: string | null;
@@ -24,10 +21,10 @@ export const CaptureSettings = ({
   onSelectOrientation,
 }: CaptureSettingsProps) => {
   return (
-    <Stack className={styles.settings}>
-      <Text variant="text-10" weight="700" className={styles.preTitle}>
+    <div className="flex flex-col gap-4 border-r border-black/10 bg-black/[0.03] p-4 pl-6">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-black">
         Capture Settings
-      </Text>
+      </p>
       <SelectCamera value={selectedCamera} onSelect={onSelectCamera} />
       <SelectStream
         mxid={selectedCamera}
@@ -46,6 +43,6 @@ export const CaptureSettings = ({
           selectedStream={selectedStream}
         />
       )}
-    </Stack>
+    </div>
   );
 };

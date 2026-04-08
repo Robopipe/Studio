@@ -1,20 +1,21 @@
-import { Button, Stack, Text, TextInput } from "@repo/ui";
-import clsx from "clsx";
+import { useGetProjectQuery } from "@/modules/project/services/projectApi";
+import { Button } from "@/modules/shadcn/ui/button";
+import { Input } from "@/modules/shadcn/ui/input";
+import { Label } from "@/modules/shadcn/ui/label";
+import { cn } from "@/lib/utils";
+import { DashboardConfiguration } from "@repo/schema";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router";
-import { DashboardConfiguration } from "@repo/schema";
-import { useGetProjectQuery } from "@/modules/project/services/projectApi";
 import {
-  useGetDashboardConfigsQuery,
   useCreateDashboardConfigMutation,
-  useUpdateDashboardConfigMutation,
   useDeleteDashboardConfigMutation,
+  useGetDashboardConfigsQuery,
+  useUpdateDashboardConfigMutation,
 } from "../../services/dashboardConfigApi";
-import { EvaluationThresholdsPage } from "@/modules/evaluation";
 
-import styles from "./DashboardPage.module.scss";
-import { DashboardRuntimePage } from "../DashboardRuntimePage";
+import { EvaluationThresholdsPage } from "@/modules/evaluation";
 import { TestCasesOverviewPage } from "@/modules/evaluation";
+import { DashboardRuntimePage } from "../DashboardRuntimePage";
 
 type RightPanelTab = "custom" | "evaluation" | "test-cases";
 
@@ -34,7 +35,8 @@ export const DashboardPage = ({
   const [rightTab, setRightTab] = useState<RightPanelTab>("custom");
   const [isCreating, setIsCreating] = useState(false);
   const [newConfigName, setNewConfigName] = useState("");
-  const [editingConfig, setEditingConfig] = useState<DashboardConfiguration | null>(null);
+  const [editingConfig, setEditingConfig] =
+    useState<DashboardConfiguration | null>(null);
   const [editName, setEditName] = useState("");
 
   const { data: project } = useGetProjectQuery({ projectId });
@@ -63,7 +65,10 @@ export const DashboardPage = ({
 
   const handleCreateConfig = async () => {
     if (!newConfigName.trim()) return;
-    const result = await createConfig({ projectId, name: newConfigName.trim() }).unwrap();
+    const result = await createConfig({
+      projectId,
+      name: newConfigName.trim(),
+    }).unwrap();
     setNewConfigName("");
     setIsCreating(false);
     setSelectedConfigId(result.id);
@@ -71,7 +76,11 @@ export const DashboardPage = ({
 
   const handleUpdateConfig = async () => {
     if (!editingConfig || !editName.trim()) return;
-    await updateConfig({ projectId, configId: editingConfig.id, name: editName.trim() }).unwrap();
+    await updateConfig({
+      projectId,
+      configId: editingConfig.id,
+      name: editName.trim(),
+    }).unwrap();
     setEditingConfig(null);
     setEditName("");
   };
@@ -89,155 +98,229 @@ export const DashboardPage = ({
   };
 
   return (
-    <Stack className={styles.pageWrapper} gap={0}>
-      <div className={styles.twoPanel}>
+    <div className="flex min-h-0 flex-1 flex-col bg-gray-50">
+      <div className="flex h-full min-h-0 flex-1">
         {/* Left panel - configuration list (only when multiple configs enabled) */}
         {showMultipleConfigs && (
-          <div className={styles.leftPanel}>
-            <Stack gap={12}>
-              <Stack direction="row" justify="space-between" align="center">
-                <Text weight="700" variant="text-14">Configurations</Text>
-                <Button size="sm" onClick={() => setIsCreating(true)}>+ New</Button>
-              </Stack>
+          <div className="w-[280px] min-w-[280px] overflow-y-auto border-r border-black/10 bg-gray-50 p-4">
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-row items-center justify-between">
+                <span className="text-sm font-bold">Configurations</span>
+                <Button size="sm" onClick={() => setIsCreating(true)}>
+                  + New
+                </Button>
+              </div>
 
               {isCreating && (
-                <Stack gap={8} className={styles.createForm}>
-                  <TextInput
-                    label="Name"
-                    value={newConfigName}
-                    onChange={(e) => setNewConfigName(e.target.value)}
-                    placeholder="Configuration name"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleCreateConfig();
-                      if (e.key === "Escape") { setIsCreating(false); setNewConfigName(""); }
-                    }}
-                    autoFocus
-                  />
-                  <Stack direction="row" gap={8} justify="end">
-                    <Button size="sm" variant="outlined" onClick={() => { setIsCreating(false); setNewConfigName(""); }}>
+                <div className="flex flex-col gap-2 rounded-md border border-black/10 bg-gray-100 p-3">
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="newConfigName">Name</Label>
+                    <Input
+                      id="newConfigName"
+                      value={newConfigName}
+                      onChange={(e) => setNewConfigName(e.target.value)}
+                      placeholder="Configuration name"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleCreateConfig();
+                        if (e.key === "Escape") {
+                          setIsCreating(false);
+                          setNewConfigName("");
+                        }
+                      }}
+                      autoFocus
+                    />
+                  </div>
+                  <div className="flex flex-row justify-end gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setIsCreating(false);
+                        setNewConfigName("");
+                      }}
+                    >
                       Cancel
                     </Button>
-                    <Button size="sm" onClick={handleCreateConfig} disabled={!newConfigName.trim()}>
+                    <Button
+                      size="sm"
+                      onClick={handleCreateConfig}
+                      disabled={!newConfigName.trim()}
+                    >
                       Create
                     </Button>
-                  </Stack>
-                </Stack>
+                  </div>
+                </div>
               )}
 
-              <div className={styles.configList}>
-                {configs.map((config) => (
-                  <div
-                    key={config.id}
-                    className={clsx(
-                      styles.configItem,
-                      selectedConfigId === config.id && styles.selected,
-                    )}
-                    onClick={() => setSelectedConfigId(config.id)}
-                  >
-                    {editingConfig?.id === config.id ? (
-                      <Stack gap={8} onClick={(e) => e.stopPropagation()}>
-                        <TextInput
-                          label="Name"
-                          value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") handleUpdateConfig();
-                            if (e.key === "Escape") { setEditingConfig(null); setEditName(""); }
-                          }}
-                          autoFocus
-                        />
-                        <Stack direction="row" gap={8} justify="end">
-                          <Button size="sm" variant="outlined" onClick={() => { setEditingConfig(null); setEditName(""); }}>
-                            Cancel
-                          </Button>
-                          <Button size="sm" onClick={handleUpdateConfig} disabled={!editName.trim()}>
-                            Save
-                          </Button>
-                        </Stack>
-                      </Stack>
-                    ) : (
-                      <Stack direction="row" justify="space-between" align="center">
-                        <Text variant="text-14" className={styles.configName}>{config.name}</Text>
-                        <Stack direction="row" gap={8} className={styles.configActions}>
-                          <button
-                            className={styles.configAction}
-                            onClick={(e) => { e.stopPropagation(); startEditing(config); }}
+              <div className="flex flex-col gap-0.5">
+                {configs.map((config) => {
+                  const isSelected = selectedConfigId === config.id;
+                  const isEditing = editingConfig?.id === config.id;
+                  return (
+                    <div
+                      key={config.id}
+                      className={cn(
+                        "group cursor-pointer rounded-md px-3 py-2.5 transition-colors hover:bg-gray-100",
+                        isSelected && "border border-emerald-200 bg-emerald-50"
+                      )}
+                      onClick={() => setSelectedConfigId(config.id)}
+                    >
+                      {isEditing ? (
+                        <div
+                          className="flex flex-col gap-2"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="flex flex-col gap-1.5">
+                            <Label htmlFor={`editName-${config.id}`}>
+                              Name
+                            </Label>
+                            <Input
+                              id={`editName-${config.id}`}
+                              value={editName}
+                              onChange={(e) => setEditName(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleUpdateConfig();
+                                if (e.key === "Escape") {
+                                  setEditingConfig(null);
+                                  setEditName("");
+                                }
+                              }}
+                              autoFocus
+                            />
+                          </div>
+                          <div className="flex flex-row justify-end gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setEditingConfig(null);
+                                setEditName("");
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={handleUpdateConfig}
+                              disabled={!editName.trim()}
+                            >
+                              Save
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-row items-center justify-between">
+                          <span className="overflow-hidden text-ellipsis whitespace-nowrap text-sm">
+                            {config.name}
+                          </span>
+                          <div
+                            className={cn(
+                              "flex shrink-0 flex-row gap-2 opacity-0 transition-opacity group-hover:opacity-100",
+                              isSelected && "opacity-100"
+                            )}
                           >
-                            Edit
-                          </button>
-                          <button
-                            className={clsx(styles.configAction, styles.deleteAction)}
-                            onClick={(e) => { e.stopPropagation(); handleDeleteConfig(config.id); }}
-                          >
-                            Delete
-                          </button>
-                        </Stack>
-                      </Stack>
-                    )}
-                  </div>
-                ))}
+                            <button
+                              type="button"
+                              className="cursor-pointer border-none bg-none p-0 text-xs text-emerald-600 hover:underline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                startEditing(config);
+                              }}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              className="cursor-pointer border-none bg-none p-0 text-xs text-red-500 hover:underline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteConfig(config.id);
+                              }}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
                 {configs.length === 0 && !isCreating && (
-                  <Text variant="text-14" className={styles.placeholderText}>
+                  <span className="text-sm text-gray-500">
                     No configurations yet.
-                  </Text>
+                  </span>
                 )}
               </div>
-            </Stack>
+            </div>
           </div>
         )}
 
         {/* Right panel */}
-        <div className={styles.rightPanel}>
+        <div className="flex flex-1 flex-col overflow-y-auto bg-gray-50">
           {activeConfigId ? (
-            <Stack gap={0} className={styles.rightPanelInner}>
+            <div className="flex min-h-0 flex-1 flex-col">
               {/* Right panel tabs */}
-              <div className={styles.rightPanelTabs}>
-                <Stack direction="row" align="center" gap={24}>
-                  <button
-                    className={clsx(styles.tab, rightTab === "custom" && styles.active)}
-                    onClick={() => setRightTab("custom")}
-                  >
-                    <Text variant="text-14" weight="500">Custom dashboard</Text>
-                  </button>
-                  <button
-                    className={clsx(styles.tab, rightTab === "test-cases" && styles.active)}
-                    onClick={() => setRightTab("test-cases")}
-                  >
-                    <Text variant="text-14" weight="500">Test cases</Text>
-                  </button>
-                  <button
-                    className={clsx(styles.tab, rightTab === "evaluation" && styles.active)}
-                    onClick={() => setRightTab("evaluation")}
-                  >
-                    <Text variant="text-14" weight="500">Evaluation</Text>
-                  </button>
-                </Stack>
+              <div className="flex h-12 flex-shrink-0 items-center border-b border-black/10 bg-gray-50 px-6">
+                <div className="flex flex-row items-center gap-6">
+                  {(
+                    [
+                      { key: "custom", label: "Custom dashboard" },
+                      { key: "test-cases", label: "Test cases" },
+                      { key: "evaluation", label: "Evaluation" },
+                    ] as const
+                  ).map((tab) => (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      className={cn(
+                        "relative cursor-pointer border-none bg-none px-0 py-3 text-gray-500 hover:text-gray-700",
+                        rightTab === tab.key &&
+                          "text-primary after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary after:content-['']"
+                      )}
+                      onClick={() => setRightTab(tab.key)}
+                    >
+                      <span className="text-sm font-medium">{tab.label}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Right panel content — key forces remount on config switch to reset local state */}
-              <div className={styles.rightPanelContent} key={activeConfigId}>
+              <div
+                className="flex flex-1 flex-col overflow-y-auto p-4"
+                key={activeConfigId}
+              >
                 {rightTab === "custom" && (
-                  <DashboardRuntimePage configId={activeConfigId} dashboardUrl={dashboardUrl} />
+                  <DashboardRuntimePage
+                    configId={activeConfigId}
+                    dashboardUrl={dashboardUrl}
+                  />
                 )}
                 {rightTab === "evaluation" && (
-                  <EvaluationThresholdsPage projectId={projectId} configId={activeConfigId} />
+                  <EvaluationThresholdsPage
+                    projectId={projectId}
+                    configId={activeConfigId}
+                  />
                 )}
                 {rightTab === "test-cases" && (
-                  <TestCasesOverviewPage projectId={projectId} dashboardConfigurationId={activeConfigId} />
+                  <TestCasesOverviewPage
+                    projectId={projectId}
+                    dashboardConfigurationId={activeConfigId}
+                  />
                 )}
               </div>
-            </Stack>
+            </div>
           ) : (
-            <Stack fullWidth align="center" justify="center" className={styles.placeholder}>
-              <Text variant="text-14" className={styles.placeholderText}>
+            <div className="flex min-h-[300px] w-full flex-1 items-center justify-center">
+              <span className="text-sm text-gray-500">
                 {showMultipleConfigs
                   ? "Select a configuration to view its details."
                   : "No dashboard configuration available."}
-              </Text>
-            </Stack>
+              </span>
+            </div>
           )}
         </div>
       </div>
-    </Stack>
+    </div>
   );
 };

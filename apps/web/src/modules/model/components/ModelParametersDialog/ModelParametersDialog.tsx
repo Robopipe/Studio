@@ -6,7 +6,6 @@ import {
 } from "@/modules/shadcn/ui/dialog";
 import { Separator } from "@/modules/shadcn/ui/separator";
 import { Model } from "@repo/schema";
-import { Text } from "@repo/ui";
 import { useState } from "react";
 import {
   getAugmentationById,
@@ -16,7 +15,6 @@ import {
   getPreprocessingById,
   getPreprocessingSummary,
 } from "../PreprocessingSettings/preprocessingTypes";
-import styles from "./ModelParametersDialog.module.scss";
 
 export interface ModelParametersDialogProps {
   model: Model;
@@ -25,13 +23,9 @@ export interface ModelParametersDialogProps {
 }
 
 const ParamItem = ({ label, value }: { label: string; value: string }) => (
-  <div className={styles.paramItem}>
-    <Text variant="text-12" color="text-primary">
-      {label}
-    </Text>
-    <Text variant="text-14" weight="700">
-      {value}
-    </Text>
+  <div className="flex min-w-0 flex-1 flex-col gap-1">
+    <span className="text-xs">{label}</span>
+    <span className="text-sm font-bold">{value}</span>
   </div>
 );
 
@@ -52,11 +46,11 @@ export const ModelParametersDialog = ({
           <DialogTitle>Model Parameters</DialogTitle>
         </DialogHeader>
 
-        <div className={styles.section}>
-          <Text variant="text-10" weight="700" className={styles.sectionTitle}>
-            Details & model type
-          </Text>
-          <div className={styles.paramsGrid}>
+        <div className="flex flex-col gap-3">
+          <span className="text-[10px] font-bold uppercase tracking-wider">
+            Details &amp; model type
+          </span>
+          <div className="flex flex-wrap gap-3">
             <ParamItem label="Version name" value={model.name} />
             <ParamItem label="Epochs" value={String(model.epochs)} />
             <ParamItem label="Training type" value={model.trainingType} />
@@ -70,24 +64,21 @@ export const ModelParametersDialog = ({
         {model.labels.length > 0 && (
           <>
             <Separator />
-            <div className={styles.section}>
-              <Text
-                variant="text-10"
-                weight="700"
-                className={styles.sectionTitle}
-              >
+            <div className="flex flex-col gap-3">
+              <span className="text-[10px] font-bold uppercase tracking-wider">
                 Labels
-              </Text>
-              <div className={styles.labelsRow}>
+              </span>
+              <div className="flex flex-wrap gap-2">
                 {model.labels.map((label) => (
-                  <div key={label.id} className={styles.labelChip}>
+                  <div
+                    key={label.id}
+                    className="flex items-center gap-0 rounded-lg bg-black/[0.08] p-1"
+                  >
                     <div
-                      className={styles.labelColor}
+                      className="h-6 w-2 shrink-0 rounded"
                       style={{ backgroundColor: label.color }}
                     />
-                    <Text variant="text-12" className={styles.labelName}>
-                      {label.name}
-                    </Text>
+                    <span className="px-2 text-xs">{label.name}</span>
                   </div>
                 ))}
               </div>
@@ -96,38 +87,28 @@ export const ModelParametersDialog = ({
         )}
 
         <Separator />
-        <div className={styles.section}>
-          <Text variant="text-10" weight="700" className={styles.sectionTitle}>
+        <div className="flex flex-col gap-3">
+          <span className="text-[10px] font-bold uppercase tracking-wider">
             Train/Test split
-          </Text>
-          <div className={styles.paramsGrid}>
-            <ParamItem
-              label="Training set"
-              value={`${model.splitTrain}%`}
-            />
+          </span>
+          <div className="flex flex-wrap gap-3">
+            <ParamItem label="Training set" value={`${model.splitTrain}%`} />
             <ParamItem
               label="Validation set"
               value={`${model.splitValidate}%`}
             />
-            <ParamItem
-              label="Testing set"
-              value={`${model.splitTest}%`}
-            />
+            <ParamItem label="Testing set" value={`${model.splitTest}%`} />
           </div>
         </div>
 
         {model.preprocessings.length > 0 && (
           <>
             <Separator />
-            <div className={styles.section}>
-              <Text
-                variant="text-10"
-                weight="700"
-                className={styles.sectionTitle}
-              >
+            <div className="flex flex-col gap-3">
+              <span className="text-[10px] font-bold uppercase tracking-wider">
                 Preprocessing
-              </Text>
-              <div className={styles.paramsGrid}>
+              </span>
+              <div className="flex flex-wrap gap-3">
                 {model.preprocessings.map((pp) => {
                   const def = getPreprocessingById(pp.type);
                   const summary = def
@@ -140,11 +121,7 @@ export const ModelParametersDialog = ({
                     (def?.name ?? pp.type) +
                     (pp.keepOriginal ? " (Duplicate)" : "");
                   return (
-                    <ParamItem
-                      key={pp.type}
-                      label={label}
-                      value={summary}
-                    />
+                    <ParamItem key={pp.type} label={label} value={summary} />
                   );
                 })}
               </div>
@@ -155,15 +132,11 @@ export const ModelParametersDialog = ({
         {model.augmentations.length > 0 && (
           <>
             <Separator />
-            <div className={styles.section}>
-              <Text
-                variant="text-10"
-                weight="700"
-                className={styles.sectionTitle}
-              >
+            <div className="flex flex-col gap-3">
+              <span className="text-[10px] font-bold uppercase tracking-wider">
                 Augmentations
-              </Text>
-              <div className={styles.paramsGrid}>
+              </span>
+              <div className="flex flex-wrap gap-3">
                 {model.augmentations.map((aug) => {
                   const def = getAugmentationById(aug.type);
                   const summary = def
@@ -186,11 +159,11 @@ export const ModelParametersDialog = ({
         )}
 
         <Separator />
-        <div className={styles.section}>
-          <Text variant="text-10" weight="700" className={styles.sectionTitle}>
+        <div className="flex flex-col gap-3">
+          <span className="text-[10px] font-bold uppercase tracking-wider">
             Advanced options
-          </Text>
-          <div className={styles.paramsGrid}>
+          </span>
+          <div className="flex flex-wrap gap-3">
             <ParamItem
               label="Output Formats"
               value={model.outputTypes.join(", ")}
@@ -201,20 +174,21 @@ export const ModelParametersDialog = ({
           </div>
           {hasCustomHyperparams && (
             <button
-              className={styles.hyperparamsToggle}
+              type="button"
+              className="self-start cursor-pointer border-none bg-none p-0 text-left font-inherit text-emerald-700 underline"
               onClick={() => setShowHyperparams((prev) => !prev)}
             >
-              <Text variant="text-14" weight="700">
-                {showHyperparams ? "Hide hyperparameters" : "Show hyperparameters"}
-              </Text>
+              <span className="text-sm font-bold">
+                {showHyperparams
+                  ? "Hide hyperparameters"
+                  : "Show hyperparameters"}
+              </span>
             </button>
           )}
           {showHyperparams && hasCustomHyperparams && (
-            <div className={styles.hyperparamsJson}>
-              <pre>
-                <Text variant="code-12">
-                  {JSON.stringify(model.customHyperparams, null, 2)}
-                </Text>
+            <div className="max-h-[300px] overflow-y-auto overflow-x-auto rounded-lg bg-black/[0.04] p-3">
+              <pre className="font-mono text-xs">
+                {JSON.stringify(model.customHyperparams, null, 2)}
               </pre>
             </div>
           )}
