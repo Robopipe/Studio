@@ -18,7 +18,6 @@ export type DeployDashboardResponse = z.infer<
   typeof deployDashboardResponseSchema
 >;
 
-
 export type DeployConfigEntry = {
   dashboard_config: DeployDashboardConfig;
   nn_config: NNConfig;
@@ -72,6 +71,8 @@ export type DeployEvalTestCase = {
 export type DeployDashboardConfig = {
   id: number;
   name: string;
+  projectId: number;
+  projectName: string;
   lineDirection: string;
   linePosition: number;
   lineFlow: string;
