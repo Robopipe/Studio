@@ -32,7 +32,7 @@ export function LimitsSection() {
 
       <form.AppField name="limitItems">
         {(field) => (
-          <div className="flex flex-col gap-3">
+          <div className="-mr-2 flex max-h-[40vh] flex-col gap-3 overflow-y-auto pr-2">
             {field.state.value.map((_, i) => (
               <div key={i} className="flex flex-col gap-3">
                 {i > 0 && (

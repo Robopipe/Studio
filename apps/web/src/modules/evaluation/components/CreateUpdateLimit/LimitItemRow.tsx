@@ -93,7 +93,7 @@ export function LimitItemRow({ index, onDelete }: LimitItemRowProps) {
                           >
                             <SelectTrigger
                               size="sm"
-                              className="h-auto w-auto gap-1 border-0 p-0 text-xs font-medium shadow-none"
+                              className="h-auto w-auto gap-1 border-0 bg-transparent p-0 text-xs font-medium shadow-none focus-visible:border-0 focus-visible:bg-transparent focus-visible:ring-0"
                             >
                               <span className="text-xs text-muted-foreground">Units</span>
                               <SelectValue>{quantifierUnitLabel}</SelectValue>

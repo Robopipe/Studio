@@ -161,8 +161,8 @@ export const HyperparamsModal = ({
 
   return (
     <>
-      <div className="fixed inset-0 z-[100] bg-black/50" onClick={onClose} />
-      <div className="fixed left-1/2 top-1/2 z-[101] flex max-h-[85vh] w-[700px] max-w-[90vw] -translate-x-1/2 -translate-y-1/2 flex-col rounded-xl bg-white shadow-[0_24px_48px_rgba(0,0,0,0.15)]">
+      <div className="fixed inset-0 z-40 bg-black/50" onClick={onClose} />
+      <div className="fixed left-1/2 top-1/2 z-40 flex max-h-[85vh] w-[700px] max-w-[90vw] -translate-x-1/2 -translate-y-1/2 flex-col rounded-xl bg-white shadow-[0_24px_48px_rgba(0,0,0,0.15)]">
         <div className="flex items-center justify-between border-b border-black/[0.08] px-6 py-4">
           <span className="text-base font-semibold">
             Custom Training Hyperparameters
