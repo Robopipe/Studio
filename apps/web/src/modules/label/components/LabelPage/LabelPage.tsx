@@ -8,7 +8,8 @@ import { useSelectedTask } from "../../hooks/useSelectedTask";
 import { useToolMode } from "../../hooks/useToolMode";
 import { useHistory } from "../../hooks/useHistory";
 import { useCanvasState } from "../../hooks/useCanvasState";
-import { Annotation, ToolMode } from "../../types/annotations";
+import { useLabelShortcuts } from "../../hooks/useLabelShortcuts";
+import { Annotation } from "../../types/annotations";
 import { taskDetailToAnnotations, annotationsToUpdatePayload } from "../../utils/mapAnnotations";
 import { AnnotationPanel } from "../AnnotationPanel";
 import { Canvas } from "../Canvas";
@@ -191,115 +192,25 @@ export const LabelPage = () => {
     }
   }, [projectId, selectedTaskId, annotations, updateTask]);
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
-      const target = e.target as HTMLElement | null;
-      if (
-        target &&
-        (target.tagName === "INPUT" ||
-          target.tagName === "TEXTAREA" ||
-          target.isContentEditable)
-      ) {
-        return;
-      }
-      switch (e.key.toLowerCase()) {
-        case "s":
-          if (isDirty && !isSaving) {
-            e.preventDefault();
-            handleSave();
-          }
-          break;
-        case "a":
-          e.preventDefault();
-          setToolMode(ToolMode.SELECT);
-          break;
-        case "r":
-          e.preventDefault();
-          setToolMode(ToolMode.DRAW_BBOX);
-          break;
-        case "p":
-          e.preventDefault();
-          setToolMode(ToolMode.DRAW_POLYGON);
-          break;
-        case "m":
-          e.preventDefault();
-          setToolMode(ToolMode.PAN);
-          break;
-        case "c":
-          e.preventDefault();
-          toggleCrosshair();
-          break;
-        case "arrowdown": {
-          e.preventDefault();
-          if (tasks.length === 0) break;
-          const idx = tasks.findIndex((t) => t.id === selectedTaskId);
-          if (idx < tasks.length - 1) {
-            setSelectedTaskId(tasks[idx + 1].id);
-          } else if (page < totalPages) {
-            setPendingPageSelection("first");
-            setPage(page + 1);
-          }
-          break;
-        }
-        case "arrowup": {
-          e.preventDefault();
-          if (tasks.length === 0) break;
-          const idx = tasks.findIndex((t) => t.id === selectedTaskId);
-          if (idx > 0) {
-            setSelectedTaskId(tasks[idx - 1].id);
-          } else if (page > 1) {
-            setPendingPageSelection("last");
-            setPage(page - 1);
-          }
-          break;
-        }
-        case "arrowright": {
-          if (labels.length === 0) break;
-          e.preventDefault();
-          const idx = labels.findIndex((l) => l.id === activeLabel?.id);
-          const next = labels[(idx + 1 + labels.length) % labels.length];
-          handleSelectLabel(next.id);
-          break;
-        }
-        case "arrowleft": {
-          if (labels.length === 0) break;
-          e.preventDefault();
-          const idx = labels.findIndex((l) => l.id === activeLabel?.id);
-          const prev = labels[(idx - 1 + labels.length) % labels.length];
-          handleSelectLabel(prev.id);
-          break;
-        }
-        default: {
-          // Number shortcuts: 1-9 → labels 0..8, 0 → label 9
-          if (/^[0-9]$/.test(e.key)) {
-            const labelIndex = e.key === "0" ? 9 : Number(e.key) - 1;
-            if (labelIndex < labels.length) {
-              e.preventDefault();
-              handleSelectLabel(labels[labelIndex].id);
-            }
-          }
-        }
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [
-    isDirty,
-    isSaving,
-    handleSave,
-    setToolMode,
-    toggleCrosshair,
+  useLabelShortcuts({
     tasks,
     selectedTaskId,
-    setSelectedTaskId,
     page,
     totalPages,
-    setPage,
     labels,
     activeLabel,
-    handleSelectLabel,
-  ]);
+    isDirty,
+    isSaving,
+    onSave: handleSave,
+    onSetToolMode: setToolMode,
+    onToggleCrosshair: toggleCrosshair,
+    onSelectTask: setSelectedTaskId,
+    onChangePage: (nextPage, anchor) => {
+      setPendingPageSelection(anchor);
+      setPage(nextPage);
+    },
+    onSelectLabel: handleSelectLabel,
+  });
 
   const visibleAnnotations = useMemo(
     () => annotations.filter((a) => !hiddenAnnotationIds.has(a.id)),

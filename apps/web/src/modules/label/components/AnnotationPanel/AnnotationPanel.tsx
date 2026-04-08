@@ -7,7 +7,7 @@ import {
 } from "@/modules/shadcn/ui/tabs";
 import { Label } from "@repo/schema";
 import { Eye, EyeOff, GripVertical, Square, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useDraggableList } from "../../hooks/useDraggableList";
 import { Annotation, HistoryEntry } from "../../types/annotations";
 import { HistoryTab } from "../HistoryTab";
 
@@ -43,9 +43,7 @@ export const AnnotationPanel = ({
     count: annotations.filter((a) => a.labelId === String(label.id)).length,
   }));
 
-  const [draggableIndex, setDraggableIndex] = useState<number | null>(null);
-  const [dragFromIndex, setDragFromIndex] = useState<number | null>(null);
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const { getItemProps } = useDraggableList(onReorderAnnotations);
 
   return (
     <Tabs
@@ -99,65 +97,25 @@ export const AnnotationPanel = ({
             {annotations.map((annotation, index) => {
               const isSelected = annotation.id === selectedAnnotationId;
               const isHidden = hiddenAnnotationIds.has(annotation.id);
-              const isDragging = dragFromIndex === index;
-              const showDropAbove =
-                dragOverIndex === index &&
-                dragFromIndex !== null &&
-                dragFromIndex > index;
-              const showDropBelow =
-                dragOverIndex === index &&
-                dragFromIndex !== null &&
-                dragFromIndex < index;
+              const dnd = getItemProps(index);
               return (
                 <div
                   key={annotation.id}
-                  draggable={draggableIndex === index}
-                  onDragStart={(e) => {
-                    setDragFromIndex(index);
-                    e.dataTransfer.effectAllowed = "move";
-                    e.dataTransfer.setData("text/plain", String(index));
-                  }}
-                  onDragEnter={() => {
-                    if (dragFromIndex !== null) setDragOverIndex(index);
-                  }}
-                  onDragOver={(e) => {
-                    if (dragFromIndex === null) return;
-                    e.preventDefault();
-                    e.dataTransfer.dropEffect = "move";
-                  }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    if (dragFromIndex !== null && dragFromIndex !== index) {
-                      onReorderAnnotations(dragFromIndex, index);
-                    }
-                    setDragFromIndex(null);
-                    setDragOverIndex(null);
-                    setDraggableIndex(null);
-                  }}
-                  onDragEnd={() => {
-                    setDragFromIndex(null);
-                    setDragOverIndex(null);
-                    setDraggableIndex(null);
-                  }}
+                  {...dnd.containerProps}
                   onClick={() => onSelectAnnotation(annotation.id)}
                   className={cn(
                     "group relative flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-black/5",
                     isSelected && "bg-primary/10",
-                    isDragging && "opacity-40",
+                    dnd.isDragging && "opacity-40",
                     isHidden && "opacity-50 grayscale",
-                    showDropAbove && "before:absolute before:inset-x-1 before:-top-px before:h-0.5 before:rounded-full before:bg-primary",
-                    showDropBelow && "after:absolute after:inset-x-1 after:-bottom-px after:h-0.5 after:rounded-full after:bg-primary"
+                    dnd.showDropAbove && "before:absolute before:inset-x-1 before:-top-px before:h-0.5 before:rounded-full before:bg-primary",
+                    dnd.showDropBelow && "after:absolute after:inset-x-1 after:-bottom-px after:h-0.5 after:rounded-full after:bg-primary"
                   )}
                 >
                   <button
                     type="button"
                     aria-label="Drag to reorder"
-                    onMouseDown={(e) => {
-                      e.stopPropagation();
-                      setDraggableIndex(index);
-                    }}
-                    onMouseUp={() => setDraggableIndex(null)}
-                    onClick={(e) => e.stopPropagation()}
+                    {...dnd.handleProps}
                     className="flex shrink-0 cursor-grab items-center justify-center rounded text-muted-foreground/60 opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100 active:cursor-grabbing [&_svg]:size-3.5"
                   >
                     <GripVertical />

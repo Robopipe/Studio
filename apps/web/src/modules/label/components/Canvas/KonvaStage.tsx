@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
 import { Image as KonvaImage, Layer, Line, Stage } from "react-konva";
 import Konva from "konva";
 import { Annotation, ToolMode } from "../../types/annotations";
@@ -60,8 +60,12 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
   showCrosshair,
 }, ref) => {
   const stageRef = useRef<Konva.Stage>(null);
+  // Mirror `position` into a ref so the middle-mouse-pan handler can read the
+  // latest value without re-binding its window listeners.
   const positionRef = useRef(position);
-  positionRef.current = position;
+  useLayoutEffect(() => {
+    positionRef.current = position;
+  }, [position]);
   const [drawingBBox, setDrawingBBox] = useState<{
     startX: number;
     startY: number;
@@ -271,7 +275,9 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
     }
   };
 
-  const handleDblClick = (e: Konva.KonvaEventObject<MouseEvent>) => {
+  const handleDblClick = (
+    e: Konva.KonvaEventObject<MouseEvent | TouchEvent>,
+  ) => {
     if (toolMode !== ToolMode.SELECT) return;
     const stage = e.target.getStage();
     if (!stage) return;
