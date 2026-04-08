@@ -31,21 +31,22 @@ export const useCanvasState = () => {
     }));
   }, []);
 
-  const zoomAtPoint = useCallback((pointer: { x: number; y: number }, direction: number) => {
-    setState((prev) => {
-      const newScale = clampScale(
-        direction > 0 ? prev.scale * ZOOM_FACTOR : prev.scale / ZOOM_FACTOR,
-      );
-      const ratio = newScale / prev.scale;
-      return {
-        scale: newScale,
-        position: {
-          x: pointer.x - (pointer.x - prev.position.x) * ratio,
-          y: pointer.y - (pointer.y - prev.position.y) * ratio,
-        },
-      };
-    });
-  }, []);
+  const zoomAtPoint = useCallback(
+    (pointer: { x: number; y: number }, factor: number) => {
+      setState((prev) => {
+        const newScale = clampScale(prev.scale * factor);
+        const ratio = newScale / prev.scale;
+        return {
+          scale: newScale,
+          position: {
+            x: pointer.x - (pointer.x - prev.position.x) * ratio,
+            y: pointer.y - (pointer.y - prev.position.y) * ratio,
+          },
+        };
+      });
+    },
+    [],
+  );
 
   const setPosition = useCallback((pos: { x: number; y: number }) => {
     setState((prev) => ({ ...prev, position: pos }));

@@ -8,7 +8,7 @@ import { useSelectedTask } from "../../hooks/useSelectedTask";
 import { useToolMode } from "../../hooks/useToolMode";
 import { useHistory } from "../../hooks/useHistory";
 import { useCanvasState } from "../../hooks/useCanvasState";
-import { Annotation } from "../../types/annotations";
+import { Annotation, ToolMode } from "../../types/annotations";
 import { taskDetailToAnnotations, annotationsToUpdatePayload } from "../../utils/mapAnnotations";
 import { AnnotationPanel } from "../AnnotationPanel";
 import { Canvas } from "../Canvas";
@@ -37,6 +37,19 @@ export const LabelPage = () => {
   );
 
   const { selectedTaskId, setSelectedTaskId, selectedTask } = useSelectedTask(tasks);
+  const [pendingPageSelection, setPendingPageSelection] = useState<
+    "first" | "last" | null
+  >(null);
+
+  useEffect(() => {
+    if (!pendingPageSelection || tasks.length === 0) return;
+    setSelectedTaskId(
+      pendingPageSelection === "first"
+        ? tasks[0].id
+        : tasks[tasks.length - 1].id,
+    );
+    setPendingPageSelection(null);
+  }, [tasks, pendingPageSelection, setSelectedTaskId]);
 
   const { data: taskDetail } = useGetTaskQuery(
     { projectId: projectId!, taskId: selectedTaskId! },
@@ -46,9 +59,31 @@ export const LabelPage = () => {
   const [updateTask] = useUpdateTaskMutation();
 
   const { toolMode, setToolMode } = useToolMode();
+  const [showCrosshair, setShowCrosshair] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem("label.crosshair") === "1";
+  });
+  const toggleCrosshair = useCallback(() => {
+    setShowCrosshair((prev) => {
+      const next = !prev;
+      window.localStorage.setItem("label.crosshair", next ? "1" : "0");
+      return next;
+    });
+  }, []);
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [isDirty, setIsDirty] = useState(false);
   const [selectedAnnotationId, setSelectedAnnotationId] = useState<string | null>(null);
+  const [hiddenAnnotationIds, setHiddenAnnotationIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const toggleAnnotationVisibility = useCallback((id: string) => {
+    setHiddenAnnotationIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
   const [activeLabel, setActiveLabel] = useState<Label | null>(null);
   const canvasState = useCanvasState();
 
@@ -75,6 +110,7 @@ export const LabelPage = () => {
     if (taskDetail) {
       setAnnotations(taskDetailToAnnotations(taskDetail));
       setIsDirty(false);
+      setHiddenAnnotationIds(new Set());
       history.reset();
 
       if (activeProject?.type === ProjectTypeEnum.CLASSIFICATION) {
@@ -93,6 +129,19 @@ export const LabelPage = () => {
       }
     }
   }, [taskDetail, activeProject, labels]);
+
+  const handleReorderAnnotations = useCallback(
+    (fromIndex: number, toIndex: number) => {
+      if (fromIndex === toIndex) return;
+      setAnnotationsAndDirty((prev) => {
+        const next = [...prev];
+        const [moved] = next.splice(fromIndex, 1);
+        next.splice(toIndex, 0, moved);
+        return next;
+      });
+    },
+    [setAnnotationsAndDirty],
+  );
 
   const handleClear = useCallback(() => {
     if (selectedAnnotationId) {
@@ -142,6 +191,121 @@ export const LabelPage = () => {
     }
   }, [projectId, selectedTaskId, annotations, updateTask]);
 
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      switch (e.key.toLowerCase()) {
+        case "s":
+          if (isDirty && !isSaving) {
+            e.preventDefault();
+            handleSave();
+          }
+          break;
+        case "a":
+          e.preventDefault();
+          setToolMode(ToolMode.SELECT);
+          break;
+        case "r":
+          e.preventDefault();
+          setToolMode(ToolMode.DRAW_BBOX);
+          break;
+        case "p":
+          e.preventDefault();
+          setToolMode(ToolMode.DRAW_POLYGON);
+          break;
+        case "m":
+          e.preventDefault();
+          setToolMode(ToolMode.PAN);
+          break;
+        case "c":
+          e.preventDefault();
+          toggleCrosshair();
+          break;
+        case "arrowdown": {
+          e.preventDefault();
+          if (tasks.length === 0) break;
+          const idx = tasks.findIndex((t) => t.id === selectedTaskId);
+          if (idx < tasks.length - 1) {
+            setSelectedTaskId(tasks[idx + 1].id);
+          } else if (page < totalPages) {
+            setPendingPageSelection("first");
+            setPage(page + 1);
+          }
+          break;
+        }
+        case "arrowup": {
+          e.preventDefault();
+          if (tasks.length === 0) break;
+          const idx = tasks.findIndex((t) => t.id === selectedTaskId);
+          if (idx > 0) {
+            setSelectedTaskId(tasks[idx - 1].id);
+          } else if (page > 1) {
+            setPendingPageSelection("last");
+            setPage(page - 1);
+          }
+          break;
+        }
+        case "arrowright": {
+          if (labels.length === 0) break;
+          e.preventDefault();
+          const idx = labels.findIndex((l) => l.id === activeLabel?.id);
+          const next = labels[(idx + 1 + labels.length) % labels.length];
+          handleSelectLabel(next.id);
+          break;
+        }
+        case "arrowleft": {
+          if (labels.length === 0) break;
+          e.preventDefault();
+          const idx = labels.findIndex((l) => l.id === activeLabel?.id);
+          const prev = labels[(idx - 1 + labels.length) % labels.length];
+          handleSelectLabel(prev.id);
+          break;
+        }
+        default: {
+          // Number shortcuts: 1-9 → labels 0..8, 0 → label 9
+          if (/^[0-9]$/.test(e.key)) {
+            const labelIndex = e.key === "0" ? 9 : Number(e.key) - 1;
+            if (labelIndex < labels.length) {
+              e.preventDefault();
+              handleSelectLabel(labels[labelIndex].id);
+            }
+          }
+        }
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [
+    isDirty,
+    isSaving,
+    handleSave,
+    setToolMode,
+    toggleCrosshair,
+    tasks,
+    selectedTaskId,
+    setSelectedTaskId,
+    page,
+    totalPages,
+    setPage,
+    labels,
+    activeLabel,
+    handleSelectLabel,
+  ]);
+
+  const visibleAnnotations = useMemo(
+    () => annotations.filter((a) => !hiddenAnnotationIds.has(a.id)),
+    [annotations, hiddenAnnotationIds],
+  );
+
   const activeLabelForCanvas = useMemo(
     () =>
       activeLabel
@@ -172,6 +336,9 @@ export const LabelPage = () => {
         selectedAnnotationId={selectedAnnotationId}
         onSelectAnnotation={setSelectedAnnotationId}
         onDeleteAnnotation={history.deleteAnnotation}
+        onReorderAnnotations={handleReorderAnnotations}
+        hiddenAnnotationIds={hiddenAnnotationIds}
+        onToggleAnnotationVisibility={toggleAnnotationVisibility}
         historyEntries={history.entries}
         historyIndex={history.currentIndex}
         onJumpTo={history.jumpTo}
@@ -180,7 +347,7 @@ export const LabelPage = () => {
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <Canvas
             task={selectedTask}
-            annotations={annotations}
+            annotations={visibleAnnotations}
             selectedAnnotationId={selectedAnnotationId}
             toolMode={toolMode}
             activeLabel={activeLabelForCanvas}
@@ -189,6 +356,7 @@ export const LabelPage = () => {
             isDirty={isDirty}
             isSaving={isSaving}
             onSave={handleSave}
+            showCrosshair={showCrosshair}
             onSelect={setSelectedAnnotationId}
             onAddAnnotation={history.addAnnotation}
             onUpdateAnnotation={history.updateAnnotation}
@@ -210,6 +378,8 @@ export const LabelPage = () => {
             canUndo={history.canUndo}
             canRedo={history.canRedo}
             hasSelection={selectedAnnotationId !== null}
+            showCrosshair={showCrosshair}
+            onToggleCrosshair={toggleCrosshair}
           />
         </div>
         <ClassSelect

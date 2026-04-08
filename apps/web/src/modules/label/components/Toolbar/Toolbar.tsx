@@ -1,6 +1,7 @@
 import { PolygonIcon, RectBboxIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import {
+  Crosshair,
   Hand,
   MousePointer2,
   Redo2,
@@ -22,6 +23,8 @@ export interface ToolbarProps {
   canUndo: boolean;
   canRedo: boolean;
   hasSelection: boolean;
+  showCrosshair: boolean;
+  onToggleCrosshair: () => void;
 }
 
 const toolButtonClass =
@@ -38,17 +41,19 @@ export const Toolbar = ({
   canUndo,
   canRedo,
   hasSelection,
+  showCrosshair,
+  onToggleCrosshair,
 }: ToolbarProps) => {
   const modeTools: {
     icon: React.ReactNode;
     title: string;
     mode: ToolMode;
   }[] = [
-    { icon: <MousePointer2 />, title: "Select", mode: ToolMode.SELECT },
-    { icon: <RectBboxIcon />, title: "Draw bbox", mode: ToolMode.DRAW_BBOX },
+    { icon: <MousePointer2 />, title: "Select (A)", mode: ToolMode.SELECT },
+    { icon: <RectBboxIcon />, title: "Draw bbox (R)", mode: ToolMode.DRAW_BBOX },
     {
       icon: <PolygonIcon />,
-      title: "Draw polygon",
+      title: "Draw polygon (P)",
       mode: ToolMode.DRAW_POLYGON,
     },
   ];
@@ -59,16 +64,23 @@ export const Toolbar = ({
     onClick: () => void;
     disabled?: boolean;
     mode?: ToolMode;
+    active?: boolean;
   }[] = [
-    { icon: <Undo2 />, title: "Undo", onClick: onUndo, disabled: !canUndo },
-    { icon: <Redo2 />, title: "Redo", onClick: onRedo, disabled: !canRedo },
+    { icon: <Undo2 />, title: "Undo (Ctrl+Z)", onClick: onUndo, disabled: !canUndo },
+    { icon: <Redo2 />, title: "Redo (Ctrl+Shift+Z)", onClick: onRedo, disabled: !canRedo },
     { icon: <ZoomIn />, title: "Zoom in", onClick: onZoomIn },
     { icon: <ZoomOut />, title: "Zoom out", onClick: onZoomOut },
     {
       icon: <Hand />,
-      title: "Pan",
+      title: "Pan (M)",
       onClick: () => onSetToolMode(ToolMode.PAN),
       mode: ToolMode.PAN,
+    },
+    {
+      icon: <Crosshair />,
+      title: showCrosshair ? "Hide crosshair (C)" : "Show crosshair (C)",
+      onClick: onToggleCrosshair,
+      active: showCrosshair,
     },
   ];
 
@@ -95,7 +107,7 @@ export const Toolbar = ({
           toolButtonClass,
           !hasSelection && "cursor-not-allowed opacity-[0.35]"
         )}
-        title="Clear"
+        title="Delete selected (Del)"
         onClick={onClear}
         disabled={!hasSelection}
       >
@@ -108,8 +120,7 @@ export const Toolbar = ({
           type="button"
           className={cn(
             toolButtonClass,
-            tool.mode &&
-              toolMode === tool.mode &&
+            ((tool.mode && toolMode === tool.mode) || tool.active) &&
               "bg-emerald-500/10 text-black hover:bg-emerald-500/[0.18] hover:text-black",
             tool.disabled && "cursor-not-allowed opacity-[0.35]"
           )}
