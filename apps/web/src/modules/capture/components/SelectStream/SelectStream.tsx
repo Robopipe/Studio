@@ -1,5 +1,11 @@
 import { useListStreamsQuery } from "@/core/cameraApi";
-import { Select } from "@repo/ui/components/Select/Select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/modules/shadcn/ui/select";
 import { useEffect } from "react";
 
 export interface SelectStreamProps {
@@ -21,16 +27,17 @@ export const SelectStream = ({ mxid, value, onSelect }: SelectStreamProps) => {
   }, [streams]);
 
   return (
-    <Select<string>
-      placeholder="Select stream"
-      items={
-        streams?.map((stream) => ({
-          label: stream.name,
-          value: stream.name,
-        })) || []
-      }
-      value={value}
-      onValueChange={(value) => onSelect(value)}
-    />
+    <Select value={value ?? undefined} onValueChange={(val) => onSelect(val)}>
+      <SelectTrigger className="w-full">
+        <SelectValue placeholder="Select stream" />
+      </SelectTrigger>
+      <SelectContent>
+        {streams?.map((stream) => (
+          <SelectItem key={stream.name} value={stream.name}>
+            {stream.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 };

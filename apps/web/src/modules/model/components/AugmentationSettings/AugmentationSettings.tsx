@@ -1,19 +1,13 @@
-import { Stack } from "@repo/ui";
 import { useState } from "react";
 import { SettingsCard } from "../SettingsCard";
 import { AugmentationChip } from "./AugmentationChip";
 import { AugmentationDialog } from "./AugmentationDialog";
-import styles from "./AugmentationSettings.module.scss";
 import { AppliedAugmentation, getAugmentationById } from "./augmentationTypes";
-
-// ─── Props ───────────────────────────────────────────────────────────────────
 
 export interface AugmentationSettingsProps {
   augmentations: AppliedAugmentation[];
   onChange: (augmentations: AppliedAugmentation[]) => void;
 }
-
-// ─── Main Component ──────────────────────────────────────────────────────────
 
 export const AugmentationSettings = ({
   augmentations,
@@ -55,7 +49,7 @@ export const AugmentationSettings = ({
         stepNumber={5}
         title="Augmentation"
       >
-        <Stack direction="row" gap={8} className={styles.augmentationSettings}>
+        <div className="flex w-full flex-row flex-wrap gap-2">
           {augmentations.map((aug) => {
             const def = getAugmentationById(aug.type);
             if (!def) return null;
@@ -69,10 +63,14 @@ export const AugmentationSettings = ({
               />
             );
           })}
-          <button className={styles.addButton} onClick={handleAdd}>
+          <button
+            type="button"
+            className="flex cursor-pointer items-center gap-1 whitespace-nowrap border-none bg-none px-4 py-3 text-sm font-semibold text-emerald-700 hover:underline"
+            onClick={handleAdd}
+          >
             + Add
           </button>
-        </Stack>
+        </div>
       </SettingsCard>
 
       {dialogOpen && (
@@ -90,5 +88,3 @@ export const AugmentationSettings = ({
     </>
   );
 };
-
-// ─── Dialog ──────────────────────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 import { appConfig } from "@/config";
 import { MainLayout } from "@/modules/layout";
-import { Spinner } from "@repo/ui";
+import { Spinner } from "@/modules/shadcn/ui/spinner";
 import { Navigate, Outlet } from "react-router";
 import { useAuth, useAuthInit } from "../../hooks";
 

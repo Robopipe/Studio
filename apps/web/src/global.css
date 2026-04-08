@@ -159,37 +159,6 @@
     --sidebar-accent-foreground: var(--color-emerald-700);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: var(--color-emerald-500);
-
-    /*
-     * Legacy semantic tokens for existing SCSS modules.
-     * These mirror the variables that used to live in
-     * packages/ui/src/themes/light/colors.scss. Each entry will be removed
-     * when the consuming SCSS module is converted to Tailwind in Phase 2.
-     */
-    --color-primary: var(--color-emerald-500);
-    --color-secondary: var(--color-gray-600);
-    --color-success: var(--color-emerald-500);
-    --color-warning: var(--color-pear-500);
-    --color-error: var(--color-red-500);
-    --color-info: var(--color-neon-500);
-
-    --color-text-primary: var(--color-gray-900);
-    --color-text-secondary: var(--color-gray-600);
-    --color-text-tertiary: var(--color-gray-500);
-    --color-text-disabled: var(--color-gray-400);
-    --color-text-white-primary: rgba(255, 255, 255, 0.9);
-    --color-text-white-secondary: rgba(255, 255, 255, 0.6);
-    --color-text-white-disabled: rgba(255, 255, 255, 0.4);
-
-    --color-bg-secondary: var(--color-gray-50);
-    --color-bg-tertiary: var(--color-gray-100);
-    --color-border-primary: var(--color-gray-200);
-
-    --color-background-default: #ffffff;
-    --color-background-paper: #fafafa;
-    --color-background-gradient:
-        linear-gradient(180deg, rgba(67, 196, 125, 0.15) 0%, rgba(0, 0, 0, 0) 40%),
-        #0f0f18;
 }
 
 .dark {

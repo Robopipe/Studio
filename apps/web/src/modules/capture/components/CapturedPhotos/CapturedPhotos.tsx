@@ -1,13 +1,18 @@
-import { DeleteIcon, DownloadIcon, Pagination, Stack, Text } from "@repo/ui";
+import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/modules/shadcn/ui/pagination";
 import { format } from "date-fns";
+import { Download, Trash2 } from "lucide-react";
 import { useState } from "react";
 import {
   useDeleteTaskMutation,
   useGetTasksQuery,
 } from "../../services/captureApi";
-
-import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
-import styles from "./CapturedPhotos.module.scss";
 
 export interface CapturedPhotosProps {}
 
@@ -35,37 +40,78 @@ export const CapturedPhotos = ({}: CapturedPhotosProps) => {
     { skip: !activeProject?.id },
   );
   const tasks = tasksData?.data ?? [];
-  const totalPages = tasksData ? Math.ceil(tasksData.total / tasksData.limit) : 0;
+  const totalPages = tasksData
+    ? Math.ceil(tasksData.total / tasksData.limit)
+    : 0;
 
   return (
-    <Stack fullWidth gap="md">
+    <div className="flex w-full flex-col gap-4">
       {tasks.map((task) => (
-        <div className={styles.photo} key={task.id}>
-          <div className={styles.photoHeader}>
-            <img src={task.thumbnailUrl} alt={`#${task.iid}`} />
-            <div className={styles.photoInfo}>
-              <Text variant="text-16" weight="500">
-                {`#${task.iid}`}
-              </Text>
-              <span className={styles.date}>
+        <div className="flex w-full items-center justify-between" key={task.id}>
+          <div className="flex gap-4">
+            <img
+              src={task.thumbnailUrl}
+              alt={`#${task.iid}`}
+              className="aspect-[4/3] w-16 rounded-lg bg-muted-foreground object-cover"
+            />
+            <div className="flex flex-col gap-0.5">
+              <span className="text-base font-medium">{`#${task.iid}`}</span>
+              <span className="text-muted-foreground">
                 {format(new Date(task.createdAt), "Ppp")}
               </span>
             </div>
           </div>
-          <div className={styles.actions}>
-            <DownloadIcon
+          <div className="flex items-center gap-4 text-muted-foreground [&>svg]:cursor-pointer [&>svg:hover]:text-foreground">
+            <Download
               onClick={() => handleDownload(task.filePath, task.id)}
+              className="size-5"
             />
-            <DeleteIcon
+            <Trash2
               onClick={() => {
                 if (activeProject)
-                  deleteTask({ projectId: activeProject.id, taskId: task.id });
+                  deleteTask({
+                    projectId: activeProject.id,
+                    taskId: task.id,
+                  });
               }}
+              className="size-5"
             />
           </div>
         </div>
       ))}
-      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-    </Stack>
+      <Pagination>
+        <PaginationContent>
+          <PaginationItem>
+            <PaginationPrevious
+              onClick={(e) => {
+                e.preventDefault();
+                if (page > 1) setPage(page - 1);
+              }}
+              className={
+                page <= 1 ? "pointer-events-none opacity-50" : undefined
+              }
+            />
+          </PaginationItem>
+          <PaginationItem>
+            <span className="px-2 text-sm text-muted-foreground">
+              Page {page} of {totalPages}
+            </span>
+          </PaginationItem>
+          <PaginationItem>
+            <PaginationNext
+              onClick={(e) => {
+                e.preventDefault();
+                if (page < totalPages) setPage(page + 1);
+              }}
+              className={
+                page >= totalPages
+                  ? "pointer-events-none opacity-50"
+                  : undefined
+              }
+            />
+          </PaginationItem>
+        </PaginationContent>
+      </Pagination>
+    </div>
   );
 };

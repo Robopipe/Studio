@@ -1,4 +1,4 @@
-import { Button } from "@repo/ui";
+import { Button } from "@/modules/shadcn/ui/button";
 import { useEffect, useState } from "react";
 import { useCountdown } from "usehooks-ts";
 import { useCaptureImageFromCamera } from "../../hooks/useCaptureImageFromCamera";
@@ -43,7 +43,7 @@ export const CaptureStillImageCountdown = ({
   return (
     <Button
       onClick={() => setIsCapturing((x) => !x)}
-      variant={isCapturing ? "outlined" : "filled"}
+      variant={isCapturing ? "outline" : "default"}
       size="lg"
     >
       {isCapturing ? "Stop capturing" : "Start capturing"}

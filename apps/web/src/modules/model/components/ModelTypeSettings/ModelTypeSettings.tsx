@@ -1,6 +1,12 @@
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/modules/shadcn/ui/select";
 import { ProjectTypeEnum } from "@repo/schema";
-import { Select, Stack, Text } from "@repo/ui";
 import { SettingsCard } from "../SettingsCard";
 
 const TYPE_LABELS: Record<ProjectTypeEnum, string> = {
@@ -9,27 +15,24 @@ const TYPE_LABELS: Record<ProjectTypeEnum, string> = {
   [ProjectTypeEnum.SEGMENTATION]: "Segmentation",
 };
 
-const TRAINING_TYPE_ITEMS = Object.values(ProjectTypeEnum).map((v) => ({
-  value: v,
-  label: TYPE_LABELS[v],
-}));
-
 type DetectionAnnotationPreset = "detection" | "segmentation" | "both";
 
-const DETECTION_PRESET_ITEMS: { value: DetectionAnnotationPreset; label: string }[] = [
-  { value: "detection", label: "Detection annotations only" },
-  { value: "segmentation", label: "Segmentation annotations only" },
-  { value: "both", label: "Both detection & segmentation" },
-];
-
-const presetToAnnotations = (preset: DetectionAnnotationPreset): ProjectTypeEnum[] => {
+const presetToAnnotations = (
+  preset: DetectionAnnotationPreset,
+): ProjectTypeEnum[] => {
   if (preset === "detection") return [ProjectTypeEnum.DETECTION];
   if (preset === "segmentation") return [ProjectTypeEnum.SEGMENTATION];
   return [ProjectTypeEnum.DETECTION, ProjectTypeEnum.SEGMENTATION];
 };
 
-const annotationsToPreset = (annotations: ProjectTypeEnum[]): DetectionAnnotationPreset => {
-  if (annotations.includes(ProjectTypeEnum.DETECTION) && annotations.includes(ProjectTypeEnum.SEGMENTATION)) return "both";
+const annotationsToPreset = (
+  annotations: ProjectTypeEnum[],
+): DetectionAnnotationPreset => {
+  if (
+    annotations.includes(ProjectTypeEnum.DETECTION) &&
+    annotations.includes(ProjectTypeEnum.SEGMENTATION)
+  )
+    return "both";
   if (annotations.includes(ProjectTypeEnum.SEGMENTATION)) return "segmentation";
   return "detection";
 };
@@ -51,7 +54,6 @@ export const ModelTypeSettings = ({
 
   const handleTrainingTypeChange = (type: ProjectTypeEnum) => {
     onTrainingTypeChange(type);
-    // Reset annotationsUsed to the natural default for the new type
     if (type === ProjectTypeEnum.DETECTION) {
       onAnnotationsUsedChange([ProjectTypeEnum.DETECTION]);
     } else {
@@ -61,47 +63,69 @@ export const ModelTypeSettings = ({
 
   return (
     <SettingsCard title="model type" state="complete" stepNumber={1}>
-      <Stack direction="row" align="center" gap={16}>
-        <Stack gap={4}>
-          <Text variant="text-12" weight="500">
-            Training type
-          </Text>
+      <div className="flex flex-row items-center gap-4">
+        <div className="flex flex-col gap-1">
+          <span className="text-xs font-medium">Training type</span>
           <Select
             value={trainingType}
-            onValueChange={(v) => handleTrainingTypeChange(v as ProjectTypeEnum)}
-            items={TRAINING_TYPE_ITEMS}
-            placeholder="Select type"
-          />
+            onValueChange={(v) =>
+              handleTrainingTypeChange(v as ProjectTypeEnum)
+            }
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select type" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.values(ProjectTypeEnum).map((v) => (
+                <SelectItem key={v} value={v}>
+                  {TYPE_LABELS[v]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           {project && trainingType !== project.type && (
-            <Text variant="text-12">
+            <span className="text-xs">
               Default for this project: {TYPE_LABELS[project.type]}
-            </Text>
+            </span>
           )}
-        </Stack>
+        </div>
 
         {trainingType === ProjectTypeEnum.DETECTION ? (
-          <Stack gap={4}>
-            <Text variant="text-12" weight="500">
-              Annotations used
-            </Text>
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-medium">Annotations used</span>
             <Select
               value={annotationsToPreset(annotationsUsed)}
               onValueChange={(v) =>
-                onAnnotationsUsedChange(presetToAnnotations(v as DetectionAnnotationPreset))
+                onAnnotationsUsedChange(
+                  presetToAnnotations(v as DetectionAnnotationPreset),
+                )
               }
-              items={DETECTION_PRESET_ITEMS}
-              placeholder="Select annotations"
-            />
-          </Stack>
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select annotations" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="detection">
+                  Detection annotations only
+                </SelectItem>
+                <SelectItem value="segmentation">
+                  Segmentation annotations only
+                </SelectItem>
+                <SelectItem value="both">
+                  Both detection &amp; segmentation
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         ) : (
-          <Stack gap={4}>
-            <Text variant="text-12" weight="500">
-              Annotations used
-            </Text>
-            <Text variant="text-14">{TYPE_LABELS[trainingType]} annotations</Text>
-          </Stack>
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-medium">Annotations used</span>
+            <span className="text-sm">
+              {TYPE_LABELS[trainingType]} annotations
+            </span>
+          </div>
         )}
-      </Stack>
+      </div>
     </SettingsCard>
   );
 };
