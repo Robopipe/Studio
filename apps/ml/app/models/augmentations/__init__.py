@@ -12,4 +12,13 @@ from .mosaic import Mosaic
 from .noise import Noise
 from .rotate90 import Rotate90
 from .saturation import Saturation
-from .shear import Shear
+from .clahe import Clahe
+from .sharpen import Sharpen
+from .motion_blur import MotionBlur
+from .median_blur import MedianBlur
+from .downscale import Downscale
+from .image_compression import ImageCompression
+from .perspective import Perspective
+from .equalize import Equalize
+from .posterize import Posterize
+from .rgb_shift import RgbShift
