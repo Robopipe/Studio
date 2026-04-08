@@ -1,7 +1,5 @@
-import { Heading, Stack } from "@repo/ui";
-import clsx from "clsx";
+import { cn } from "@/lib/utils";
 import { ReactNode, useState } from "react";
-import styles from "./Modal.module.scss";
 
 export interface ModalTab {
   id: string;
@@ -17,38 +15,58 @@ export interface ModalProps {
   onClose: () => void;
 }
 
-export const Modal = ({ title, tabs, buttons, closeButton, onClose }: ModalProps) => {
+export const Modal = ({
+  title,
+  tabs,
+  buttons,
+  closeButton,
+  onClose,
+}: ModalProps) => {
   const [activeTabId, setActiveTabId] = useState(tabs[0]?.id);
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
 
   return (
-    <div className={styles.modalOverlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className={styles.modalContent}>
-        <header className={styles.modalHeader}>
-          <Heading variant="h4" weight="700">
-            {title}
-          </Heading>
+    <div
+      className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/70 p-10"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="flex max-h-[calc(100vh-5rem)] min-h-[45rem] w-full max-w-[1472px] flex-col overflow-hidden rounded-3xl bg-white">
+        <header className="flex items-center justify-between border-b border-gray-400 px-10 py-6">
+          <h4 className="text-2xl font-bold tracking-tight">{title}</h4>
 
-          <Stack direction="row" align="center" gap={24} className={styles.tabWrapper}>
+          <div className="flex flex-row items-center gap-6">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
-                className={clsx(styles.tabItem, activeTabId === tab.id && styles.active)}
+                type="button"
+                className={cn(
+                  "relative cursor-pointer border-none bg-none px-0 py-2 text-lg font-semibold text-gray-500",
+                  activeTabId === tab.id &&
+                    "text-emerald-600 after:absolute after:-bottom-[25px] after:left-0 after:right-0 after:h-0.5 after:bg-emerald-600 after:content-['']"
+                )}
                 onClick={() => setActiveTabId(tab.id)}
               >
                 {tab.label}
               </button>
             ))}
-          </Stack>
+          </div>
 
-          <Stack direction="row" gap={12} align="center">
+          <div className="flex flex-row items-center gap-3">
             {buttons}
-            {closeButton && <button className={styles.closeIconButton} onClick={onClose}>×</button>}
-          </Stack>
+            {closeButton && (
+              <button
+                type="button"
+                className="cursor-pointer border-none bg-none p-1 text-2xl leading-none text-gray-400 hover:text-gray-900"
+                onClick={onClose}
+              >
+                ×
+              </button>
+            )}
+          </div>
         </header>
 
-        <div className={styles.modalBody}>
+        <div className="flex-1 overflow-y-auto px-[200px] py-[60px]">
           {activeTab?.content}
         </div>
       </div>

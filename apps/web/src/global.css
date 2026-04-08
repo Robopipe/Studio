@@ -190,6 +190,51 @@
     --color-background-gradient:
         linear-gradient(180deg, rgba(67, 196, 125, 0.15) 0%, rgba(0, 0, 0, 0) 40%),
         #0f0f18;
+
+    /*
+     * Legacy typography tokens for @repo/ui Heading/Text components.
+     * Mirrors packages/ui/src/themes/common/typography.scss. Each Phase 2
+     * module migration that drops @repo/ui usage allows the corresponding
+     * --typography-* var to be retired. Font families fall back to the
+     * existing Inter variable until the brand fonts (Barlow, Space Grotesk,
+     * Space Mono) are explicitly added — only the size/line-height matter
+     * for the visual fix.
+     */
+    --font-family-heading: "Inter Variable", sans-serif;
+    --font-family-text: "Inter Variable", sans-serif;
+    --font-family-code: "Space Mono", monospace;
+    --font-family-number: "Inter Variable", sans-serif;
+
+    --typography-h1-font-size: 3.5rem;
+    --typography-h1-line-height: 1.25em;
+    --typography-h1-letter-spacing: -0.075em;
+
+    --typography-h2-font-size: 2.75rem;
+    --typography-h2-line-height: 1.25em;
+    --typography-h2-letter-spacing: -0.06em;
+
+    --typography-h3-font-size: 2rem;
+    --typography-h3-line-height: 1.25em;
+    --typography-h3-letter-spacing: -0.02em;
+
+    --typography-h4-font-size: 1.5rem;
+    --typography-h4-line-height: 1.333em;
+    --typography-h4-letter-spacing: -0.015em;
+
+    --typography-h5-font-size: 1.25rem;
+    --typography-h5-line-height: 1.4em;
+    --typography-h5-letter-spacing: 0;
+
+    --typography-text-20-font-size: 1.25rem;
+    --typography-text-20-line-height: 1.6em;
+    --typography-text-16-font-size: 1rem;
+    --typography-text-16-line-height: 1.5em;
+    --typography-text-14-font-size: 0.875rem;
+    --typography-text-14-line-height: 1.4em;
+    --typography-text-12-font-size: 0.75rem;
+    --typography-text-12-line-height: 1.333em;
+    --typography-text-10-font-size: 0.625rem;
+    --typography-text-10-line-height: 1.6em;
 }
 
 .dark {

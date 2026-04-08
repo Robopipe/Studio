@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { Button } from "@/modules/shadcn/ui/button";
+import { Input } from "@/modules/shadcn/ui/input";
+import { Label as ShadcnLabel } from "@/modules/shadcn/ui/label";
 import { Label } from "@repo/schema";
-import { Button, Heading, Stack, Text, TextInput } from "@repo/ui";
+import { useState } from "react";
 import { LabelChip } from "../LabelChip";
-import styles from "../ProjectDetailsForm/ProjectDetailsForm.module.scss";
 
 export type LocalLabel = Pick<Label, "name" | "color">;
 
@@ -17,7 +18,11 @@ export const getRandomHex = () => {
   return `#${hex.padStart(6, "0")}`;
 };
 
-export const LabelingSetup = ({ labels, onAddLabel, onRemoveLabel }: LabelingSetupProps) => {
+export const LabelingSetup = ({
+  labels,
+  onAddLabel,
+  onRemoveLabel,
+}: LabelingSetupProps) => {
   const [currentName, setCurrentName] = useState("");
 
   const handleAdd = () => {
@@ -30,40 +35,44 @@ export const LabelingSetup = ({ labels, onAddLabel, onRemoveLabel }: LabelingSet
   };
 
   return (
-    <div className={styles.formSection}>
-      <Heading variant="h5" weight="600">Labeling Setup</Heading>
-      
-      <Stack direction="row" gap={60} align="start">
-        <Stack gap={24} style={{ flex: 1 }}>
-          <TextInput
-            label="Label Name"
-            boldLabel
-            placeholder="Label name"
-            helperText="Enter a label name"
-            value={currentName}
-            onChange={(e) => setCurrentName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-          />
-          <Button onClick={handleAdd} size="sm">
+    <div className="relative flex flex-col gap-8">
+      <h5 className="text-xl font-semibold">Labeling Setup</h5>
+
+      <div className="flex flex-row items-start gap-[60px]">
+        <div className="flex flex-1 flex-col gap-6">
+          <div className="flex flex-col gap-1.5">
+            <ShadcnLabel htmlFor="labelName" className="font-semibold">
+              Label Name
+            </ShadcnLabel>
+            <Input
+              id="labelName"
+              placeholder="Label name"
+              value={currentName}
+              onChange={(e) => setCurrentName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+            />
+            <p className="text-xs text-muted-foreground">Enter a label name</p>
+          </div>
+          <Button onClick={handleAdd} size="sm" className="w-fit">
             Add Labels
           </Button>
-        </Stack>
+        </div>
 
-        <Stack gap={16} style={{ width: "300px" }}>
-          <Text variant="text-16" weight="700">
+        <div className="flex w-[300px] flex-col gap-4">
+          <span className="text-base font-bold">
             Labels ({labels.length})
-          </Text>
-          <Stack gap={8}>
+          </span>
+          <div className="flex flex-col gap-2">
             {labels.map((label) => (
               <LabelChip
                 key={label.name}
-                label={label as Label} 
+                label={label as Label}
                 onRemove={() => onRemoveLabel(label.name)}
               />
             ))}
-          </Stack>
-        </Stack>
-      </Stack>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
