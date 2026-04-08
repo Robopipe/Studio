@@ -1,30 +1,13 @@
-import { VerticalIcon } from "@repo/ui";
-import { Select } from "@repo/ui/components/Select/Select";
-import { HorizontalIcon } from "@repo/ui/icons/HorizontalIcon";
-import styles from "./SelectOrientation.module.scss";
+import { HorizontalIcon, VerticalIcon } from "@/components/icons";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/modules/shadcn/ui/select";
 
 export type Orientation = "horizontal" | "vertical";
-
-const items = [
-  {
-    value: "horizontal",
-    label: (
-      <span className={styles.selectItem}>
-        <HorizontalIcon />
-        Horizontal
-      </span>
-    ),
-  },
-  {
-    value: "vertical",
-    label: (
-      <span className={styles.selectItem}>
-        <VerticalIcon />
-        Vertical
-      </span>
-    ),
-  },
-];
 
 export interface SelectOrientationProps {
   value?: Orientation | null;
@@ -36,11 +19,27 @@ export const SelectOrientation = ({
   onSelect,
 }: SelectOrientationProps) => {
   return (
-    <Select<string>
-      placeholder="Select orientation"
-      items={items}
-      value={value}
-      onValueChange={(value) => onSelect(value as Orientation)}
-    />
+    <Select
+      value={value ?? undefined}
+      onValueChange={(val) => onSelect(val as Orientation)}
+    >
+      <SelectTrigger className="w-full">
+        <SelectValue placeholder="Select orientation" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="horizontal">
+          <span className="flex items-center gap-2">
+            <HorizontalIcon className="size-4" />
+            Horizontal
+          </span>
+        </SelectItem>
+        <SelectItem value="vertical">
+          <span className="flex items-center gap-2">
+            <VerticalIcon className="size-4" />
+            Vertical
+          </span>
+        </SelectItem>
+      </SelectContent>
+    </Select>
   );
 };

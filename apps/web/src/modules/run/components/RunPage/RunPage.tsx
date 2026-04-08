@@ -16,7 +16,6 @@ import {
   DialogTitle,
 } from "@/modules/shadcn/ui/dialog";
 import { NoCameraDetected, SearchingForCamera } from "@/modules/ui";
-import { Stack, Text } from "@repo/ui";
 import { Settings, TriangleAlert, Video } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import type { ConfigSelection } from "../../hooks/useRunDeploy";
@@ -25,7 +24,6 @@ import { ConfigurationTab } from "../ConfigurationTab";
 import { DeployConfigSelector } from "../DeployConfigSelector/DeployConfigSelector";
 import { LiveInference } from "../LiveInference";
 import { RunSubheader, RunTab } from "../RunSubheader";
-import styles from "./RunPage.module.scss";
 
 export const RunPage = () => {
   const [activeTab, setActiveTab] = useState<RunTab>("configuration");
@@ -100,7 +98,7 @@ export const RunPage = () => {
 
   if (camerasLoading) {
     return (
-      <Stack className={styles.pageWrapper} gap={0}>
+      <div className="-m-6 flex min-h-0 flex-1 flex-col bg-white">
         <RunSubheader
           activeTab={activeTab}
           onTabChange={setActiveTab}
@@ -112,13 +110,13 @@ export const RunPage = () => {
           configSelector={configSelector}
         />
         <SearchingForCamera />
-      </Stack>
+      </div>
     );
   }
 
   if (!hasCameras) {
     return (
-      <Stack className={styles.pageWrapper} gap={0}>
+      <div className="-m-6 flex min-h-0 flex-1 flex-col bg-white">
         <RunSubheader
           activeTab={activeTab}
           onTabChange={setActiveTab}
@@ -133,12 +131,12 @@ export const RunPage = () => {
           onRefresh={refetchCameras}
           isRefreshing={camerasFetching}
         />
-      </Stack>
+      </div>
     );
   }
 
   return (
-    <Stack className={styles.pageWrapper} gap={0}>
+    <div className="-m-6 flex min-h-0 flex-1 flex-col bg-white">
       <RunSubheader
         activeTab={activeTab}
         onTabChange={setActiveTab}
@@ -149,7 +147,7 @@ export const RunPage = () => {
         isDeployed={!!dashboardUrl}
         configSelector={configSelector}
       />
-      <div className={styles.content}>
+      <div className="flex min-h-0 flex-1 flex-col overflow-auto">
         {activeTab === "inference" && (
           <InferenceContent
             selectedCamera={selectedCamera}
@@ -173,7 +171,7 @@ export const RunPage = () => {
         onConfirm={handleConfirmDeploy}
         onCancel={handleCancelDeploy}
       />
-    </Stack>
+    </div>
   );
 };
 
@@ -189,13 +187,13 @@ const DeployConfirmDialog = ({
   <Dialog open={open} onOpenChange={(open) => !open && onCancel()}>
     <DialogContent showCloseButton={false}>
       <DialogHeader>
-        <Stack direction="row" align="center" gap={8}>
+        <div className="flex flex-row items-center gap-2">
           <TriangleAlert className="size-5 text-amber-500" />
           <DialogTitle>Dashboard already running</DialogTitle>
-        </Stack>
+        </div>
         <DialogDescription>
-          There is already a dashboard running. Deploying again will override the
-          current configuration.
+          There is already a dashboard running. Deploying again will override
+          the current configuration.
         </DialogDescription>
       </DialogHeader>
       <DialogFooter>
@@ -219,26 +217,20 @@ const InferenceContent = ({
 }) => {
   if (!selectedCamera || !selectedStream) {
     return (
-      <Stack align="center" justify="center" className={styles.placeholder}>
-        <div className={styles.placeholderIcon}>
+      <div className="flex flex-1 flex-col items-center justify-center p-8">
+        <div className="mb-5 flex h-[72px] w-[72px] items-center justify-center rounded-full bg-black/5 [&_svg]:size-7 [&_svg]:text-black/30">
           <Video />
         </div>
-        <Text
-          variant="text-16"
-          weight="600"
-          className={styles.placeholderTitle}
-        >
-          No live stream available
-        </Text>
-        <Text variant="text-14" className={styles.placeholderSubtitle}>
+        <p className="mb-2 text-base text-black/85">No live stream available</p>
+        <p className="mb-6 max-w-[360px] text-center text-sm text-black/45">
           Set up a camera and sensor in the Configuration tab, then deploy to
           see the live inference stream.
-        </Text>
+        </p>
         <Button variant="outline" size="sm" onClick={onGoToConfiguration}>
           <Settings className="size-4" />
           Go to Configuration
         </Button>
-      </Stack>
+      </div>
     );
   }
 

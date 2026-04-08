@@ -1,8 +1,13 @@
 import { useListCamerasQuery } from "@/core/cameraApi";
-import { CameraIcon } from "@repo/ui";
-import { Select } from "@repo/ui/components/Select/Select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/modules/shadcn/ui/select";
+import { Camera } from "lucide-react";
 import { useEffect } from "react";
-import styles from "./SelectCamera.module.scss";
 
 export interface SelectCameraProps {
   value?: string | null;
@@ -20,21 +25,20 @@ export const SelectCamera = ({ value, onSelect }: SelectCameraProps) => {
   }, [cameras]);
 
   return (
-    <Select<string>
-      placeholder="Select camera"
-      items={
-        cameras?.map((camera) => ({
-          label: (
-            <span className={styles.selectItem}>
-              <CameraIcon />
+    <Select value={value ?? undefined} onValueChange={(val) => onSelect(val)}>
+      <SelectTrigger className="w-full">
+        <SelectValue placeholder="Select camera" />
+      </SelectTrigger>
+      <SelectContent>
+        {cameras?.map((camera) => (
+          <SelectItem key={camera.mxid} value={camera.mxid}>
+            <span className="flex items-center gap-2">
+              <Camera className="size-4" />
               {camera.camera_name}
             </span>
-          ),
-          value: camera.mxid,
-        })) || []
-      }
-      value={value}
-      onValueChange={(value) => onSelect(value)}
-    />
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 };
