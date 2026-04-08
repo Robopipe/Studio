@@ -6,6 +6,7 @@ import { FormEvent, useState } from "react";
 import { Link, Navigate } from "react-router";
 import { useAuth } from "../../hooks";
 import { useForgotPasswordMutation } from "../../services";
+import { FormError } from "../FormError";
 
 export const ForgotPasswordForm = () => {
   const [forgotPassword, { isLoading }] = useForgotPasswordMutation();
@@ -72,14 +73,7 @@ export const ForgotPasswordForm = () => {
           </p>
         </div>
 
-        {error && (
-          <div className="mb-8 overflow-hidden rounded border border-red-200 bg-red-50">
-            <div className="w-fit bg-red-600 px-2 py-0.5 text-[0.65rem] font-extrabold uppercase text-white">
-              ERROR
-            </div>
-            <div className="p-4 text-sm leading-snug text-red-900">{error}</div>
-          </div>
-        )}
+        {error && <FormError message={error} />}
 
         <form onSubmit={handleSubmit}>
           <div className="flex flex-col gap-5">

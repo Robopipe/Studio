@@ -1,5 +1,6 @@
-import { cn } from "@/lib/utils";
 import { Button } from "@/modules/shadcn/ui/button";
+import { TabsList, TabsTrigger } from "@/modules/shadcn/ui/tabs";
+import { Tabs as TabsPrimitive } from "@base-ui/react/tabs";
 import { Play, Square } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -33,27 +34,24 @@ export const RunSubheader = ({
   configSelector,
 }: RunSubheaderProps) => {
   return (
-    <div className="flex h-12 flex-shrink-0 items-center justify-between border-b border-black/10 bg-gray-100 px-6">
-      <div className="flex flex-row items-center gap-6">
-        {TABS.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            className={cn(
-              "relative cursor-pointer border-none bg-none px-0 py-3 text-gray-500 hover:text-gray-700",
-              activeTab === tab.key &&
-                "text-primary after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary after:content-['']"
-            )}
-            onClick={() => onTabChange(tab.key)}
-          >
-            <span className="text-sm font-medium">{tab.label}</span>
-          </button>
-        ))}
-      </div>
+    <div className="flex h-12 flex-shrink-0 items-center justify-between border-b border-border bg-gray-100 pr-6">
+      <TabsPrimitive.Root
+        value={activeTab}
+        onValueChange={(v) => v && onTabChange(v as RunTab)}
+        className="group/tabs flex h-full flex-col justify-end"
+      >
+        <TabsList variant="line" className="h-full border-b-0 px-6">
+          {TABS.map((tab) => (
+            <TabsTrigger key={tab.key} value={tab.key}>
+              {tab.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </TabsPrimitive.Root>
 
       <div className="flex items-center gap-2">
         {configSelector}
-        <div className="h-4 w-px bg-gray-200" />
+        <div className="h-4 w-px bg-border" />
         <Button
           size="sm"
           variant="outline"

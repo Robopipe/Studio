@@ -3,8 +3,6 @@
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/inter";
 
-@custom-variant dark (&:is(.dark *));
-
 /*
  * Brand color scales.
  *
@@ -12,7 +10,7 @@
  * each value as a real CSS variable on :root AND generates the matching
  * utility classes (bg-emerald-500, text-pear-300, border-blue-400, ...).
  *
- * Theme-agnostic — identical in light and dark.
+ * App is light-only — no dark mode tokens are defined.
  */
 @theme {
     --font-sans: 'Inter Variable', sans-serif;
@@ -161,47 +159,11 @@
     --sidebar-ring: var(--color-emerald-500);
 }
 
-.dark {
-    /* Dormant — app is light-only, see web_theme_light_only memory */
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: var(--color-emerald-400);
-    --primary-foreground: oklch(0.145 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: var(--color-emerald-300);
-    --destructive: var(--color-red-400);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: var(--color-emerald-400);
-    --chart-1: var(--color-emerald-400);
-    --chart-2: var(--color-blue-400);
-    --chart-3: var(--color-violet-400);
-    --chart-4: var(--color-pink-400);
-    --chart-5: var(--color-pear-400);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: var(--color-emerald-400);
-    --sidebar-primary-foreground: oklch(0.145 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: var(--color-emerald-300);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: var(--color-emerald-400);
-}
-
 @theme inline {
     /*
-     * Map shadcn semantic CSS variables (which switch between :root and .dark)
-     * to Tailwind utility names. The `inline` modifier inlines the var()
-     * reference into generated utilities so light/dark switching works at
-     * runtime via the underlying CSS variables in :root / .dark.
+     * Map shadcn semantic CSS variables to Tailwind utility names.
+     * The `inline` modifier inlines the var() reference into generated
+     * utilities so all consumers read from the single source in :root.
      */
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);

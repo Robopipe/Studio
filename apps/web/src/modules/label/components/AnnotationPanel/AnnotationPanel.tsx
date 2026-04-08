@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils";
 import {
   Tabs,
   TabsContent,
@@ -5,9 +6,9 @@ import {
   TabsTrigger,
 } from "@/modules/shadcn/ui/tabs";
 import { Label } from "@repo/schema";
+import { Square, Trash2 } from "lucide-react";
 import { Annotation, HistoryEntry } from "../../types/annotations";
 import { HistoryTab } from "../HistoryTab";
-import { LabelsTab } from "../LabelsTab";
 
 export interface AnnotationPanelProps {
   annotations: Annotation[];
@@ -38,46 +39,113 @@ export const AnnotationPanel = ({
   return (
     <Tabs
       defaultValue="labels"
-      className="overflow-y-auto border-r border-black/10 bg-black/[0.03] p-4"
+      className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden border-r border-border bg-black/[0.03]"
     >
-      <TabsList>
+      <TabsList variant="line">
         <TabsTrigger value="labels">Labels</TabsTrigger>
         <TabsTrigger value="info">Info</TabsTrigger>
         <TabsTrigger value="history">History</TabsTrigger>
       </TabsList>
 
-      <TabsContent value="labels">
-        <LabelsTab
-          annotations={annotations}
-          selectedAnnotationId={selectedAnnotationId}
-          onSelectAnnotation={onSelectAnnotation}
-          onDeleteAnnotation={onDeleteAnnotation}
-        />
-      </TabsContent>
-
-      <TabsContent value="info">
-        <div className="py-2">
-          <p className="mb-2 text-[10px] font-bold uppercase tracking-wider">
+      <TabsContent
+        value="labels"
+        className="min-h-0 flex-1 overflow-y-auto"
+      >
+        <section className="flex flex-col gap-2 p-4">
+          <p className="text-[10px] font-bold uppercase tracking-[1px] text-foreground/90">
             Classes
           </p>
           <div className="flex flex-col gap-1">
+            <ClassRow
+              icon={<Square className="size-4 text-muted-foreground" />}
+              name="Any"
+              count={annotations.length}
+            />
             {classCounts.map((cls) => (
-              <div key={cls.id} className="flex items-center gap-2 py-1">
-                <span
-                  className="size-2 shrink-0 rounded-full"
-                  style={{ background: cls.color }}
-                />
-                <span className="flex-1 text-sm">{cls.name}</span>
-                <span className="text-sm font-semibold text-muted-foreground">
-                  {cls.count}
-                </span>
-              </div>
+              <ClassRow
+                key={cls.id}
+                icon={
+                  <span
+                    className="size-3 shrink-0 rounded-[3px] border"
+                    style={{
+                      background: `${cls.color}33`,
+                      borderColor: cls.color,
+                    }}
+                  />
+                }
+                name={cls.name}
+                count={cls.count}
+              />
             ))}
           </div>
-        </div>
+        </section>
+
+        <section className="flex flex-col gap-2 p-4 pt-2">
+          <p className="text-[10px] font-bold uppercase tracking-[1px] text-foreground/90">
+            Regions
+          </p>
+          <div className="flex flex-col">
+            {annotations.map((annotation, index) => {
+              const isSelected = annotation.id === selectedAnnotationId;
+              return (
+                <div
+                  key={annotation.id}
+                  onClick={() => onSelectAnnotation(annotation.id)}
+                  className={cn(
+                    "group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-black/5",
+                    isSelected && "bg-primary/10"
+                  )}
+                >
+                  <span
+                    className="size-3 shrink-0 rounded-[3px] border"
+                    style={{
+                      background: `${annotation.color}33`,
+                      borderColor: annotation.color,
+                    }}
+                  />
+                  <span
+                    className="flex h-3.5 w-6 shrink-0 items-center justify-center rounded-[3px] text-[11px] font-normal leading-none text-foreground/90"
+                    style={{ background: annotation.color }}
+                  >
+                    {index + 1}
+                  </span>
+                  <span className="flex-1 truncate text-xs leading-4 text-foreground/90">
+                    {annotation.labelName}
+                  </span>
+                  <button
+                    type="button"
+                    title="Delete"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteAnnotation(annotation.id);
+                    }}
+                    className={cn(
+                      "flex shrink-0 cursor-pointer items-center justify-center rounded p-1 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive [&_svg]:size-3.5",
+                      isSelected && "opacity-100"
+                    )}
+                  >
+                    <Trash2 />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </section>
       </TabsContent>
 
-      <TabsContent value="history">
+      <TabsContent
+        value="info"
+        className="min-h-0 flex-1 overflow-y-auto p-4"
+      >
+        <p className="text-xs text-muted-foreground">
+          No additional information available.
+        </p>
+      </TabsContent>
+
+      <TabsContent
+        value="history"
+        className="min-h-0 flex-1 overflow-y-auto p-4"
+      >
         <HistoryTab
           entries={historyEntries}
           currentIndex={historyIndex}
@@ -87,3 +155,21 @@ export const AnnotationPanel = ({
     </Tabs>
   );
 };
+
+const ClassRow = ({
+  icon,
+  name,
+  count,
+}: {
+  icon: React.ReactNode;
+  name: string;
+  count: number;
+}) => (
+  <div className="flex items-center gap-2 rounded-md p-2">
+    {icon}
+    <span className="flex-1 text-xs text-foreground/90">{name}</span>
+    <span className="flex h-3.5 min-w-6 items-center justify-center rounded-full bg-black/[0.03] px-1.5 text-[11px] leading-none text-foreground/60">
+      {count}
+    </span>
+  </div>
+);

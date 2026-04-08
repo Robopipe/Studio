@@ -7,6 +7,7 @@ import { FormEvent } from "react";
 import { Link, Navigate } from "react-router";
 import { useAuth } from "../../hooks";
 import { useLoginMutation } from "../../services";
+import { FormError } from "../FormError";
 
 export const LoginForm = () => {
   const [login, { isError, isLoading }] = useLoginMutation();
@@ -43,15 +44,7 @@ export const LoginForm = () => {
         </div>
 
         {isError && (
-          <div className="mb-8 overflow-hidden rounded border border-red-200 bg-red-50">
-            <div className="w-fit bg-red-600 px-2 py-0.5 text-[0.65rem] font-extrabold uppercase text-white">
-              ERROR
-            </div>
-            <div className="p-4 text-sm leading-snug text-red-900">
-              The username or password you entered is incorrect. Please check
-              your credentials and try again.
-            </div>
-          </div>
+          <FormError message="The username or password you entered is incorrect. Please check your credentials and try again." />
         )}
 
         <form onSubmit={handleSubmit}>

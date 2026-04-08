@@ -145,11 +145,9 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
           dataset. Experiment with different configurations to achieve better
           training results
         </p>
-        <div className="flex flex-row items-center gap-4">
-          <div className="flex flex-row items-center gap-4">
-            <Label htmlFor="versionName" className="text-sm font-medium">
-              Version name
-            </Label>
+        <div className="flex flex-row items-end gap-4">
+          <div className="flex flex-1 flex-col gap-1.5">
+            <Label htmlFor="versionName">Version name</Label>
             <Input
               id="versionName"
               value={name}

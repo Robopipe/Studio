@@ -15,7 +15,6 @@ import { Canvas } from "../Canvas";
 import { ClassSelect } from "../ClassSelect";
 import { AnnotationFilter, DataSourcePanel } from "../DataSourcePanel";
 import { Toolbar } from "../Toolbar";
-import styles from "./LabelPage.module.scss";
 
 const TASKS_PER_PAGE = 50;
 
@@ -152,7 +151,7 @@ export const LabelPage = () => {
   );
 
   return (
-    <div className={styles.page}>
+    <div className="-m-6 grid min-h-0 flex-1 grid-cols-[320px_280px_1fr] grid-rows-[minmax(0,1fr)] bg-white">
       <DataSourcePanel
         tasks={tasks}
         selectedTaskId={selectedTaskId}
@@ -177,8 +176,8 @@ export const LabelPage = () => {
         historyIndex={history.currentIndex}
         onJumpTo={history.jumpTo}
       />
-      <div className={styles.canvasArea}>
-        <div className={styles.canvasRow}>
+      <div className="flex min-h-0 flex-col overflow-hidden">
+        <div className="flex min-h-0 flex-1 overflow-hidden">
           <Canvas
             task={selectedTask}
             annotations={annotations}
