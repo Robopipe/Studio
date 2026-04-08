@@ -1,7 +1,5 @@
 import { Label } from "@repo/schema";
-
-import { CloseIcon, Text } from "@repo/ui";
-import styles from "./LabelChip.module.scss";
+import { X } from "lucide-react";
 
 export interface LabelChipProps {
   label: Label;
@@ -11,15 +9,22 @@ export interface LabelChipProps {
 export const LabelChip = ({ label, onRemove }: LabelChipProps) => {
   return (
     <div
-      className={styles.labelChip}
-      style={{ "--color": label.color } as React.CSSProperties}
+      className="relative flex items-center p-1"
+      style={{ "--chip-color": label.color } as React.CSSProperties}
     >
-      <div className={styles.backgroundColor} />
-      <div className={styles.mainColor} />
-      <Text variant="text-12" weight="400" className={styles.labelName}>
-        {label.name}
-      </Text>
-      <CloseIcon onClick={onRemove} className={styles.closeIcon} />
+      <div
+        className="absolute inset-0 -z-10 rounded-lg opacity-15"
+        style={{ background: "var(--chip-color)" }}
+      />
+      <div
+        className="h-6 w-2 rounded"
+        style={{ background: "var(--chip-color)" }}
+      />
+      <span className="flex-[2] px-2 py-0.5 text-xs">{label.name}</span>
+      <X
+        onClick={onRemove}
+        className="size-4 cursor-pointer text-muted-foreground"
+      />
     </div>
   );
 };

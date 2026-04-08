@@ -1,12 +1,7 @@
-import {
-  Button,
-  Heading,
-  Spinner,
-  Stack,
-  Text,
-  TextInput,
-  bui,
-} from "@repo/ui";
+import { Button } from "@/modules/shadcn/ui/button";
+import { Input } from "@/modules/shadcn/ui/input";
+import { Label as ShadcnLabel } from "@/modules/shadcn/ui/label";
+import { Spinner } from "@/modules/shadcn/ui/spinner";
 import { FormEvent } from "react";
 import { useParams } from "react-router";
 import z from "zod";
@@ -17,9 +12,8 @@ import {
   useGetProjectQuery,
 } from "../../services/projectApi";
 
+import { getRandomHex } from "../LabelingSetup";
 import { LabelChip } from "../LabelChip";
-import styles from "./ProjectPage.module.scss";
-import { getRandomHex } from '../LabelingSetup';
 
 export interface ProjectPageProps {}
 
@@ -51,31 +45,35 @@ export const ProjectPage = ({}: ProjectPageProps) => {
   };
 
   return (
-    <Stack fullWidth gap="md">
-      <Heading variant="h5" weight="600">
-        {project.name}
-      </Heading>
+    <div className="flex w-full flex-col gap-4">
+      <h5 className="text-xl font-semibold">{project.name}</h5>
 
-      <Text variant="text-16" weight="600">
-        Add Label Names
-      </Text>
+      <span className="text-base">Add Label Names</span>
 
-      <Stack gap="md" direction="row">
-        <bui.Form onSubmit={handleSubmit} className={styles.form}>
-          <TextInput
-            label="Label Name"
-            name="labelName"
-            type="text"
-            placeholder="Label name"
-            helperText="Enter a label name"
-            required
-          />
-          <Button type="submit">Add Labels</Button>
-        </bui.Form>
-        <Stack gap="md">
-          <Text variant="text-16" weight="700">
+      <div className="flex flex-row gap-4">
+        <form
+          onSubmit={handleSubmit}
+          className="flex min-w-[400px] max-w-[500px] flex-col gap-4"
+        >
+          <div className="flex flex-col gap-1.5">
+            <ShadcnLabel htmlFor="labelName">Label Name</ShadcnLabel>
+            <Input
+              id="labelName"
+              name="labelName"
+              type="text"
+              placeholder="Label name"
+              required
+            />
+            <p className="text-xs text-muted-foreground">Enter a label name</p>
+          </div>
+          <Button type="submit" className="w-fit">
+            Add Labels
+          </Button>
+        </form>
+        <div className="flex flex-col gap-4">
+          <span className="text-base font-bold">
             Labels ({labels?.length})
-          </Text>
+          </span>
           {labels?.map((label) => (
             <LabelChip
               key={label.id}
@@ -85,8 +83,8 @@ export const ProjectPage = ({}: ProjectPageProps) => {
               }
             />
           ))}
-        </Stack>
-      </Stack>
-    </Stack>
+        </div>
+      </div>
+    </div>
   );
 };

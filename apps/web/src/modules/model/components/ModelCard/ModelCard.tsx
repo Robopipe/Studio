@@ -1,8 +1,9 @@
+import { Badge } from "@/modules/shadcn/ui/badge";
+import { cn } from "@/lib/utils";
 import { Model } from "@repo/schema";
-import { Badge, BadgeVariant, Container, Stack, Text } from "@repo/ui";
-import clsx from "clsx";
 import { Link, useParams } from "react-router";
-import styles from "./ModelCard.module.scss";
+
+type BadgeVariant = "default" | "secondary" | "destructive";
 
 export interface ModelCardProps {
   model: Model;
@@ -14,15 +15,15 @@ export const ModelCard = ({ model, order }: ModelCardProps) => {
   const getBadgeVariant = (status: Model["status"]): BadgeVariant => {
     switch (status) {
       case "TRAINING":
-        return "neutral";
+        return "secondary";
       case "DRAFT":
-        return "neutral";
+        return "secondary";
       case "CONVERTING":
-        return "neutral";
+        return "secondary";
       case "ERROR":
-        return "error";
+        return "destructive";
       default:
-        return "success";
+        return "default";
     }
   };
 
@@ -31,25 +32,22 @@ export const ModelCard = ({ model, order }: ModelCardProps) => {
       to={`/projects/${projectId}/models/${model.id}`}
       style={{ textDecoration: "none", color: "inherit" }}
     >
-      <Container
-        className={clsx([
-          styles.modelCard,
-          model.id.toString() === modelId && styles["modelCard--active"],
-        ])}
-        paddingX="sm"
-        paddingY="sm"
+      <div
+        className={cn(
+          "rounded-lg border border-black/10 bg-white p-3",
+          model.id.toString() === modelId &&
+            "border-emerald-700 bg-emerald-50"
+        )}
       >
-        <Stack gap={8}>
-          <Stack direction="row">
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-row gap-2">
             <Badge>v{order}</Badge>
             <Badge variant={getBadgeVariant(model.status)}>
               {model.status.toLowerCase()}
             </Badge>
-          </Stack>
-          <Text variant="text-16" weight="700" as="p">
-            {model.name}
-          </Text>
-          <Text variant="text-12" color="text-secondary" as="p">
+          </div>
+          <p className="text-base font-bold">{model.name}</p>
+          <p className="text-xs text-muted-foreground">
             {new Date(model.createdAt).toLocaleString("en-US", {
               month: "short",
               day: "2-digit",
@@ -57,9 +55,9 @@ export const ModelCard = ({ model, order }: ModelCardProps) => {
               hour: "2-digit",
               minute: "2-digit",
             })}
-          </Text>
-        </Stack>
-      </Container>
+          </p>
+        </div>
+      </div>
     </Link>
   );
 };

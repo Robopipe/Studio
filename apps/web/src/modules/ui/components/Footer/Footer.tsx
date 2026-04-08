@@ -1,5 +1,4 @@
-import { Stack, Text } from "@repo/ui";
-import styles from "./Footer.module.scss";
+import { cn } from "@/lib/utils";
 
 export interface FooterProps {
   variant: "light" | "dark";
@@ -7,25 +6,13 @@ export interface FooterProps {
 
 export const Footer = ({ variant }: FooterProps) => {
   const textColor =
-    variant === "light" ? "text-secondary" : "text-white-secondary";
+    variant === "light" ? "text-muted-foreground" : "text-white/60";
 
   return (
-    <Stack
-      as="footer"
-      direction="row"
-      justify="center"
-      gap={12}
-      className={styles.footer}
-    >
-      <Text color={textColor} variant="text-12">
-        Powered by Robopipe
-      </Text>
-      <Text color={textColor} variant="text-12">
-        |
-      </Text>
-      <Text color={textColor} variant="text-12">
-        © All rights reserved
-      </Text>
-    </Stack>
+    <footer className="mt-auto flex flex-row justify-center gap-3">
+      <span className={cn("text-xs", textColor)}>Powered by Robopipe</span>
+      <span className={cn("text-xs", textColor)}>|</span>
+      <span className={cn("text-xs", textColor)}>© All rights reserved</span>
+    </footer>
   );
 };

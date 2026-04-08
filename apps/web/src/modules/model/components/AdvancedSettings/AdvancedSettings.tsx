@@ -1,13 +1,12 @@
+import { Button } from "@/modules/shadcn/ui/button";
 import {
   Collapsible,
   CollapsiblePanel,
   CollapsibleTrigger,
 } from "@/modules/shadcn/ui/collapsible";
 import { ModelOutputTypeEnum } from "@repo/schema";
-import { Button, Stack, Text } from "@repo/ui";
 import { useState } from "react";
 import { SettingsCard } from "../SettingsCard";
-import styles from "./AdvancedSettings.module.scss";
 import { HyperparamsModal } from "./HyperparamsModal";
 
 export interface AdvancedSettingsProps {
@@ -44,23 +43,23 @@ export const AdvancedSettings = ({
         state={customHyperparams.trim() ? "complete" : "pending"}
         title="Advanced Options"
       >
-        <Stack style={{ flex: 1 }}>
+        <div className="flex flex-1 flex-col gap-4">
           <Collapsible>
             <CollapsibleTrigger>Output Formats</CollapsibleTrigger>
             <CollapsiblePanel>
-              <Stack gap={8}>
-                <Text variant="text-12">
-                  Choose which export formats to generate after training. RAW is
-                  the unoptimized ONNX model. RVC2, RVC3, and RVC4 produce
+              <div className="flex flex-col gap-2">
+                <span className="text-xs">
+                  Choose which export formats to generate after training. RAW
+                  is the unoptimized ONNX model. RVC2, RVC3, and RVC4 produce
                   hardware-optimized blobs for Luxonis cameras — select the
                   format matching your target device.
-                </Text>
-                <Stack direction="row" gap={8}>
+                </span>
+                <div className="flex flex-row gap-2">
                   {Object.values(ModelOutputTypeEnum).map((outputType) => (
                     <Button
                       key={outputType}
                       variant={
-                        outputs.includes(outputType) ? "filled" : "outlined"
+                        outputs.includes(outputType) ? "default" : "outline"
                       }
                       onClick={() => {
                         if (outputs.includes(outputType)) {
@@ -75,8 +74,8 @@ export const AdvancedSettings = ({
                       {outputType}
                     </Button>
                   ))}
-                </Stack>
-              </Stack>
+                </div>
+              </div>
             </CollapsiblePanel>
           </Collapsible>
           <Collapsible>
@@ -84,22 +83,19 @@ export const AdvancedSettings = ({
               Custom Training Hyperparameters
             </CollapsibleTrigger>
             <CollapsiblePanel>
-              <Stack gap={8}>
+              <div className="flex flex-col gap-2">
                 {hasSummary && (
-                  <div className={styles.hyperparamsSummary}>
+                  <div className="max-h-20 overflow-hidden whitespace-pre rounded bg-black/[0.04] p-2 font-mono text-xs text-muted-foreground">
                     {customHyperparams}
                   </div>
                 )}
-                <div className={styles.editRow}>
-                  <Button
-                    variant="outlined"
-                    onClick={() => setModalOpen(true)}
-                  >
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" onClick={() => setModalOpen(true)}>
                     {hasSummary ? "Edit" : "Configure"}
                   </Button>
                   {hasSummary && (
                     <Button
-                      variant="outlined"
+                      variant="outline"
                       onClick={() => {
                         onCustomHyperparamsChange("");
                         onHyperparamsErrorChange(null);
@@ -110,21 +106,18 @@ export const AdvancedSettings = ({
                   )}
                 </div>
                 {hyperparamsError && (
-                  <Text
-                    variant="text-12"
-                    style={{ color: "var(--color-red-500)" }}
-                  >
+                  <span className="text-xs text-red-500">
                     {hyperparamsError}
-                  </Text>
+                  </span>
                 )}
-                <Text variant="text-12">
+                <span className="text-xs">
                   JSON object that deep-merges with the generated config.
                   Top-level keys: model, loader, trainer, tracker.
-                </Text>
-              </Stack>
+                </span>
+              </div>
             </CollapsiblePanel>
           </Collapsible>
-        </Stack>
+        </div>
       </SettingsCard>
 
       {modalOpen && (

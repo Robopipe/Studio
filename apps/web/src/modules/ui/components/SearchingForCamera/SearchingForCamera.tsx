@@ -1,22 +1,22 @@
-import { CameraIcon, Spinner, Stack, Text } from "@repo/ui";
-import styles from "./SearchingForCamera.module.scss";
+import { Spinner } from "@/modules/shadcn/ui/spinner";
+import { Camera } from "lucide-react";
 
 export const SearchingForCamera = () => {
   return (
-    <Stack align="center" justify="center" className={styles.container}>
-      <div className={styles.iconWrapper}>
-        <CameraIcon />
+    <div className="flex flex-1 flex-col items-center justify-center p-8">
+      <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-black/5">
+        <Camera className="size-8 text-black/60" />
       </div>
 
-      <Text variant="text-20" weight="600" className={styles.title}>
+      <p className="mb-2 text-xl font-semibold text-black">
         Searching for camera...
-      </Text>
+      </p>
 
-      <Text variant="text-14" className={styles.subtitle}>
+      <p className="mb-6 text-sm text-black/60">
         Please make sure camera is connected to the controller.
-      </Text>
+      </p>
 
       <Spinner />
-    </Stack>
+    </div>
   );
 };

@@ -1,7 +1,8 @@
-import { Skeleton } from "@/modules/shadcn/ui/skeleton";
 import { DeleteLimitDialog } from "@/modules/dashboard/components/DeleteLimitDialog/DeleteLimitDialog";
+import { Button } from "@/modules/shadcn/ui/button";
+import { Skeleton } from "@/modules/shadcn/ui/skeleton";
 import { ModelStatusEnum } from "@repo/schema";
-import { Button, DeleteIcon, Stack, Text } from "@repo/ui";
+import { Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import {
@@ -14,7 +15,6 @@ import { ModelLayout } from "../ModelLayout";
 import { ModelLogs } from "../ModelLogs";
 import { ModelParametersDialog } from "../ModelParametersDialog";
 import { TrainingChart } from "../TrainingChart";
-import styles from "./ModelDetailPage.module.scss";
 
 export interface ModelDetailPageProps {}
 
@@ -63,8 +63,8 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
 
   if (showSkeleton) {
     return (
-      <ModelLayout className={styles.modelDetailPage}>
-        <div className="flex flex-col gap-6 flex-1 min-h-0">
+      <ModelLayout>
+        <div className="flex min-h-0 flex-1 flex-col gap-6">
           {/* Header */}
           <div className="flex items-center justify-between">
             <Skeleton className="h-8 w-[40%]" />
@@ -82,15 +82,15 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
 
           {/* Logs area */}
           <div
-            className="flex-1 min-h-0 rounded-2xl flex flex-col items-center justify-center gap-3 p-6"
+            className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 rounded-2xl p-6"
             style={{ backgroundColor: "#0f0f18" }}
           >
             {isWaitingForLogs && (
-              <Text color="text-white-secondary" variant="text-14">
+              <span className="text-sm text-white/60">
                 Training is starting up...
-              </Text>
+              </span>
             )}
-            <div className="w-full flex flex-col gap-2">
+            <div className="flex w-full flex-col gap-2">
               {[1, 2, 3, 4, 5].map((i) => (
                 <Skeleton
                   key={i}
@@ -106,14 +106,16 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
   }
 
   return (
-    <ModelLayout className={styles.modelDetailPage}>
-      <Stack direction="row" justify="space-between" align="center">
-        <Text weight="700" className={styles.title} as="p" variant="text-20">
-          {model?.name}
-        </Text>
-        <Stack direction="row" justify="end">
+    <ModelLayout>
+      <div className="flex flex-row items-center justify-between">
+        <p className="mb-8 text-xl font-bold">{model?.name}</p>
+        <div className="flex flex-row justify-end gap-2">
           {model && (
-            <Button variant="outlined" size="sm" onClick={() => setShowParamsDialog(true)}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowParamsDialog(true)}
+            >
               Show parameters
             </Button>
           )}
@@ -131,16 +133,16 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
             </Button>
           )}
           <Button
-            variant="danger"
+            variant="destructive"
             size="sm"
-            className={styles.deleteButton}
+            className="p-2"
             onClick={() => setShowDeleteDialog(true)}
           >
-            <DeleteIcon width={16} height={16} />
+            <Trash2 className="size-4" />
           </Button>
-        </Stack>
-      </Stack>
-      <Stack direction="row">
+        </div>
+      </div>
+      <div className="flex flex-row gap-4">
         <TrainingChart
           title="Accuracy"
           data={
@@ -159,7 +161,7 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
             })) ?? []
           }
         />
-      </Stack>
+      </div>
       <ModelLogs />
       {showDeleteDialog && (
         <DeleteLimitDialog
