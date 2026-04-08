@@ -155,6 +155,7 @@ export const useRunDeploy = ({
         try {
           const result = await assembleConfigPayload(
             pid,
+            projectName,
             config,
             requiredOutputType,
           );
@@ -209,6 +210,7 @@ export const useRunDeploy = ({
    */
   async function assembleConfigPayload(
     pid: number,
+    projectName: string,
     config: DashboardConfiguration,
     requiredOutputType: string | undefined,
   ): Promise<AssembledConfig | null> {
@@ -306,6 +308,8 @@ export const useRunDeploy = ({
         dashboard_config: {
           id: config.id,
           name: config.name,
+          projectId: pid,
+          projectName,
           lineDirection: config.lineDirection,
           linePosition: config.linePosition,
           lineFlow: config.lineFlow,
