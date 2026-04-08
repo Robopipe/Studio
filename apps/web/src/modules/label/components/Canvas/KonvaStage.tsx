@@ -66,6 +66,33 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
   useLayoutEffect(() => {
     positionRef.current = position;
   }, [position]);
+
+  // Crosshair is updated imperatively via Konva refs (not React state) so it
+  // can keep up with high-frequency mousemove events without triggering a
+  // full re-render of the stage on every pixel.
+  const crosshairLayerRef = useRef<Konva.Layer>(null);
+  const crosshairVHaloRef = useRef<Konva.Line>(null);
+  const crosshairHHaloRef = useRef<Konva.Line>(null);
+  const crosshairVCoreRef = useRef<Konva.Line>(null);
+  const crosshairHCoreRef = useRef<Konva.Line>(null);
+
+  const updateCrosshair = useCallback((x: number, y: number) => {
+    const layer = crosshairLayerRef.current;
+    if (!layer) return;
+    crosshairVHaloRef.current?.points([x, -1e6, x, 1e6]);
+    crosshairVCoreRef.current?.points([x, -1e6, x, 1e6]);
+    crosshairHHaloRef.current?.points([-1e6, y, 1e6, y]);
+    crosshairHCoreRef.current?.points([-1e6, y, 1e6, y]);
+    if (!layer.visible()) layer.visible(true);
+    layer.batchDraw();
+  }, []);
+
+  const hideCrosshair = useCallback(() => {
+    const layer = crosshairLayerRef.current;
+    if (!layer || !layer.visible()) return;
+    layer.visible(false);
+    layer.batchDraw();
+  }, []);
   const [drawingBBox, setDrawingBBox] = useState<{
     startX: number;
     startY: number;
@@ -240,18 +267,17 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
       });
     }
 
-    if (
-      showCrosshair ||
-      (toolMode === ToolMode.DRAW_POLYGON && polygonPoints.length > 0)
-    ) {
+    if (toolMode === ToolMode.DRAW_POLYGON && polygonPoints.length > 0) {
       setCursorPos(coords);
+    }
+    if (showCrosshair) {
+      updateCrosshair(coords.x, coords.y);
     }
   };
 
   const handleMouseLeave = () => {
-    if (showCrosshair && polygonPoints.length === 0) {
-      setCursorPos(null);
-    }
+    if (showCrosshair) hideCrosshair();
+    if (polygonPoints.length === 0) setCursorPos(null);
   };
 
   const handleMouseUp = (_e: Konva.KonvaEventObject<MouseEvent>) => {
@@ -434,11 +460,17 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
           ) : null,
         )}
       </Layer>
-      {showCrosshair && cursorPos && (
-        <Layer name="crosshair" listening={false}>
+      {showCrosshair && (
+        <Layer
+          ref={crosshairLayerRef}
+          name="crosshair"
+          listening={false}
+          visible={false}
+        >
           {/* Dark halo so the bright core stays visible on any background */}
           <Line
-            points={[cursorPos.x, -1e6, cursorPos.x, 1e6]}
+            ref={crosshairVHaloRef}
+            points={[0, -1e6, 0, 1e6]}
             stroke="rgba(0,0,0,0.7)"
             strokeWidth={2}
             strokeScaleEnabled={false}
@@ -446,7 +478,8 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
             dashEnabled
           />
           <Line
-            points={[-1e6, cursorPos.y, 1e6, cursorPos.y]}
+            ref={crosshairHHaloRef}
+            points={[-1e6, 0, 1e6, 0]}
             stroke="rgba(0,0,0,0.7)"
             strokeWidth={2}
             strokeScaleEnabled={false}
@@ -455,7 +488,8 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
           />
           {/* Bright core dashed line */}
           <Line
-            points={[cursorPos.x, -1e6, cursorPos.x, 1e6]}
+            ref={crosshairVCoreRef}
+            points={[0, -1e6, 0, 1e6]}
             stroke="#ef4444"
             strokeWidth={1}
             strokeScaleEnabled={false}
@@ -463,7 +497,8 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
             dashEnabled
           />
           <Line
-            points={[-1e6, cursorPos.y, 1e6, cursorPos.y]}
+            ref={crosshairHCoreRef}
+            points={[-1e6, 0, 1e6, 0]}
             stroke="#ef4444"
             strokeWidth={1}
             strokeScaleEnabled={false}

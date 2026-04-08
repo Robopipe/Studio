@@ -1,42 +1,54 @@
 import { useCallback, useState } from "react";
 
-const MIN_SCALE = 0.1;
+const ABSOLUTE_MIN_SCALE = 0.05;
 const MAX_SCALE = 5;
 const ZOOM_FACTOR = 1.15;
+/**
+ * How far below the fit-to-container scale the user can zoom out, expressed
+ * as a multiplier of the fit scale. 0.8 = image can shrink to 80% of its
+ * fitted size, exposing white space around it (so users can label edges that
+ * sit under the floating overlays).
+ */
+const MIN_SCALE_FIT_RATIO = 0.8;
 
 interface CanvasState {
   scale: number;
   position: { x: number; y: number };
+  /** Lower bound for `scale`, computed each time fitImage runs. */
+  minScale: number;
 }
 
 export const useCanvasState = () => {
   const [state, setState] = useState<CanvasState>({
     scale: 1,
     position: { x: 0, y: 0 },
+    minScale: ABSOLUTE_MIN_SCALE,
   });
 
-  const clampScale = (s: number) => Math.min(MAX_SCALE, Math.max(MIN_SCALE, s));
+  const clampScale = (s: number, minScale: number) =>
+    Math.min(MAX_SCALE, Math.max(minScale, s));
 
   const zoomIn = useCallback(() => {
     setState((prev) => ({
       ...prev,
-      scale: clampScale(prev.scale * ZOOM_FACTOR),
+      scale: clampScale(prev.scale * ZOOM_FACTOR, prev.minScale),
     }));
   }, []);
 
   const zoomOut = useCallback(() => {
     setState((prev) => ({
       ...prev,
-      scale: clampScale(prev.scale / ZOOM_FACTOR),
+      scale: clampScale(prev.scale / ZOOM_FACTOR, prev.minScale),
     }));
   }, []);
 
   const zoomAtPoint = useCallback(
     (pointer: { x: number; y: number }, factor: number) => {
       setState((prev) => {
-        const newScale = clampScale(prev.scale * factor);
+        const newScale = clampScale(prev.scale * factor, prev.minScale);
         const ratio = newScale / prev.scale;
         return {
+          ...prev,
           scale: newScale,
           position: {
             x: pointer.x - (pointer.x - prev.position.x) * ratio,
@@ -56,13 +68,18 @@ export const useCanvasState = () => {
     (imageWidth: number, imageHeight: number, containerWidth: number, containerHeight: number) => {
       const scaleX = containerWidth / imageWidth;
       const scaleY = containerHeight / imageHeight;
-      const newScale = Math.min(scaleX, scaleY, 1);
+      const fitScale = Math.min(scaleX, scaleY, 1);
+      const minScale = Math.max(
+        ABSOLUTE_MIN_SCALE,
+        fitScale * MIN_SCALE_FIT_RATIO,
+      );
       setState({
-        scale: newScale,
+        scale: fitScale,
         position: {
-          x: (containerWidth - imageWidth * newScale) / 2,
-          y: (containerHeight - imageHeight * newScale) / 2,
+          x: (containerWidth - imageWidth * fitScale) / 2,
+          y: (containerHeight - imageHeight * fitScale) / 2,
         },
+        minScale,
       });
     },
     [],

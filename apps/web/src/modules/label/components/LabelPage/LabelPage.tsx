@@ -254,50 +254,56 @@ export const LabelPage = () => {
         historyIndex={history.currentIndex}
         onJumpTo={history.jumpTo}
       />
-      <div className="flex min-h-0 flex-col overflow-hidden">
-        <div className="flex min-h-0 flex-1 overflow-hidden">
-          <Canvas
-            task={selectedTask}
-            annotations={visibleAnnotations}
-            selectedAnnotationId={selectedAnnotationId}
-            toolMode={toolMode}
-            activeLabel={activeLabelForCanvas}
-            scale={canvasState.scale}
-            position={canvasState.position}
-            isDirty={isDirty}
-            isSaving={isSaving}
-            onSave={handleSave}
-            showCrosshair={showCrosshair}
-            onSelect={setSelectedAnnotationId}
-            onAddAnnotation={history.addAnnotation}
-            onUpdateAnnotation={history.updateAnnotation}
-            onDeleteAnnotation={history.deleteAnnotation}
-            onUndo={history.undo}
-            onRedo={history.redo}
-            onZoomAtPoint={canvasState.zoomAtPoint}
-            onSetPosition={canvasState.setPosition}
-            onFitImage={canvasState.fitImage}
-          />
-          <Toolbar
-            toolMode={toolMode}
-            onSetToolMode={setToolMode}
-            onUndo={history.undo}
-            onRedo={history.redo}
-            onZoomIn={canvasState.zoomIn}
-            onZoomOut={canvasState.zoomOut}
-            onClear={handleClear}
-            canUndo={history.canUndo}
-            canRedo={history.canRedo}
-            hasSelection={selectedAnnotationId !== null}
-            showCrosshair={showCrosshair}
-            onToggleCrosshair={toggleCrosshair}
-          />
-        </div>
-        <ClassSelect
-          labels={labels}
-          activeLabelId={activeLabel?.id ?? 0}
-          onSelectLabel={handleSelectLabel}
+      <div className="relative flex min-h-0 flex-col overflow-hidden">
+        <Canvas
+          task={selectedTask}
+          annotations={visibleAnnotations}
+          selectedAnnotationId={selectedAnnotationId}
+          toolMode={toolMode}
+          activeLabel={activeLabelForCanvas}
+          scale={canvasState.scale}
+          position={canvasState.position}
+          isDirty={isDirty}
+          isSaving={isSaving}
+          onSave={handleSave}
+          showCrosshair={showCrosshair}
+          onSelect={setSelectedAnnotationId}
+          onAddAnnotation={history.addAnnotation}
+          onUpdateAnnotation={history.updateAnnotation}
+          onDeleteAnnotation={history.deleteAnnotation}
+          onUndo={history.undo}
+          onRedo={history.redo}
+          onZoomAtPoint={canvasState.zoomAtPoint}
+          onSetPosition={canvasState.setPosition}
+          onFitImage={canvasState.fitImage}
         />
+        <div className="pointer-events-none absolute right-6 top-1/2 z-10 -translate-y-1/2">
+          <div className="pointer-events-auto">
+            <Toolbar
+              toolMode={toolMode}
+              onSetToolMode={setToolMode}
+              onUndo={history.undo}
+              onRedo={history.redo}
+              onZoomIn={canvasState.zoomIn}
+              onZoomOut={canvasState.zoomOut}
+              onClear={handleClear}
+              canUndo={history.canUndo}
+              canRedo={history.canRedo}
+              hasSelection={selectedAnnotationId !== null}
+              showCrosshair={showCrosshair}
+              onToggleCrosshair={toggleCrosshair}
+            />
+          </div>
+        </div>
+        <div className="pointer-events-none absolute inset-x-6 bottom-6 z-10 flex justify-center">
+          <div className="pointer-events-auto min-w-0 max-w-full">
+            <ClassSelect
+              labels={labels}
+              activeLabelId={activeLabel?.id ?? 0}
+              onSelectLabel={handleSelectLabel}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -90,7 +90,7 @@ export const Toolbar = ({
   ];
 
   return (
-    <div className="flex flex-col gap-1 border-l border-black/10 bg-black/[0.03] p-2">
+    <div className="flex flex-col gap-1 rounded-2xl border border-black/10 bg-white/95 p-2 shadow-[0_0_12px_rgba(0,0,0,0.08)] backdrop-blur-md">
       {modeTools.map((tool) => (
         <button
           key={tool.title}

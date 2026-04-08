@@ -119,6 +119,113 @@ function PaginationEllipsis({
   )
 }
 
+// ───────────────────────────────────────────────────────────────────────────
+// Numbered pagination (figma "<  1  2  3  ...  6  >") — built on the
+// primitives above so existing prev/next consumers still work.
+// ───────────────────────────────────────────────────────────────────────────
+
+function getPaginationRange(
+  current: number,
+  total: number,
+  siblings = 1,
+): (number | "ellipsis")[] {
+  // Show every page when there's no need to truncate
+  const compactCount = siblings * 2 + 5 // first + last + current + 2*siblings + 2 ellipses
+  if (total <= compactCount) {
+    return Array.from({ length: total }, (_, i) => i + 1)
+  }
+  const start = Math.max(2, current - siblings)
+  const end = Math.min(total - 1, current + siblings)
+  const showLeftEllipsis = start > 2
+  const showRightEllipsis = end < total - 1
+  const pages: (number | "ellipsis")[] = [1]
+  if (showLeftEllipsis) pages.push("ellipsis")
+  for (let p = start; p <= end; p++) pages.push(p)
+  if (showRightEllipsis) pages.push("ellipsis")
+  pages.push(total)
+  return pages
+}
+
+interface PaginationNumbersProps extends React.ComponentProps<"nav"> {
+  currentPage: number
+  totalPages: number
+  onPageChange: (page: number) => void
+  /** Number of sibling pages shown on each side of the current page. */
+  siblings?: number
+}
+
+function PaginationNumbers({
+  currentPage,
+  totalPages,
+  onPageChange,
+  siblings = 1,
+  className,
+  ...props
+}: PaginationNumbersProps) {
+  if (totalPages <= 1) return null
+  const pages = getPaginationRange(currentPage, totalPages, siblings)
+  const navButton =
+    "flex size-6 items-center justify-center rounded text-foreground transition-colors hover:bg-black/5 disabled:pointer-events-none disabled:opacity-40"
+  const numberButton =
+    "flex size-6 items-center justify-center rounded text-sm leading-5 transition-colors"
+  return (
+    <nav
+      role="navigation"
+      aria-label="pagination"
+      data-slot="pagination"
+      className={cn("flex items-center", className)}
+      {...props}
+    >
+      <button
+        type="button"
+        aria-label="Go to previous page"
+        disabled={currentPage <= 1}
+        onClick={() => onPageChange(currentPage - 1)}
+        className={cn(navButton, "cursor-pointer")}
+      >
+        <ChevronLeftIcon className="size-4" />
+      </button>
+      {pages.map((p, i) =>
+        p === "ellipsis" ? (
+          <span
+            key={`ellipsis-${i}`}
+            aria-hidden
+            className="flex size-6 items-center justify-center text-sm text-foreground"
+          >
+            …
+          </span>
+        ) : (
+          <button
+            key={p}
+            type="button"
+            aria-label={`Go to page ${p}`}
+            aria-current={p === currentPage ? "page" : undefined}
+            onClick={() => onPageChange(p)}
+            className={cn(
+              numberButton,
+              "cursor-pointer",
+              p === currentPage
+                ? "bg-primary/15 font-medium text-primary"
+                : "text-foreground hover:bg-black/5",
+            )}
+          >
+            {p}
+          </button>
+        ),
+      )}
+      <button
+        type="button"
+        aria-label="Go to next page"
+        disabled={currentPage >= totalPages}
+        onClick={() => onPageChange(currentPage + 1)}
+        className={cn(navButton, "cursor-pointer")}
+      >
+        <ChevronRightIcon className="size-4" />
+      </button>
+    </nav>
+  )
+}
+
 export {
   Pagination,
   PaginationContent,
@@ -126,5 +233,6 @@ export {
   PaginationItem,
   PaginationLink,
   PaginationNext,
+  PaginationNumbers,
   PaginationPrevious,
 }
