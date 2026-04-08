@@ -1,10 +1,9 @@
+import { cn } from "@/lib/utils";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import { useGetProjectLabelsQuery } from "@/modules/project/services/projectApi";
 import { Label } from "@repo/schema";
-import { Stack, Text } from "@repo/ui";
 import { CSSProperties, useEffect, useMemo } from "react";
 import { SettingsCard } from "../SettingsCard";
-import styles from "./SourceImagesSettings.module.scss";
 
 export interface SourceImagesSettingsProps {
   activeLabels: Label[];
@@ -37,26 +36,32 @@ export const SourceImagesSettings = (props: SourceImagesSettingsProps) => {
 
   return (
     <SettingsCard title="source images" state="complete" stepNumber={1}>
-      <Stack direction="row" wrap="wrap">
-      {mappedLabels.map((label) => (
-        <Stack
-          key={label.id}
-          direction="row"
-          style={{ "--color-label": label.color } as CSSProperties}
-          className={`${styles.label} ${label.isActive ? styles.active : ""}`}
-          gap={6}
-          align="center"
-          onClick={() =>
-            label.isActive
-              ? setActiveLabels(activeLabels.filter((l) => l.id !== label.id))
-              : setActiveLabels([...activeLabels, label])
-          }
-        >
-          <div className={styles.colorIndicator} />
-          <Text variant="text-14">{label.name}</Text>
-        </Stack>
-      ))}
-      </Stack>
+      <div className="flex flex-row flex-wrap gap-4">
+        {mappedLabels.map((label) => (
+          <div
+            key={label.id}
+            style={{ "--label-color": label.color } as CSSProperties}
+            className={cn(
+              "flex cursor-pointer flex-row items-center gap-1.5 rounded-lg border border-transparent bg-black/10 py-1 pl-1 pr-3",
+              label.isActive &&
+                "[background-color:color-mix(in_oklab,var(--label-color),transparent_80%)] [border-color:var(--label-color)] [&_span]:font-bold"
+            )}
+            onClick={() =>
+              label.isActive
+                ? setActiveLabels(
+                    activeLabels.filter((l) => l.id !== label.id),
+                  )
+                : setActiveLabels([...activeLabels, label])
+            }
+          >
+            <div
+              className="h-6 w-2 rounded-sm"
+              style={{ background: "var(--label-color)" }}
+            />
+            <span className="text-sm">{label.name}</span>
+          </div>
+        ))}
+      </div>
     </SettingsCard>
   );
 };

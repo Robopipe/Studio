@@ -42,7 +42,6 @@ services:
       - ./packages:/app/packages
       - /app/node_modules
       - /app/apps/web/node_modules
-      - /app/packages/ui/node_modules
       - /app/packages/schema/node_modules
     depends_on:
       - api

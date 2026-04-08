@@ -1,6 +1,6 @@
-import { DeleteIcon, Stack, Text } from "@repo/ui";
+import { cn } from "@/lib/utils";
+import { Trash2 } from "lucide-react";
 import { Annotation } from "../../types/annotations";
-import styles from "./LabelsTab.module.scss";
 
 export interface LabelsTabProps {
   annotations: Annotation[];
@@ -16,38 +16,48 @@ export const LabelsTab = ({
   onDeleteAnnotation,
 }: LabelsTabProps) => {
   return (
-    <Stack gap="md" className={styles.tab}>
+    <div className="flex flex-col gap-4 py-2">
       <div>
-        <Text variant="text-10" weight="700" className={styles.sectionTitle}>
+        <p className="mb-2 text-[10px] font-bold uppercase tracking-wider">
           Regions
-        </Text>
-        <div className={styles.regionList}>
-          {annotations.map((annotation, index) => (
-            <div
-              key={annotation.id}
-              className={`${styles.regionRow} ${annotation.id === selectedAnnotationId ? styles.selected : ""}`}
-              onClick={() => onSelectAnnotation(annotation.id)}
-            >
-              <span className={styles.regionIndex}>{index + 1}</span>
-              <span
-                className={styles.regionColorDot}
-                style={{ background: annotation.color }}
-              />
-              <span className={styles.regionLabel}>{annotation.labelName}</span>
-              <button
-                className={styles.deleteButton}
-                title="Delete"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDeleteAnnotation(annotation.id);
-                }}
+        </p>
+        <div className="flex flex-col gap-0.5">
+          {annotations.map((annotation, index) => {
+            const isSelected = annotation.id === selectedAnnotationId;
+            return (
+              <div
+                key={annotation.id}
+                className={cn(
+                  "group flex cursor-pointer items-center gap-2 rounded px-1.5 py-1 text-sm hover:bg-black/[0.04]",
+                  isSelected && "bg-indigo-500/10"
+                )}
+                onClick={() => onSelectAnnotation(annotation.id)}
               >
-                <DeleteIcon />
-              </button>
-            </div>
-          ))}
+                <span className="w-5 text-muted-foreground">{index + 1}</span>
+                <span
+                  className="size-2 shrink-0 rounded-full"
+                  style={{ background: annotation.color }}
+                />
+                <span className="flex-1">{annotation.labelName}</span>
+                <button
+                  type="button"
+                  className={cn(
+                    "flex cursor-pointer items-center justify-center rounded border-none bg-transparent p-0.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-red-500/10 hover:text-red-500 [&_svg]:size-4",
+                    isSelected && "opacity-100"
+                  )}
+                  title="Delete"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteAnnotation(annotation.id);
+                  }}
+                >
+                  <Trash2 />
+                </button>
+              </div>
+            );
+          })}
         </div>
       </div>
-    </Stack>
+    </div>
   );
 };

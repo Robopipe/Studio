@@ -1,6 +1,5 @@
-import { CheckIcon, Container, Stack, Text } from "@repo/ui";
+import { Check } from "lucide-react";
 import { ReactNode } from "react";
-import styles from "./SettingsCard.module.scss";
 
 export type StepState = "pending" | "complete";
 
@@ -15,30 +14,26 @@ export const SettingsCard = (props: SettingsCardProps) => {
   const { title, children, state, stepNumber } = props;
 
   return (
-    <Container size="full" className={styles.settingsCard}>
-      <Stack direction="row">
-        <Stack direction="row" align="center">
+    <div className="w-full rounded-xl border border-black/10 bg-black/[0.03] p-6">
+      <div className="flex flex-row gap-4">
+        <div className="flex flex-row items-center gap-4">
           <div>
             {state === "complete" ? (
-              <div className={styles.icon}>
-                <CheckIcon />
+              <div className="flex size-5 items-center justify-center rounded-full bg-emerald-600 pl-px text-white [&_svg]:size-3">
+                <Check />
               </div>
             ) : (
-              <Text
-                variant="text-12"
-                weight="500"
-                className={styles.stepNumber}
-              >
+              <span className="flex size-5 items-center justify-center rounded-full border border-muted-foreground text-xs font-medium">
                 {stepNumber}
-              </Text>
+              </span>
             )}
           </div>
-          <Text weight="500" variant="text-14" className={styles.title}>
+          <span className="min-w-[12.5rem] whitespace-nowrap text-sm font-medium">
             {title.toUpperCase()}
-          </Text>
-        </Stack>
+          </span>
+        </div>
         {children}
-      </Stack>
-    </Container>
+      </div>
+    </div>
   );
 };

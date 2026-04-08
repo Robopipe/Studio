@@ -1,12 +1,11 @@
 import { webRoutes } from "@/config/web/routes";
-import { AddSmallIcon, Button, Heading, Stack } from "@repo/ui";
+import { Button } from "@/modules/shadcn/ui/button";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { useGetProjectsQuery } from "../../services/projectApi";
 import { CreateProjectModal } from "../CreateProjectModal";
 import { ProjectCard } from "../ProjectCard";
-
-import styles from "./ProjectsPage.module.scss";
 
 export interface ProjectsPageProps {}
 
@@ -16,26 +15,15 @@ export const ProjectsPage = ({}: ProjectsPageProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
-    <Stack fullWidth gap="md">
-      <Stack
-        fullWidth
-        gap="sm"
-        direction="row"
-        justify="space-between"
-        align="center"
-      >
-        <Heading variant="h5" weight="600">
-          Projects
-        </Heading>
-        <Button
-          iconStart={<AddSmallIcon />}
-          onClick={() => setIsModalOpen(true)}
-          size="md"
-        >
+    <div className="flex w-full flex-col gap-4">
+      <div className="flex w-full flex-row items-center justify-between gap-2">
+        <h5 className="text-xl font-semibold">Projects</h5>
+        <Button onClick={() => setIsModalOpen(true)}>
+          <Plus />
           New project
         </Button>
-      </Stack>
-      <div className={styles.projectsGrid}>
+      </div>
+      <div className="flex w-full flex-wrap gap-6">
         {projects?.map((project) => (
           <ProjectCard
             key={project.id}
@@ -52,6 +40,6 @@ export const ProjectsPage = ({}: ProjectsPageProps) => {
       {isModalOpen && (
         <CreateProjectModal onClose={() => setIsModalOpen(false)} />
       )}
-    </Stack>
+    </div>
   );
 };
