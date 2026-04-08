@@ -59,6 +59,10 @@ export const NumericParameter = ({
         max={schema.unwrap().maxValue ?? undefined}
         step={step}
         onValueChange={(values) => {
+          if (!Array.isArray(values)) {
+            return
+          }
+
           const next = values[0];
           if (next === undefined) return;
           setInternalValue(next);
