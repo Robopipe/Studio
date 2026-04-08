@@ -1,11 +1,12 @@
-import { Stack } from "@repo/ui";
 import { useState } from "react";
 import { AppliedAugmentation } from "../AugmentationSettings/augmentationTypes";
 import { AugmentationChip } from "../AugmentationSettings/AugmentationChip";
 import { AugmentationDialog } from "../AugmentationSettings/AugmentationDialog/AugmentationDialog";
 import { SettingsCard } from "../SettingsCard";
-import { getPreprocessingById, PREPROCESSING_DEFINITIONS } from "./preprocessingTypes";
-import styles from "./PreprocessingSettings.module.scss";
+import {
+  getPreprocessingById,
+  PREPROCESSING_DEFINITIONS,
+} from "./preprocessingTypes";
 
 export interface PreprocessingSettingsProps {
   preprocessings: AppliedAugmentation[];
@@ -50,7 +51,7 @@ export const PreprocessingSettings = ({
         stepNumber={4}
         title="Preprocessing"
       >
-        <Stack direction="row" gap={8} className={styles.preprocessingSettings}>
+        <div className="flex w-full flex-row flex-wrap gap-2">
           {preprocessings.map((pp) => {
             const def = getPreprocessingById(pp.type);
             if (!def) return null;
@@ -64,10 +65,14 @@ export const PreprocessingSettings = ({
               />
             );
           })}
-          <button className={styles.addButton} onClick={handleAdd}>
+          <button
+            type="button"
+            className="flex cursor-pointer items-center gap-1 whitespace-nowrap border-none bg-none px-4 py-3 text-sm font-semibold text-emerald-700 hover:underline"
+            onClick={handleAdd}
+          >
             + Add
           </button>
-        </Stack>
+        </div>
       </SettingsCard>
 
       {dialogOpen && (

@@ -26,9 +26,9 @@
   }
 
   &.active {
-    background: var(--color-primary, #6366f1);
+    background: var(--primary);
     color: white;
-    border-color: var(--color-primary, #6366f1);
+    border-color: var(--primary);
   }
 
   &:not(.active) {

@@ -1,4 +1,3 @@
-import { Text } from "@repo/ui";
 import {
   Area,
   AreaChart,
@@ -8,7 +7,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import styles from "./TrainingChart.module.scss";
 
 export interface TrainingChartProps {
   data: { epoch: number; value: number }[];
@@ -17,10 +15,8 @@ export interface TrainingChartProps {
 
 export const TrainingChart = ({ data, title }: TrainingChartProps) => {
   return (
-    <div className={styles.trainingChart}>
-      <Text variant="text-14" as="p" weight="700">
-        {title}
-      </Text>
+    <div className="w-1/2">
+      <p className="text-sm font-bold">{title}</p>
       <ResponsiveContainer width="100%" height={250}>
         <AreaChart
           data={data}
