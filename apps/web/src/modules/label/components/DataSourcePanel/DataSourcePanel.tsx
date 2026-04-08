@@ -14,6 +14,7 @@ import {
 } from "@/modules/shadcn/ui/select";
 import { cn } from "@/lib/utils";
 import { Task } from "@repo/schema";
+import { useEffect, useRef } from "react";
 
 export type AnnotationFilter = "all" | "true" | "false";
 
@@ -46,6 +47,12 @@ export const DataSourcePanel = ({
   annotationFilter,
   onAnnotationFilterChange,
 }: DataSourcePanelProps) => {
+  const listRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    listRef.current?.scrollTo({ top: 0 });
+  }, [page]);
+
   return (
     <div className="flex max-h-full min-h-0 flex-col overflow-hidden border-r border-black/10 bg-black/[0.03] py-4 pl-4">
       <p className="mb-3 pr-4 text-[10px] font-bold uppercase tracking-wider">
@@ -60,7 +67,11 @@ export const DataSourcePanel = ({
           }
         >
           <SelectTrigger className="w-full">
-            <SelectValue placeholder="Filter" />
+            <SelectValue placeholder="Filter">
+              {(value: string) =>
+                FILTER_OPTIONS.find((o) => o.value === value)?.label ?? "Filter"
+              }
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {FILTER_OPTIONS.map((opt) => (
@@ -72,7 +83,10 @@ export const DataSourcePanel = ({
         </Select>
       </div>
 
-      <div className="flex flex-1 flex-col gap-1 overflow-y-auto pr-2">
+      <div
+        ref={listRef}
+        className="flex flex-1 flex-col gap-1 overflow-y-auto pr-2"
+      >
         {tasks.map((task) => {
           const isSelected = task.id === selectedTaskId;
           return (

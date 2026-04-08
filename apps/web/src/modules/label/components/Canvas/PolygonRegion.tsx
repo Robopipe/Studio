@@ -23,6 +23,7 @@ interface PolygonRegionProps {
   imageHeight: number;
   isSelected: boolean;
   toolMode: ToolMode;
+  stageScale: number;
   onSelect: (id: string) => void;
   onUpdate: (id: string, updates: Partial<Annotation>) => void;
 }
@@ -33,6 +34,7 @@ export const PolygonRegion = ({
   imageHeight,
   isSelected,
   toolMode,
+  stageScale,
   onSelect,
   onUpdate,
 }: PolygonRegionProps) => {
@@ -147,8 +149,9 @@ export const PolygonRegion = ({
         closed
         stroke={annotation.color}
         strokeWidth={2}
+        strokeScaleEnabled={false}
         fill={annotation.color + "33"}
-        hitStrokeWidth={20}
+        hitStrokeWidth={20 / stageScale}
         draggable={isInteractive}
         onDragMove={handleLineDragMove}
         onDragEnd={handleLineDragEnd}
@@ -175,11 +178,12 @@ export const PolygonRegion = ({
             ref={(node) => { circleRefs.current[i] = node; }}
             x={(px / 100) * imageWidth}
             y={(py / 100) * imageHeight}
-            radius={4}
-            hitRadius={40}
+            radius={4 / stageScale}
+            hitRadius={40 / stageScale}
             fill="white"
             stroke={annotation.color}
             strokeWidth={2}
+            strokeScaleEnabled={false}
             draggable
             onDragMove={(e) => handlePointDragMove(i, e)}
             onDragEnd={(e) => handlePointDragEnd(i, e)}

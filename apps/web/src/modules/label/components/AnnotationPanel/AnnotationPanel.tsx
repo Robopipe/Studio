@@ -6,7 +6,8 @@ import {
   TabsTrigger,
 } from "@/modules/shadcn/ui/tabs";
 import { Label } from "@repo/schema";
-import { Square, Trash2 } from "lucide-react";
+import { Eye, EyeOff, GripVertical, Square, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { Annotation, HistoryEntry } from "../../types/annotations";
 import { HistoryTab } from "../HistoryTab";
 
@@ -16,6 +17,9 @@ export interface AnnotationPanelProps {
   selectedAnnotationId: string | null;
   onSelectAnnotation: (id: string) => void;
   onDeleteAnnotation: (id: string) => void;
+  onReorderAnnotations: (fromIndex: number, toIndex: number) => void;
+  hiddenAnnotationIds: Set<string>;
+  onToggleAnnotationVisibility: (id: string) => void;
   historyEntries: HistoryEntry[];
   historyIndex: number;
   onJumpTo: (index: number) => void;
@@ -27,6 +31,9 @@ export const AnnotationPanel = ({
   selectedAnnotationId,
   onSelectAnnotation,
   onDeleteAnnotation,
+  onReorderAnnotations,
+  hiddenAnnotationIds,
+  onToggleAnnotationVisibility,
   historyEntries,
   historyIndex,
   onJumpTo,
@@ -35,6 +42,10 @@ export const AnnotationPanel = ({
     ...label,
     count: annotations.filter((a) => a.labelId === String(label.id)).length,
   }));
+
+  const [draggableIndex, setDraggableIndex] = useState<number | null>(null);
+  const [dragFromIndex, setDragFromIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   return (
     <Tabs
@@ -87,15 +98,70 @@ export const AnnotationPanel = ({
           <div className="flex flex-col">
             {annotations.map((annotation, index) => {
               const isSelected = annotation.id === selectedAnnotationId;
+              const isHidden = hiddenAnnotationIds.has(annotation.id);
+              const isDragging = dragFromIndex === index;
+              const showDropAbove =
+                dragOverIndex === index &&
+                dragFromIndex !== null &&
+                dragFromIndex > index;
+              const showDropBelow =
+                dragOverIndex === index &&
+                dragFromIndex !== null &&
+                dragFromIndex < index;
               return (
                 <div
                   key={annotation.id}
+                  draggable={draggableIndex === index}
+                  onDragStart={(e) => {
+                    setDragFromIndex(index);
+                    e.dataTransfer.effectAllowed = "move";
+                    e.dataTransfer.setData("text/plain", String(index));
+                  }}
+                  onDragEnter={() => {
+                    if (dragFromIndex !== null) setDragOverIndex(index);
+                  }}
+                  onDragOver={(e) => {
+                    if (dragFromIndex === null) return;
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = "move";
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    if (dragFromIndex !== null && dragFromIndex !== index) {
+                      onReorderAnnotations(dragFromIndex, index);
+                    }
+                    setDragFromIndex(null);
+                    setDragOverIndex(null);
+                    setDraggableIndex(null);
+                  }}
+                  onDragEnd={() => {
+                    setDragFromIndex(null);
+                    setDragOverIndex(null);
+                    setDraggableIndex(null);
+                  }}
                   onClick={() => onSelectAnnotation(annotation.id)}
                   className={cn(
-                    "group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-black/5",
-                    isSelected && "bg-primary/10"
+                    "group relative flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-black/5",
+                    isSelected && "bg-primary/10",
+                    isDragging && "opacity-40",
+                    isHidden && "opacity-50 grayscale",
+                    showDropAbove && "before:absolute before:inset-x-1 before:-top-px before:h-0.5 before:rounded-full before:bg-primary",
+                    showDropBelow && "after:absolute after:inset-x-1 after:-bottom-px after:h-0.5 after:rounded-full after:bg-primary"
                   )}
                 >
+                  <button
+                    type="button"
+                    aria-label="Drag to reorder"
+                    onMouseDown={(e) => {
+                      e.stopPropagation();
+                      setDraggableIndex(index);
+                    }}
+                    onMouseUp={() => setDraggableIndex(null)}
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex shrink-0 cursor-grab items-center justify-center rounded text-muted-foreground/60 opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100 active:cursor-grabbing [&_svg]:size-3.5"
+                  >
+                    <GripVertical />
+                  </button>
                   <span
                     className="size-3 shrink-0 rounded-[3px] border"
                     style={{
@@ -112,6 +178,22 @@ export const AnnotationPanel = ({
                   <span className="flex-1 truncate text-xs leading-4 text-foreground/90">
                     {annotation.labelName}
                   </span>
+                  <button
+                    type="button"
+                    title={isHidden ? "Show" : "Hide"}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleAnnotationVisibility(annotation.id);
+                    }}
+                    className={cn(
+                      "flex shrink-0 cursor-pointer items-center justify-center rounded p-1 text-muted-foreground transition-opacity hover:bg-black/5 hover:text-foreground [&_svg]:size-3.5",
+                      isHidden || isSelected
+                        ? "opacity-100"
+                        : "opacity-0 group-hover:opacity-100"
+                    )}
+                  >
+                    {isHidden ? <EyeOff /> : <Eye />}
+                  </button>
                   <button
                     type="button"
                     title="Delete"
