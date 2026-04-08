@@ -1,6 +1,6 @@
 import * as p from 'drizzle-orm/pg-core'
 import { createdAt, updatedAt, uuidId } from '../helpers'
-import { EvalLimitItemOperatorEnum, EvalLimitItemParameterEnum, EvalLogicNode, EvalTestCaseSeverityEnum, EvalTestCaseTypeEnum } from '@repo/schema'
+import { EvalLimitItemOperatorEnum, EvalLimitItemParameterEnum, EvalLimitItemQuantifierTypeEnum, EvalLimitItemQuantifierUnitEnum, EvalLogicNode, EvalTestCaseSeverityEnum, EvalTestCaseTypeEnum } from '@repo/schema'
 import { dashboardConfigurationTable } from './dashboard-configuration'
 import { projectLabelTable } from './project-label'
 import { projectTable } from './project'
@@ -21,6 +21,17 @@ export const evalLimitItemOperatorEnum = p.pgEnum("eval_limit_item_operator_enum
   EvalLimitItemOperatorEnum.OR,
 ])
 
+export const evalLimitItemQuantifierTypeEnum = p.pgEnum("eval_limit_item_quantifier_type_enum", [
+  EvalLimitItemQuantifierTypeEnum.EXACT,
+  EvalLimitItemQuantifierTypeEnum.MAX,
+  EvalLimitItemQuantifierTypeEnum.MIN,
+])
+
+export const evalLimitItemQuantifierUnitEnum = p.pgEnum("eval_limit_item_quantifier_unit_enum", [
+  EvalLimitItemQuantifierUnitEnum.PCS,
+  EvalLimitItemQuantifierUnitEnum.PERCENT,
+])
+
 export const evalTestCaseTypeEnum = p.pgEnum("eval_test_case_type_enum", [
   EvalTestCaseTypeEnum.CHECK,
   EvalTestCaseTypeEnum.DEFECT,
@@ -38,6 +49,9 @@ export const evalLimitItemTable = p.pgTable("eval_limit_item", {
   position: p.integer("position").notNull(),
   parameter: evalLimitItemParameterEnum("parameter").notNull(),
   operator: evalLimitItemOperatorEnum("operator").notNull(),
+  quantifierType: evalLimitItemQuantifierTypeEnum("quantifier_type").notNull(),
+  quantifierUnit: evalLimitItemQuantifierUnitEnum("quantifier_unit").notNull(),
+  quantifierValue: p.doublePrecision("quantifier_value").notNull(),
   limitId: p.varchar("limit_id", {length: 128}).notNull().references(() => evalLimitTable.id, {onDelete: 'cascade'}),
   createdAt,
   updatedAt

@@ -40,7 +40,7 @@ export const CreateLimitModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-160">
+      <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">Add Limit</DialogTitle>
         </DialogHeader>

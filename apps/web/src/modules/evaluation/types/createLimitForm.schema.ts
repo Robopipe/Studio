@@ -1,6 +1,8 @@
 import {
   EvalLimitItemOperatorEnum,
   EvalLimitItemParameterEnum,
+  EvalLimitItemQuantifierTypeEnum,
+  EvalLimitItemQuantifierUnitEnum,
 } from "@repo/schema";
 import { z } from "zod";
 
@@ -10,6 +12,9 @@ const limitItemFormSchema = z.object({
   limitTo: z.number().nullable(),
   parameter: z.enum(EvalLimitItemParameterEnum),
   operator: z.enum(EvalLimitItemOperatorEnum),
+  quantifierType: z.enum(EvalLimitItemQuantifierTypeEnum),
+  quantifierUnit: z.enum(EvalLimitItemQuantifierUnitEnum),
+  quantifierValue: z.number(),
 });
 
 export const createLimitFormSchema = z.object({

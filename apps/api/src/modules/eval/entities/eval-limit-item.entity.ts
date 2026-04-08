@@ -1,4 +1,4 @@
-import { EvalLimitItem, EvalLimitItemOperatorEnum, EvalLimitItemParameterEnum } from "@repo/schema";
+import { EvalLimitItem, EvalLimitItemOperatorEnum, EvalLimitItemParameterEnum, EvalLimitItemQuantifierTypeEnum, EvalLimitItemQuantifierUnitEnum } from "@repo/schema";
 import { EvalLimitItemSelect } from "src/repository/types/eval";
 
 export class EvalLimitItemEntity {
@@ -7,6 +7,9 @@ export class EvalLimitItemEntity {
   readonly limitTo: number | null;
   readonly parameter: EvalLimitItemParameterEnum;
   readonly operator: EvalLimitItemOperatorEnum;
+  readonly quantifierType: EvalLimitItemQuantifierTypeEnum;
+  readonly quantifierUnit: EvalLimitItemQuantifierUnitEnum;
+  readonly quantifierValue: number;
   readonly limitId: string;
   readonly position: number;
   readonly createdAt: Date;
@@ -20,6 +23,9 @@ export class EvalLimitItemEntity {
     this.limitTo = data.limitTo;
     this.parameter = data.parameter;
     this.operator = data.operator;
+    this.quantifierType = data.quantifierType;
+    this.quantifierUnit = data.quantifierUnit;
+    this.quantifierValue = data.quantifierValue;
     this.position = data.position;
     this.limitId = data.limitId;
     this.createdAt = data.createdAt;
@@ -33,6 +39,9 @@ export class EvalLimitItemEntity {
       limitTo: this.limitTo,
       parameter: this.parameter,
       operator: this.operator,
+      quantifierType: this.quantifierType,
+      quantifierUnit: this.quantifierUnit,
+      quantifierValue: this.quantifierValue,
       updatedAt: this.updatedAt.toISOString(),
       createdAt: this.createdAt.toISOString()
     }
