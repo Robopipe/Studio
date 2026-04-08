@@ -128,7 +128,7 @@ export const NavDropdown = ({
       {isOpen && (
         <div
           className={cn(
-            "absolute top-[calc(100%+8px)] z-[1000] w-[360px] rounded-xl border border-gray-800 bg-[#1c1c1f] p-2 shadow-[0_10px_30px_rgba(0,0,0,0.5)]",
+            "absolute top-[calc(100%+12px)] z-[1000] w-[360px] rounded-xl border border-gray-800 bg-[#1c1c1f] p-2 shadow-[0_10px_30px_rgba(0,0,0,0.5)]",
             align === "right" ? "right-0" : "left-0"
           )}
         >
@@ -203,7 +203,7 @@ export const NavDropdown = ({
             />
           </div>
 
-          <div className="max-h-[200px] overflow-y-auto [&::-webkit-scrollbar-thumb]:rounded-[10px] [&::-webkit-scrollbar-thumb]:bg-gray-700 [&::-webkit-scrollbar]:w-1">
+          <div className="flex max-h-[200px] flex-col gap-1 overflow-y-auto [&::-webkit-scrollbar-thumb]:rounded-[10px] [&::-webkit-scrollbar-thumb]:bg-gray-700 [&::-webkit-scrollbar]:w-1">
             {filteredItems.length > 0 ? (
               filteredItems.map((item) => (
                 <div
