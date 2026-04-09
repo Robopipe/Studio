@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { DashboardConfigurationRepository } from "../../../repository/services/dashboard-configuration.service";
 import { DashboardEvaluationRepository } from "../../../repository/services/dashboard-evaluation.service";
+import { EvalThresholdRepository } from "../../../repository/services/eval-threshold.service";
 import {
   DashboardConfigurationCreateRequest,
   DashboardConfigurationUpdateRequest,
@@ -8,12 +9,14 @@ import {
 import { DashboardEvaluationUpsertRequest } from "../dto/dashboard-evaluation.dto";
 import { DashboardConfigurationEntity } from "../entity/dashboard-configuration.entity";
 import { DashboardEvaluationEntity } from "../entity/dashboard-evaluation.entity";
+import { defaultThresholds } from "../../eval/data/eval-threshold.data";
 
 @Injectable()
 export class DashboardService {
   constructor(
     private readonly dashboardConfigurationRepository: DashboardConfigurationRepository,
     private readonly dashboardEvaluationRepository: DashboardEvaluationRepository,
+    private readonly evalThresholdRepository: EvalThresholdRepository,
   ) {}
 
   /**
@@ -49,10 +52,12 @@ export class DashboardService {
    * @returns created DashboardConfigurationEntity
    */
   public async createConfiguration(projectId: number, data: DashboardConfigurationCreateRequest): Promise<DashboardConfigurationEntity> {
-    return this.dashboardConfigurationRepository.create({
+    const config = await this.dashboardConfigurationRepository.create({
       projectId,
       name: data.name,
     });
+    await this.evalThresholdRepository.createManyForConfig(config.id, defaultThresholds);
+    return config;
   }
 
   /**

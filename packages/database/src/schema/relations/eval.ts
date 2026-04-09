@@ -48,6 +48,10 @@ export const relationEvalPart = defineRelationsPart(schema, (r) => ({
     testCase: r.one.evalTestCaseTable({
       from: r.evalThresholdTable.testCaseId,
       to: r.evalTestCaseTable.id
+    }),
+    dashboardConfiguration: r.one.dashboardConfigurationTable({
+      from: r.evalThresholdTable.dashboardConfigurationId,
+      to: r.dashboardConfigurationTable.id
     })
   }
 }))

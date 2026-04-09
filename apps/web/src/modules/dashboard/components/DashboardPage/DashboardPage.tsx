@@ -4,7 +4,9 @@ import { Input } from "@/modules/shadcn/ui/input";
 import { Label } from "@/modules/shadcn/ui/label";
 import { cn } from "@/lib/utils";
 import { DashboardConfiguration } from "@repo/schema";
+import { Link } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { useParams } from "react-router";
 import {
   useCreateDashboardConfigMutation,
@@ -260,7 +262,7 @@ export const DashboardPage = ({
           {activeConfigId ? (
             <div className="flex min-h-0 flex-1 flex-col">
               {/* Right panel tabs */}
-              <div className="flex h-12 flex-shrink-0 items-center border-b border-black/10 bg-gray-50 px-6">
+              <div className="flex h-12 flex-shrink-0 items-center justify-between border-b border-black/10 bg-gray-50 px-6">
                 <div className="flex flex-row items-center gap-6">
                   {(
                     [
@@ -283,6 +285,20 @@ export const DashboardPage = ({
                     </button>
                   ))}
                 </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={!dashboardUrl}
+                  onClick={() => {
+                    if (!dashboardUrl) return;
+                    navigator.clipboard.writeText(dashboardUrl).then(() => {
+                      toast.success("Dashboard link copied to clipboard");
+                    });
+                  }}
+                >
+                  <Link className="size-4" />
+                  Copy link
+                </Button>
               </div>
 
               {/* Right panel content — key forces remount on config switch to reset local state */}

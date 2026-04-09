@@ -1,4 +1,6 @@
 import * as p from 'drizzle-orm/pg-core'
+import { check } from 'drizzle-orm/pg-core'
+import { sql } from 'drizzle-orm'
 import { createdAt, updatedAt, uuidId } from '../helpers'
 import { EvalLimitItemOperatorEnum, EvalLimitItemParameterEnum, EvalLimitItemQuantifierTypeEnum, EvalLimitItemQuantifierUnitEnum, EvalLogicNode, EvalSeverityEnum, EvalTestCaseTypeEnum } from '@repo/schema'
 import { dashboardConfigurationTable } from './dashboard-configuration'
@@ -88,7 +90,10 @@ export const evalThresholdTable = p.pgTable("eval_threshold", {
   name: p.varchar("name", {length: 255}).notNull(),
   value: p.doublePrecision("value").notNull(),
   color: p.varchar("color", {length: 255}).notNull(),
-  testCaseId: p.varchar("test_case_id", {length: 128}).notNull().references(() => evalTestCaseTable.id, {onDelete: 'cascade'}),
+  testCaseId: p.varchar("test_case_id", {length: 128}).references(() => evalTestCaseTable.id, {onDelete: 'cascade'}),
+  dashboardConfigurationId: p.integer("dashboard_configuration_id").references(() => dashboardConfigurationTable.id, {onDelete: 'cascade'}),
   createdAt,
   updatedAt
-})
+}, (table) => [
+  check("threshold_owner_xor", sql`(${table.testCaseId} IS NOT NULL AND ${table.dashboardConfigurationId} IS NULL) OR (${table.testCaseId} IS NULL AND ${table.dashboardConfigurationId} IS NOT NULL)`)
+])

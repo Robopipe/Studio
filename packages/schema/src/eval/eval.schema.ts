@@ -192,3 +192,8 @@ export const evalThresholdCreateOrUpdateSchema = evalThresholdSchema.pick({
   color: true,
   value: true,
 });
+
+export const evalThresholdsResponseSchema = z.object({
+  testCases: z.array(evalTestCaseThresholdSchema),
+  master: z.array(evalThresholdSchema),
+});

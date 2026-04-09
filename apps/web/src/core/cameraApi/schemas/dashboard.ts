@@ -69,6 +69,13 @@ export type DeployEvalTestCase = {
   thresholds: DeployEvalThreshold[];
 };
 
+export type DeployMasterThreshold = {
+  id: string;
+  name: string;
+  value: number;
+  color: string;
+};
+
 export type DeployDashboardConfig = {
   id: number;
   name: string;
@@ -78,5 +85,6 @@ export type DeployDashboardConfig = {
   linePosition: number;
   lineFlow: string;
   testCases: DeployEvalTestCase[];
+  thresholds: DeployMasterThreshold[];
   labels: DeployLabel[];
 };

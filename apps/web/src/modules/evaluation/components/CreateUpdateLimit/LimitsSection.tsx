@@ -11,7 +11,7 @@ export function LimitsSection() {
   return (
     <section className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <h6 className="text-sm font-bold">Limits</h6>
+        <h6 className="text-sm font-bold">Limit Items</h6>
         <form.AppField name="limitItems">
           {(field) => (
             <Button
@@ -20,7 +20,10 @@ export function LimitsSection() {
               size="sm"
               className="h-auto gap-1 p-0 text-xs"
               onClick={() =>
-                field.handleChange([...field.state.value, { ...emptyLimitItem }])
+                field.handleChange([
+                  ...field.state.value,
+                  { ...emptyLimitItem },
+                ])
               }
             >
               <PlusIcon />
@@ -43,7 +46,9 @@ export function LimitsSection() {
                 <LimitItemRow
                   index={i}
                   onDelete={() => {
-                    const updated = field.state.value.filter((_, idx) => idx !== i);
+                    const updated = field.state.value.filter(
+                      (_, idx) => idx !== i,
+                    );
                     field.handleChange(updated);
                   }}
                 />
