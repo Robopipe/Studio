@@ -316,6 +316,12 @@ export const useRunDeploy = ({
           linePosition: config.linePosition,
           lineFlow: config.lineFlow,
           testCases: assembledTestCases,
+          thresholds: evalThresholds.master.map((t) => ({
+            id: t.id,
+            name: t.name,
+            value: t.value,
+            color: t.color,
+          })),
           labels: labels,
         },
         nn_config: {
