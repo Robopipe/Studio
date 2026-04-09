@@ -80,6 +80,7 @@ export const BoundingBox = ({
         height={h}
         stroke={annotation.color}
         strokeWidth={2}
+        strokeScaleEnabled={false}
         fill={annotation.color + "33"}
         draggable={isInteractive}
         onMouseDown={(e) => {
@@ -101,7 +102,8 @@ export const BoundingBox = ({
         <Transformer
           ref={trRef}
           rotateEnabled={false}
-          borderStroke={annotation.color}
+          keepRatio={false}
+          borderEnabled={false}
           anchorStroke={annotation.color}
           anchorSize={8}
           anchorCornerRadius={2}

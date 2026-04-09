@@ -1,11 +1,5 @@
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/modules/shadcn/ui/pagination";
+import { PaginationNumbers } from "@/modules/shadcn/ui/pagination";
 import { format } from "date-fns";
 import { Download, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -79,39 +73,12 @@ export const CapturedPhotos = ({}: CapturedPhotosProps) => {
           </div>
         </div>
       ))}
-      <Pagination>
-        <PaginationContent>
-          <PaginationItem>
-            <PaginationPrevious
-              onClick={(e) => {
-                e.preventDefault();
-                if (page > 1) setPage(page - 1);
-              }}
-              className={
-                page <= 1 ? "pointer-events-none opacity-50" : undefined
-              }
-            />
-          </PaginationItem>
-          <PaginationItem>
-            <span className="px-2 text-sm text-muted-foreground">
-              Page {page} of {totalPages}
-            </span>
-          </PaginationItem>
-          <PaginationItem>
-            <PaginationNext
-              onClick={(e) => {
-                e.preventDefault();
-                if (page < totalPages) setPage(page + 1);
-              }}
-              className={
-                page >= totalPages
-                  ? "pointer-events-none opacity-50"
-                  : undefined
-              }
-            />
-          </PaginationItem>
-        </PaginationContent>
-      </Pagination>
+      <PaginationNumbers
+        currentPage={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        className="mx-auto"
+      />
     </div>
   );
 };
