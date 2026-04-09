@@ -1,7 +1,9 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { DashboardConfigurationRepository } from "src/repository/services/dashboard-configuration.service";
 import { EvalTestCaseRepository } from "src/repository/services/eval-test-case.service";
 import { EvalThresholdRepository } from "src/repository/services/eval-threshold.service";
 import { EvalTestCaseThresholdEntity } from "../entities/eval-test-case.entity";
+import { EvalThresholdEntity } from "../entities/eval-threshold.entity";
 import { EvalThresholdCreateOrUpdateDto } from "../dto/eval-threshold.dto";
 
 @Injectable()
@@ -9,70 +11,82 @@ export class EvalThresholdService {
   constructor(
     private readonly evalThresholdRepository: EvalThresholdRepository,
     private readonly evalTestCaseRepository: EvalTestCaseRepository,
+    private readonly dashboardConfigurationRepository: DashboardConfigurationRepository,
   ){}
 
-  /**
-   * Get thresholds for a dashboard configuration.
-   * No separate config check — query filters by both projectId + configId,
-   * so a mismatched configId simply returns empty array (no data leakage).
-   */
-  public async getThresholds(projectId: number, configId: number): Promise<EvalTestCaseThresholdEntity[]>{
-    return this.evalTestCaseRepository.getAllThresholdsByProjectId(projectId, configId);
+  private async verifyConfigOwnership(configId: number, projectId: number): Promise<void> {
+    const config = await this.dashboardConfigurationRepository.getByIdAndProjectId(configId, projectId);
+    if(!config){
+      throw new NotFoundException("Dashboard configuration not found");
+    }
   }
 
-  /**
-   * Create threshold — single ownership query for project + config + test case.
-   */
-  public async createThreshold(projectId: number, configId: number, testCaseId: string, data: EvalThresholdCreateOrUpdateDto): Promise<EvalTestCaseThresholdEntity>{
-    await this.evalTestCaseRepository.verifyOwnership(testCaseId, projectId, configId);
+  private async verifyThresholdOwnership(threshold: EvalThresholdEntity, projectId: number, configId: number): Promise<void> {
+    if(threshold.dashboardConfigurationId){
+      if(threshold.dashboardConfigurationId !== configId){
+        throw new NotFoundException("Threshold not found");
+      }
+    } else if(threshold.testCaseId){
+      await this.evalTestCaseRepository.verifyOwnership(threshold.testCaseId, projectId, configId);
+    }
+  }
 
+  private async getSiblings(threshold: EvalThresholdEntity): Promise<EvalThresholdEntity[]> {
+    if(threshold.testCaseId){
+      return this.evalThresholdRepository.getAllByTestCaseId(threshold.testCaseId);
+    }
+    return this.evalThresholdRepository.getAllByConfigId(threshold.dashboardConfigurationId!);
+  }
+
+  public async getAll(projectId: number, configId: number): Promise<{ testCases: EvalTestCaseThresholdEntity[], master: EvalThresholdEntity[] }>{
+    await this.verifyConfigOwnership(configId, projectId);
+    const [testCases, master] = await Promise.all([
+      this.evalTestCaseRepository.getAllThresholdsByProjectId(projectId, configId),
+      this.evalThresholdRepository.getAllByConfigId(configId),
+    ]);
+    return { testCases, master };
+  }
+
+  public async create(projectId: number, configId: number, testCaseId: string | undefined, data: EvalThresholdCreateOrUpdateDto): Promise<EvalThresholdEntity>{
     if(data.value <= 0 || data.value >= 1){
       throw new BadRequestException("Threshold value can't be 0 or higher than or equal to 1")
     }
 
-    await this.evalThresholdRepository.create(testCaseId, data)
-    return this.evalTestCaseRepository.getThresholdByIdAndProjectIdOrThrow(testCaseId, projectId)
+    if(testCaseId){
+      await this.evalTestCaseRepository.verifyOwnership(testCaseId, projectId, configId);
+      return this.evalThresholdRepository.create({ testCaseId, ...data });
+    } else {
+      await this.verifyConfigOwnership(configId, projectId);
+      return this.evalThresholdRepository.create({ dashboardConfigurationId: configId, ...data });
+    }
   }
 
-  /**
-   * Update threshold.
-   */
-  public async updateThreshold(projectId: number, configId: number, testCaseId: string, thresholdId: string, data: EvalThresholdCreateOrUpdateDto): Promise<EvalTestCaseThresholdEntity>{
-    await this.evalTestCaseRepository.verifyOwnership(testCaseId, projectId, configId);
+  public async update(projectId: number, configId: number, thresholdId: string, data: EvalThresholdCreateOrUpdateDto): Promise<EvalThresholdEntity>{
+    const threshold = await this.evalThresholdRepository.getByIdOrThrow(thresholdId);
+    await this.verifyThresholdOwnership(threshold, projectId, configId);
 
-    const existingThresholds = await this.evalThresholdRepository.getAllByTestCaseId(testCaseId)
-    const foundThreshold = existingThresholds.find((threshold) => threshold.id === thresholdId)
-    const foundThresholdByValue = existingThresholds.find((threshold) => threshold.value === data.value && threshold.id !== thresholdId)
+    const siblings = await this.getSiblings(threshold);
+    const duplicateValue = siblings.find((t) => t.value === data.value && t.id !== thresholdId);
 
-    if(!foundThreshold){
-      throw new NotFoundException("Threshold not found")
-    }
-
-    if(foundThresholdByValue){
+    if(duplicateValue){
       throw new ConflictException("Threshold with this value already exists")
     }
 
-    if(foundThreshold.value === 1 && data.value !== 1){
+    if(threshold.value === 1 && data.value !== 1){
       throw new BadRequestException("You can't update the last threshold's value")
     }
 
-    await this.evalThresholdRepository.update(thresholdId, testCaseId, data)
-    return this.evalTestCaseRepository.getThresholdByIdAndProjectIdOrThrow(testCaseId, projectId)
+    return this.evalThresholdRepository.updateById(thresholdId, data);
   }
 
-  /**
-   * Delete threshold.
-   */
-  public async deleteThreshold(projectId: number, configId: number, testCaseId: string, thresholdId: string): Promise<EvalTestCaseThresholdEntity>{
-    await this.evalTestCaseRepository.verifyOwnership(testCaseId, projectId, configId);
+  public async delete(projectId: number, configId: number, thresholdId: string): Promise<void>{
+    const threshold = await this.evalThresholdRepository.getByIdOrThrow(thresholdId);
+    await this.verifyThresholdOwnership(threshold, projectId, configId);
 
-    const foundThreshold = await this.evalThresholdRepository.getByIdAndTestCaseIdOrThrow(thresholdId, testCaseId)
-
-    if(foundThreshold.value === 1){
+    if(threshold.value === 1){
       throw new BadRequestException("You can't delete the last threshold")
     }
 
-    await this.evalThresholdRepository.delete(thresholdId, testCaseId)
-    return this.evalTestCaseRepository.getThresholdByIdAndProjectIdOrThrow(testCaseId, projectId)
+    await this.evalThresholdRepository.deleteById(thresholdId);
   }
 }

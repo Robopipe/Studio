@@ -13,6 +13,7 @@ import {
   useLazyGetEvalTestCasesQuery,
   useLazyGetEvalThresholdsQuery,
 } from "@/modules/evaluation/api/evaluationApi";
+
 import { useLazyGetModelOutputsQuery } from "@/modules/model/services/modelApi";
 import {
   useLazyGetProjectLabelsQuery,
@@ -265,7 +266,7 @@ export const useRunDeploy = ({
     );
 
     const thresholdsByTestCase = new Map(
-      evalThresholds.map((t) => [t.id, t.thresholds]),
+      evalThresholds.testCases.map((t) => [t.id, t.thresholds]),
     );
 
     const assembledTestCases = testCasesWithFullLimits.map((tc) => ({
