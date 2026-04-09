@@ -18,12 +18,13 @@ export interface CanvasProps {
   onDeleteAnnotation: (id: string) => void;
   onUndo: () => void;
   onRedo: () => void;
-  onZoomAtPoint: (pointer: { x: number; y: number }, direction: number) => void;
+  onZoomAtPoint: (pointer: { x: number; y: number }, factor: number) => void;
   onSetPosition: (pos: { x: number; y: number }) => void;
   onFitImage: (iw: number, ih: number, cw: number, ch: number) => void;
   isDirty: boolean;
   isSaving: boolean;
   onSave: () => void;
+  showCrosshair: boolean;
 }
 
 export const Canvas = ({
@@ -46,11 +47,13 @@ export const Canvas = ({
   isDirty,
   isSaving,
   onSave,
+  showCrosshair,
 }: CanvasProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const stageHandle = useRef<KonvaStageHandle>(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const { image, loading, error } = useImageLoader(task?.filePath);
+  const fittedImageRef = useRef<HTMLImageElement | null>(null);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -69,7 +72,13 @@ export const Canvas = ({
   }, [task]);
 
   useEffect(() => {
-    if (image && containerSize.width > 0 && containerSize.height > 0) {
+    if (
+      image &&
+      containerSize.width > 0 &&
+      containerSize.height > 0 &&
+      fittedImageRef.current !== image
+    ) {
+      fittedImageRef.current = image;
       onFitImage(
         image.width,
         image.height,
@@ -119,20 +128,22 @@ export const Canvas = ({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-black/[0.03]">
-      <div className="flex items-center gap-2 border-b border-black/10 px-4 py-2">
-        <span className="text-sm font-medium">
+      <div className="flex h-10 shrink-0 items-center gap-2 border-b border-black/10 px-4">
+        <span
+          className="min-w-0 flex-1 truncate text-sm font-medium"
+          title={task.filePath.split("/").pop() ?? "Task"}
+        >
           {task.filePath.split("/").pop() ?? "Task"}
         </span>
-        {isDirty && (
-          <button
-            type="button"
-            className="ml-auto cursor-pointer rounded border-none bg-primary px-3 py-1 text-xs font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-            onClick={onSave}
-            disabled={isSaving}
-          >
-            {isSaving ? "Saving..." : "Save"}
-          </button>
-        )}
+        <button
+          type="button"
+          title="Save (S)"
+          className="shrink-0 cursor-pointer rounded border-none bg-primary px-3 py-1 text-xs font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+          onClick={onSave}
+          disabled={!isDirty || isSaving}
+        >
+          {isSaving ? "Saving..." : "Save"}
+        </button>
       </div>
 
       <div
@@ -159,14 +170,15 @@ export const Canvas = ({
               scale={scale}
               position={position}
               toolMode={toolMode}
-              annotations={annotations}
-              selectedAnnotationId={selectedAnnotationId}
+              annotations={loading ? [] : annotations}
+              selectedAnnotationId={loading ? null : selectedAnnotationId}
               activeLabel={activeLabel}
               onSelect={onSelect}
               onAddAnnotation={onAddAnnotation}
               onUpdateAnnotation={onUpdateAnnotation}
               onZoomAtPoint={onZoomAtPoint}
               onSetPosition={onSetPosition}
+              showCrosshair={showCrosshair}
             />
           </div>
         )}

@@ -8,6 +8,7 @@ import { useSelectedTask } from "../../hooks/useSelectedTask";
 import { useToolMode } from "../../hooks/useToolMode";
 import { useHistory } from "../../hooks/useHistory";
 import { useCanvasState } from "../../hooks/useCanvasState";
+import { useLabelShortcuts } from "../../hooks/useLabelShortcuts";
 import { Annotation } from "../../types/annotations";
 import { taskDetailToAnnotations, annotationsToUpdatePayload } from "../../utils/mapAnnotations";
 import { AnnotationPanel } from "../AnnotationPanel";
@@ -37,6 +38,19 @@ export const LabelPage = () => {
   );
 
   const { selectedTaskId, setSelectedTaskId, selectedTask } = useSelectedTask(tasks);
+  const [pendingPageSelection, setPendingPageSelection] = useState<
+    "first" | "last" | null
+  >(null);
+
+  useEffect(() => {
+    if (!pendingPageSelection || tasks.length === 0) return;
+    setSelectedTaskId(
+      pendingPageSelection === "first"
+        ? tasks[0].id
+        : tasks[tasks.length - 1].id,
+    );
+    setPendingPageSelection(null);
+  }, [tasks, pendingPageSelection, setSelectedTaskId]);
 
   const { data: taskDetail } = useGetTaskQuery(
     { projectId: projectId!, taskId: selectedTaskId! },
@@ -46,9 +60,31 @@ export const LabelPage = () => {
   const [updateTask] = useUpdateTaskMutation();
 
   const { toolMode, setToolMode } = useToolMode();
+  const [showCrosshair, setShowCrosshair] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem("label.crosshair") === "1";
+  });
+  const toggleCrosshair = useCallback(() => {
+    setShowCrosshair((prev) => {
+      const next = !prev;
+      window.localStorage.setItem("label.crosshair", next ? "1" : "0");
+      return next;
+    });
+  }, []);
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [isDirty, setIsDirty] = useState(false);
   const [selectedAnnotationId, setSelectedAnnotationId] = useState<string | null>(null);
+  const [hiddenAnnotationIds, setHiddenAnnotationIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const toggleAnnotationVisibility = useCallback((id: string) => {
+    setHiddenAnnotationIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
   const [activeLabel, setActiveLabel] = useState<Label | null>(null);
   const canvasState = useCanvasState();
 
@@ -75,6 +111,7 @@ export const LabelPage = () => {
     if (taskDetail) {
       setAnnotations(taskDetailToAnnotations(taskDetail));
       setIsDirty(false);
+      setHiddenAnnotationIds(new Set());
       history.reset();
 
       if (activeProject?.type === ProjectTypeEnum.CLASSIFICATION) {
@@ -93,6 +130,19 @@ export const LabelPage = () => {
       }
     }
   }, [taskDetail, activeProject, labels]);
+
+  const handleReorderAnnotations = useCallback(
+    (fromIndex: number, toIndex: number) => {
+      if (fromIndex === toIndex) return;
+      setAnnotationsAndDirty((prev) => {
+        const next = [...prev];
+        const [moved] = next.splice(fromIndex, 1);
+        next.splice(toIndex, 0, moved);
+        return next;
+      });
+    },
+    [setAnnotationsAndDirty],
+  );
 
   const handleClear = useCallback(() => {
     if (selectedAnnotationId) {
@@ -142,6 +192,31 @@ export const LabelPage = () => {
     }
   }, [projectId, selectedTaskId, annotations, updateTask]);
 
+  useLabelShortcuts({
+    tasks,
+    selectedTaskId,
+    page,
+    totalPages,
+    labels,
+    activeLabel,
+    isDirty,
+    isSaving,
+    onSave: handleSave,
+    onSetToolMode: setToolMode,
+    onToggleCrosshair: toggleCrosshair,
+    onSelectTask: setSelectedTaskId,
+    onChangePage: (nextPage, anchor) => {
+      setPendingPageSelection(anchor);
+      setPage(nextPage);
+    },
+    onSelectLabel: handleSelectLabel,
+  });
+
+  const visibleAnnotations = useMemo(
+    () => annotations.filter((a) => !hiddenAnnotationIds.has(a.id)),
+    [annotations, hiddenAnnotationIds],
+  );
+
   const activeLabelForCanvas = useMemo(
     () =>
       activeLabel
@@ -172,51 +247,63 @@ export const LabelPage = () => {
         selectedAnnotationId={selectedAnnotationId}
         onSelectAnnotation={setSelectedAnnotationId}
         onDeleteAnnotation={history.deleteAnnotation}
+        onReorderAnnotations={handleReorderAnnotations}
+        hiddenAnnotationIds={hiddenAnnotationIds}
+        onToggleAnnotationVisibility={toggleAnnotationVisibility}
         historyEntries={history.entries}
         historyIndex={history.currentIndex}
         onJumpTo={history.jumpTo}
       />
-      <div className="flex min-h-0 flex-col overflow-hidden">
-        <div className="flex min-h-0 flex-1 overflow-hidden">
-          <Canvas
-            task={selectedTask}
-            annotations={annotations}
-            selectedAnnotationId={selectedAnnotationId}
-            toolMode={toolMode}
-            activeLabel={activeLabelForCanvas}
-            scale={canvasState.scale}
-            position={canvasState.position}
-            isDirty={isDirty}
-            isSaving={isSaving}
-            onSave={handleSave}
-            onSelect={setSelectedAnnotationId}
-            onAddAnnotation={history.addAnnotation}
-            onUpdateAnnotation={history.updateAnnotation}
-            onDeleteAnnotation={history.deleteAnnotation}
-            onUndo={history.undo}
-            onRedo={history.redo}
-            onZoomAtPoint={canvasState.zoomAtPoint}
-            onSetPosition={canvasState.setPosition}
-            onFitImage={canvasState.fitImage}
-          />
-          <Toolbar
-            toolMode={toolMode}
-            onSetToolMode={setToolMode}
-            onUndo={history.undo}
-            onRedo={history.redo}
-            onZoomIn={canvasState.zoomIn}
-            onZoomOut={canvasState.zoomOut}
-            onClear={handleClear}
-            canUndo={history.canUndo}
-            canRedo={history.canRedo}
-            hasSelection={selectedAnnotationId !== null}
-          />
-        </div>
-        <ClassSelect
-          labels={labels}
-          activeLabelId={activeLabel?.id ?? 0}
-          onSelectLabel={handleSelectLabel}
+      <div className="relative flex min-h-0 flex-col overflow-hidden">
+        <Canvas
+          task={selectedTask}
+          annotations={visibleAnnotations}
+          selectedAnnotationId={selectedAnnotationId}
+          toolMode={toolMode}
+          activeLabel={activeLabelForCanvas}
+          scale={canvasState.scale}
+          position={canvasState.position}
+          isDirty={isDirty}
+          isSaving={isSaving}
+          onSave={handleSave}
+          showCrosshair={showCrosshair}
+          onSelect={setSelectedAnnotationId}
+          onAddAnnotation={history.addAnnotation}
+          onUpdateAnnotation={history.updateAnnotation}
+          onDeleteAnnotation={history.deleteAnnotation}
+          onUndo={history.undo}
+          onRedo={history.redo}
+          onZoomAtPoint={canvasState.zoomAtPoint}
+          onSetPosition={canvasState.setPosition}
+          onFitImage={canvasState.fitImage}
         />
+        <div className="pointer-events-none absolute right-6 top-1/2 z-10 -translate-y-1/2">
+          <div className="pointer-events-auto">
+            <Toolbar
+              toolMode={toolMode}
+              onSetToolMode={setToolMode}
+              onUndo={history.undo}
+              onRedo={history.redo}
+              onZoomIn={canvasState.zoomIn}
+              onZoomOut={canvasState.zoomOut}
+              onClear={handleClear}
+              canUndo={history.canUndo}
+              canRedo={history.canRedo}
+              hasSelection={selectedAnnotationId !== null}
+              showCrosshair={showCrosshair}
+              onToggleCrosshair={toggleCrosshair}
+            />
+          </div>
+        </div>
+        <div className="pointer-events-none absolute inset-x-6 bottom-6 z-10 flex justify-center">
+          <div className="pointer-events-auto min-w-0 max-w-full">
+            <ClassSelect
+              labels={labels}
+              activeLabelId={activeLabel?.id ?? 0}
+              onSelectLabel={handleSelectLabel}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

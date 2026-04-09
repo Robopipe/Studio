@@ -1,3 +1,4 @@
+import { AnnotateIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import {
   Tabs,
@@ -6,7 +7,8 @@ import {
   TabsTrigger,
 } from "@/modules/shadcn/ui/tabs";
 import { Label } from "@repo/schema";
-import { Square, Trash2 } from "lucide-react";
+import { Eye, EyeOff, GripVertical, Trash2 } from "lucide-react";
+import { useDraggableList } from "../../hooks/useDraggableList";
 import { Annotation, HistoryEntry } from "../../types/annotations";
 import { HistoryTab } from "../HistoryTab";
 
@@ -16,6 +18,9 @@ export interface AnnotationPanelProps {
   selectedAnnotationId: string | null;
   onSelectAnnotation: (id: string) => void;
   onDeleteAnnotation: (id: string) => void;
+  onReorderAnnotations: (fromIndex: number, toIndex: number) => void;
+  hiddenAnnotationIds: Set<string>;
+  onToggleAnnotationVisibility: (id: string) => void;
   historyEntries: HistoryEntry[];
   historyIndex: number;
   onJumpTo: (index: number) => void;
@@ -27,6 +32,9 @@ export const AnnotationPanel = ({
   selectedAnnotationId,
   onSelectAnnotation,
   onDeleteAnnotation,
+  onReorderAnnotations,
+  hiddenAnnotationIds,
+  onToggleAnnotationVisibility,
   historyEntries,
   historyIndex,
   onJumpTo,
@@ -36,12 +44,14 @@ export const AnnotationPanel = ({
     count: annotations.filter((a) => a.labelId === String(label.id)).length,
   }));
 
+  const { getItemProps } = useDraggableList(onReorderAnnotations);
+
   return (
     <Tabs
       defaultValue="labels"
       className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden border-r border-border bg-black/[0.03]"
     >
-      <TabsList variant="line">
+      <TabsList variant="line" className="h-10 shrink-0">
         <TabsTrigger value="labels">Labels</TabsTrigger>
         <TabsTrigger value="info">Info</TabsTrigger>
         <TabsTrigger value="history">History</TabsTrigger>
@@ -57,7 +67,7 @@ export const AnnotationPanel = ({
           </p>
           <div className="flex flex-col gap-1">
             <ClassRow
-              icon={<Square className="size-4 text-muted-foreground" />}
+              icon={<AnnotateIcon className="size-4 text-foreground/60" />}
               name="Any"
               count={annotations.length}
             />
@@ -65,12 +75,9 @@ export const AnnotationPanel = ({
               <ClassRow
                 key={cls.id}
                 icon={
-                  <span
-                    className="size-3 shrink-0 rounded-[3px] border"
-                    style={{
-                      background: `${cls.color}33`,
-                      borderColor: cls.color,
-                    }}
+                  <AnnotateIcon
+                    className="size-4 shrink-0"
+                    style={{ color: cls.color }}
                   />
                 }
                 name={cls.name}
@@ -87,24 +94,36 @@ export const AnnotationPanel = ({
           <div className="flex flex-col">
             {annotations.map((annotation, index) => {
               const isSelected = annotation.id === selectedAnnotationId;
+              const isHidden = hiddenAnnotationIds.has(annotation.id);
+              const dnd = getItemProps(index);
               return (
                 <div
                   key={annotation.id}
+                  {...dnd.containerProps}
                   onClick={() => onSelectAnnotation(annotation.id)}
                   className={cn(
-                    "group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-black/5",
-                    isSelected && "bg-primary/10"
+                    "group relative flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-black/5",
+                    isSelected && "bg-primary/10",
+                    dnd.isDragging && "opacity-40",
+                    isHidden && "opacity-50 grayscale",
+                    dnd.showDropAbove && "before:absolute before:inset-x-1 before:-top-px before:h-0.5 before:rounded-full before:bg-primary",
+                    dnd.showDropBelow && "after:absolute after:inset-x-1 after:-bottom-px after:h-0.5 after:rounded-full after:bg-primary"
                   )}
                 >
-                  <span
-                    className="size-3 shrink-0 rounded-[3px] border"
-                    style={{
-                      background: `${annotation.color}33`,
-                      borderColor: annotation.color,
-                    }}
+                  <button
+                    type="button"
+                    aria-label="Drag to reorder"
+                    {...dnd.handleProps}
+                    className="flex shrink-0 cursor-grab items-center justify-center rounded text-muted-foreground/60 opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100 active:cursor-grabbing [&_svg]:size-3.5"
+                  >
+                    <GripVertical />
+                  </button>
+                  <AnnotateIcon
+                    className="size-4 shrink-0"
+                    style={{ color: annotation.color }}
                   />
                   <span
-                    className="flex h-3.5 w-6 shrink-0 items-center justify-center rounded-[3px] text-[11px] font-normal leading-none text-foreground/90"
+                    className="flex h-[14px] w-6 shrink-0 items-center justify-center rounded-[3px] px-0.5 text-[11px] leading-3 text-foreground/90"
                     style={{ background: annotation.color }}
                   >
                     {index + 1}
@@ -112,6 +131,22 @@ export const AnnotationPanel = ({
                   <span className="flex-1 truncate text-xs leading-4 text-foreground/90">
                     {annotation.labelName}
                   </span>
+                  <button
+                    type="button"
+                    title={isHidden ? "Show" : "Hide"}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleAnnotationVisibility(annotation.id);
+                    }}
+                    className={cn(
+                      "flex shrink-0 cursor-pointer items-center justify-center rounded p-1 text-muted-foreground transition-opacity hover:bg-black/5 hover:text-foreground [&_svg]:size-3.5",
+                      isHidden || isSelected
+                        ? "opacity-100"
+                        : "opacity-0 group-hover:opacity-100"
+                    )}
+                  >
+                    {isHidden ? <EyeOff /> : <Eye />}
+                  </button>
                   <button
                     type="button"
                     title="Delete"

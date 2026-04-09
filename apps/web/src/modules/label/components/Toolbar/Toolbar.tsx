@@ -1,7 +1,9 @@
 import { PolygonIcon, RectBboxIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import {
+  Crosshair,
   Hand,
+  Info,
   MousePointer2,
   Redo2,
   Trash2,
@@ -9,6 +11,8 @@ import {
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
+import { useState } from "react";
+import { ShortcutsDialog } from "../ShortcutsDialog";
 import { ToolMode } from "../../types/annotations";
 
 export interface ToolbarProps {
@@ -22,6 +26,8 @@ export interface ToolbarProps {
   canUndo: boolean;
   canRedo: boolean;
   hasSelection: boolean;
+  showCrosshair: boolean;
+  onToggleCrosshair: () => void;
 }
 
 const toolButtonClass =
@@ -38,17 +44,21 @@ export const Toolbar = ({
   canUndo,
   canRedo,
   hasSelection,
+  showCrosshair,
+  onToggleCrosshair,
 }: ToolbarProps) => {
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+
   const modeTools: {
     icon: React.ReactNode;
     title: string;
     mode: ToolMode;
   }[] = [
-    { icon: <MousePointer2 />, title: "Select", mode: ToolMode.SELECT },
-    { icon: <RectBboxIcon />, title: "Draw bbox", mode: ToolMode.DRAW_BBOX },
+    { icon: <MousePointer2 />, title: "Select (A)", mode: ToolMode.SELECT },
+    { icon: <RectBboxIcon />, title: "Draw bbox (R)", mode: ToolMode.DRAW_BBOX },
     {
       icon: <PolygonIcon />,
-      title: "Draw polygon",
+      title: "Draw polygon (P)",
       mode: ToolMode.DRAW_POLYGON,
     },
   ];
@@ -59,21 +69,28 @@ export const Toolbar = ({
     onClick: () => void;
     disabled?: boolean;
     mode?: ToolMode;
+    active?: boolean;
   }[] = [
-    { icon: <Undo2 />, title: "Undo", onClick: onUndo, disabled: !canUndo },
-    { icon: <Redo2 />, title: "Redo", onClick: onRedo, disabled: !canRedo },
+    { icon: <Undo2 />, title: "Undo (Ctrl+Z)", onClick: onUndo, disabled: !canUndo },
+    { icon: <Redo2 />, title: "Redo (Ctrl+Shift+Z)", onClick: onRedo, disabled: !canRedo },
     { icon: <ZoomIn />, title: "Zoom in", onClick: onZoomIn },
     { icon: <ZoomOut />, title: "Zoom out", onClick: onZoomOut },
     {
       icon: <Hand />,
-      title: "Pan",
+      title: "Pan (M)",
       onClick: () => onSetToolMode(ToolMode.PAN),
       mode: ToolMode.PAN,
+    },
+    {
+      icon: <Crosshair />,
+      title: showCrosshair ? "Hide crosshair (C)" : "Show crosshair (C)",
+      onClick: onToggleCrosshair,
+      active: showCrosshair,
     },
   ];
 
   return (
-    <div className="flex flex-col gap-1 border-l border-black/10 bg-black/[0.03] p-2">
+    <div className="flex flex-col gap-1 rounded-2xl border border-black/10 bg-white/95 p-2 shadow-[0_0_12px_rgba(0,0,0,0.08)] backdrop-blur-md">
       {modeTools.map((tool) => (
         <button
           key={tool.title}
@@ -95,7 +112,7 @@ export const Toolbar = ({
           toolButtonClass,
           !hasSelection && "cursor-not-allowed opacity-[0.35]"
         )}
-        title="Clear"
+        title="Delete selected (Del)"
         onClick={onClear}
         disabled={!hasSelection}
       >
@@ -108,8 +125,7 @@ export const Toolbar = ({
           type="button"
           className={cn(
             toolButtonClass,
-            tool.mode &&
-              toolMode === tool.mode &&
+            ((tool.mode && toolMode === tool.mode) || tool.active) &&
               "bg-emerald-500/10 text-black hover:bg-emerald-500/[0.18] hover:text-black",
             tool.disabled && "cursor-not-allowed opacity-[0.35]"
           )}
@@ -120,6 +136,15 @@ export const Toolbar = ({
           {tool.icon}
         </button>
       ))}
+      <button
+        type="button"
+        className={toolButtonClass}
+        title="Keyboard shortcuts"
+        onClick={() => setShortcutsOpen(true)}
+      >
+        <Info />
+      </button>
+      <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
     </div>
   );
 };
