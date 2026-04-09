@@ -53,6 +53,7 @@ export type DeployEvalLimitItem = {
 export type DeployEvalLimit = {
   id: string;
   name: string;
+  severity: string | null;
   targetLabel: DeployLabel;
   targetParentLabel: DeployLabel | null;
   limitItems: DeployEvalLimitItem[];
@@ -62,7 +63,7 @@ export type DeployEvalTestCase = {
   id: string;
   name: string;
   type: string;
-  severity: string;
+  severity: string | null;
   limits: DeployEvalLimit[];
   logicNodes: unknown[];
   thresholds: DeployEvalThreshold[];

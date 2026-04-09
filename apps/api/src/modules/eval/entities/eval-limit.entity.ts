@@ -1,13 +1,14 @@
 import { EvalLimitDetailSelect, EvalLimitSelect } from "src/repository/types/eval";
 import { EvalLimitItemEntity } from "./eval-limit-item.entity";
 import { ProjectLabelEntity } from "src/modules/project/entities/project-label.entity";
-import { EvalLimit, EvalLimitDetail } from "@repo/schema";
+import { EvalLimit, EvalLimitDetail, EvalSeverityEnum } from "@repo/schema";
 
 export class EvalLimitEntity {
   readonly id: string;
   readonly name: string;
   readonly targetLabelId: number;
   readonly targetParentLabelId: number | null;
+  readonly severity: EvalSeverityEnum | null;
   readonly targetLabel: ProjectLabelEntity;
   readonly targetParentLabel: ProjectLabelEntity | null;
   readonly testCaseId: string;
@@ -21,6 +22,7 @@ export class EvalLimitEntity {
     this.name = data.name;
     this.targetLabelId = data.targetLabelId;
     this.targetParentLabelId = data.targetParentLabelId;
+    this.severity = data.severity ?? null;
     this.targetLabel = new ProjectLabelEntity(data.targetLabel)
     this.targetParentLabel = data.targetParentLabel ? new ProjectLabelEntity(data.targetParentLabel) : null;
     this.testCaseId = data.testCaseId;
@@ -32,6 +34,7 @@ export class EvalLimitEntity {
     return {
       id: this.id,
       name: this.name,
+      severity: this.severity,
       targetLabel: this.targetLabel.toResponse(),
       targetParentLabel: this.targetParentLabel ? this.targetParentLabel.toResponse() : null,
       createdAt: this.createdAt.toISOString(),

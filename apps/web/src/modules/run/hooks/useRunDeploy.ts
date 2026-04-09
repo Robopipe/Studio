@@ -276,6 +276,7 @@ export const useRunDeploy = ({
       limits: tc.limits.map((limit) => ({
         id: limit.id,
         name: limit.name,
+        severity: limit.severity,
         targetLabel: limit.targetLabel,
         targetParentLabel: limit.targetParentLabel,
         limitItems: limit.limitItems.map((item) => ({

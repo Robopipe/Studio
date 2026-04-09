@@ -1,4 +1,4 @@
-import { EvalLogicNode, EvalTestCase, EvalTestCaseDetail, EvalTestCaseSeverityEnum, EvalTestCaseThreshold, EvalTestCaseTypeEnum } from "@repo/schema";
+import { EvalLogicNode, EvalTestCase, EvalTestCaseDetail, EvalSeverityEnum, EvalTestCaseThreshold, EvalTestCaseTypeEnum } from "@repo/schema";
 import { EvalTestCaseDetailSelect, EvalTestCaseSelect, EvalTestCaseThresholdSelect } from "src/repository/types/eval";
 import { EvalLimitEntity } from "./eval-limit.entity";
 import { EvalThresholdEntity } from "./eval-threshold.entity";
@@ -8,7 +8,7 @@ export class EvalTestCaseEntity {
   readonly name: string;
   readonly type: EvalTestCaseTypeEnum;
   readonly limits: EvalLimitEntity[];
-  readonly severity: EvalTestCaseSeverityEnum;
+  readonly severity: EvalSeverityEnum | null;
   readonly projectId: number;
   readonly dashboardConfigurationId: number;
   readonly createdAt: Date;
