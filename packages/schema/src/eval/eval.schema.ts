@@ -46,7 +46,7 @@ export enum EvalTestCaseTypeEnum {
   DEFECT = "DEFECT",
 }
 
-export enum EvalTestCaseSeverityEnum {
+export enum EvalSeverityEnum {
   ALERT = "ALERT",
   WARNING = "WARNING",
 }
@@ -98,6 +98,7 @@ export const evalLimitItemSchema = z.object({
 export const evalLimitSchema = z.object({
   id: z.uuidv7(),
   name: z.string(),
+  severity: z.enum(EvalSeverityEnum).nullable(),
   targetLabel: labelSchema,
   targetParentLabel: labelSchema.nullable(),
   createdAt: timestampsSchema.createdAt,
@@ -114,7 +115,7 @@ export const evalTestCaseSchema = z.object({
   id: z.uuidv7(),
   name: z.string(),
   type: z.enum(EvalTestCaseTypeEnum),
-  severity: z.enum(EvalTestCaseSeverityEnum),
+  severity: z.enum(EvalSeverityEnum).nullable(),
   limits: z.array(evalLimitSchema), // Always required
   createdAt: timestampsSchema.createdAt,
   updatedAt: timestampsSchema.updatedAt,
@@ -165,6 +166,7 @@ export const evalTestCaseCreateOrUpdateSchema = evalTestCaseDetailSchema
 export const evalLimitCreateOrUpdateSchema = evalLimitSchema
   .pick({
     name: true,
+    severity: true,
   })
   .extend({
     targetLabelId: z.number(),

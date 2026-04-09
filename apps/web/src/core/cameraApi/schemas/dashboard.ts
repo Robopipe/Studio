@@ -18,7 +18,6 @@ export type DeployDashboardResponse = z.infer<
   typeof deployDashboardResponseSchema
 >;
 
-
 export type DeployConfigEntry = {
   dashboard_config: DeployDashboardConfig;
   nn_config: NNConfig;
@@ -54,6 +53,7 @@ export type DeployEvalLimitItem = {
 export type DeployEvalLimit = {
   id: string;
   name: string;
+  severity: string | null;
   targetLabel: DeployLabel;
   targetParentLabel: DeployLabel | null;
   limitItems: DeployEvalLimitItem[];
@@ -63,7 +63,7 @@ export type DeployEvalTestCase = {
   id: string;
   name: string;
   type: string;
-  severity: string;
+  severity: string | null;
   limits: DeployEvalLimit[];
   logicNodes: unknown[];
   thresholds: DeployEvalThreshold[];
@@ -72,6 +72,8 @@ export type DeployEvalTestCase = {
 export type DeployDashboardConfig = {
   id: number;
   name: string;
+  projectId: number;
+  projectName: string;
   lineDirection: string;
   linePosition: number;
   lineFlow: string;

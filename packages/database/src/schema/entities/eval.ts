@@ -1,6 +1,6 @@
 import * as p from 'drizzle-orm/pg-core'
 import { createdAt, updatedAt, uuidId } from '../helpers'
-import { EvalLimitItemOperatorEnum, EvalLimitItemParameterEnum, EvalLimitItemQuantifierTypeEnum, EvalLimitItemQuantifierUnitEnum, EvalLogicNode, EvalTestCaseSeverityEnum, EvalTestCaseTypeEnum } from '@repo/schema'
+import { EvalLimitItemOperatorEnum, EvalLimitItemParameterEnum, EvalLimitItemQuantifierTypeEnum, EvalLimitItemQuantifierUnitEnum, EvalLogicNode, EvalSeverityEnum, EvalTestCaseTypeEnum } from '@repo/schema'
 import { dashboardConfigurationTable } from './dashboard-configuration'
 import { projectLabelTable } from './project-label'
 import { projectTable } from './project'
@@ -37,9 +37,9 @@ export const evalTestCaseTypeEnum = p.pgEnum("eval_test_case_type_enum", [
   EvalTestCaseTypeEnum.DEFECT,
 ])
 
-export const evalTestCaseSeverityEnum = p.pgEnum("eval_test_case_severity_enum", [
-  EvalTestCaseSeverityEnum.ALERT,
-  EvalTestCaseSeverityEnum.WARNING,
+export const evalSeverityEnum = p.pgEnum("eval_severity_enum", [
+  EvalSeverityEnum.ALERT,
+  EvalSeverityEnum.WARNING,
 ])
 
 export const evalLimitItemTable = p.pgTable("eval_limit_item", {
@@ -63,6 +63,7 @@ export const evalLimitTable = p.pgTable("eval_limit", {
   name: p.varchar("name", { length: 255 }).notNull(),
   targetLabelId: p.integer("target_label_id").notNull().references(() => projectLabelTable.id, {onDelete: 'cascade'}),
   targetParentLabelId: p.integer("target_parent_label_id").references(() => projectLabelTable.id, {onDelete: 'cascade'}),
+  severity: evalSeverityEnum("severity"),
   testCaseId: p.varchar("test_case_id", {length: 128}).notNull().references(() => evalTestCaseTable.id, {onDelete: 'cascade'}),
   createdAt,
   updatedAt
@@ -73,7 +74,7 @@ export const evalTestCaseTable = p.pgTable("eval_test_case", {
   id: uuidId,
   name: p.varchar("name", {length: 255}).notNull(),
   type: evalTestCaseTypeEnum("type").notNull(),
-  severity: evalTestCaseSeverityEnum("severity").notNull(),
+  severity: evalSeverityEnum("severity"),
   logicNodes: p.jsonb("logic_nodes").$type<EvalLogicNode[]>().notNull(),
   projectId: p.integer("project_id").notNull().references(() => projectTable.id, {onDelete: 'cascade'}),
   dashboardConfigurationId: p.integer("dashboard_configuration_id").notNull().references(() => dashboardConfigurationTable.id, {onDelete: 'cascade'}),
