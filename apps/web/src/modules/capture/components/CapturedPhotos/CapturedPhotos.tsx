@@ -1,7 +1,6 @@
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import { PaginationNumbers } from "@/modules/shadcn/ui/pagination";
-import { format } from "date-fns";
-import { Download, Trash2 } from "lucide-react";
+import { Camera, Download, Trash2 } from "lucide-react";
 import { useState } from "react";
 import {
   useDeleteTaskMutation,
@@ -39,46 +38,69 @@ export const CapturedPhotos = ({}: CapturedPhotosProps) => {
     : 0;
 
   return (
-    <div className="flex w-full flex-col gap-4">
-      {tasks.map((task) => (
-        <div className="flex w-full items-center justify-between" key={task.id}>
-          <div className="flex gap-4">
+    <div className="-m-4 flex flex-col">
+      <div className="flex flex-col">
+        {tasks.map((task) => (
+          <div
+            key={task.id}
+            className="group flex items-center gap-4 border-b border-black/10 px-4 py-2 transition-colors hover:bg-black/[0.04]"
+          >
             <img
               src={task.thumbnailUrl}
               alt={`#${task.iid}`}
-              className="aspect-[4/3] w-16 rounded-lg bg-muted-foreground object-cover"
+              className="h-[52px] w-[60px] shrink-0 rounded bg-muted object-cover"
             />
-            <div className="flex flex-col gap-0.5">
-              <span className="text-base font-medium">{`#${task.iid}`}</span>
-              <span className="text-muted-foreground">
-                {format(new Date(task.createdAt), "Ppp")}
+            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <span className="truncate text-xs font-bold leading-4 text-foreground/90">
+                #{task.iid}
               </span>
+              <div className="flex items-center gap-1 text-xs leading-4 text-foreground/60">
+                <Camera className="size-4 shrink-0" />
+                <span className="truncate">
+                  {new Date(task.createdAt).toLocaleString(undefined, {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-1 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
+              <button
+                type="button"
+                title="Download"
+                onClick={() => handleDownload(task.filePath, task.id)}
+                className="flex size-7 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-black/[0.06] hover:text-foreground"
+              >
+                <Download className="size-4" />
+              </button>
+              <button
+                type="button"
+                title="Delete"
+                onClick={() => {
+                  if (activeProject)
+                    deleteTask({
+                      projectId: activeProject.id,
+                      taskId: task.id,
+                    });
+                }}
+                className="flex size-7 cursor-pointer items-center justify-center rounded-md transition-colors hover:bg-destructive/10 hover:text-destructive"
+              >
+                <Trash2 className="size-4" />
+              </button>
             </div>
           </div>
-          <div className="flex items-center gap-4 text-muted-foreground [&>svg]:cursor-pointer [&>svg:hover]:text-foreground">
-            <Download
-              onClick={() => handleDownload(task.filePath, task.id)}
-              className="size-5"
-            />
-            <Trash2
-              onClick={() => {
-                if (activeProject)
-                  deleteTask({
-                    projectId: activeProject.id,
-                    taskId: task.id,
-                  });
-              }}
-              className="size-5"
-            />
-          </div>
-        </div>
-      ))}
-      <PaginationNumbers
-        currentPage={page}
-        totalPages={totalPages}
-        onPageChange={setPage}
-        className="mx-auto"
-      />
+        ))}
+      </div>
+      <div className="flex shrink-0 items-center justify-center px-2 py-4">
+        <PaginationNumbers
+          currentPage={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+        />
+      </div>
     </div>
   );
 };

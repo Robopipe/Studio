@@ -24,12 +24,9 @@ export const BooleanParameter = ({
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <Info className="size-4 text-black/[0.38]" />
-      <span className="overflow-hidden text-ellipsis whitespace-nowrap [width:calc(100%-8.25rem)]">
-        {label}
-      </span>
-
+    <div className="flex items-center gap-2 text-xs leading-4">
+      <Info className="size-4 shrink-0 text-foreground/40" />
+      <span className="flex-1 truncate text-foreground/90">{label}</span>
       <Switch
         checked={internalValue}
         onCheckedChange={(value) => {

@@ -20,11 +20,11 @@ export const SelectStream = ({ mxid, value, onSelect }: SelectStreamProps) => {
   });
 
   useEffect(() => {
-    // Select first stream automatically
-    if (streams && streams.length > 0 && !value) {
+    if (!streams || streams.length === 0) return;
+    if (!value || !streams.some((s) => s.name === value)) {
       onSelect(streams[0].name);
     }
-  }, [streams]);
+  }, [streams, value, onSelect]);
 
   return (
     <Select value={value ?? undefined} onValueChange={(val) => onSelect(val)}>
