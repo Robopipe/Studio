@@ -13,6 +13,7 @@ import {
   useLazyGetEvalTestCasesQuery,
   useLazyGetEvalThresholdsQuery,
 } from "@/modules/evaluation/api/evaluationApi";
+
 import { useLazyGetModelOutputsQuery } from "@/modules/model/services/modelApi";
 import {
   useLazyGetProjectLabelsQuery,
@@ -155,6 +156,7 @@ export const useRunDeploy = ({
         try {
           const result = await assembleConfigPayload(
             pid,
+            projectName,
             config,
             requiredOutputType,
           );
@@ -209,6 +211,7 @@ export const useRunDeploy = ({
    */
   async function assembleConfigPayload(
     pid: number,
+    projectName: string,
     config: DashboardConfiguration,
     requiredOutputType: string | undefined,
   ): Promise<AssembledConfig | null> {
@@ -263,7 +266,7 @@ export const useRunDeploy = ({
     );
 
     const thresholdsByTestCase = new Map(
-      evalThresholds.map((t) => [t.id, t.thresholds]),
+      evalThresholds.testCases.map((t) => [t.id, t.thresholds]),
     );
 
     const assembledTestCases = testCasesWithFullLimits.map((tc) => ({
@@ -274,6 +277,7 @@ export const useRunDeploy = ({
       limits: tc.limits.map((limit) => ({
         id: limit.id,
         name: limit.name,
+        severity: limit.severity,
         targetLabel: limit.targetLabel,
         targetParentLabel: limit.targetParentLabel,
         limitItems: limit.limitItems.map((item) => ({
@@ -306,10 +310,18 @@ export const useRunDeploy = ({
         dashboard_config: {
           id: config.id,
           name: config.name,
+          projectId: pid,
+          projectName,
           lineDirection: config.lineDirection,
           linePosition: config.linePosition,
           lineFlow: config.lineFlow,
           testCases: assembledTestCases,
+          thresholds: evalThresholds.master.map((t) => ({
+            id: t.id,
+            name: t.name,
+            value: t.value,
+            color: t.color,
+          })),
           labels: labels,
         },
         nn_config: {

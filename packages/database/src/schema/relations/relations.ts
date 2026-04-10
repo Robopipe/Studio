@@ -111,6 +111,10 @@ export const relationBase = defineRelations(schema, (r) => ({
       from: r.dashboardConfigurationTable.id,
       to: r.evalTestCaseTable.dashboardConfigurationId,
     }),
+    masterThresholds: r.many.evalThresholdTable({
+      from: r.dashboardConfigurationTable.id,
+      to: r.evalThresholdTable.dashboardConfigurationId,
+    }),
   },
   dashboardEvaluationTable: {
     dashboardConfiguration: r.one.dashboardConfigurationTable({

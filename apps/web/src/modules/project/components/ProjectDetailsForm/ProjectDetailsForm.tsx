@@ -1,4 +1,5 @@
 import { useAuth } from "@/core/auth/hooks";
+import { DiscoverCameraApi } from "@/modules/discovery/components";
 import { Input } from "@/modules/shadcn/ui/input";
 import { Label } from "@/modules/shadcn/ui/label";
 import {
@@ -89,12 +90,16 @@ export const ProjectDetailsForm = ({
           <Label htmlFor="cameraApiUrl" className="font-semibold">
             Camera API URL
           </Label>
-          <Input
-            id="cameraApiUrl"
-            placeholder={`${user?.cameraApiUrl} (inherited from account settings)`}
-            value={cameraApiUrl ?? ""}
-            onChange={(e) => setCameraApiUrl(e.target.value)}
-          />
+          <div className="flex flex-row gap-2">
+            <Input
+              id="cameraApiUrl"
+              className="flex-1"
+              placeholder={`${user?.cameraApiUrl} (inherited from account settings)`}
+              value={cameraApiUrl ?? ""}
+              onChange={(e) => setCameraApiUrl(e.target.value)}
+            />
+            <DiscoverCameraApi onSelect={(url) => setCameraApiUrl(url)} />
+          </div>
         </div>
 
         {setMultipleDashboardConfigs !== undefined && (
