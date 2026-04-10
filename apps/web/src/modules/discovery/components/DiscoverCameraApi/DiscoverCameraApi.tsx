@@ -57,7 +57,7 @@ export const DiscoverCameraApi = ({ onSelect }: DiscoverCameraApiProps) => {
       <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
         <PopoverTrigger
           render={
-            <Button variant="outline" size="sm" />
+            <Button variant="outline" className="h-11" />
           }
         >
           <RadarIcon data-icon="inline-start" />
@@ -114,7 +114,7 @@ export const DiscoverCameraApi = ({ onSelect }: DiscoverCameraApiProps) => {
 
       <Button
         variant="outline"
-        size="sm"
+        className="h-11"
         onClick={() => setScanOpen(true)}
       >
         <SearchIcon data-icon="inline-start" />

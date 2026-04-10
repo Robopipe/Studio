@@ -43,6 +43,34 @@ export function numberToIp(n: number): string {
 
 const MAX_IP_RANGE = 1024;
 
+export function parseCidr(cidr: string): { startIp: string; endIp: string } {
+  const parts = cidr.split("/");
+  if (parts.length !== 2) {
+    throw new Error("Invalid CIDR notation. Expected format: 192.168.1.0/24");
+  }
+
+  const [ip, prefixStr] = parts;
+  if (!isValidIpv4(ip)) {
+    throw new Error("Invalid IP address in CIDR notation");
+  }
+
+  const prefix = Number(prefixStr);
+  if (!Number.isInteger(prefix) || prefix < 0 || prefix > 32) {
+    throw new Error("CIDR prefix must be between 0 and 32");
+  }
+
+  const ipNum = ipToNumber(ip);
+  const mask = prefix === 0 ? 0 : (~0 << (32 - prefix)) >>> 0;
+  const network = (ipNum & mask) >>> 0;
+  const broadcast = (network | ~mask) >>> 0;
+
+  // Skip network and broadcast addresses for prefixes <= 30
+  const start = prefix <= 30 ? network + 1 : network;
+  const end = prefix <= 30 ? broadcast - 1 : broadcast;
+
+  return { startIp: numberToIp(start), endIp: numberToIp(end) };
+}
+
 export function generateIpRange(startIp: string, endIp: string): string[] {
   const start = ipToNumber(startIp);
   const end = ipToNumber(endIp);
@@ -72,21 +100,61 @@ export function isValidIpv4(ip: string): boolean {
   });
 }
 
-export async function scanIpRange(
+export function parsePorts(input: string): number[] {
+  const trimmed = input.trim();
+
+  if (trimmed.includes("-")) {
+    const [startStr, endStr] = trimmed.split("-");
+    const start = Number(startStr);
+    const end = Number(endStr);
+    if (
+      !Number.isInteger(start) || !Number.isInteger(end) ||
+      start < 1 || end > 65535 || start > end
+    ) {
+      throw new Error("Invalid port range. Expected format: 8080-8090");
+    }
+    if (end - start + 1 > 100) {
+      throw new Error("Port range too large (max 100 ports)");
+    }
+    const ports: number[] = [];
+    for (let p = start; p <= end; p++) ports.push(p);
+    return ports;
+  }
+
+  const port = Number(trimmed);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error("Port must be between 1 and 65535");
+  }
+  return [port];
+}
+
+interface ScanTarget {
+  ip: string;
+  port: number;
+}
+
+export async function scanNetwork(
   ips: string[],
-  port: number,
+  ports: number[],
   concurrency: number,
   signal: AbortSignal,
   onProgress: (scanned: number) => void,
 ): Promise<DiscoveredDevice[]> {
+  const targets: ScanTarget[] = [];
+  for (const ip of ips) {
+    for (const port of ports) {
+      targets.push({ ip, port });
+    }
+  }
+
   const results: DiscoveredDevice[] = [];
   let scanned = 0;
 
-  for (let i = 0; i < ips.length; i += concurrency) {
+  for (let i = 0; i < targets.length; i += concurrency) {
     if (signal.aborted) break;
 
-    const batch = ips.slice(i, i + concurrency);
-    const promises = batch.map(async (ip) => {
+    const batch = targets.slice(i, i + concurrency);
+    const promises = batch.map(async ({ ip, port }) => {
       const url = `http://${ip}:${port}`;
       const found = await probeRobopipeApi(url, 2000, signal);
       scanned++;
