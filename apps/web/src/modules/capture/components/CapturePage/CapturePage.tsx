@@ -5,17 +5,19 @@ import { Captured } from "../Captured";
 import { CaptureSettings } from "../CaptureSettings";
 
 import { LiveCapture } from "../LiveCapture";
-import { Orientation } from "../SelectOrientation";
 
 export interface CapturePageProps {}
 
 export const CapturePage = ({}: CapturePageProps) => {
-  const { data: cameras, isLoading, refetch, isFetching } = useListCamerasQuery();
+  const {
+    data: cameras,
+    isLoading,
+    refetch,
+    isFetching,
+  } = useListCamerasQuery();
 
   const [selectedCamera, setSelectedCamera] = useState<string | null>(null);
   const [selectedStream, setSelectedStream] = useState<string | null>(null);
-  const [selectedOrientation, setSelectedOrientation] =
-    useState<Orientation | null>("horizontal");
 
   const hasCameras = cameras && cameras.length > 0;
 
@@ -32,10 +34,8 @@ export const CapturePage = ({}: CapturePageProps) => {
       <CaptureSettings
         selectedCamera={selectedCamera}
         selectedStream={selectedStream}
-        selectedOrientation={selectedOrientation}
         onSelectCamera={setSelectedCamera}
         onSelectStream={setSelectedStream}
-        onSelectOrientation={setSelectedOrientation}
       />
       <LiveCapture
         selectedCamera={selectedCamera}
