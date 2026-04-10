@@ -65,6 +65,7 @@ export const createClassificationAnnotationSchema = z.object({
  */
 export const createTaskSchema = z.object({
   iid: z.string().optional(),
+  capturedAt: z.iso.datetime().optional(),
 })
 
 export const taskSchema = z.object({

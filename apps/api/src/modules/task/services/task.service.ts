@@ -31,7 +31,7 @@ export class TaskService {
    * @param file - Express multer file
    * @returns Task Entity
    */
-  public async createTask(projectId: number, file: Express.Multer.File, iid?: string): Promise<TaskEntity>{
+  public async createTask(projectId: number, file: Express.Multer.File, iid?: string, capturedAt?: string): Promise<TaskEntity>{
     const assetMetadata = await sharp(file.buffer).metadata()
     const assetName = this.assetsService.getAssetName(file.originalname, projectId, 'asset')
     const thumbnailName = this.assetsService.getAssetName(file.originalname, projectId, 'thumbnail')
@@ -54,6 +54,7 @@ export class TaskService {
       status: TaskStatusEnum.TODO,
       width: assetMetadata.width,
       height: assetMetadata.height,
+      ...(capturedAt && { createdAt: new Date(capturedAt) }),
     }
 
     if (iid) {
