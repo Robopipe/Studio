@@ -18,8 +18,8 @@ const captureApiBase = createApi({
 
 export const captureApi = captureApiBase.injectEndpoints({
   endpoints: (builder) => ({
-    createTask: builder.mutation<Task, { file: File; projectId: number }>({
-      query: ({ file, projectId }) => {
+    createTask: builder.mutation<Task, { file: File; projectId: number; capturedAt: string }>({
+      query: ({ file, projectId, capturedAt }) => {
         var bodyFormData = new FormData();
         bodyFormData.append("file", file);
 
@@ -29,6 +29,7 @@ export const captureApi = captureApiBase.injectEndpoints({
           headers: {
             "Content-Type": "multipart/form-data",
           },
+          params: { capturedAt },
           body: bodyFormData,
           formData: true,
         };

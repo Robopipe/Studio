@@ -18,6 +18,7 @@ interface QueuedUpload {
   blobUrl: string;
   filename: string;
   projectId: number;
+  capturedAt: string;
 }
 
 export const useCaptureImageFromCamera = () => {
@@ -42,7 +43,7 @@ export const useCaptureImageFromCamera = () => {
       const upload = uploadQueue[0];
       try {
         const file = new File([upload.blob], upload.filename, { type: upload.blob.type });
-        await createTask({ file, projectId: upload.projectId }).unwrap();
+        await createTask({ file, projectId: upload.projectId, capturedAt: upload.capturedAt }).unwrap();
       } catch (error) {
         console.error("Failed to upload image:", error);
       } finally {
@@ -84,6 +85,7 @@ export const useCaptureImageFromCamera = () => {
         blobUrl,
         filename,
         projectId: activeProject.id,
+        capturedAt,
       };
 
       setUploadQueue(prev => [...prev, queuedUpload]);

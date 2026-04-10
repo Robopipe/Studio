@@ -32,7 +32,7 @@ export class TaskController {
   @Post()
   @UseInterceptors(FileInterceptor("file"))
   public async createTask(@ProjectId() projectId: number, @UploadedFile() file: Express.Multer.File, @Query() query: CreateTaskQuery): Promise<TaskResponse>{
-    const createdTask = await this.taskService.createTask(projectId, file, query.iid)
+    const createdTask = await this.taskService.createTask(projectId, file, query.iid, query.capturedAt)
     return createdTask.toResponse()
   }
 
