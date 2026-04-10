@@ -53,7 +53,7 @@ export class EvalTestCaseService {
       ...data,
     })
 
-    await this.evalThresholdRepository.createMany(createdTestCase.id, defaultThresholds)
+    await this.evalThresholdRepository.createManyForTestCase(createdTestCase.id, defaultThresholds)
 
     return createdTestCase
   }

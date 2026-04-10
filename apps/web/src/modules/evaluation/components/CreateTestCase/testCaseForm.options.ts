@@ -1,4 +1,4 @@
-import { EvalTestCaseSeverityEnum, EvalTestCaseTypeEnum } from "@repo/schema";
+import { EvalTestCaseTypeEnum } from "@repo/schema";
 import { formOptions, revalidateLogic } from "@tanstack/react-form";
 import {
   createTestCaseFormSchema,
@@ -9,7 +9,7 @@ export const testCaseFormOptions = formOptions({
   defaultValues: {
     name: "",
     type: EvalTestCaseTypeEnum.CHECK,
-    severity: EvalTestCaseSeverityEnum.ALERT,
+    severity: null,
   } satisfies CreateTestCaseFormSchema as CreateTestCaseFormSchema,
   validationLogic: revalidateLogic(),
   validators: {

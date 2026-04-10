@@ -6,6 +6,7 @@ import {
   useGetEvalThresholdsQuery,
   useCreateEvalThresholdMutation,
   useUpdateEvalThresholdMutation,
+  useDeleteEvalThresholdMutation,
 } from "../../api/evaluationApi";
 import { AddEvaluationItemModal } from "./AddEvaluationItemModal";
 import { EditEvaluationItemModal } from "./EditEvaluationItemModal";
@@ -16,8 +17,10 @@ export interface EvaluationThresholdsPageProps {
   configId: number;
 }
 
+type ModalContext = "master" | { testCaseId: string };
+
 interface EditModalState {
-  testCaseId: string;
+  context: ModalContext;
   threshold: EvalThreshold;
 }
 
@@ -25,10 +28,13 @@ export function EvaluationThresholdsPage({
   projectId,
   configId,
 }: EvaluationThresholdsPageProps) {
-  const { data: serverData = [] } = useGetEvalThresholdsQuery({ projectId, configId });
+  const { data: serverData } = useGetEvalThresholdsQuery({ projectId, configId });
+  const serverTestCases = serverData?.testCases ?? [];
+  const serverMaster = serverData?.master ?? [];
 
   const [createThreshold] = useCreateEvalThresholdMutation();
   const [updateThreshold] = useUpdateEvalThresholdMutation();
+  const [deleteThreshold] = useDeleteEvalThresholdMutation();
 
   // Local overrides for threshold values changed via slider drag (thresholdId -> value)
   const [localValues, setLocalValues] = useState<Record<string, number>>({});
@@ -41,28 +47,28 @@ export function EvaluationThresholdsPage({
   // Merge server data with local slider overrides
   const testCasesWithThresholds: EvalTestCaseThreshold[] = useMemo(
     () =>
-      serverData.map((tc) => ({
+      serverTestCases.map((tc) => ({
         ...tc,
         thresholds: tc.thresholds.map((t) => ({
           ...t,
           value: localValues[t.id] ?? t.value,
         })),
       })),
-    [serverData, localValues],
+    [serverTestCases, localValues],
   );
 
-  const [dashboardFlags, setDashboardFlags] = useState<
-    Record<string, boolean>
-  >({});
-  const [addModalTestCaseId, setAddModalTestCaseId] = useState<string | null>(
-    null,
+  const masterThresholds: EvalThreshold[] = useMemo(
+    () =>
+      serverMaster.map((t) => ({
+        ...t,
+        value: localValues[t.id] ?? t.value,
+      })),
+    [serverMaster, localValues],
   );
+
+  const [addModalContext, setAddModalContext] = useState<ModalContext | null>(null);
   const [editModal, setEditModal] = useState<EditModalState | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-
-  const handleDashboardChange = (testCaseId: string, checked: boolean) => {
-    setDashboardFlags((prev) => ({ ...prev, [testCaseId]: checked }));
-  };
 
   const handleSliderValueChange = useCallback(
     (thresholdId: string, newValue: number) => {
@@ -76,14 +82,14 @@ export function EvaluationThresholdsPage({
     color: string;
     value: number;
   }) => {
-    if (!addModalTestCaseId) return;
+    if (!addModalContext) return;
     await createThreshold({
       projectId,
       configId,
-      testCaseId: addModalTestCaseId,
+      testCaseId: addModalContext === "master" ? undefined : addModalContext.testCaseId,
       body: data,
     }).unwrap();
-    setAddModalTestCaseId(null);
+    setAddModalContext(null);
   };
 
   const handleEditThreshold = async (data: {
@@ -91,14 +97,22 @@ export function EvaluationThresholdsPage({
     color: string;
   }) => {
     if (!editModal) return;
-    const currentValue =
-      localValues[editModal.threshold.id] ?? editModal.threshold.value;
+    const currentValue = localValues[editModal.threshold.id] ?? editModal.threshold.value;
     await updateThreshold({
       projectId,
       configId,
-      testCaseId: editModal.testCaseId,
       thresholdId: editModal.threshold.id,
       body: { name: data.name, color: data.color, value: currentValue },
+    }).unwrap();
+    setEditModal(null);
+  };
+
+  const handleDeleteThreshold = async () => {
+    if (!editModal) return;
+    await deleteThreshold({
+      projectId,
+      configId,
+      thresholdId: editModal.threshold.id,
     }).unwrap();
     setEditModal(null);
   };
@@ -109,24 +123,24 @@ export function EvaluationThresholdsPage({
     if (!hasChanges) return;
     setIsSaving(true);
     try {
+      const allServerThresholds = [
+        ...serverTestCases.flatMap((tc) => tc.thresholds),
+        ...serverMaster,
+      ];
       const updates = Object.entries(localValues).map(
         ([thresholdId, newValue]) => {
-          // Find which test case owns this threshold
-          for (const tc of serverData) {
-            const original = tc.thresholds.find((t) => t.id === thresholdId);
-            if (original) {
-              return updateThreshold({
-                projectId,
-                configId,
-                testCaseId: tc.id,
-                thresholdId,
-                body: {
-                  name: original.name,
-                  color: original.color,
-                  value: newValue,
-                },
-              }).unwrap();
-            }
+          const original = allServerThresholds.find((t) => t.id === thresholdId);
+          if (original) {
+            return updateThreshold({
+              projectId,
+              configId,
+              thresholdId,
+              body: {
+                name: original.name,
+                color: original.color,
+                value: newValue,
+              },
+            }).unwrap();
           }
           return Promise.resolve();
         },
@@ -141,6 +155,23 @@ export function EvaluationThresholdsPage({
     <div className="flex w-full flex-1 flex-col">
       <div className="flex flex-col gap-2">
         <h2 className="text-[10px] font-bold uppercase leading-4 tracking-[1px] text-foreground">
+          Master evaluation
+        </h2>
+
+        <EvaluationItemCard
+          name="Master evaluation"
+          thresholds={masterThresholds}
+          onEditThreshold={(thresholdId) => {
+            const threshold = masterThresholds.find((t) => t.id === thresholdId);
+            if (threshold) {
+              setEditModal({ context: "master", threshold });
+            }
+          }}
+          onAddThreshold={() => setAddModalContext("master")}
+          onThresholdValueChange={handleSliderValueChange}
+        />
+
+        <h2 className="text-[10px] font-bold uppercase leading-4 tracking-[1px] text-foreground mt-4">
           Evaluation items
         </h2>
 
@@ -148,20 +179,17 @@ export function EvaluationThresholdsPage({
           {testCasesWithThresholds.map((testCase) => (
             <EvaluationItemCard
               key={testCase.id}
-              testCase={testCase}
-              displayOnDashboard={dashboardFlags[testCase.id] ?? false}
-              onDisplayOnDashboardChange={(checked) =>
-                handleDashboardChange(testCase.id, checked)
-              }
+              name={testCase.name}
+              thresholds={testCase.thresholds}
               onEditThreshold={(thresholdId) => {
                 const threshold = testCase.thresholds.find(
                   (t) => t.id === thresholdId,
                 );
                 if (threshold) {
-                  setEditModal({ testCaseId: testCase.id, threshold });
+                  setEditModal({ context: { testCaseId: testCase.id }, threshold });
                 }
               }}
-              onAddThreshold={() => setAddModalTestCaseId(testCase.id)}
+              onAddThreshold={() => setAddModalContext({ testCaseId: testCase.id })}
               onThresholdValueChange={handleSliderValueChange}
             />
           ))}
@@ -187,9 +215,9 @@ export function EvaluationThresholdsPage({
       </div>
 
       <AddEvaluationItemModal
-        open={addModalTestCaseId !== null}
+        open={addModalContext !== null}
         onOpenChange={(open) => {
-          if (!open) setAddModalTestCaseId(null);
+          if (!open) setAddModalContext(null);
         }}
         onSave={handleAddThreshold}
       />
@@ -200,6 +228,8 @@ export function EvaluationThresholdsPage({
           if (!open) setEditModal(null);
         }}
         onSave={handleEditThreshold}
+        onDelete={handleDeleteThreshold}
+        canDelete={editModal?.threshold.value !== 1}
         initialName={editModal?.threshold.name ?? ""}
         initialColor={editModal?.threshold.color ?? "#22c55e"}
       />

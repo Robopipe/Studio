@@ -26,4 +26,4 @@ export type EvalTestCaseInsert = Omit<InferInsertModel<typeof evalTestCaseTable>
 
 
 export type EvalThresholdSelect = InferSelectModel<typeof evalThresholdTable>
-export type EvalThresholdInsert = Omit<InferInsertModel<typeof evalThresholdTable>, "id" | "testCaseId" | "createdAt" | "updatedAt">
+export type EvalThresholdInsert = Omit<InferInsertModel<typeof evalThresholdTable>, "id" | "testCaseId" | "dashboardConfigurationId" | "createdAt" | "updatedAt">

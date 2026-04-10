@@ -3,7 +3,7 @@ import { ProjectId } from "src/modules/auth/decorators/project-id.decorator";
 import { ProjectGuard } from "src/modules/auth/guards/project-guard";
 import { EvalThresholdService } from "../services/eval-threshold.service";
 import { EvalThresholdCreateOrUpdateDto } from "../dto/eval-threshold.dto";
-import { EvalTestCaseThreshold } from "@repo/schema";
+import { EvalThreshold, EvalThresholdsResponse } from "@repo/schema";
 
 @Controller("eval/:projectId/config/:configId/threshold")
 @UseGuards(ProjectGuard)
@@ -11,12 +11,25 @@ export class EvalThresholdController{
   constructor(private readonly evalThresholdService: EvalThresholdService){}
 
   @Get()
-  public async getThresholds(
+  public async getAll(
     @ProjectId() projectId: number,
     @Param("configId", ParseIntPipe) configId: number,
-  ): Promise<EvalTestCaseThreshold[]> {
-    const thresholds = await this.evalThresholdService.getThresholds(projectId, configId)
-    return thresholds.map((threshold) => threshold.toResponse())
+  ): Promise<EvalThresholdsResponse> {
+    const { testCases, master } = await this.evalThresholdService.getAll(projectId, configId)
+    return {
+      testCases: testCases.map((tc) => tc.toResponse()),
+      master: master.map((t) => t.toResponse()),
+    }
+  }
+
+  @Post()
+  public async createMasterThreshold(
+    @ProjectId() projectId: number,
+    @Param("configId", ParseIntPipe) configId: number,
+    @Body() data: EvalThresholdCreateOrUpdateDto
+  ): Promise<EvalThreshold>{
+    const threshold = await this.evalThresholdService.create(projectId, configId, undefined, data);
+    return threshold.toResponse()
   }
 
   @Post(':testCaseId')
@@ -25,31 +38,28 @@ export class EvalThresholdController{
     @Param("configId", ParseIntPipe) configId: number,
     @Param("testCaseId") testCaseId: string,
     @Body() data: EvalThresholdCreateOrUpdateDto
-  ): Promise<EvalTestCaseThreshold>{
-    const testCaseThreshold = await this.evalThresholdService.createThreshold(projectId, configId, testCaseId, data);
-    return testCaseThreshold.toResponse()
+  ): Promise<EvalThreshold>{
+    const threshold = await this.evalThresholdService.create(projectId, configId, testCaseId, data);
+    return threshold.toResponse()
   }
 
-  @Put(":testCaseId/:thresholdId")
+  @Put(":thresholdId")
   public async updateThreshold(
     @ProjectId() projectId: number,
     @Param("configId", ParseIntPipe) configId: number,
-    @Param("testCaseId") testCaseId: string,
     @Param("thresholdId") thresholdId: string,
     @Body() data: EvalThresholdCreateOrUpdateDto
-  ): Promise<EvalTestCaseThreshold>{
-    const testCaseThreshold = await this.evalThresholdService.updateThreshold(projectId, configId, testCaseId, thresholdId, data)
-    return testCaseThreshold.toResponse()
+  ): Promise<EvalThreshold>{
+    const threshold = await this.evalThresholdService.update(projectId, configId, thresholdId, data)
+    return threshold.toResponse()
   }
 
-  @Delete(":testCaseId/:thresholdId")
+  @Delete(":thresholdId")
   public async deleteThreshold(
     @ProjectId() projectId: number,
     @Param("configId", ParseIntPipe) configId: number,
-    @Param("testCaseId") testCaseId: string,
     @Param("thresholdId") thresholdId: string,
-  ): Promise<EvalTestCaseThreshold>{
-    const testCaseThreshold = await this.evalThresholdService.deleteThreshold(projectId, configId, testCaseId, thresholdId)
-    return testCaseThreshold.toResponse()
+  ): Promise<void>{
+    await this.evalThresholdService.delete(projectId, configId, thresholdId)
   }
 }
