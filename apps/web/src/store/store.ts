@@ -3,6 +3,7 @@ import { authApi, authSlice } from "@/core/auth/services";
 import { cameraApi } from "@/core/cameraApi";
 import { organizationApi } from "@/modules/account/services";
 import { captureApi } from "@/modules/capture/services/captureApi";
+import { pendingCapturesSlice } from "@/modules/capture/services/pendingCapturesSlice";
 import { dashboardConfigApi } from "@/modules/dashboard/services";
 import { modelApi } from "@/modules/model/services";
 import { projectApi } from "@/modules/project/services/projectApi";
@@ -12,6 +13,7 @@ import { configureStore } from "@reduxjs/toolkit";
 const slices = {
   [authSlice.name]: authSlice.reducer,
   [projectSlice.name]: projectSlice.reducer,
+  [pendingCapturesSlice.name]: pendingCapturesSlice.reducer,
 };
 const apis = {
   [api.reducerPath]: api.reducer,

@@ -81,9 +81,9 @@ export class TaskService {
    * @param deleted - true: only deleted, false: only non-deleted, null: both
    * @returns Paginated task entities
    */
-  public async getTasks(projectId: number, page: number = 1, limit: number = 50, deleted: boolean | null = false, annotated?: boolean): Promise<{ data: TaskEntity[]; total: number }>{
+  public async getTasks(projectId: number, page: number = 1, limit: number = 50, deleted: boolean | null = false, annotated?: boolean, order: "asc" | "desc" = "asc"): Promise<{ data: TaskEntity[]; total: number }>{
     const project = await this.projectRepository.getByIdOrThrow(projectId)
-    return this.taskRepository.getAllByProjectIdPaginated(projectId, project.type, page, limit, deleted, annotated)
+    return this.taskRepository.getAllByProjectIdPaginated(projectId, project.type, page, limit, deleted, annotated, order)
   }
 
   /**
