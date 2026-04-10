@@ -1,5 +1,10 @@
 import { Button } from "@/modules/shadcn/ui/button";
 import {
+  Collapsible,
+  CollapsiblePanel,
+  CollapsibleTrigger,
+} from "@/modules/shadcn/ui/collapsible";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -17,9 +22,10 @@ import {
   SelectValue,
 } from "@/modules/shadcn/ui/select";
 import { Spinner } from "@/modules/shadcn/ui/spinner";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useNetworkScan } from "../../hooks/useNetworkScan";
+import { detectLocalIp, ipToCidr24 } from "../../utils/discovery";
 import { DeviceList } from "../DeviceList/DeviceList";
 
 const PRESET_RANGES = [
@@ -41,13 +47,29 @@ export const NetworkScanDialog = ({
 }: NetworkScanDialogProps) => {
   const [cidr, setCidr] = useState("192.168.1.0/24");
   const [ports, setPorts] = useState("8080");
+  const [hostname, setHostname] = useState("robopipe");
+  const cidrTouchedRef = useRef(false);
 
   const { scan, cancel, results, isScanning, progress } = useNetworkScan();
   const [hasScanned, setHasScanned] = useState(false);
 
+  useEffect(() => {
+    if (!open) return;
+    cidrTouchedRef.current = false;
+    let cancelled = false;
+    detectLocalIp().then((ip) => {
+      if (ip && !cancelled && !cidrTouchedRef.current) {
+        setCidr(ipToCidr24(ip));
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
   const handleScan = async () => {
     try {
-      await scan(cidr, ports);
+      await scan(cidr, ports, hostname);
       setHasScanned(true);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Scan failed");
@@ -84,7 +106,10 @@ export const NetworkScanDialog = ({
                 id="cidr"
                 placeholder="192.168.1.0/24"
                 value={cidr}
-                onChange={(e) => setCidr(e.target.value)}
+                onChange={(e) => {
+                  cidrTouchedRef.current = true;
+                  setCidr(e.target.value);
+                }}
                 disabled={isScanning}
                 className="flex-1"
               />
@@ -92,7 +117,10 @@ export const NetworkScanDialog = ({
                 value={
                   PRESET_RANGES.some((r) => r.value === cidr) ? cidr : undefined
                 }
-                onValueChange={(val) => setCidr(val as string)}
+                onValueChange={(val) => {
+                  cidrTouchedRef.current = true;
+                  setCidr(val as string);
+                }}
                 disabled={isScanning}
               >
                 <SelectTrigger className="w-auto">
@@ -123,11 +151,40 @@ export const NetworkScanDialog = ({
             </p>
           </div>
 
+          <Collapsible>
+            <CollapsibleTrigger>Advanced Options</CollapsibleTrigger>
+            <CollapsiblePanel>
+              <div className="flex flex-col gap-1.5 px-1 pb-1">
+                <Label htmlFor="mdnsHostname" className="text-xs">
+                  mDNS Hostname
+                </Label>
+                <div className="flex items-center gap-1">
+                  <Input
+                    id="mdnsHostname"
+                    value={hostname}
+                    onChange={(e) => setHostname(e.target.value)}
+                    disabled={isScanning}
+                    className="flex-1"
+                  />
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    .local
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Before scanning the network, the app will try to reach this
+                  hostname via mDNS.
+                </p>
+              </div>
+            </CollapsiblePanel>
+          </Collapsible>
+
           {isScanning && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Spinner />
               <span>
-                Scanning... {progress.scanned}/{progress.total}
+                {progress.phase === "mdns"
+                  ? "Trying mDNS discovery..."
+                  : `Scanning... ${progress.scanned}/${progress.total}`}
               </span>
             </div>
           )}
