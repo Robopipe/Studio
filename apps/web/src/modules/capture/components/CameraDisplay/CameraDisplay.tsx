@@ -17,8 +17,8 @@ export const CameraDisplay = ({
   return (
     <div className="relative">
       {isStreaming && (
-        <span className="absolute left-4 top-4 z-10 bg-red-700 px-2.5 py-1.5 rounded-sm text-base font-bold uppercase leading-tight tracking-[0.125rem] text-white">
-          LIVE
+        <span className="absolute left-4 top-4 z-10 bg-red-50 px-2.5 py-1.5 rounded-md text-xs font-bold uppercase text-red-700">
+          Live
         </span>
       )}
 
