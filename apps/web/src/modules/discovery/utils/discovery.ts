@@ -100,53 +100,6 @@ export function isValidIpv4(ip: string): boolean {
   });
 }
 
-export async function detectLocalIp(): Promise<string | null> {
-  // Try window.location.hostname first (works when accessed via LAN IP)
-  const hostname = window.location.hostname;
-  if (isValidIpv4(hostname) && !hostname.startsWith("127.")) {
-    return hostname;
-  }
-
-  // Fall back to WebRTC ICE candidate extraction
-  try {
-    return await new Promise<string | null>((resolve) => {
-      const pc = new RTCPeerConnection({ iceServers: [] });
-      const timeout = setTimeout(() => {
-        pc.close();
-        resolve(null);
-      }, 3000);
-
-      pc.createDataChannel("");
-      pc.onicecandidate = (event) => {
-        if (!event.candidate) return;
-        const match = event.candidate.candidate.match(
-          /([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})/,
-        );
-        if (match) {
-          const ip = match[1];
-          if (
-            isValidIpv4(ip) &&
-            !ip.startsWith("0.") &&
-            !ip.startsWith("169.254.")
-          ) {
-            clearTimeout(timeout);
-            pc.onicecandidate = null;
-            pc.close();
-            resolve(ip);
-          }
-        }
-      };
-      pc.createOffer().then((offer) => pc.setLocalDescription(offer));
-    });
-  } catch {
-    return null;
-  }
-}
-
-export function ipToCidr24(ip: string): string {
-  const parts = ip.split(".");
-  return `${parts[0]}.${parts[1]}.${parts[2]}.0/24`;
-}
 
 export function parsePorts(input: string): number[] {
   const trimmed = input.trim();

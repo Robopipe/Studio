@@ -22,10 +22,9 @@ import {
   SelectValue,
 } from "@/modules/shadcn/ui/select";
 import { Spinner } from "@/modules/shadcn/ui/spinner";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { useNetworkScan } from "../../hooks/useNetworkScan";
-import { detectLocalIp, ipToCidr24 } from "../../utils/discovery";
 import { DeviceList } from "../DeviceList/DeviceList";
 
 const PRESET_RANGES = [
@@ -48,24 +47,9 @@ export const NetworkScanDialog = ({
   const [cidr, setCidr] = useState("192.168.1.0/24");
   const [ports, setPorts] = useState("8080");
   const [hostname, setHostname] = useState("robopipe");
-  const cidrTouchedRef = useRef(false);
 
   const { scan, cancel, results, isScanning, progress } = useNetworkScan();
   const [hasScanned, setHasScanned] = useState(false);
-
-  useEffect(() => {
-    if (!open) return;
-    cidrTouchedRef.current = false;
-    let cancelled = false;
-    detectLocalIp().then((ip) => {
-      if (ip && !cancelled && !cidrTouchedRef.current) {
-        setCidr(ipToCidr24(ip));
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [open]);
 
   const handleScan = async () => {
     try {
@@ -107,7 +91,6 @@ export const NetworkScanDialog = ({
                 placeholder="192.168.1.0/24"
                 value={cidr}
                 onChange={(e) => {
-                  cidrTouchedRef.current = true;
                   setCidr(e.target.value);
                 }}
                 disabled={isScanning}
@@ -117,10 +100,7 @@ export const NetworkScanDialog = ({
                 value={
                   PRESET_RANGES.some((r) => r.value === cidr) ? cidr : undefined
                 }
-                onValueChange={(val) => {
-                  cidrTouchedRef.current = true;
-                  setCidr(val as string);
-                }}
+                onValueChange={(val) => setCidr(val as string)}
                 disabled={isScanning}
               >
                 <SelectTrigger className="w-auto">
