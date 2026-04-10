@@ -7,7 +7,7 @@ import {
   SelectValue,
 } from "@/modules/shadcn/ui/select";
 import { Camera } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 
 export interface SelectCameraProps {
   value?: string | null;
@@ -17,6 +17,15 @@ export interface SelectCameraProps {
 export const SelectCamera = ({ value, onSelect }: SelectCameraProps) => {
   const { data: cameras } = useListCamerasQuery();
 
+  const cameraItems = useMemo(
+    () =>
+      cameras?.reduce(
+        (acc, camera) => ({ ...acc, [camera.mxid]: camera.camera_name }),
+        {} as Record<string, string>,
+      ),
+    [cameras],
+  );
+
   useEffect(() => {
     // Select first camera automatically
     if (cameras && cameras.length > 0 && !value) {
@@ -25,7 +34,7 @@ export const SelectCamera = ({ value, onSelect }: SelectCameraProps) => {
   }, [cameras]);
 
   return (
-    <Select value={value ?? undefined} onValueChange={(val) => onSelect(val)}>
+    <Select value={value} onValueChange={(val) => onSelect(val)} items={cameraItems}>
       <SelectTrigger className="w-full">
         <SelectValue placeholder="Select camera" />
       </SelectTrigger>

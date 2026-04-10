@@ -27,7 +27,7 @@ export const SelectStream = ({ mxid, value, onSelect }: SelectStreamProps) => {
   }, [streams]);
 
   return (
-    <Select value={value ?? undefined} onValueChange={(val) => onSelect(val)}>
+    <Select value={value} onValueChange={(val) => onSelect(val)}>
       <SelectTrigger className="w-full">
         <SelectValue placeholder="Select stream" />
       </SelectTrigger>
