@@ -28,7 +28,7 @@ export const Modal = ({
 
   return (
     <div
-      className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/70 p-10"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-10"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div className="flex max-h-[calc(100vh-5rem)] min-h-[45rem] w-full max-w-[1472px] flex-col overflow-hidden rounded-3xl bg-white">
