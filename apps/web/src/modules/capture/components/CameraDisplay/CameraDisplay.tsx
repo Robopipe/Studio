@@ -17,7 +17,7 @@ export const CameraDisplay = ({
   return (
     <div className="relative">
       {isStreaming && (
-        <span className="absolute left-4 top-4 z-10 bg-emerald-700 px-2.5 py-1.5 text-base font-bold uppercase leading-tight tracking-[0.125rem] text-white">
+        <span className="absolute left-4 top-4 z-10 bg-red-700 px-2.5 py-1.5 rounded-sm text-base font-bold uppercase leading-tight tracking-[0.125rem] text-white">
           LIVE
         </span>
       )}
@@ -27,7 +27,7 @@ export const CameraDisplay = ({
         autoPlay
         muted
         playsInline
-        className="aspect-video w-full rounded-2xl bg-black/5"
+        className="aspect-video w-full rounded-md bg-black/5"
       ></video>
 
       {!isStreaming && !error && (
