@@ -17,17 +17,29 @@ export interface SelectCameraProps {
 export const SelectCamera = ({ value, onSelect }: SelectCameraProps) => {
   const { data: cameras } = useListCamerasQuery();
 
+  // Auto-select the first camera as soon as the list arrives if nothing is
+  // currently picked or the saved value no longer exists in the list.
   useEffect(() => {
-    // Select first camera automatically
-    if (cameras && cameras.length > 0 && !value) {
+    if (!cameras || cameras.length === 0) return;
+    if (!value || !cameras.some((c) => c.mxid === value)) {
       onSelect(cameras[0].mxid);
     }
-  }, [cameras]);
+  }, [cameras, value, onSelect]);
 
   return (
     <Select value={value ?? undefined} onValueChange={(val) => onSelect(val)}>
       <SelectTrigger className="w-full">
-        <SelectValue placeholder="Select camera" />
+        <SelectValue placeholder="Select camera">
+          {(mxid: string) => {
+            const camera = cameras?.find((c) => c.mxid === mxid);
+            return (
+              <span className="flex items-center gap-2">
+                <Camera className="size-4" />
+                {camera?.camera_name ?? mxid}
+              </span>
+            );
+          }}
+        </SelectValue>
       </SelectTrigger>
       <SelectContent>
         {cameras?.map((camera) => (
