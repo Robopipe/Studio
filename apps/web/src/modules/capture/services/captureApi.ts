@@ -36,15 +36,35 @@ export const captureApi = captureApiBase.injectEndpoints({
       invalidatesTags: (_result, _error, { projectId }) => [
         { type: CaptureApiTagType.Tasks, id: projectId },
       ],
+      onQueryStarted: async ({ projectId }, { dispatch, queryFulfilled }) => {
+        try {
+          const { data: newTask } = await queryFulfilled;
+          dispatch(
+            captureApi.util.updateQueryData(
+              "getTasks",
+              { projectId, page: 1, limit: 50, order: "desc" },
+              (draft) => {
+                draft.data.unshift(newTask);
+                draft.total += 1;
+                if (draft.data.length > draft.limit) {
+                  draft.data.pop();
+                }
+              },
+            ),
+          );
+        } catch {
+          // Mutation failed — invalidatesTags won't fire either
+        }
+      },
     }),
     getTasks: builder.query<
       PaginatedTasks,
-      { projectId: number; page?: number; limit?: number; annotated?: string }
+      { projectId: number; page?: number; limit?: number; annotated?: string; order?: "asc" | "desc" }
     >({
-      query: ({ projectId, page = 1, limit = 50, annotated }) => ({
+      query: ({ projectId, page = 1, limit = 50, annotated, order }) => ({
         url: tasks.tasks(projectId),
         method: HttpMethod.GET,
-        params: { page, limit, ...(annotated && { annotated }) },
+        params: { page, limit, ...(annotated && { annotated }), ...(order && { order }) },
       }),
       providesTags: (_result, _error, { projectId }) => [
         { type: CaptureApiTagType.Tasks, id: projectId },

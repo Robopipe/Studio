@@ -4,7 +4,7 @@ import { DB_CONNECTION } from "src/core/database/database.constant";
 import type { DbConnection } from "src/core/database/types/database.types";
 import { TaskDetailEntity, TaskEntity } from "../../modules/task/entity/task.entity";
 import { TaskInsert } from "../types/task";
-import { and, asc, count, eq, isNotNull, isNull, max, sql, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, isNotNull, isNull, max, sql, type SQL } from "drizzle-orm";
 import { ProjectTypeEnum, TaskStatusEnum } from "@repo/schema";
 
 @Injectable()
@@ -156,6 +156,7 @@ export class TaskRepository {
     limit: number,
     deleted: boolean | null = false,
     annotated?: boolean,
+    order: "asc" | "desc" = "asc",
   ): Promise<{ data: TaskEntity[]; total: number }> {
     const offset = (page - 1) * limit;
 
@@ -187,7 +188,7 @@ export class TaskRepository {
           ...(deletedAtFilter && { deletedAt: deletedAtFilter }),
           ...(statusValue && { status: statusValue }),
         },
-        orderBy: (t) => asc(t.createdAt),
+        orderBy: (t) => (order === "desc" ? desc(t.createdAt) : asc(t.createdAt)),
         limit,
         offset,
         extras: {

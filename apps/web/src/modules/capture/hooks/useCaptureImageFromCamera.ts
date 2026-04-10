@@ -1,7 +1,12 @@
 import { useCameraApiUrl } from "@/hooks";
+import { useAppDispatch } from "@/hooks/redux";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import { useState, useRef, useEffect } from "react";
 import { useCreateTaskMutation } from "../services/captureApi";
+import {
+  addPendingCapture,
+  removePendingCapture,
+} from "../services/pendingCapturesSlice";
 
 const getFilename = () => {
   return `image-${Date.now()}.jpeg`;
@@ -10,6 +15,7 @@ const getFilename = () => {
 interface QueuedUpload {
   id: string;
   blob: Blob;
+  blobUrl: string;
   filename: string;
   projectId: number;
 }
@@ -18,6 +24,7 @@ export const useCaptureImageFromCamera = () => {
   const [createTask] = useCreateTaskMutation();
   const [activeProject] = useActiveProject();
   const cameraApiUrl = useCameraApiUrl();
+  const dispatch = useAppDispatch();
   const [isLoading, setIsLoading] = useState(false);
   const [uploadQueue, setUploadQueue] = useState<QueuedUpload[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -35,10 +42,12 @@ export const useCaptureImageFromCamera = () => {
       const upload = uploadQueue[0];
       try {
         const file = new File([upload.blob], upload.filename, { type: upload.blob.type });
-        await createTask({ file, projectId: upload.projectId });
+        await createTask({ file, projectId: upload.projectId }).unwrap();
       } catch (error) {
         console.error("Failed to upload image:", error);
       } finally {
+        dispatch(removePendingCapture({ id: upload.id }));
+        URL.revokeObjectURL(upload.blobUrl);
         setUploadQueue(prev => prev.slice(1));
         setIsUploading(false);
         isProcessingRef.current = false;
@@ -62,14 +71,21 @@ export const useCaptureImageFromCamera = () => {
         throw new Error("No active project");
       }
 
-      // Queue the upload
+      const id = Date.now().toString();
+      const blobUrl = URL.createObjectURL(blob);
+      const filename = getFilename();
+      const capturedAt = new Date().toISOString();
+
+      dispatch(addPendingCapture({ id, blobUrl, capturedAt, filename }));
+
       const queuedUpload: QueuedUpload = {
-        id: Date.now().toString(),
+        id,
         blob,
-        filename: getFilename(),
+        blobUrl,
+        filename,
         projectId: activeProject.id,
       };
-      
+
       setUploadQueue(prev => [...prev, queuedUpload]);
     } finally {
       setIsLoading(false);

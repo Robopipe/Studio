@@ -109,6 +109,10 @@ export const taskPaginationQuerySchema = paginationQuerySchema.extend({
       if (val === "false") return false;
       return undefined;
     }),
+  order: z
+    .union([z.literal("asc"), z.literal("desc")])
+    .optional()
+    .default("asc"),
 });
 
 export const paginatedTaskSchema = paginatedResponseSchema(taskSchema);
