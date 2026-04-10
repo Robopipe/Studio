@@ -1,18 +1,25 @@
+import { useEffect } from "react";
 import { useWebRTCStream } from "../../hooks/useWebRTCStream";
 
 interface CameraDisplayProps {
   selectedMxid: string;
   selectedSensorName: string;
+  onStreamingChange?: (isStreaming: boolean) => void;
 }
 
 export const CameraDisplay = ({
   selectedMxid,
   selectedSensorName,
+  onStreamingChange,
 }: CameraDisplayProps) => {
   const { videoRef, isStreaming, error } = useWebRTCStream({
     selectedMxid,
     selectedSensorName,
   });
+
+  useEffect(() => {
+    onStreamingChange?.(isStreaming);
+  }, [isStreaming, onStreamingChange]);
 
   return (
     <div className="relative">

@@ -1,6 +1,6 @@
 import { useListCamerasQuery } from "@/core/cameraApi";
 import { NoCameraDetected, SearchingForCamera } from "@/modules/ui";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Captured } from "../Captured";
 import { CaptureSettings } from "../CaptureSettings";
 
@@ -18,6 +18,13 @@ export const CapturePage = ({}: CapturePageProps) => {
 
   const [selectedCamera, setSelectedCamera] = useState<string | null>(null);
   const [selectedStream, setSelectedStream] = useState<string | null>(null);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [isSwitchingStream, setIsSwitchingStream] = useState(false);
+
+  const handleSelectCamera = useCallback((camera: string | null) => {
+    setSelectedCamera(camera);
+    setSelectedStream(null);
+  }, []);
 
   const hasCameras = cameras && cameras.length > 0;
 
@@ -34,12 +41,16 @@ export const CapturePage = ({}: CapturePageProps) => {
       <CaptureSettings
         selectedCamera={selectedCamera}
         selectedStream={selectedStream}
-        onSelectCamera={setSelectedCamera}
+        isStreaming={isStreaming && !isSwitchingStream}
+        onSelectCamera={handleSelectCamera}
         onSelectStream={setSelectedStream}
+        onStreamSwitchingChange={setIsSwitchingStream}
       />
       <LiveCapture
         selectedCamera={selectedCamera}
         selectedStream={selectedStream}
+        isSwitchingStream={isSwitchingStream}
+        onStreamingChange={setIsStreaming}
       />
       <Captured />
     </div>
