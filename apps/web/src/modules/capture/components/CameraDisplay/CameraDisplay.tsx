@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useWebRTCStream } from "../../hooks/useWebRTCStream";
 
 interface CameraDisplayProps {
@@ -17,6 +17,15 @@ export const CameraDisplay = ({
     selectedSensorName,
   });
 
+  const [aspectRatio, setAspectRatio] = useState("16/9");
+
+  const handleLoadedMetadata = useCallback(() => {
+    const video = videoRef.current;
+    if (video && video.videoWidth && video.videoHeight) {
+      setAspectRatio(`${video.videoWidth}/${video.videoHeight}`);
+    }
+  }, [videoRef]);
+
   useEffect(() => {
     onStreamingChange?.(isStreaming);
   }, [isStreaming, onStreamingChange]);
@@ -34,7 +43,9 @@ export const CameraDisplay = ({
         autoPlay
         muted
         playsInline
-        className="aspect-video w-full rounded-md bg-black/5"
+        onLoadedMetadata={handleLoadedMetadata}
+        style={{ aspectRatio }}
+        className="w-full rounded-md bg-black/5"
       ></video>
 
       {!isStreaming && !error && (
