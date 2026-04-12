@@ -1,7 +1,10 @@
+import { useAppSelector } from "@/hooks/redux";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import { PaginationNumbers } from "@/modules/shadcn/ui/pagination";
+import { Skeleton } from "@/modules/shadcn/ui/skeleton";
+import { RootState } from "@/store";
 import { format } from "date-fns";
-import { Download, Play, Trash2 } from "lucide-react";
+import { Download, Loader2, Play, Trash2 } from "lucide-react";
 import { useState } from "react";
 import {
   useDeleteCapturedVideoMutation,
@@ -44,55 +47,91 @@ export const CapturedVideos = ({}: CapturedVideosProps) => {
     { skip: !activeProject?.id },
   );
 
+  const pendingCaptures = useAppSelector(
+    (state: RootState) => state.pendingVideoCaptures.captures,
+  );
+
   const videos = videosData?.data ?? [];
   const totalPages = videosData
     ? Math.ceil(videosData.total / videosData.limit)
     : 0;
 
+  type VideoRow =
+    | { type: "pending"; id: string; thumbnailUrl: string; durationMs: number; date: string }
+    | { type: "uploaded"; id: number; thumbnailUrl: string; durationMs: number; date: string; fileUrl: string };
+
+  const rows: VideoRow[] = [
+    ...pendingCaptures.map((p) => ({
+      type: "pending" as const,
+      id: p.id,
+      thumbnailUrl: p.thumbnailBlobUrl,
+      durationMs: p.durationMs,
+      date: p.capturedAt,
+    })),
+    ...videos.map((v) => ({
+      type: "uploaded" as const,
+      id: v.id,
+      thumbnailUrl: v.thumbnailUrl,
+      durationMs: v.durationMs,
+      date: v.createdAt,
+      fileUrl: v.fileUrl,
+    })),
+  ];
+
   return (
     <div className="flex w-full flex-col gap-4">
-      {videos.length === 0 && (
+      {rows.length === 0 && (
         <p className="text-sm text-muted-foreground">No captured videos yet.</p>
       )}
-      {videos.map((video) => (
-        <div className="flex w-full items-center justify-between" key={video.id}>
+      {rows.map((row) => (
+        <div className="flex w-full items-center justify-between" key={row.id}>
           <div className="flex gap-4">
             <div className="relative">
               <img
-                src={video.thumbnailUrl}
-                alt={`Video ${video.id}`}
+                src={row.thumbnailUrl}
+                alt={row.type === "pending" ? "Uploading..." : `Video ${row.id}`}
                 className="aspect-video w-16 rounded-lg bg-muted-foreground object-cover"
               />
               <span className="absolute bottom-0.5 right-0.5 rounded bg-black/70 px-1 text-[10px] font-medium text-white">
-                {formatDuration(video.durationMs)}
+                {formatDuration(row.durationMs)}
               </span>
             </div>
             <div className="flex flex-col gap-0.5">
-              <span className="text-base font-medium">{`#${video.id}`}</span>
+              {row.type === "pending" ? (
+                <Skeleton className="h-5 w-12 bg-muted-foreground/20" />
+              ) : (
+                <span className="text-base font-medium">{`#${row.id}`}</span>
+              )}
               <span className="text-muted-foreground">
-                {format(new Date(video.createdAt), "Ppp")}
+                {format(new Date(row.date), "Ppp")}
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-4 text-muted-foreground [&>svg]:cursor-pointer [&>svg:hover]:text-foreground">
-            <Play
-              onClick={() => setPlayingVideoUrl(video.fileUrl)}
-              className="size-5"
-            />
-            <Download
-              onClick={() => handleDownload(video.fileUrl, video.id)}
-              className="size-5"
-            />
-            <Trash2
-              onClick={() => {
-                if (activeProject)
-                  deleteCapturedVideo({
-                    projectId: activeProject.id,
-                    videoId: video.id,
-                  });
-              }}
-              className="size-5"
-            />
+          <div className="flex items-center gap-4 text-muted-foreground">
+            {row.type === "pending" ? (
+              <Loader2 className="size-5 animate-spin" />
+            ) : (
+              <div className="flex items-center gap-4 [&>svg]:cursor-pointer [&>svg:hover]:text-foreground">
+                <Play
+                  onClick={() => setPlayingVideoUrl(row.fileUrl)}
+                  className="size-5"
+                />
+                <Download
+                  onClick={() => handleDownload(row.fileUrl, row.id)}
+                  className="size-5"
+                />
+                <Trash2
+                  onClick={() => {
+                    if (activeProject)
+                      deleteCapturedVideo({
+                        projectId: activeProject.id,
+                        videoId: row.id,
+                      });
+                  }}
+                  className="size-5"
+                />
+              </div>
+            )}
           </div>
         </div>
       ))}

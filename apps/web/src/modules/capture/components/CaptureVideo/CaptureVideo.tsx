@@ -1,8 +1,13 @@
 import { Button } from "@/modules/shadcn/ui/button";
+import { useAppDispatch } from "@/hooks/redux";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import { Video } from "lucide-react";
 import { useCreateCapturedVideoMutation } from "../../services/captureApi";
 import { useVideoRecorder } from "../../hooks/useVideoRecorder";
+import {
+  addPendingVideoCapture,
+  removePendingVideoCapture,
+} from "../../services/pendingVideoCapturesSlice";
 
 export interface CaptureVideoProps {
   mediaStream: MediaStream | null;
@@ -60,6 +65,7 @@ export const CaptureVideo = ({
   isStreaming,
   onRecordingChange,
 }: CaptureVideoProps) => {
+  const dispatch = useAppDispatch();
   const [activeProject] = useActiveProject();
   const [createCapturedVideo] = useCreateCapturedVideoMutation();
   const { isRecording, recordingDurationMs, startRecording, stopRecording, isSupported } =
@@ -76,8 +82,22 @@ export const CaptureVideo = ({
 
     if (!result || !activeProject || !mediaStream) return;
 
+    const pendingId = Date.now().toString();
+    let thumbnailBlobUrl = "";
+
     try {
       const thumbnailBlob = await captureFrameFromStream(mediaStream);
+      thumbnailBlobUrl = URL.createObjectURL(thumbnailBlob);
+
+      dispatch(
+        addPendingVideoCapture({
+          id: pendingId,
+          thumbnailBlobUrl,
+          durationMs: result.durationMs,
+          capturedAt: new Date().toISOString(),
+        }),
+      );
+
       await createCapturedVideo({
         videoFile: result.videoBlob,
         thumbnailFile: thumbnailBlob,
@@ -86,6 +106,9 @@ export const CaptureVideo = ({
       }).unwrap();
     } catch (error) {
       console.error("Failed to upload video:", error);
+    } finally {
+      dispatch(removePendingVideoCapture({ id: pendingId }));
+      if (thumbnailBlobUrl) URL.revokeObjectURL(thumbnailBlobUrl);
     }
   };
 
