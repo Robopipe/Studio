@@ -45,4 +45,9 @@ export const studioApiEndpoints = {
         `dashboard-config/${projectId}/configurations/${configId}/evaluation`,
     },
   },
+  capturedVideos: {
+    list: (projectId: number) => `captured-video/${projectId}`,
+    single: (projectId: number, videoId: number) =>
+      `captured-video/${projectId}/${videoId}`,
+  },
 } as const;

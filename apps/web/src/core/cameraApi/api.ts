@@ -99,6 +99,21 @@ export const cameraApi = cameraApiBase.injectEndpoints({
       ],
     }),
 
+    // Batch activate/deactivate streams
+    batchUpdateStreams: builder.mutation<
+      StreamInfo[],
+      { mxid: string; activate: string[]; deactivate: string[] }
+    >({
+      query: ({ mxid, activate, deactivate }) => ({
+        url: `/cameras/${mxid}/streams/`,
+        method: HttpMethod.PATCH,
+        body: { activate, deactivate },
+      }),
+      invalidatesTags: (_result, _error, { mxid }) => [
+        { type: CameraApiTagType.Streams, id: mxid },
+      ],
+    }),
+
     // Get stream control
     getStreamControl: builder.query<
       SensorControl,
@@ -234,6 +249,7 @@ export const {
   useListStreamsQuery,
   useActivateStreamMutation,
   useDeactivateStreamMutation,
+  useBatchUpdateStreamsMutation,
   useGetStreamControlQuery,
   useUpdateStreamControlMutation,
 

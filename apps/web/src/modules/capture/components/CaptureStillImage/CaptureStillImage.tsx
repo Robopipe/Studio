@@ -64,12 +64,14 @@ export type IntervalShootingConfig = z.output<
 
 export interface CaptureStillImageProps {
   selectedCamera: string;
-  selectedStream: string;
+  selectedStream: string | null;
+  isStreaming: boolean;
 }
 
 export const CaptureStillImage = ({
   selectedCamera,
   selectedStream,
+  isStreaming,
 }: CaptureStillImageProps) => {
   const { handleCaptureImage, isLoading } = useCaptureImageFromCamera();
   const [useIntervalShooting, setUseIntervalShooting] = useState(false);
@@ -95,6 +97,7 @@ export const CaptureStillImage = ({
           onCheckedChange={(value) => {
             setUseIntervalShooting(value);
           }}
+          disabled={!selectedStream || !isStreaming}
         />
       </div>
 
@@ -131,13 +134,14 @@ export const CaptureStillImage = ({
           <CaptureStillImageCountdown
             selectedCamera={selectedCamera}
             selectedStream={selectedStream}
+            isStreaming={isStreaming}
             intervalShootingConfig={intervalShootingConfigResult.data}
           />
         ) : null
       ) : (
         <Button
           onClick={() => handleCaptureImage(selectedCamera!, selectedStream!)}
-          disabled={!selectedCamera || !selectedStream || isLoading}
+          disabled={!selectedCamera || !selectedStream || !isStreaming || isLoading}
           size="lg"
         >
           Capture image

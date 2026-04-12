@@ -21,10 +21,13 @@ export class AssetsService {
    * @param projectId
    * @param type - 'asset' or 'thumbnail'
    */
-  public getAssetName(fileName: string, projectId: number, type: 'asset' | 'thumbnail'): string {
+  public getAssetName(fileName: string, projectId: number, type: 'asset' | 'thumbnail' | 'video'): string {
     if (type === 'thumbnail') {
       const nameWithoutExt = fileName.replace(/\.[^.]+$/, '')
       return `${projectId}/thumbnails/${uuidv4()}_${nameWithoutExt}.webp`
+    }
+    if (type === 'video') {
+      return `${projectId}/videos/${uuidv4()}_${fileName}`
     }
     return `${projectId}/assets/${uuidv4()}_${fileName}`
   }

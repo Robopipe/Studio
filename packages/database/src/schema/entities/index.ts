@@ -18,3 +18,4 @@ export * from "./password-reset";
 export * from './dashboard-configuration'
 export * from './dashboard-evaluation'
 export * from './eval'
+export * from './captured-video'
