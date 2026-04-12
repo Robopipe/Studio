@@ -1,8 +1,8 @@
 import { useAppSelector } from "@/hooks/redux";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
-import { RootState } from "@/store";
 import { PaginationNumbers } from "@/modules/shadcn/ui/pagination";
 import { Skeleton } from "@/modules/shadcn/ui/skeleton";
+import { RootState } from "@/store";
 import { format } from "date-fns";
 import { Download, Loader2, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -42,7 +42,12 @@ export const CapturedPhotos = ({}: CapturedPhotosProps) => {
   const [activeProject] = useActiveProject();
   const [page, setPage] = useState(1);
   const { data: tasksData } = useGetTasksQuery(
-    { projectId: activeProject?.id!, page, limit: TASKS_PER_PAGE, order: "desc" },
+    {
+      projectId: activeProject?.id!,
+      page,
+      limit: TASKS_PER_PAGE,
+      order: "desc",
+    },
     { skip: !activeProject?.id },
   );
   const tasks = tasksData?.data ?? [];
@@ -64,7 +69,7 @@ export const CapturedPhotos = ({}: CapturedPhotosProps) => {
             <img
               src={pending.blobUrl}
               alt="Uploading..."
-              className="aspect-[4/3] w-16 rounded-lg bg-muted-foreground object-cover"
+              className="aspect-4/3 w-16 rounded-lg bg-muted-foreground object-cover"
             />
             <div className="flex flex-col gap-0.5">
               <Skeleton className="h-5 w-12 bg-muted-foreground/20" />
@@ -90,7 +95,7 @@ export const CapturedPhotos = ({}: CapturedPhotosProps) => {
             <img
               src={task.thumbnailUrl}
               alt={`#${task.iid}`}
-              className="aspect-[4/3] w-16 rounded-lg bg-muted-foreground object-cover"
+              className="aspect-4/3 w-16 rounded-lg bg-muted-foreground object-cover"
             />
             <div className="flex flex-col gap-0.5">
               <span className="text-base font-medium">{`#${task.iid}`}</span>

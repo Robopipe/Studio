@@ -100,6 +100,7 @@ export function isValidIpv4(ip: string): boolean {
   });
 }
 
+
 export function parsePorts(input: string): number[] {
   const trimmed = input.trim();
 
@@ -139,6 +140,7 @@ export async function scanNetwork(
   concurrency: number,
   signal: AbortSignal,
   onProgress: (scanned: number) => void,
+  existingUrls: Set<string> = new Set(),
 ): Promise<DiscoveredDevice[]> {
   const targets: ScanTarget[] = [];
   for (const ip of ips) {
@@ -159,7 +161,7 @@ export async function scanNetwork(
       const found = await probeRobopipeApi(url, 2000, signal);
       scanned++;
       onProgress(scanned);
-      if (found) {
+      if (found && !existingUrls.has(url)) {
         results.push({ url, host: ip, port });
       }
     });
