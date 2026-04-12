@@ -1,4 +1,5 @@
 import { CaptureStillImage } from "../CaptureStillImage";
+import { CaptureVideo } from "../CaptureVideo";
 import { SelectCamera } from "../SelectCamera";
 import { SelectStream } from "../SelectStream";
 
@@ -9,6 +10,8 @@ export interface CaptureSettingsProps {
   onSelectCamera: (camera: string | null) => void;
   onSelectStream: (stream: string | null) => void;
   onStreamSwitchingChange?: (isSwitching: boolean) => void;
+  mediaStream: MediaStream | null;
+  onRecordingChange: (isRecording: boolean) => void;
 }
 
 export const CaptureSettings = ({
@@ -18,6 +21,8 @@ export const CaptureSettings = ({
   onSelectCamera,
   onSelectStream,
   onStreamSwitchingChange,
+  mediaStream,
+  onRecordingChange,
 }: CaptureSettingsProps) => {
   return (
     <div className="flex flex-col gap-4 border-r border-black/10 bg-black/[0.03] p-4 pl-6">
@@ -33,11 +38,19 @@ export const CaptureSettings = ({
       />
 
       {selectedCamera && (
-        <CaptureStillImage
-          selectedCamera={selectedCamera}
-          selectedStream={selectedStream}
-          isStreaming={isStreaming}
-        />
+        <>
+          <CaptureStillImage
+            selectedCamera={selectedCamera}
+            selectedStream={selectedStream}
+            isStreaming={isStreaming}
+          />
+
+          <CaptureVideo
+            mediaStream={mediaStream}
+            isStreaming={isStreaming}
+            onRecordingChange={onRecordingChange}
+          />
+        </>
       )}
     </div>
   );

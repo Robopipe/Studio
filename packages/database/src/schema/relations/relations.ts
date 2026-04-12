@@ -19,6 +19,10 @@ export const relationBase = defineRelations(schema, (r) => ({
       from: r.projectTable.id,
       to: r.dashboardConfigurationTable.projectId,
     }),
+    capturedVideos: r.many.capturedVideoTable({
+      from: r.projectTable.id,
+      to: r.capturedVideoTable.projectId,
+    }),
   },
   taskTable: {
     project: r.one.projectTable({
@@ -114,6 +118,12 @@ export const relationBase = defineRelations(schema, (r) => ({
     masterThresholds: r.many.evalThresholdTable({
       from: r.dashboardConfigurationTable.id,
       to: r.evalThresholdTable.dashboardConfigurationId,
+    }),
+  },
+  capturedVideoTable: {
+    project: r.one.projectTable({
+      from: r.capturedVideoTable.projectId,
+      to: r.projectTable.id,
     }),
   },
   dashboardEvaluationTable: {
