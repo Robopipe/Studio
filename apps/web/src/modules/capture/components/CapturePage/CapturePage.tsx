@@ -20,6 +20,8 @@ export const CapturePage = ({}: CapturePageProps) => {
   const [selectedStream, setSelectedStream] = useState<string | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
   const [isSwitchingStream, setIsSwitchingStream] = useState(false);
+  const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
 
   const handleSelectCamera = useCallback((camera: string | null) => {
     setSelectedCamera(camera);
@@ -45,12 +47,16 @@ export const CapturePage = ({}: CapturePageProps) => {
         onSelectCamera={handleSelectCamera}
         onSelectStream={setSelectedStream}
         onStreamSwitchingChange={setIsSwitchingStream}
+        mediaStream={mediaStream}
+        onRecordingChange={setIsRecording}
       />
       <LiveCapture
         selectedCamera={selectedCamera}
         selectedStream={selectedStream}
         isSwitchingStream={isSwitchingStream}
         onStreamingChange={setIsStreaming}
+        onMediaStreamChange={setMediaStream}
+        isRecording={isRecording}
       />
       <Captured />
     </div>

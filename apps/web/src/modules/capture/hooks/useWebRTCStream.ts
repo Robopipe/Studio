@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 export interface UseWebRTCStreamOptions {
   selectedMxid: string;
   selectedSensorName: string;
+  onMediaStreamChange?: (stream: MediaStream | null) => void;
 }
 
 export interface UseWebRTCStreamReturn {
@@ -31,7 +32,7 @@ const ICE_SERVERS: RTCIceServer[] = [
 export const useWebRTCStream = (
   options: UseWebRTCStreamOptions,
 ): UseWebRTCStreamReturn => {
-  const { selectedMxid, selectedSensorName } = options;
+  const { selectedMxid, selectedSensorName, onMediaStreamChange } = options;
   const apiHost = useCameraApiUrl();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
@@ -66,6 +67,7 @@ export const useWebRTCStream = (
             if (videoRef.current.srcObject !== event.streams[0]) {
               videoRef.current.srcObject = event.streams[0];
             }
+            onMediaStreamChange?.(event.streams[0] ?? null);
             setIsStreaming(true);
           }
         };
@@ -198,6 +200,7 @@ export const useWebRTCStream = (
       if (videoRef.current) {
         videoRef.current.srcObject = null;
       }
+      onMediaStreamChange?.(null);
       setIsStreaming(false);
     };
   }, [selectedMxid, selectedSensorName, apiHost]);

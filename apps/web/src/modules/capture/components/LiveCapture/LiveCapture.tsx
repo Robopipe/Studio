@@ -7,6 +7,8 @@ export interface LiveCaptureProps {
   selectedStream: string | null;
   isSwitchingStream?: boolean;
   onStreamingChange?: (isStreaming: boolean) => void;
+  onMediaStreamChange?: (stream: MediaStream | null) => void;
+  isRecording?: boolean;
 }
 
 export const LiveCapture = ({
@@ -14,6 +16,8 @@ export const LiveCapture = ({
   selectedStream,
   isSwitchingStream,
   onStreamingChange,
+  onMediaStreamChange,
+  isRecording,
 }: LiveCaptureProps) => {
   useEffect(() => {
     if (!selectedStream || isSwitchingStream) {
@@ -43,6 +47,8 @@ export const LiveCapture = ({
             selectedMxid={selectedCamera}
             selectedSensorName={selectedStream}
             onStreamingChange={onStreamingChange}
+            onMediaStreamChange={onMediaStreamChange}
+            isRecording={isRecording}
           />
 
           <ImageProfile
