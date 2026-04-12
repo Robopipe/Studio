@@ -17,6 +17,7 @@ import { InvitationRepository } from "./services/invitation-repository.service";
 import { EvalLimitRepository } from './services/eval-limit.service';
 import { EvalTestCaseRepository } from './services/eval-test-case.service';
 import { EvalThresholdRepository } from './services/eval-threshold.service';
+import { CapturedVideoRepository } from './services/captured-video-repository.service';
 
 
 @Global()
@@ -39,6 +40,7 @@ import { EvalThresholdRepository } from './services/eval-threshold.service';
     EvalLimitRepository,
     EvalTestCaseRepository,
     EvalThresholdRepository,
+    CapturedVideoRepository,
   ],
   exports: [
     ModelRepository,
@@ -58,6 +60,7 @@ import { EvalThresholdRepository } from './services/eval-threshold.service';
     EvalLimitRepository,
     EvalTestCaseRepository,
     EvalThresholdRepository,
+    CapturedVideoRepository,
   ],
 })
 export class RepositoryModule {}

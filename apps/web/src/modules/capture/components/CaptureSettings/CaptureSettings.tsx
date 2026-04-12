@@ -1,24 +1,28 @@
 import { CaptureStillImage } from "../CaptureStillImage";
+import { CaptureVideo } from "../CaptureVideo";
 import { SelectCamera } from "../SelectCamera";
-import { Orientation, SelectOrientation } from "../SelectOrientation";
 import { SelectStream } from "../SelectStream";
 
 export interface CaptureSettingsProps {
   selectedCamera: string | null;
   selectedStream: string | null;
-  selectedOrientation: Orientation | null;
+  isStreaming: boolean;
   onSelectCamera: (camera: string | null) => void;
   onSelectStream: (stream: string | null) => void;
-  onSelectOrientation: (orientation: Orientation | null) => void;
+  onStreamSwitchingChange?: (isSwitching: boolean) => void;
+  mediaStream: MediaStream | null;
+  onRecordingChange: (isRecording: boolean) => void;
 }
 
 export const CaptureSettings = ({
   selectedCamera,
   selectedStream,
-  selectedOrientation,
+  isStreaming,
   onSelectCamera,
   onSelectStream,
-  onSelectOrientation,
+  onStreamSwitchingChange,
+  mediaStream,
+  onRecordingChange,
 }: CaptureSettingsProps) => {
   return (
     <div className="flex flex-col gap-4 border-r border-black/10 bg-black/[0.03] p-4 pl-6">
@@ -30,18 +34,23 @@ export const CaptureSettings = ({
         mxid={selectedCamera}
         value={selectedStream}
         onSelect={onSelectStream}
-      />
-      {/* TODO: File name pattern */}
-      <SelectOrientation
-        value={selectedOrientation}
-        onSelect={onSelectOrientation}
+        onSwitchingChange={onStreamSwitchingChange}
       />
 
-      {selectedCamera && selectedStream && (
-        <CaptureStillImage
-          selectedCamera={selectedCamera}
-          selectedStream={selectedStream}
-        />
+      {selectedCamera && (
+        <>
+          <CaptureStillImage
+            selectedCamera={selectedCamera}
+            selectedStream={selectedStream}
+            isStreaming={isStreaming}
+          />
+
+          <CaptureVideo
+            mediaStream={mediaStream}
+            isStreaming={isStreaming}
+            onRecordingChange={onRecordingChange}
+          />
+        </>
       )}
     </div>
   );

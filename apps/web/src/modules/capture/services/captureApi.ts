@@ -2,13 +2,14 @@ import { appConfig } from "@/config";
 import { baseRefreshingQuery } from "@/core/api/baseQuery";
 import { HttpMethod } from "@/types";
 import { createApi } from "@reduxjs/toolkit/query/react";
-import { PaginatedTasks, Task } from "@repo/schema";
+import { CapturedVideo, PaginatedCapturedVideos, PaginatedTasks, Task } from "@repo/schema";
 
 export enum CaptureApiTagType {
   Tasks = "Tasks",
+  CapturedVideos = "CapturedVideos",
 }
 
-const { tasks } = appConfig.studioApi.endpoints;
+const { tasks, capturedVideos } = appConfig.studioApi.endpoints;
 const captureApiBase = createApi({
   reducerPath: "captureApi",
   baseQuery: baseRefreshingQuery,
@@ -18,8 +19,8 @@ const captureApiBase = createApi({
 
 export const captureApi = captureApiBase.injectEndpoints({
   endpoints: (builder) => ({
-    createTask: builder.mutation<Task, { file: File; projectId: number }>({
-      query: ({ file, projectId }) => {
+    createTask: builder.mutation<Task, { file: File; projectId: number; capturedAt: string }>({
+      query: ({ file, projectId, capturedAt }) => {
         var bodyFormData = new FormData();
         bodyFormData.append("file", file);
 
@@ -29,6 +30,7 @@ export const captureApi = captureApiBase.injectEndpoints({
           headers: {
             "Content-Type": "multipart/form-data",
           },
+          params: { capturedAt },
           body: bodyFormData,
           formData: true,
         };
@@ -36,15 +38,35 @@ export const captureApi = captureApiBase.injectEndpoints({
       invalidatesTags: (_result, _error, { projectId }) => [
         { type: CaptureApiTagType.Tasks, id: projectId },
       ],
+      onQueryStarted: async ({ projectId }, { dispatch, queryFulfilled }) => {
+        try {
+          const { data: newTask } = await queryFulfilled;
+          dispatch(
+            captureApi.util.updateQueryData(
+              "getTasks",
+              { projectId, page: 1, limit: 50, order: "desc" },
+              (draft) => {
+                draft.data.unshift(newTask);
+                draft.total += 1;
+                if (draft.data.length > draft.limit) {
+                  draft.data.pop();
+                }
+              },
+            ),
+          );
+        } catch {
+          // Mutation failed — invalidatesTags won't fire either
+        }
+      },
     }),
     getTasks: builder.query<
       PaginatedTasks,
-      { projectId: number; page?: number; limit?: number; annotated?: string }
+      { projectId: number; page?: number; limit?: number; annotated?: string; order?: "asc" | "desc" }
     >({
-      query: ({ projectId, page = 1, limit = 50, annotated }) => ({
+      query: ({ projectId, page = 1, limit = 50, annotated, order }) => ({
         url: tasks.tasks(projectId),
         method: HttpMethod.GET,
-        params: { page, limit, ...(annotated && { annotated }) },
+        params: { page, limit, ...(annotated && { annotated }), ...(order && { order }) },
       }),
       providesTags: (_result, _error, { projectId }) => [
         { type: CaptureApiTagType.Tasks, id: projectId },
@@ -59,6 +81,54 @@ export const captureApi = captureApiBase.injectEndpoints({
         { type: CaptureApiTagType.Tasks, id: projectId },
       ],
     }),
+    createCapturedVideo: builder.mutation<
+      CapturedVideo,
+      {
+        videoFile: Blob;
+        thumbnailFile: Blob;
+        projectId: number;
+        durationMs: number;
+      }
+    >({
+      query: ({ videoFile, thumbnailFile, projectId, durationMs }) => {
+        const formData = new FormData();
+        formData.append("file", videoFile, `video-${Date.now()}.webm`);
+        formData.append("thumbnail", thumbnailFile, `thumb-${Date.now()}.webp`);
+        return {
+          url: capturedVideos.list(projectId),
+          method: "POST",
+          headers: { "Content-Type": "multipart/form-data" },
+          params: { durationMs },
+          body: formData,
+          formData: true,
+        };
+      },
+      invalidatesTags: (_result, _error, { projectId }) => [
+        { type: CaptureApiTagType.CapturedVideos, id: projectId },
+      ],
+    }),
+    getCapturedVideos: builder.query<
+      PaginatedCapturedVideos,
+      { projectId: number; page?: number; limit?: number; order?: "asc" | "desc" }
+    >({
+      query: ({ projectId, page = 1, limit = 20, order = "desc" }) => ({
+        url: capturedVideos.list(projectId),
+        method: HttpMethod.GET,
+        params: { page, limit, order },
+      }),
+      providesTags: (_result, _error, { projectId }) => [
+        { type: CaptureApiTagType.CapturedVideos, id: projectId },
+      ],
+    }),
+    deleteCapturedVideo: builder.mutation<void, { projectId: number; videoId: number }>({
+      query: ({ projectId, videoId }) => ({
+        url: capturedVideos.single(projectId, videoId),
+        method: HttpMethod.DELETE,
+      }),
+      invalidatesTags: (_result, _error, { projectId }) => [
+        { type: CaptureApiTagType.CapturedVideos, id: projectId },
+      ],
+    }),
   }),
   overrideExisting: true,
 });
@@ -67,4 +137,7 @@ export const {
   useCreateTaskMutation,
   useGetTasksQuery,
   useDeleteTaskMutation,
+  useCreateCapturedVideoMutation,
+  useGetCapturedVideosQuery,
+  useDeleteCapturedVideoMutation,
 } = captureApi;

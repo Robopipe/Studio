@@ -1,4 +1,7 @@
-import { useListStreamsQuery } from "@/core/cameraApi";
+import {
+  useBatchUpdateStreamsMutation,
+  useListStreamsQuery,
+} from "@/core/cameraApi";
 import {
   Select,
   SelectContent,
@@ -6,28 +9,67 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/modules/shadcn/ui/select";
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export interface SelectStreamProps {
   mxid?: string | null;
   value?: string | null;
   onSelect: (streamName: string | null) => void;
+  onSwitchingChange?: (isSwitching: boolean) => void;
 }
 
-export const SelectStream = ({ mxid, value, onSelect }: SelectStreamProps) => {
+export const SelectStream = ({
+  mxid,
+  value,
+  onSelect,
+  onSwitchingChange,
+}: SelectStreamProps) => {
   const { data: streams } = useListStreamsQuery(mxid!, {
     skip: !mxid,
   });
+  const [batchUpdateStreams] = useBatchUpdateStreamsMutation();
+  const [isSwitching, setIsSwitching] = useState(false);
 
   useEffect(() => {
-    if (!streams || streams.length === 0) return;
-    if (!value || !streams.some((s) => s.name === value)) {
-      onSelect(streams[0].name);
+    // Auto-select the active stream
+    if (streams && streams.length > 0 && !value) {
+      const activeStream = streams.find((s) => s.active);
+      if (activeStream) {
+        onSelect(activeStream.name);
+      }
     }
   }, [streams, value, onSelect]);
 
+  const handleStreamChange = useCallback(
+    async (newStream: string | null) => {
+      if (!mxid || !newStream || newStream === value) return;
+
+      setIsSwitching(true);
+      onSwitchingChange?.(true);
+      try {
+        await batchUpdateStreams({
+          mxid,
+          activate: [newStream],
+          deactivate: value ? [value] : [],
+        }).unwrap();
+        onSelect(newStream);
+      } catch {
+        toast.error("Failed to switch stream");
+      } finally {
+        setIsSwitching(false);
+        onSwitchingChange?.(false);
+      }
+    },
+    [mxid, value, batchUpdateStreams, onSelect, onSwitchingChange],
+  );
+
   return (
-    <Select value={value ?? undefined} onValueChange={(val) => onSelect(val)}>
+    <Select
+      value={value}
+      onValueChange={handleStreamChange}
+      disabled={isSwitching}
+    >
       <SelectTrigger className="w-full">
         <SelectValue placeholder="Select stream" />
       </SelectTrigger>

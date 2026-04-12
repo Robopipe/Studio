@@ -65,6 +65,7 @@ export const createClassificationAnnotationSchema = z.object({
  */
 export const createTaskSchema = z.object({
   iid: z.string().optional(),
+  capturedAt: z.iso.datetime().optional(),
 })
 
 export const taskSchema = z.object({
@@ -109,6 +110,10 @@ export const taskPaginationQuerySchema = paginationQuerySchema.extend({
       if (val === "false") return false;
       return undefined;
     }),
+  order: z
+    .union([z.literal("asc"), z.literal("desc")])
+    .optional()
+    .default("asc"),
 });
 
 export const paginatedTaskSchema = paginatedResponseSchema(taskSchema);

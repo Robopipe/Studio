@@ -14,6 +14,7 @@ import { EmailModule } from "./modules/email/email.module";
 import { APP_PIPE } from "@nestjs/core";
 import { ZodValidationPipe } from "nestjs-zod";
 import { EvalModule } from "./modules/eval/eval.module";
+import { CapturedVideoModule } from "./modules/captured-video/captured-video.module";
 
 @Module({
   imports: [
@@ -29,7 +30,8 @@ import { EvalModule } from "./modules/eval/eval.module";
     ModelModule,
     DashboardModule,
     EmailModule,
-    EvalModule
+    EvalModule,
+    CapturedVideoModule,
   ],
   providers: [
     {
