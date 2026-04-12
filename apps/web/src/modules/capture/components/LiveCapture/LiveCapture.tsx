@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { CameraDisplay } from "../CameraDisplay";
-import { ImageProfile } from "../ImageProfile";
 
 export interface LiveCaptureProps {
   selectedCamera: string | null;
@@ -50,11 +49,11 @@ export const LiveCapture = ({
             onMediaStreamChange={onMediaStreamChange}
             isRecording={isRecording}
           />
-
-          <ImageProfile
+          {/* TODO: Add back image profile once we have the API to fetch stream control for live stream */}
+          {/* <ImageProfile
             selectedCamera={selectedCamera}
             selectedStream={selectedStream}
-          />
+          /> */}
         </>
       )}
     </div>
