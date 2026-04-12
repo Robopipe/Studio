@@ -27,16 +27,30 @@ export const SelectCamera = ({ value, onSelect }: SelectCameraProps) => {
   );
 
   useEffect(() => {
-    // Select first camera automatically
-    if (cameras && cameras.length > 0 && !value) {
+    if (!cameras || cameras.length === 0) return;
+    if (!value || !cameras.some((c) => c.mxid === value)) {
       onSelect(cameras[0].mxid);
     }
-  }, [cameras]);
+  }, [cameras, value, onSelect]);
 
   return (
-    <Select value={value} onValueChange={(val) => onSelect(val)} items={cameraItems}>
+    <Select
+      value={value}
+      onValueChange={(val) => onSelect(val)}
+      items={cameraItems}
+    >
       <SelectTrigger className="w-full">
-        <SelectValue placeholder="Select camera" />
+        <SelectValue placeholder="Select camera">
+          {(mxid: string) => {
+            const camera = cameras?.find((c) => c.mxid === mxid);
+            return (
+              <span className="flex items-center gap-2">
+                <Camera className="size-4" />
+                {camera?.camera_name ?? mxid}
+              </span>
+            );
+          }}
+        </SelectValue>
       </SelectTrigger>
       <SelectContent>
         {cameras?.map((camera) => (

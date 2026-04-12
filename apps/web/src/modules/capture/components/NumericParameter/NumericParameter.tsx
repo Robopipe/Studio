@@ -44,25 +44,22 @@ export const NumericParameter = ({
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <Info className="size-4 text-black/[0.38]" />
-      <span className="w-[150px] overflow-hidden text-ellipsis whitespace-nowrap">
-        {label}
-      </span>
-      <span className="w-[50px] overflow-hidden text-ellipsis whitespace-nowrap text-right">
+    <div className="flex items-center gap-2 text-xs leading-4">
+      <Info className="size-4 shrink-0 text-foreground/40" />
+      <span className="w-[110px] truncate text-foreground/90">{label}</span>
+      <span className="w-8 shrink-0 text-right tabular-nums text-foreground/60">
         {formatValue(internalValue)}
       </span>
-
       <Slider
+        className="flex-1"
         value={[internalValue]}
         min={schema.unwrap().minValue ?? undefined}
         max={schema.unwrap().maxValue ?? undefined}
         step={step}
         onValueChange={(values) => {
           if (!Array.isArray(values)) {
-            return
+            return;
           }
-
           const next = values[0];
           if (next === undefined) return;
           setInternalValue(next);

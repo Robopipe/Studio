@@ -47,15 +47,18 @@ export const ImageProfile = ({
   };
 
   return (
-    <div className="flex flex-col gap-1">
-      <p className="text-[10px] font-bold uppercase tracking-wider text-black">
+    <div className="flex flex-col gap-3">
+      <p className="text-[10px] font-bold uppercase tracking-[1px] text-foreground/90">
         Image Profile
       </p>
 
-      <p className="text-base font-medium">Profile setup</p>
+      <div className="flex flex-col gap-4 rounded-2xl border border-black/10 bg-white p-5">
+        <p className="text-base font-bold leading-6 text-foreground">
+          Profile setup
+        </p>
 
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(2rem,1fr))] gap-6">
-        <div className="flex flex-col gap-1">
+        <div className="grid grid-cols-1 gap-x-8 gap-y-2 lg:grid-cols-2">
+          <div className="flex flex-col gap-2">
           <NumericParameter
             value={streamControl?.exposure_time ?? null}
             schema={sensorControlSchema.shape.exposure_time}
@@ -126,8 +129,8 @@ export const ImageProfile = ({
             }}
           />
         </div>
-        <div className="flex flex-col gap-1">
-          <BooleanParameter
+          <div className="flex flex-col gap-2">
+            <BooleanParameter
             value={streamControl?.auto_exposure_enable ?? false}
             label="Auto Exposure Enable"
             onValueChange={(value) => {
@@ -210,6 +213,7 @@ export const ImageProfile = ({
               onChange("focus.lens_position", value);
             }}
           />
+          </div>
         </div>
       </div>
     </div>

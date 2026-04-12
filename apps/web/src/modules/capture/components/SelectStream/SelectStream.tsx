@@ -39,7 +39,7 @@ export const SelectStream = ({
         onSelect(activeStream.name);
       }
     }
-  }, [streams]);
+  }, [streams, value, onSelect]);
 
   const handleStreamChange = useCallback(
     async (newStream: string | null) => {
