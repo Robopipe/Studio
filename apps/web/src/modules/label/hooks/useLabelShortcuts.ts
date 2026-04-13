@@ -12,9 +12,12 @@ export interface UseLabelShortcutsOptions {
   activeLabel: Label | null;
   isDirty: boolean;
   isSaving: boolean;
+  canMarkEmpty: boolean;
+  annotationCount: number;
 
   // Actions
   onSave: () => void;
+  onSaveEmpty: () => void;
   onSetToolMode: (mode: ToolMode) => void;
   onToggleCrosshair: () => void;
   onSelectTask: (taskId: number) => void;
@@ -60,6 +63,12 @@ export const useLabelShortcuts = (options: UseLabelShortcutsOptions) => {
           if (opts.isDirty && !opts.isSaving) {
             e.preventDefault();
             opts.onSave();
+          }
+          return;
+        case "e":
+          if (opts.canMarkEmpty && opts.annotationCount === 0 && !opts.isSaving) {
+            e.preventDefault();
+            opts.onSaveEmpty();
           }
           return;
         case "a":

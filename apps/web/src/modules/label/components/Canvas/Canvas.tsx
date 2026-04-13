@@ -23,7 +23,9 @@ export interface CanvasProps {
   onFitImage: (iw: number, ih: number, cw: number, ch: number) => void;
   isDirty: boolean;
   isSaving: boolean;
+  canMarkEmpty: boolean;
   onSave: () => void;
+  onSaveEmpty: () => void;
   showCrosshair: boolean;
 }
 
@@ -46,7 +48,9 @@ export const Canvas = ({
   onFitImage,
   isDirty,
   isSaving,
+  canMarkEmpty,
   onSave,
+  onSaveEmpty,
   showCrosshair,
 }: CanvasProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -135,6 +139,17 @@ export const Canvas = ({
         >
           {task.filePath.split("/").pop() ?? "Task"}
         </span>
+        {canMarkEmpty && annotations.length === 0 && (
+          <button
+            type="button"
+            title="Mark as empty / background (E)"
+            className="shrink-0 cursor-pointer rounded border border-primary bg-transparent px-3 py-1 text-xs font-semibold text-primary hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-50"
+            onClick={onSaveEmpty}
+            disabled={isSaving}
+          >
+            {isSaving ? "Saving..." : "No objects"}
+          </button>
+        )}
         <button
           type="button"
           title="Save (S)"
