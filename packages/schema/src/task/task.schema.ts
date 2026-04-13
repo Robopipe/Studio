@@ -91,6 +91,7 @@ export const updateTaskSchema = z.object({
   rectangleAnnotations: createRectangleAnnotationSchema.array().nullish(),
   polygonAnnotations: createPolygonAnnotationSchema.array().nullish(),
   classificationAnnotations: createClassificationAnnotationSchema.array().nullish(),
+  reviewed: z.boolean().optional(),
 });
 
 export const taskPaginationQuerySchema = paginationQuerySchema.extend({
