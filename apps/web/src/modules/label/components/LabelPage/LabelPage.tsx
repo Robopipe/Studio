@@ -175,8 +175,10 @@ export const LabelPage = () => {
     [labels, activeProject, history, selectedAnnotationId],
   );
 
+  const canMarkEmpty = activeProject?.type !== ProjectTypeEnum.CLASSIFICATION;
+
   const [isSaving, setIsSaving] = useState(false);
-  const handleSave = useCallback(async () => {
+  const handleSave = useCallback(async (options?: { reviewed?: boolean }) => {
     if (!projectId || selectedTaskId === null) return;
     setIsSaving(true);
     try {
@@ -184,13 +186,17 @@ export const LabelPage = () => {
       await updateTask({
         projectId,
         taskId: selectedTaskId,
-        body: payload,
+        body: { ...payload, ...(options?.reviewed && { reviewed: true }) },
       }).unwrap();
       setIsDirty(false);
     } finally {
       setIsSaving(false);
     }
   }, [projectId, selectedTaskId, annotations, updateTask]);
+
+  const handleSaveEmpty = useCallback(() => {
+    handleSave({ reviewed: true });
+  }, [handleSave]);
 
   useLabelShortcuts({
     tasks,
@@ -201,7 +207,10 @@ export const LabelPage = () => {
     activeLabel,
     isDirty,
     isSaving,
+    canMarkEmpty,
+    annotationCount: annotations.length,
     onSave: handleSave,
+    onSaveEmpty: handleSaveEmpty,
     onSetToolMode: setToolMode,
     onToggleCrosshair: toggleCrosshair,
     onSelectTask: setSelectedTaskId,
@@ -265,7 +274,9 @@ export const LabelPage = () => {
           position={canvasState.position}
           isDirty={isDirty}
           isSaving={isSaving}
+          canMarkEmpty={canMarkEmpty}
           onSave={handleSave}
+          onSaveEmpty={handleSaveEmpty}
           showCrosshair={showCrosshair}
           onSelect={setSelectedAnnotationId}
           onAddAnnotation={history.addAnnotation}

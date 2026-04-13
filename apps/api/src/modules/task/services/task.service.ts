@@ -126,6 +126,8 @@ export class TaskService {
             })),
           );
           await setStatusDone()
+        } else if (data.reviewed) {
+          await setStatusDone()
         } else {
           await setStatusTodo()
         }
@@ -143,6 +145,8 @@ export class TaskService {
               labelId: annotation.labelId,
             })),
           );
+          await setStatusDone()
+        } else if (data.reviewed) {
           await setStatusDone()
         } else {
           await setStatusTodo();
@@ -165,6 +169,8 @@ export class TaskService {
               height: annotation.height
             })),
           );
+          await setStatusDone()
+        } else if (data.reviewed) {
           await setStatusDone()
         } else {
           await setStatusTodo();
