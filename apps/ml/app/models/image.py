@@ -6,6 +6,7 @@ from .base_schema import BaseSchema
 from .labels.classification_label import ClassificationLabel
 from .labels.polygon_label import PolygonLabel
 from .labels.rectangle_label import RectangleLabel
+from .model_type import ModelType
 
 
 class Image(BaseSchema):
@@ -14,13 +15,16 @@ class Image(BaseSchema):
     height: int
     labels: list[Union[ClassificationLabel, PolygonLabel, RectangleLabel]] = []
 
-    def labels_str(self) -> list[str]:
+    def labels_str(self, model_type: ModelType | None = None) -> list[str]:
         result = []
         for label in self.labels:
             if isinstance(label, ClassificationLabel):
                 result.append(label.to_str(self.width, self.height))
             elif isinstance(label, PolygonLabel):
-                result.append(label.to_str(self.width, self.height))
+                if model_type == ModelType.DETECTION:
+                    result.append(label.to_bbox_str(self.width, self.height))
+                else:
+                    result.append(label.to_str(self.width, self.height))
             elif isinstance(label, RectangleLabel):
                 result.append(label.to_str(self.width, self.height))
         return result
