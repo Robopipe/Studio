@@ -18,6 +18,7 @@ class Rotation(Augmentation, A_TYPE="Rotate"):
                 "name": self.A_TYPE,
                 "params": {
                     "limit": [self.params.min, self.params.max],
+                    "crop_border": True,
                     "p": self.params.p,
                 },
             }
