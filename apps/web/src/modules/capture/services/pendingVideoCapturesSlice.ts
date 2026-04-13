@@ -5,6 +5,7 @@ export interface PendingVideoCapture {
   thumbnailBlobUrl: string;
   durationMs: number;
   capturedAt: string;
+  uploadProgress: number;
 }
 
 export interface PendingVideoCapturesState {
@@ -25,8 +26,18 @@ export const pendingVideoCapturesSlice = createSlice({
     removePendingVideoCapture: (state, action: PayloadAction<{ id: string }>) => {
       state.captures = state.captures.filter((c) => c.id !== action.payload.id);
     },
+    updatePendingVideoCaptureProgress: (
+      state,
+      action: PayloadAction<{ id: string; progress: number }>,
+    ) => {
+      const capture = state.captures.find((c) => c.id === action.payload.id);
+      if (capture) capture.uploadProgress = action.payload.progress;
+    },
   },
 });
 
-export const { addPendingVideoCapture, removePendingVideoCapture } =
-  pendingVideoCapturesSlice.actions;
+export const {
+  addPendingVideoCapture,
+  removePendingVideoCapture,
+  updatePendingVideoCaptureProgress,
+} = pendingVideoCapturesSlice.actions;

@@ -57,7 +57,7 @@ export const CapturedVideos = ({}: CapturedVideosProps) => {
     : 0;
 
   type VideoRow =
-    | { type: "pending"; id: string; thumbnailUrl: string; durationMs: number; date: string }
+    | { type: "pending"; id: string; thumbnailUrl: string; durationMs: number; date: string; uploadProgress: number }
     | { type: "uploaded"; id: number; thumbnailUrl: string; durationMs: number; date: string; fileUrl: string };
 
   const rows: VideoRow[] = [
@@ -67,6 +67,7 @@ export const CapturedVideos = ({}: CapturedVideosProps) => {
       thumbnailUrl: p.thumbnailBlobUrl,
       durationMs: p.durationMs,
       date: p.capturedAt,
+      uploadProgress: p.uploadProgress,
     })),
     ...videos.map((v) => ({
       type: "uploaded" as const,
@@ -109,7 +110,10 @@ export const CapturedVideos = ({}: CapturedVideosProps) => {
           </div>
           <div className="flex items-center gap-4 text-muted-foreground">
             {row.type === "pending" ? (
-              <Loader2 className="size-5 animate-spin" />
+              <div className="flex items-center gap-2">
+                <Loader2 className="size-4 animate-spin" />
+                <span className="text-sm tabular-nums">{row.uploadProgress}%</span>
+              </div>
             ) : (
               <div className="flex items-center gap-4 [&>svg]:cursor-pointer [&>svg:hover]:text-foreground">
                 <Play
