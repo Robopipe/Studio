@@ -1,7 +1,7 @@
 import { PaginationNumbers } from "@/modules/shadcn/ui/pagination";
 import { cn } from "@/lib/utils";
-import { Task } from "@repo/schema";
-import { Camera, SlidersHorizontal } from "lucide-react";
+import { Task, TaskStatusEnum } from "@repo/schema";
+import { Camera, Check, SlidersHorizontal } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { TaskFilterDialog } from "../TaskFilterDialog";
 
@@ -107,7 +107,7 @@ export const DataSourcePanel = ({
                   </span>
                 </div>
               </div>
-              <AnnotationChip count={count} />
+              <AnnotationChip count={count} status={task.status} />
             </button>
           );
         })}
@@ -129,9 +129,13 @@ export const DataSourcePanel = ({
  * annotation count inside and two diagonal corner dots — matches figma's
  * crop-mark styling on the data source rows.
  */
-const AnnotationChip = ({ count }: { count: number }) => (
+const AnnotationChip = ({ count, status }: { count: number; status: string }) => (
   <div className="relative flex h-4 shrink-0 items-center justify-center rounded-[2px] border border-gray-300 bg-black/[0.03] px-1 text-[11px] leading-3 text-foreground/60">
-    {count}
+    {count === 0 && status === TaskStatusEnum.DONE ? (
+      <Check className="size-3 text-emerald-500" />
+    ) : (
+      count
+    )}
     <span className="absolute -left-[2.5px] -top-[2.5px] size-1 rounded-full bg-gray-300" />
     <span className="absolute -bottom-[2.5px] -right-[2.5px] size-1 rounded-full bg-gray-300" />
   </div>
