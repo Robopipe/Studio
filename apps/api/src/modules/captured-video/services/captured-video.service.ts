@@ -1,7 +1,8 @@
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable } from "@nestjs/common";
 import { AssetsService } from "../../assets/services/assets.service";
 import { CapturedVideoRepository } from "../../../repository/services/captured-video-repository.service";
 import { CapturedVideoEntity } from "../entity/captured-video.entity";
+import { ConfirmVideoUpload, RequestVideoUploadUrls, VideoUploadUrlsResponse } from "@repo/schema";
 
 @Injectable()
 export class CapturedVideoService {
@@ -10,29 +11,6 @@ export class CapturedVideoService {
     private readonly capturedVideoRepository: CapturedVideoRepository,
   ) {}
 
-  public async createCapturedVideo(
-    projectId: number,
-    file: Express.Multer.File,
-    thumbnailFile: Express.Multer.File,
-    query: { durationMs: number },
-  ): Promise<CapturedVideoEntity> {
-    const videoAssetName = this.assetsService.getAssetName(file.originalname, projectId, "video");
-    const thumbnailAssetName = this.assetsService.getAssetName(file.originalname, projectId, "thumbnail");
-
-    const [fileUrl, thumbnailUrl] = await Promise.all([
-      this.assetsService.saveFile(file.buffer, file.mimetype, videoAssetName),
-      this.assetsService.saveFile(thumbnailFile.buffer, "image/webp", thumbnailAssetName),
-    ]);
-
-    return this.capturedVideoRepository.create({
-      projectId,
-      fileUrl,
-      thumbnailUrl,
-      durationMs: query.durationMs,
-      fileSizeBytes: file.buffer.length,
-    });
-  }
-
   public async getCapturedVideos(
     projectId: number,
     page: number = 1,
@@ -40,6 +18,48 @@ export class CapturedVideoService {
     order: "asc" | "desc" = "desc",
   ): Promise<{ data: CapturedVideoEntity[]; total: number }> {
     return this.capturedVideoRepository.getAllByProjectIdPaginated(projectId, page, limit, order);
+  }
+
+  public async generateUploadUrls(
+    projectId: number,
+    request: RequestVideoUploadUrls,
+  ): Promise<VideoUploadUrlsResponse> {
+    const videoGcsPath = this.assetsService.getAssetName(request.videoFileName, projectId, "video");
+    const thumbnailGcsPath = this.assetsService.getAssetName(request.thumbnailFileName, projectId, "thumbnail");
+
+    const [videoSignedUrl, thumbnailSignedUrl] = await Promise.all([
+      this.assetsService.generateSignedUploadUrl(videoGcsPath, request.videoContentType),
+      this.assetsService.generateSignedUploadUrl(thumbnailGcsPath, request.thumbnailContentType),
+    ]);
+
+    return { videoSignedUrl, videoGcsPath, thumbnailSignedUrl, thumbnailGcsPath };
+  }
+
+  public async confirmUpload(
+    projectId: number,
+    data: ConfirmVideoUpload,
+  ): Promise<CapturedVideoEntity> {
+    const [videoExists, thumbnailExists] = await Promise.all([
+      this.assetsService.fileExists(data.videoGcsPath),
+      this.assetsService.fileExists(data.thumbnailGcsPath),
+    ]);
+
+    if (!videoExists || !thumbnailExists) {
+      throw new BadRequestException("Uploaded files not found in storage");
+    }
+
+    const [fileUrl, thumbnailUrl] = await Promise.all([
+      this.assetsService.makeFilePublic(data.videoGcsPath),
+      this.assetsService.makeFilePublic(data.thumbnailGcsPath),
+    ]);
+
+    return this.capturedVideoRepository.create({
+      projectId,
+      fileUrl,
+      thumbnailUrl,
+      durationMs: data.durationMs,
+      fileSizeBytes: data.fileSizeBytes,
+    });
   }
 
   public async deleteCapturedVideo(id: number, projectId: number): Promise<void> {
