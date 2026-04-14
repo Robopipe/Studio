@@ -32,8 +32,6 @@ export const RESERVED_HYPERPARAMS_PATHS: Record<string, string> = {
 
   // UI-generated — should only be changed via the respective UI controls
   "trainer.epochs": "Use the Epochs field in the training form instead",
-  "trainer.preprocessing.train_image_size":
-    "Derived automatically from the model type",
   "trainer.preprocessing.augmentations":
     "Use the Augmentations settings in the training form instead",
 };
