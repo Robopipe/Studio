@@ -22,8 +22,10 @@ class PolygonLabel(BaseSchema):
         normalized_points = self.__get_normalized_points(width, height)
         xs = [x for x, y in normalized_points]
         ys = [y for x, y in normalized_points]
-        x_min, x_max = min(xs), max(xs)
-        y_min, y_max = min(ys), max(ys)
+        x_min = max(0.0, min(xs))
+        x_max = min(1.0, max(xs))
+        y_min = max(0.0, min(ys))
+        y_max = min(1.0, max(ys))
         cx = (x_min + x_max) / 2
         cy = (y_min + y_max) / 2
         w = x_max - x_min
