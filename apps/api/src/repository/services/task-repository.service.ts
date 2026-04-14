@@ -171,7 +171,7 @@ export class TaskRepository {
       : undefined;
 
     // Build label filter: only return tasks that have annotations with the given label IDs
-    const labelCondition: SQL | undefined = labelIds?.length
+    const buildLabelCondition = labelIds?.length
       ? this.buildLabelExistsCondition(projectType, labelIds)
       : undefined;
 
@@ -181,7 +181,7 @@ export class TaskRepository {
           projectId,
           ...(deletedAtFilter && { deletedAt: deletedAtFilter }),
           ...(statusValue && { status: statusValue }),
-          ...(labelCondition && { RAW: labelCondition }),
+          ...(buildLabelCondition && { RAW: (table: typeof taskTable) => buildLabelCondition(table.id) }),
         },
         orderBy: (t) => (order === "desc" ? desc(t.createdAt) : asc(t.createdAt)),
         limit,
@@ -189,7 +189,7 @@ export class TaskRepository {
       }),
       this.db.select({ count: count() })
         .from(taskTable)
-        .where(and(eq(taskTable.projectId, projectId), deletedAtCondition, statusCondition, labelCondition)),
+        .where(and(eq(taskTable.projectId, projectId), deletedAtCondition, statusCondition, buildLabelCondition?.(taskTable.id))),
     ]);
 
     return {
@@ -198,16 +198,18 @@ export class TaskRepository {
     };
   }
 
-  private buildLabelExistsCondition(projectType: ProjectTypeEnum, labelIds: number[]): SQL {
+  private buildLabelExistsCondition(projectType: ProjectTypeEnum, labelIds: number[]): (taskId: SQL | typeof taskTable.id) => SQL {
     const inList = sql.join(labelIds.map((id) => sql`${id}`), sql`, `);
-    switch (projectType) {
-      case ProjectTypeEnum.DETECTION:
-        return sql`EXISTS (SELECT 1 FROM ${rectangleAnnotationTable} WHERE ${rectangleAnnotationTable.taskId} = ${taskTable.id} AND ${rectangleAnnotationTable.labelId} IN (${inList}))`;
-      case ProjectTypeEnum.CLASSIFICATION:
-        return sql`EXISTS (SELECT 1 FROM ${classificationAnnotationTable} WHERE ${classificationAnnotationTable.taskId} = ${taskTable.id} AND ${classificationAnnotationTable.labelId} IN (${inList}))`;
-      case ProjectTypeEnum.SEGMENTATION:
-        return sql`EXISTS (SELECT 1 FROM ${polygonAnnotationTable} WHERE ${polygonAnnotationTable.taskId} = ${taskTable.id} AND ${polygonAnnotationTable.labelId} IN (${inList}))`;
-    }
+    return (taskId) => {
+      switch (projectType) {
+        case ProjectTypeEnum.DETECTION:
+          return sql`EXISTS (SELECT 1 FROM ${rectangleAnnotationTable} WHERE ${rectangleAnnotationTable.taskId} = ${taskId} AND ${rectangleAnnotationTable.labelId} IN (${inList}))`;
+        case ProjectTypeEnum.CLASSIFICATION:
+          return sql`EXISTS (SELECT 1 FROM ${classificationAnnotationTable} WHERE ${classificationAnnotationTable.taskId} = ${taskId} AND ${classificationAnnotationTable.labelId} IN (${inList}))`;
+        case ProjectTypeEnum.SEGMENTATION:
+          return sql`EXISTS (SELECT 1 FROM ${polygonAnnotationTable} WHERE ${polygonAnnotationTable.taskId} = ${taskId} AND ${polygonAnnotationTable.labelId} IN (${inList}))`;
+      }
+    };
   }
 
   /**
