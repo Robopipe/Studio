@@ -43,7 +43,12 @@ export const CapturedVideos = ({}: CapturedVideosProps) => {
   const [playingVideoUrl, setPlayingVideoUrl] = useState<string | null>(null);
 
   const { data: videosData } = useGetCapturedVideosQuery(
-    { projectId: activeProject?.id!, page, limit: VIDEOS_PER_PAGE, order: "desc" },
+    {
+      projectId: activeProject?.id!,
+      page,
+      limit: VIDEOS_PER_PAGE,
+      order: "desc",
+    },
     { skip: !activeProject?.id },
   );
 
@@ -57,8 +62,22 @@ export const CapturedVideos = ({}: CapturedVideosProps) => {
     : 0;
 
   type VideoRow =
-    | { type: "pending"; id: string; thumbnailUrl: string; durationMs: number; date: string }
-    | { type: "uploaded"; id: number; thumbnailUrl: string; durationMs: number; date: string; fileUrl: string };
+    | {
+        type: "pending";
+        id: string;
+        thumbnailUrl: string;
+        durationMs: number;
+        date: string;
+        uploadProgress: number;
+      }
+    | {
+        type: "uploaded";
+        id: number;
+        thumbnailUrl: string;
+        durationMs: number;
+        date: string;
+        fileUrl: string;
+      };
 
   const rows: VideoRow[] = [
     ...pendingCaptures.map((p) => ({
@@ -67,6 +86,7 @@ export const CapturedVideos = ({}: CapturedVideosProps) => {
       thumbnailUrl: p.thumbnailBlobUrl,
       durationMs: p.durationMs,
       date: p.capturedAt,
+      uploadProgress: p.uploadProgress,
     })),
     ...videos.map((v) => ({
       type: "uploaded" as const,
@@ -89,7 +109,9 @@ export const CapturedVideos = ({}: CapturedVideosProps) => {
             <div className="relative">
               <img
                 src={row.thumbnailUrl}
-                alt={row.type === "pending" ? "Uploading..." : `Video ${row.id}`}
+                alt={
+                  row.type === "pending" ? "Uploading..." : `Video ${row.id}`
+                }
                 className="aspect-video w-16 rounded-lg bg-muted-foreground object-cover"
               />
               <span className="absolute bottom-0.5 right-0.5 rounded bg-black/70 px-1 text-[10px] font-medium text-white">
@@ -102,14 +124,19 @@ export const CapturedVideos = ({}: CapturedVideosProps) => {
               ) : (
                 <span className="text-base font-medium">{`#${row.id}`}</span>
               )}
-              <span className="text-muted-foreground">
-                {format(new Date(row.date), "Ppp")}
+              <span className="whitespace-nowrap text-muted-foreground">
+                {format(new Date(row.date), "dd/MM/yyyy HH:mm:ss")}
               </span>
             </div>
           </div>
           <div className="flex items-center gap-4 text-muted-foreground">
             {row.type === "pending" ? (
-              <Loader2 className="size-5 animate-spin" />
+              <div className="flex items-center gap-2">
+                <Loader2 className="size-4 animate-spin" />
+                <span className="text-sm tabular-nums">
+                  {row.uploadProgress}%
+                </span>
+              </div>
             ) : (
               <div className="flex items-center gap-4 [&>svg]:cursor-pointer [&>svg:hover]:text-foreground">
                 <Play

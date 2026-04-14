@@ -2,12 +2,17 @@ import { Button } from "@/modules/shadcn/ui/button";
 import { useAppDispatch } from "@/hooks/redux";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import { Video } from "lucide-react";
-import { useCreateCapturedVideoMutation } from "../../services/captureApi";
+import {
+  useRequestVideoUploadUrlsMutation,
+  useConfirmVideoUploadMutation,
+} from "../../services/captureApi";
 import { useVideoRecorder } from "../../hooks/useVideoRecorder";
 import {
   addPendingVideoCapture,
   removePendingVideoCapture,
+  updatePendingVideoCaptureProgress,
 } from "../../services/pendingVideoCapturesSlice";
+import { uploadToGcs } from "../../utils/uploadToGcs";
 
 export interface CaptureVideoProps {
   mediaStream: MediaStream | null;
@@ -67,7 +72,8 @@ export const CaptureVideo = ({
 }: CaptureVideoProps) => {
   const dispatch = useAppDispatch();
   const [activeProject] = useActiveProject();
-  const [createCapturedVideo] = useCreateCapturedVideoMutation();
+  const [requestVideoUploadUrls] = useRequestVideoUploadUrlsMutation();
+  const [confirmVideoUpload] = useConfirmVideoUploadMutation();
   const { isRecording, recordingDurationMs, startRecording, stopRecording, isSupported } =
     useVideoRecorder(mediaStream);
 
@@ -95,14 +101,41 @@ export const CaptureVideo = ({
           thumbnailBlobUrl,
           durationMs: result.durationMs,
           capturedAt: new Date().toISOString(),
+          uploadProgress: 0,
         }),
       );
 
-      await createCapturedVideo({
-        videoFile: result.videoBlob,
-        thumbnailFile: thumbnailBlob,
+      const videoContentType = result.videoBlob.type || "video/webm";
+      const thumbnailContentType = "image/webp";
+
+      const uploadUrls = await requestVideoUploadUrls({
         projectId: activeProject.id,
+        videoFileName: `video-${Date.now()}.webm`,
+        videoContentType,
+        thumbnailFileName: `thumb-${Date.now()}.webp`,
+        thumbnailContentType,
+      }).unwrap();
+
+      await uploadToGcs({
+        signedUrl: uploadUrls.videoSignedUrl,
+        blob: result.videoBlob,
+        contentType: videoContentType,
+        onProgress: (progress) =>
+          dispatch(updatePendingVideoCaptureProgress({ id: pendingId, progress })),
+      });
+
+      await uploadToGcs({
+        signedUrl: uploadUrls.thumbnailSignedUrl,
+        blob: thumbnailBlob,
+        contentType: thumbnailContentType,
+      });
+
+      await confirmVideoUpload({
+        projectId: activeProject.id,
+        videoGcsPath: uploadUrls.videoGcsPath,
+        thumbnailGcsPath: uploadUrls.thumbnailGcsPath,
         durationMs: result.durationMs,
+        fileSizeBytes: result.videoBlob.size,
       }).unwrap();
     } catch (error) {
       console.error("Failed to upload video:", error);
