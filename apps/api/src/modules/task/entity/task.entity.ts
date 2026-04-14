@@ -18,7 +18,7 @@ export class TaskEntity {
   readonly createdAt: Date;
   readonly updatedAt: Date;
   readonly deletedAt: Date | null;
-  readonly annotationCount: number | null;
+  readonly annotationCount: number;
 
   constructor(data: TaskSelect) {
     this.id = data.id;
@@ -30,7 +30,7 @@ export class TaskEntity {
     this.status = data.status;
     this.width = data.width;
     this.height = data.height;
-    this.annotationCount = data.annotationCount ?? null;
+    this.annotationCount = data.annotationCount;
     this.createdAt = data.createdAt;
     this.updatedAt = data.updatedAt;
     this.deletedAt = data.deletedAt

@@ -20,5 +20,9 @@ export const taskTable = p.pgTable("task", {
   width: p.integer("width").notNull(),
   height: p.integer("height").notNull(),
   status: taskStatusEnum("status").notNull(),
+  annotationCount: p.integer("annotation_count").notNull().default(0),
   ...timestamps,
-}, (t) => [p.unique().on(t.projectId, t.iid)]);
+}, (t) => [
+  p.unique().on(t.projectId, t.iid),
+  p.index("task_project_created_idx").on(t.projectId, t.createdAt),
+]);

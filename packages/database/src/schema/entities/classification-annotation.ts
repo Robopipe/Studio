@@ -7,4 +7,6 @@ export const classificationAnnotationTable = p.pgTable("classification_annotatio
   id,
   taskId: p.integer("task_id").references(() => taskTable.id, {onDelete: 'cascade'}).notNull(),
   labelId: p.integer("label_id").references(() => projectLabelTable.id, {onDelete: 'cascade'}).notNull(),
-}, (t) => [p.unique().on(t.taskId, t.labelId)])
+}, (t) => [
+  p.unique().on(t.taskId, t.labelId),
+])

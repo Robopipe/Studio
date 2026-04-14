@@ -82,9 +82,9 @@ export class TaskService {
    * @param deleted - true: only deleted, false: only non-deleted, null: both
    * @returns Paginated task entities
    */
-  public async getTasks(projectId: number, page: number = 1, limit: number = 50, deleted: boolean | null = false, annotated?: boolean, order: "asc" | "desc" = "asc"): Promise<{ data: TaskEntity[]; total: number }>{
+  public async getTasks(projectId: number, page: number = 1, limit: number = 50, deleted: boolean | null = false, annotated?: boolean, order: "asc" | "desc" = "asc", labelIds?: number[]): Promise<{ data: TaskEntity[]; total: number }>{
     const project = await this.projectRepository.getByIdOrThrow(projectId)
-    return this.taskRepository.getAllByProjectIdPaginated(projectId, project.type, page, limit, deleted, annotated, order)
+    return this.taskRepository.getAllByProjectIdPaginated(projectId, project.type, page, limit, deleted, annotated, order, labelIds)
   }
 
   /**
@@ -99,37 +99,27 @@ export class TaskService {
     const project = await this.projectRepository.getByIdOrThrow(projectId)
 
     await this.db.transaction(async(tx) => {
-      const setStatusDone = async () => {
-          await tx.update(taskTable).set({
-            status: TaskStatusEnum.DONE,
-          }).where(eq(taskTable.id, id))
-      }
-
-      const setStatusTodo = async() => {
-        await tx
-          .update(taskTable)
-          .set({
-            status: TaskStatusEnum.TODO,
-          })
-          .where(eq(taskTable.id, id));
+      const updateTask = async (status: TaskStatusEnum, annotationCount: number) => {
+        await tx.update(taskTable).set({ status, annotationCount }).where(eq(taskTable.id, id));
       }
 
       if(project.type === ProjectTypeEnum.SEGMENTATION){
         await tx.delete(polygonAnnotationTable).where(eq(polygonAnnotationTable.taskId, id))
+        const count = data.polygonAnnotations?.length ?? 0;
 
-        if(data.polygonAnnotations?.length){
+        if(count > 0){
           await tx.insert(polygonAnnotationTable).values(
-            data.polygonAnnotations.map((annotation) => ({
+            data.polygonAnnotations!.map((annotation) => ({
               taskId: task.id,
               labelId: annotation.labelId,
               value: annotation.value
             })),
           );
-          await setStatusDone()
+          await updateTask(TaskStatusEnum.DONE, count)
         } else if (data.reviewed) {
-          await setStatusDone()
+          await updateTask(TaskStatusEnum.DONE, 0)
         } else {
-          await setStatusTodo()
+          await updateTask(TaskStatusEnum.TODO, 0)
         }
 
         return
@@ -137,19 +127,20 @@ export class TaskService {
 
       if(project.type === ProjectTypeEnum.CLASSIFICATION){
         await tx.delete(classificationAnnotationTable).where(eq(classificationAnnotationTable.taskId, task.id))
+        const count = data.classificationAnnotations?.length ?? 0;
 
-        if(data.classificationAnnotations?.length){
+        if(count > 0){
           await tx.insert(classificationAnnotationTable).values(
-            data.classificationAnnotations.map((annotation) => ({
+            data.classificationAnnotations!.map((annotation) => ({
               taskId: task.id,
               labelId: annotation.labelId,
             })),
           );
-          await setStatusDone()
+          await updateTask(TaskStatusEnum.DONE, count)
         } else if (data.reviewed) {
-          await setStatusDone()
+          await updateTask(TaskStatusEnum.DONE, 0)
         } else {
-          await setStatusTodo();
+          await updateTask(TaskStatusEnum.TODO, 0)
         }
 
         return
@@ -157,10 +148,11 @@ export class TaskService {
 
       if(project.type === ProjectTypeEnum.DETECTION){
         await tx.delete(rectangleAnnotationTable).where(eq(rectangleAnnotationTable.taskId, id))
+        const count = data.rectangleAnnotations?.length ?? 0;
 
-        if (data.rectangleAnnotations?.length) {
+        if (count > 0) {
           await tx.insert(rectangleAnnotationTable).values(
-            data.rectangleAnnotations.map((annotation) => ({
+            data.rectangleAnnotations!.map((annotation) => ({
               taskId: task.id,
               labelId: annotation.labelId,
               x: annotation.x,
@@ -169,11 +161,11 @@ export class TaskService {
               height: annotation.height
             })),
           );
-          await setStatusDone()
+          await updateTask(TaskStatusEnum.DONE, count)
         } else if (data.reviewed) {
-          await setStatusDone()
+          await updateTask(TaskStatusEnum.DONE, 0)
         } else {
-          await setStatusTodo();
+          await updateTask(TaskStatusEnum.TODO, 0)
         }
       }
     })

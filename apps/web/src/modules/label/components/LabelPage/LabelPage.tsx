@@ -14,7 +14,8 @@ import { taskDetailToAnnotations, annotationsToUpdatePayload } from "../../utils
 import { AnnotationPanel } from "../AnnotationPanel";
 import { Canvas } from "../Canvas";
 import { ClassSelect } from "../ClassSelect";
-import { AnnotationFilter, DataSourcePanel } from "../DataSourcePanel";
+import { DataSourcePanel } from "../DataSourcePanel";
+import { TaskFilterState } from "../TaskFilterDialog";
 import { Toolbar } from "../Toolbar";
 
 const TASKS_PER_PAGE = 50;
@@ -24,9 +25,15 @@ export const LabelPage = () => {
   const projectId = activeProject?.id;
 
   const [page, setPage] = useState(1);
-  const [annotationFilter, setAnnotationFilter] = useState<AnnotationFilter>("all");
+  const [filter, setFilter] = useState<TaskFilterState>({ annotationFilter: "all", labelIds: [] });
   const { data: tasksData } = useGetTasksQuery(
-    { projectId: projectId!, page, limit: TASKS_PER_PAGE, ...(annotationFilter !== "all" && { annotated: annotationFilter }) },
+    {
+      projectId: projectId!,
+      page,
+      limit: TASKS_PER_PAGE,
+      ...(filter.annotationFilter !== "all" && { annotated: filter.annotationFilter }),
+      ...(filter.labelIds.length > 0 && { labelIds: filter.labelIds.join(",") }),
+    },
     { skip: !projectId },
   );
   const tasks = tasksData?.data ?? [];
@@ -244,9 +251,10 @@ export const LabelPage = () => {
         page={page}
         totalPages={totalPages}
         onPageChange={setPage}
-        annotationFilter={annotationFilter}
-        onAnnotationFilterChange={(val) => {
-          setAnnotationFilter(val);
+        filter={filter}
+        labels={labels}
+        onFilterChange={(val) => {
+          setFilter(val);
           setPage(1);
         }}
       />
