@@ -200,14 +200,15 @@ export class TaskRepository {
 
   private buildLabelExistsCondition(projectType: ProjectTypeEnum, labelIds: number[]): (taskId: SQL | typeof taskTable.id) => SQL {
     const inList = sql.join(labelIds.map((id) => sql`${id}`), sql`, `);
+    const labelCount = sql`${labelIds.length}`;
     return (taskId) => {
       switch (projectType) {
         case ProjectTypeEnum.DETECTION:
-          return sql`EXISTS (SELECT 1 FROM ${rectangleAnnotationTable} WHERE ${rectangleAnnotationTable.taskId} = ${taskId} AND ${rectangleAnnotationTable.labelId} IN (${inList}))`;
+          return sql`(SELECT COUNT(DISTINCT ${rectangleAnnotationTable.labelId}) FROM ${rectangleAnnotationTable} WHERE ${rectangleAnnotationTable.taskId} = ${taskId} AND ${rectangleAnnotationTable.labelId} IN (${inList})) = ${labelCount}`;
         case ProjectTypeEnum.CLASSIFICATION:
-          return sql`EXISTS (SELECT 1 FROM ${classificationAnnotationTable} WHERE ${classificationAnnotationTable.taskId} = ${taskId} AND ${classificationAnnotationTable.labelId} IN (${inList}))`;
+          return sql`(SELECT COUNT(DISTINCT ${classificationAnnotationTable.labelId}) FROM ${classificationAnnotationTable} WHERE ${classificationAnnotationTable.taskId} = ${taskId} AND ${classificationAnnotationTable.labelId} IN (${inList})) = ${labelCount}`;
         case ProjectTypeEnum.SEGMENTATION:
-          return sql`EXISTS (SELECT 1 FROM ${polygonAnnotationTable} WHERE ${polygonAnnotationTable.taskId} = ${taskId} AND ${polygonAnnotationTable.labelId} IN (${inList}))`;
+          return sql`(SELECT COUNT(DISTINCT ${polygonAnnotationTable.labelId}) FROM ${polygonAnnotationTable} WHERE ${polygonAnnotationTable.taskId} = ${taskId} AND ${polygonAnnotationTable.labelId} IN (${inList})) = ${labelCount}`;
       }
     };
   }

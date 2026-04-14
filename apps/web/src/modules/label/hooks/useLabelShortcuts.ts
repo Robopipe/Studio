@@ -76,10 +76,12 @@ export const useLabelShortcuts = (options: UseLabelShortcutsOptions) => {
           opts.onSetToolMode(ToolMode.SELECT);
           return;
         case "r":
+          if (opts.labels.length === 0) return;
           e.preventDefault();
           opts.onSetToolMode(ToolMode.DRAW_BBOX);
           return;
         case "p":
+          if (opts.labels.length === 0) return;
           e.preventDefault();
           opts.onSetToolMode(ToolMode.DRAW_POLYGON);
           return;

@@ -12,6 +12,7 @@ export interface ModalProps {
   tabs: ModalTab[];
   buttons?: ReactNode;
   closeButton: boolean;
+  initialTabId?: string;
   onClose: () => void;
 }
 
@@ -20,9 +21,10 @@ export const Modal = ({
   tabs,
   buttons,
   closeButton,
+  initialTabId,
   onClose,
 }: ModalProps) => {
-  const [activeTabId, setActiveTabId] = useState(tabs[0]?.id);
+  const [activeTabId, setActiveTabId] = useState(initialTabId ?? tabs[0]?.id);
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
 

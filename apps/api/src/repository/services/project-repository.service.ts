@@ -1,6 +1,7 @@
 import { Inject, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
-import { projectTable } from '@repo/database/schema';
+import { and, eq, isNull } from 'drizzle-orm';
+import { projectTable, taskTable } from '@repo/database/schema';
+import { TaskStatusEnum } from '@repo/schema';
 import { DB_CONNECTION } from 'src/core/database/database.constant';
 import type { DbConnection } from 'src/core/database/types/database.types';
 import { ProjectEntity } from 'src/modules/project/entities/project.entity';
@@ -49,6 +50,12 @@ export class ProjectRepository {
         deletedAt: {
           isNull: true
         }
+      },
+      extras: {
+        taskCount: (table) =>
+          this.db.$count(taskTable, and(eq(taskTable.projectId, table.id), isNull(taskTable.deletedAt))),
+        annotatedTaskCount: (table) =>
+          this.db.$count(taskTable, and(eq(taskTable.projectId, table.id), eq(taskTable.status, TaskStatusEnum.DONE), isNull(taskTable.deletedAt))),
       },
     });
 
