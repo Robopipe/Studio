@@ -1,10 +1,8 @@
-import { useEffect, useRef, useState } from "react";
-import { Text } from "@repo/ui";
 import { Task } from "@repo/schema";
-import { Annotation, ToolMode } from "../../types/annotations";
+import { useEffect, useRef, useState } from "react";
 import { useImageLoader } from "../../hooks/useImageLoader";
+import { Annotation, ToolMode } from "../../types/annotations";
 import { KonvaStage, KonvaStageHandle } from "./KonvaStage";
-import styles from "./Canvas.module.scss";
 
 export interface CanvasProps {
   task: Task | undefined;
@@ -20,12 +18,15 @@ export interface CanvasProps {
   onDeleteAnnotation: (id: string) => void;
   onUndo: () => void;
   onRedo: () => void;
-  onZoomAtPoint: (pointer: { x: number; y: number }, direction: number) => void;
+  onZoomAtPoint: (pointer: { x: number; y: number }, factor: number) => void;
   onSetPosition: (pos: { x: number; y: number }) => void;
   onFitImage: (iw: number, ih: number, cw: number, ch: number) => void;
   isDirty: boolean;
   isSaving: boolean;
+  canMarkEmpty: boolean;
   onSave: () => void;
+  onSaveEmpty: () => void;
+  showCrosshair: boolean;
 }
 
 export const Canvas = ({
@@ -47,12 +48,16 @@ export const Canvas = ({
   onFitImage,
   isDirty,
   isSaving,
+  canMarkEmpty,
   onSave,
+  onSaveEmpty,
+  showCrosshair,
 }: CanvasProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const stageHandle = useRef<KonvaStageHandle>(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const { image, loading, error } = useImageLoader(task?.filePath);
+  const fittedImageRef = useRef<HTMLImageElement | null>(null);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -71,8 +76,19 @@ export const Canvas = ({
   }, [task]);
 
   useEffect(() => {
-    if (image && containerSize.width > 0 && containerSize.height > 0) {
-      onFitImage(image.width, image.height, containerSize.width, containerSize.height);
+    if (
+      image &&
+      containerSize.width > 0 &&
+      containerSize.height > 0 &&
+      fittedImageRef.current !== image
+    ) {
+      fittedImageRef.current = image;
+      onFitImage(
+        image.width,
+        image.height,
+        containerSize.width,
+        containerSize.height,
+      );
     }
   }, [image, containerSize.width, containerSize.height]);
 
@@ -92,7 +108,10 @@ export const Canvas = ({
         e.preventDefault();
         onUndo();
       }
-      if ((e.ctrlKey || e.metaKey) && (e.key === "Z" || (e.key === "z" && e.shiftKey))) {
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        (e.key === "Z" || (e.key === "z" && e.shiftKey))
+      ) {
         e.preventDefault();
         onRedo();
       }
@@ -103,44 +122,61 @@ export const Canvas = ({
 
   if (!task) {
     return (
-      <div className={styles.canvas}>
-        <div className={styles.empty}>
-          <Text variant="text-16">Select an image to view</Text>
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-black/[0.03]">
+        <div className="flex flex-1 items-center justify-center text-muted-foreground">
+          <span className="text-base">Select an image to view</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={styles.canvas}>
-      <div className={styles.header}>
-        <Text variant="text-14" weight="500">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-black/[0.03]">
+      <div className="flex h-10 shrink-0 items-center gap-2 border-b border-black/10 px-4">
+        <span
+          className="min-w-0 flex-1 truncate text-sm font-medium"
+          title={task.filePath.split("/").pop() ?? "Task"}
+        >
           {task.filePath.split("/").pop() ?? "Task"}
-        </Text>
-        {isDirty && (
+        </span>
+        {canMarkEmpty && annotations.length === 0 && (
           <button
-            className={styles.saveButton}
-            onClick={onSave}
+            type="button"
+            title="Mark as empty / background (E)"
+            className="shrink-0 cursor-pointer rounded border border-primary bg-transparent px-3 py-1 text-xs font-semibold text-primary hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-50"
+            onClick={onSaveEmpty}
             disabled={isSaving}
           >
-            {isSaving ? "Saving..." : "Save"}
+            {isSaving ? "Saving..." : "No objects"}
           </button>
         )}
+        <button
+          type="button"
+          title="Save (S)"
+          className="shrink-0 cursor-pointer rounded border-none bg-primary px-3 py-1 text-xs font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+          onClick={onSave}
+          disabled={!isDirty || isSaving}
+        >
+          {isSaving ? "Saving..." : "Save"}
+        </button>
       </div>
 
-      <div className={styles.stageContainer} ref={containerRef}>
+      <div
+        className="relative min-h-0 flex-1 overflow-hidden [&_canvas]:absolute [&_canvas]:left-0 [&_canvas]:top-0"
+        ref={containerRef}
+      >
         {loading && (
-          <div className={styles.empty}>
-            <Text variant="text-14">Loading image...</Text>
+          <div className="flex flex-1 items-center justify-center text-muted-foreground">
+            <span className="text-sm">Loading image...</span>
           </div>
         )}
         {error && (
-          <div className={styles.empty}>
-            <Text variant="text-14">{error}</Text>
+          <div className="flex flex-1 items-center justify-center text-muted-foreground">
+            <span className="text-sm">{error}</span>
           </div>
         )}
         {image && containerSize.width > 0 && (
-          <div className={styles.stageWrapper}>
+          <div className="absolute left-0 top-0 h-full w-full">
             <KonvaStage
               ref={stageHandle}
               width={containerSize.width}
@@ -149,14 +185,15 @@ export const Canvas = ({
               scale={scale}
               position={position}
               toolMode={toolMode}
-              annotations={annotations}
-              selectedAnnotationId={selectedAnnotationId}
+              annotations={loading ? [] : annotations}
+              selectedAnnotationId={loading ? null : selectedAnnotationId}
               activeLabel={activeLabel}
               onSelect={onSelect}
               onAddAnnotation={onAddAnnotation}
               onUpdateAnnotation={onUpdateAnnotation}
               onZoomAtPoint={onZoomAtPoint}
               onSetPosition={onSetPosition}
+              showCrosshair={showCrosshair}
             />
           </div>
         )}

@@ -1,10 +1,9 @@
+import { cn } from "@/lib/utils";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import { useGetProjectLabelsQuery } from "@/modules/project/services/projectApi";
 import { Label } from "@repo/schema";
-import { Stack, Text } from "@repo/ui";
 import { CSSProperties, useEffect, useMemo } from "react";
 import { SettingsCard } from "../SettingsCard";
-import styles from "./SourceImagesSettings.module.scss";
 
 export interface SourceImagesSettingsProps {
   activeLabels: Label[];
@@ -37,26 +36,42 @@ export const SourceImagesSettings = (props: SourceImagesSettingsProps) => {
 
   return (
     <SettingsCard title="source images" state="complete" stepNumber={1}>
-      <Stack direction="row" wrap="wrap">
-      {mappedLabels.map((label) => (
-        <Stack
-          key={label.id}
-          direction="row"
-          style={{ "--color-label": label.color } as CSSProperties}
-          className={`${styles.label} ${label.isActive ? styles.active : ""}`}
-          gap={6}
-          align="center"
-          onClick={() =>
-            label.isActive
-              ? setActiveLabels(activeLabels.filter((l) => l.id !== label.id))
-              : setActiveLabels([...activeLabels, label])
-          }
-        >
-          <div className={styles.colorIndicator} />
-          <Text variant="text-14">{label.name}</Text>
-        </Stack>
-      ))}
-      </Stack>
+      <div className="flex flex-row flex-wrap items-center gap-2">
+        <span className="mr-3 text-xs text-foreground/90">Labels</span>
+        {mappedLabels.map((label) => (
+          <button
+            type="button"
+            key={label.id}
+            style={{ "--label-color": label.color } as CSSProperties}
+            onClick={() =>
+              label.isActive
+                ? setActiveLabels(
+                    activeLabels.filter((l) => l.id !== label.id),
+                  )
+                : setActiveLabels([...activeLabels, label])
+            }
+            className={cn(
+              "flex cursor-pointer items-center rounded-md border border-transparent p-1 transition-colors",
+              label.isActive
+                ? "[background-color:color-mix(in_oklab,var(--label-color),transparent_85%)] [border-color:var(--label-color)]"
+                : "bg-black/10 opacity-60 hover:opacity-80",
+            )}
+          >
+            <span
+              className="h-6 w-2 shrink-0 rounded-[4px]"
+              style={{ background: "var(--label-color)" }}
+            />
+            <span
+              className={cn(
+                "px-2 text-xs leading-4 text-foreground/90",
+                label.isActive ? "font-bold" : "font-normal",
+              )}
+            >
+              {label.name}
+            </span>
+          </button>
+        ))}
+      </div>
     </SettingsCard>
   );
 };

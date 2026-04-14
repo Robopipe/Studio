@@ -1,4 +1,4 @@
-import type { Project, ProjectTypeEnum } from "@repo/schema";
+import type { Project } from "@repo/schema";
 import type { ProjectSelect } from "src/repository/types/project";
 
 export class ProjectEntity {
@@ -6,9 +6,10 @@ export class ProjectEntity {
   readonly name: string;
   readonly description: string;
   readonly organizationId: number;
-  readonly type: ProjectTypeEnum;
   readonly cameraApiUrl: string | null;
   readonly multipleDashboardConfigs: boolean;
+  readonly taskCount: number;
+  readonly annotatedTaskCount: number;
   readonly createdAt: Date;
   readonly updatedAt: Date;
   readonly deletedAt: Date | null;
@@ -17,10 +18,11 @@ export class ProjectEntity {
     this.id = data.id;
     this.name = data.name;
     this.description = data.description;
-    this.type = data.type;
     this.organizationId = data.organizationId;
     this.cameraApiUrl = data.cameraApiUrl;
     this.multipleDashboardConfigs = data.multipleDashboardConfigs;
+    this.taskCount = data.taskCount ?? 0;
+    this.annotatedTaskCount = data.annotatedTaskCount ?? 0;
     this.createdAt = data.createdAt;
     this.updatedAt = data.updatedAt;
     this.deletedAt = data.deletedAt;
@@ -31,10 +33,11 @@ export class ProjectEntity {
       id: this.id,
       name: this.name,
       description: this.description,
-      type: this.type,
       organizationId: this.organizationId,
       cameraApiUrl: this.cameraApiUrl,
       multipleDashboardConfigs: this.multipleDashboardConfigs,
+      taskCount: this.taskCount,
+      annotatedTaskCount: this.annotatedTaskCount,
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),
       deletedAt: this.deletedAt ? this.deletedAt.toISOString() : null,

@@ -224,6 +224,12 @@ export class TrainingExternalService {
       }
     })
 
+    const preprocessings = await this.db.query.modelPreprocessingTable.findMany({
+      where: {
+        modelId: model.id,
+      }
+    })
+
     const basePayload: TrainingBasePayload = {
       id: model.id,
       training_config: {
@@ -236,7 +242,12 @@ export class TrainingExternalService {
             model.splitTest,
           ],
           labels: model.labels.map((_, index) => index),
-          augmentations
+          augmentations,
+          preprocessings: preprocessings.map(pp => ({
+            type: pp.type,
+            params: pp.params,
+            keep_original: pp.keepOriginal,
+          })),
         },
         custom_hyperparams: model.customHyperparams,
       },

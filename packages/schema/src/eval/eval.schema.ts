@@ -46,7 +46,7 @@ export enum EvalTestCaseTypeEnum {
   DEFECT = "DEFECT",
 }
 
-export enum EvalTestCaseSeverityEnum {
+export enum EvalSeverityEnum {
   ALERT = "ALERT",
   WARNING = "WARNING",
 }
@@ -66,6 +66,17 @@ export enum EvalLimitItemOperatorEnum {
   OR = "OR",
 }
 
+export enum EvalLimitItemQuantifierTypeEnum {
+  MIN = "MIN",
+  MAX = "MAX",
+  EXACT = "EXACT",
+}
+
+export enum EvalLimitItemQuantifierUnitEnum {
+  PERCENT = "PERCENT",
+  PCS = "PCS",
+}
+
 /* Eval limit item */
 export const evalLimitItemSchema = z.object({
   id: z.uuidv7(),
@@ -73,9 +84,12 @@ export const evalLimitItemSchema = z.object({
   limitTo: z.number().nullable(),
   parameter: z.enum(EvalLimitItemParameterEnum),
   operator: z.enum(EvalLimitItemOperatorEnum), // Operator "after" the limit item, default to AND
+  quantifierType: z.enum(EvalLimitItemQuantifierTypeEnum),
+  quantifierUnit: z.enum(EvalLimitItemQuantifierUnitEnum),
+  quantifierValue: z.number(),
   createdAt: timestampsSchema.createdAt,
-  updatedAt: timestampsSchema.updatedAt
-})
+  updatedAt: timestampsSchema.updatedAt,
+});
 // .refine((limitItem) => limitItem.limitFrom !== null || limitItem.limitTo !== null, {
 //   message: "At least one of limitFrom or limitTo must be provided"
 // })
@@ -84,6 +98,7 @@ export const evalLimitItemSchema = z.object({
 export const evalLimitSchema = z.object({
   id: z.uuidv7(),
   name: z.string(),
+  severity: z.enum(EvalSeverityEnum).nullable(),
   targetLabel: labelSchema,
   targetParentLabel: labelSchema.nullable(),
   createdAt: timestampsSchema.createdAt,
@@ -100,7 +115,7 @@ export const evalTestCaseSchema = z.object({
   id: z.uuidv7(),
   name: z.string(),
   type: z.enum(EvalTestCaseTypeEnum),
-  severity: z.enum(EvalTestCaseSeverityEnum),
+  severity: z.enum(EvalSeverityEnum).nullable(),
   limits: z.array(evalLimitSchema), // Always required
   createdAt: timestampsSchema.createdAt,
   updatedAt: timestampsSchema.updatedAt,
@@ -116,18 +131,19 @@ export const evalThresholdSchema = z.object({
   color: z.string(),
   value: z.number(),
   createdAt: timestampsSchema.createdAt,
-  updatedAt: timestampsSchema.updatedAt
-})
+  updatedAt: timestampsSchema.updatedAt,
+});
 
-export const evalTestCaseThresholdSchema = evalTestCaseSchema.pick({
-  id: true,
-  name: true,
-  createdAt: true,
-  updatedAt: true,
-}).extend({
-  thresholds: evalThresholdSchema.array()
-})
-
+export const evalTestCaseThresholdSchema = evalTestCaseSchema
+  .pick({
+    id: true,
+    name: true,
+    createdAt: true,
+    updatedAt: true,
+  })
+  .extend({
+    thresholds: evalThresholdSchema.array(),
+  });
 
 /**
  * API schemas
@@ -147,26 +163,37 @@ export const evalTestCaseCreateOrUpdateSchema = evalTestCaseDetailSchema
 // For creating and updating limits. BE does the diff check for limit items,
 // existing/updated limit items will be sent with their IDs, new limit items with ID null
 // BE deletes limit items which were not sent
- export const evalLimitCreateOrUpdateSchema = evalLimitSchema.pick({
-   name: true,
- }).extend({
-   targetLabelId: z.number(),
-   targetParentLabelId: z.number().nullable(),
-   limitItems: evalLimitItemSchema.pick({
-     limitFrom: true,
-     limitTo: true,
-     parameter: true,
-     operator: true
-   })
-   .extend({
-     id: z.uuidv7().nullable() // Added items will have ID null
-   })
-   .array()
- })
+export const evalLimitCreateOrUpdateSchema = evalLimitSchema
+  .pick({
+    name: true,
+    severity: true,
+  })
+  .extend({
+    targetLabelId: z.number(),
+    targetParentLabelId: z.number().nullable(),
+    limitItems: evalLimitItemSchema
+      .pick({
+        limitFrom: true,
+        limitTo: true,
+        parameter: true,
+        operator: true,
+        quantifierType: true,
+        quantifierUnit: true,
+        quantifierValue: true,
+      })
+      .extend({
+        id: z.uuidv7().nullable(), // Added items will have ID null
+      })
+      .array(),
+  });
 
+export const evalThresholdCreateOrUpdateSchema = evalThresholdSchema.pick({
+  name: true,
+  color: true,
+  value: true,
+});
 
- export const evalThresholdCreateOrUpdateSchema = evalThresholdSchema.pick({
-   name: true,
-   color: true,
-   value: true
- })
+export const evalThresholdsResponseSchema = z.object({
+  testCases: z.array(evalTestCaseThresholdSchema),
+  master: z.array(evalThresholdSchema),
+});

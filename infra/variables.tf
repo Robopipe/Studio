@@ -80,7 +80,7 @@ variable "ml_region" {
 variable "ml_gpu_type" {
   description = "GPU type for ML service"
   type        = string
-  default     = "nvidia-l4"
+  default     = "nvidia-rtx-pro-6000"
 }
 
 variable "ml_gpu_count" {
@@ -92,13 +92,13 @@ variable "ml_gpu_count" {
 variable "ml_memory" {
   description = "Memory for ML service (e.g., 16Gi, 32Gi)"
   type        = string
-  default     = "16Gi"
+  default     = "80Gi"
 }
 
 variable "ml_cpu" {
   description = "CPU for ML service"
   type        = string
-  default     = "4"
+  default     = "20.0"
 }
 
 variable "ml_timeout" {

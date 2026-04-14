@@ -1,14 +1,8 @@
 import { appConfig } from "@/config";
-import {
-  Button,
-  Container,
-  Heading,
-  Spinner,
-  Stack,
-  Text,
-  TextInput,
-  bui,
-} from "@repo/ui";
+import { Button } from "@/modules/shadcn/ui/button";
+import { Input } from "@/modules/shadcn/ui/input";
+import { Label } from "@/modules/shadcn/ui/label";
+import { Spinner } from "@/modules/shadcn/ui/spinner";
 import { FormEvent, useState } from "react";
 import { Navigate } from "react-router";
 import { useAuth } from "../../hooks";
@@ -20,7 +14,6 @@ import {
   useListOrganizationsQuery,
   useSelectOrganizationMutation,
 } from "../../services";
-import styles from "./SelectOrganizationPage.module.scss";
 
 export const SelectOrganizationPage = () => {
   const { isAuthenticated, isPreAuth } = useAuth();
@@ -85,9 +78,9 @@ export const SelectOrganizationPage = () => {
 
   if (orgsLoading) {
     return (
-      <Container className={styles.page}>
+      <div className="flex min-h-screen flex-col items-center justify-center p-8">
         <Spinner />
-      </Container>
+      </div>
     );
   }
 
@@ -95,38 +88,38 @@ export const SelectOrganizationPage = () => {
   const hasInvitations = invitations && invitations.length > 0;
 
   return (
-    <Container className={styles.page}>
-      <div className={styles.content}>
-        <Stack align="center" gap={8} className={styles.header}>
-          <Heading variant="h2" weight="600">
+    <div className="flex min-h-screen flex-col items-center justify-center p-8">
+      <div className="flex w-full max-w-[480px] flex-col gap-6">
+        <div className="mb-2 flex flex-col items-center gap-2 text-center">
+          <h2 className="text-4xl font-semibold tracking-tight text-gray-900">
             Select Organization
-          </Heading>
-          <Text color="text-secondary">
+          </h2>
+          <p className="text-muted-foreground">
             Choose an organization to continue, or create a new one
-          </Text>
-        </Stack>
+          </p>
+        </div>
 
         {error && (
-          <div className={styles.errorBox}>
-            <Text color="text-secondary">{error}</Text>
+          <div className="rounded-md border border-destructive/20 bg-destructive/5 p-3">
+            <p className="text-sm text-destructive">{error}</p>
           </div>
         )}
 
         {hasInvitations && (
-          <Stack gap={12} className={styles.section}>
-            <Heading variant="h4" weight="600">
+          <div className="flex flex-col gap-3 rounded-lg border border-border p-4">
+            <h4 className="text-2xl font-semibold tracking-tight">
               Pending Invitations
-            </Heading>
+            </h4>
             {invitations.map((inv) => (
-              <div key={inv.id} className={styles.listItem}>
-                <Stack direction="row" justify="space-between" align="center" gap={12}>
+              <div key={inv.id} className="rounded-md bg-gray-50 p-3">
+                <div className="flex flex-row items-center justify-between gap-3">
                   <div>
-                    <Text weight="500">{inv.organizationName}</Text>
-                    <Text variant="text-12" color="text-secondary">
+                    <p className="font-medium">{inv.organizationName}</p>
+                    <p className="text-xs text-muted-foreground">
                       Invited to join
-                    </Text>
+                    </p>
                   </div>
-                  <Stack direction="row" gap={8}>
+                  <div className="flex flex-row gap-2">
                     <Button
                       size="sm"
                       onClick={() => handleAcceptInvite(inv.id)}
@@ -135,81 +128,84 @@ export const SelectOrganizationPage = () => {
                     </Button>
                     <Button
                       size="sm"
-                      variant="outlined"
+                      variant="outline"
                       onClick={() => handleDeclineInvite(inv.id)}
                     >
                       Decline
                     </Button>
-                  </Stack>
-                </Stack>
+                  </div>
+                </div>
               </div>
             ))}
-          </Stack>
+          </div>
         )}
 
         {hasOrgs && (
-          <Stack gap={12} className={styles.section}>
-            <Heading variant="h4" weight="600">
+          <div className="flex flex-col gap-3 rounded-lg border border-border p-4">
+            <h4 className="text-2xl font-semibold tracking-tight">
               Your Organizations
-            </Heading>
+            </h4>
             {organizations.map((org) => (
               <button
                 key={org.id}
-                className={styles.orgButton}
+                className="w-full cursor-pointer rounded-md bg-gray-50 p-3 text-left transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
                 onClick={() => handleSelectOrg(org.id)}
                 disabled={selectingOrg}
               >
-                <Stack direction="row" justify="space-between" align="center">
-                  <Text weight="500">{org.name}</Text>
-                  <Text color="text-secondary">&rarr;</Text>
-                </Stack>
+                <div className="flex flex-row items-center justify-between">
+                  <span className="font-medium">{org.name}</span>
+                  <span className="text-muted-foreground">&rarr;</span>
+                </div>
               </button>
             ))}
-          </Stack>
+          </div>
         )}
 
         {!showCreateForm ? (
           <Button
-            variant={hasOrgs ? "outlined" : "filled"}
-            fullWidth
+            variant={hasOrgs ? "outline" : "default"}
             onClick={() => setShowCreateForm(true)}
-            className={styles.createBtn}
+            className="mt-2 w-full"
           >
             Create New Organization
           </Button>
         ) : (
-          <Stack gap={12} className={styles.section}>
-            <Heading variant="h4" weight="600">
+          <div className="flex flex-col gap-3 rounded-lg border border-border p-4">
+            <h4 className="text-2xl font-semibold tracking-tight">
               Create Organization
-            </Heading>
-            <bui.Form onSubmit={handleCreateOrg}>
-              <Stack gap={12}>
-                <TextInput
-                  label="Organization Name"
-                  name="orgName"
-                  placeholder="My Organization"
-                  required
-                />
-                <Stack direction="row" gap={8}>
+            </h4>
+            <form onSubmit={handleCreateOrg}>
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="orgName">Organization Name</Label>
+                  <Input
+                    id="orgName"
+                    name="orgName"
+                    placeholder="My Organization"
+                    required
+                  />
+                </div>
+                <div className="flex flex-row gap-2">
                   <Button type="submit" disabled={creatingOrg}>
                     {creatingOrg ? "Creating..." : "Create"}
                   </Button>
                   <Button
-                    variant="outlined"
+                    type="button"
+                    variant="outline"
                     onClick={() => setShowCreateForm(false)}
                   >
                     Cancel
                   </Button>
-                </Stack>
-              </Stack>
-            </bui.Form>
-          </Stack>
+                </div>
+              </div>
+            </form>
+          </div>
         )}
       </div>
 
-      <div className={styles.copyright}>
+      <div className="mt-8 text-center text-xs text-gray-500">
         Powered by Robopipe | &copy; All rights reserved
       </div>
-    </Container>
+    </div>
   );
 };

@@ -13,7 +13,7 @@ import { ModelStatusEnum } from "@repo/schema";
 import { ProjectLabelRepository } from "../../../repository/services/project-label-repository.service";
 import { DB_CONNECTION } from "../../../core/database/database.constant";
 import type { DbConnection } from "../../../core/database/types/database.types";
-import { modelAugmentationTable, modelLabelTable } from "@repo/database";
+import { modelAugmentationTable, modelLabelTable, modelPreprocessingTable } from "@repo/database";
 import { eq } from "drizzle-orm";
 import { ModelLogRepository } from "../../../repository/services/model-log-repository.service";
 import { ModelLogEntity } from "../entity/model-log.entity";
@@ -103,6 +103,15 @@ export class ModelService{
         modelId: createdModel.id,
         type: aug.type,
         params: aug.params
+      })))
+    }
+
+    if (data.preprocessings.length > 0) {
+      await this.db.insert(modelPreprocessingTable).values(data.preprocessings.map(pp => ({
+        modelId: createdModel.id,
+        type: pp.type,
+        params: pp.params,
+        keepOriginal: pp.keepOriginal,
       })))
     }
 

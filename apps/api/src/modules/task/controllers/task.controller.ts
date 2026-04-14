@@ -32,14 +32,14 @@ export class TaskController {
   @Post()
   @UseInterceptors(FileInterceptor("file"))
   public async createTask(@ProjectId() projectId: number, @UploadedFile() file: Express.Multer.File, @Query() query: CreateTaskQuery): Promise<TaskResponse>{
-    const createdTask = await this.taskService.createTask(projectId, file, query.iid)
+    const createdTask = await this.taskService.createTask(projectId, file, query.iid, query.capturedAt)
     return createdTask.toResponse()
   }
 
 
   @Get()
   public async listTasks(@ProjectId() projectId: number, @Query() query: TaskPaginationQuery): Promise<PaginatedTaskResponse>{
-    const { data, total } = await this.taskService.getTasks(projectId, query.page, query.limit, query.deleted, query.annotated)
+    const { data, total } = await this.taskService.getTasks(projectId, query.page, query.limit, query.deleted, query.annotated, query.order, query.labelIds)
     return {
       data: data.map((task) => task.toResponse()),
       total,

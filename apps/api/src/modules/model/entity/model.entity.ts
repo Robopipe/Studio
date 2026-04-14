@@ -4,7 +4,7 @@ import {
   ModelStatusEnum,
   ProjectTypeEnum,
 } from "@repo/schema";
-import { ModelAugmentationSelect, ModelSelect } from "../../../repository/types/model";
+import { ModelAugmentationSelect, ModelPreprocessingSelect, ModelSelect } from "../../../repository/types/model";
 import { ProjectLabelEntity } from "../../project/entities/project-label.entity";
 import { ModelResponse } from "../dto/model.dto";
 
@@ -24,6 +24,7 @@ export class ModelEntity {
   readonly errorMessage: string | null;
   readonly labels: ProjectLabelEntity[];
   readonly augmentations: ModelAugmentationSelect[];
+  readonly preprocessings: ModelPreprocessingSelect[];
   readonly createdAt: Date;
   readonly updatedAt: Date;
   readonly deletedAt: Date | null;
@@ -50,6 +51,7 @@ export class ModelEntity {
     this.errorMessage = data.errorMessage;
     this.labels = data.labels.map((label) => new ProjectLabelEntity(label));
     this.augmentations = data.augmentations;
+    this.preprocessings = data.preprocessings;
   }
 
   public toResponse(): ModelResponse {
@@ -69,6 +71,11 @@ export class ModelEntity {
       augmentations: this.augmentations.map((aug) => ({
         type: aug.type as ModelAugmentationTypeEnum,
         params: (aug.params ?? {}) as Record<string, unknown>,
+      })),
+      preprocessings: this.preprocessings.map((pp) => ({
+        type: pp.type as ModelAugmentationTypeEnum,
+        params: (pp.params ?? {}) as Record<string, unknown>,
+        keepOriginal: pp.keepOriginal,
       })),
       errorMessage: this.errorMessage,
       createdAt: this.createdAt.toISOString(),

@@ -1,5 +1,5 @@
+import { Button } from "@/modules/shadcn/ui/button";
 import { Project } from "@repo/schema";
-import { Button, Stack } from "@repo/ui";
 import { useState } from "react";
 import {
   useCreateProjectLabelMutation,
@@ -13,11 +13,13 @@ import { ProjectDetailsForm } from "../ProjectDetailsForm";
 
 interface EditProjectModalProps {
   project: Project;
+  initialTabId?: string;
   onClose: () => void;
 }
 
 export const EditProjectModal = ({
   project,
+  initialTabId,
   onClose,
 }: EditProjectModalProps) => {
   const [name, setName] = useState(project.name);
@@ -65,7 +67,6 @@ export const EditProjectModal = ({
           setDescription={setDescription}
           cameraApiUrl={cameraApiUrl}
           setCameraApiUrl={setCameraApiUrl}
-          projectType={project.type}
           multipleDashboardConfigs={multipleDashboardConfigs}
         />
       ),
@@ -93,19 +94,18 @@ export const EditProjectModal = ({
   ];
 
   const buttons = (
-    <Stack direction="row" gap={12}>
-      <Button variant="danger" size="sm" onClick={onClose}>
+    <div className="flex flex-row gap-3">
+      <Button variant="destructive" size="sm" onClick={onClose}>
         Cancel
       </Button>
       <Button
-        variant="filled"
         size="sm"
         onClick={handleSave}
         disabled={isUpdating || !name.trim()}
       >
         {isUpdating ? "Saving..." : "Save Changes"}
       </Button>
-    </Stack>
+    </div>
   );
 
   return (
@@ -114,6 +114,7 @@ export const EditProjectModal = ({
       tabs={tabs}
       closeButton={false}
       buttons={buttons}
+      initialTabId={initialTabId}
       onClose={onClose}
     />
   );

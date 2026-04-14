@@ -77,6 +77,13 @@ export const trainingConfigSchema = z.object({
         params: z.record(z.string(), z.unknown()),
       })
       .array(),
+    preprocessings: z
+      .object({
+        type: z.enum(ModelAugmentationTypeEnum),
+        params: z.record(z.string(), z.unknown()),
+        keep_original: z.boolean(),
+      })
+      .array(),
   }),
   custom_hyperparams: z.record(z.string(), z.unknown()).default({}),
 });

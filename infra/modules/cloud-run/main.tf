@@ -4,6 +4,12 @@ resource "google_project_iam_member" "sql_client" {
   member  = "serviceAccount:${var.service_account}"
 }
 
+resource "google_project_iam_member" "api_sign_blob" {
+  project = var.project_id
+  role    = "roles/iam.serviceAccountTokenCreator"
+  member  = "serviceAccount:${var.service_account}"
+}
+
 resource "google_cloud_run_v2_service" "api" {
   project  = var.project_id
   name     = "${var.name_prefix}-api"

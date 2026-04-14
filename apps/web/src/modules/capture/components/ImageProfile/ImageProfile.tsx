@@ -5,14 +5,12 @@ import {
   useGetStreamControlQuery,
   useUpdateStreamControlMutation,
 } from "@/core/cameraApi";
-import { Stack, Text } from "@repo/ui";
 import { cloneDeep, set } from "lodash";
 import type { Path } from "react-hook-form";
 import { useDebounceCallback } from "usehooks-ts";
 
 import { BooleanParameter } from "../BooleanParameter";
 import { NumericParameter } from "../NumericParameter";
-import styles from "./ImageProfile.module.scss";
 
 export interface ImageProfileProps {
   selectedCamera: string;
@@ -36,8 +34,6 @@ export const ImageProfile = ({
   );
 
   const onChange = (key: Path<SensorControl>, value: number | boolean) => {
-    // debounce call mutation
-
     if (!streamControl) return;
 
     const newControl = cloneDeep(streamControl);
@@ -51,19 +47,18 @@ export const ImageProfile = ({
   };
 
   return (
-    <Stack gap="xs">
-      <Text variant="text-10" weight="700" className={styles.preTitle}>
+    <div className="flex flex-col gap-3">
+      <p className="text-[10px] font-bold uppercase tracking-[1px] text-foreground/90">
         Image Profile
-      </Text>
+      </p>
 
-      {/* {streamControl && <pre>{JSON.stringify(streamControl, null, 2)}</pre>} */}
+      <div className="flex flex-col gap-4 rounded-2xl border border-black/10 bg-white p-5">
+        <p className="text-base font-bold leading-6 text-foreground">
+          Profile setup
+        </p>
 
-      <Text variant="text-16" weight="500">
-        Profile setup
-      </Text>
-
-      <div className={styles.twoColumnLayout}>
-        <Stack gap="xs">
+        <div className="grid grid-cols-1 gap-x-8 gap-y-2 lg:grid-cols-2">
+          <div className="flex flex-col gap-2">
           <NumericParameter
             value={streamControl?.exposure_time ?? null}
             schema={sensorControlSchema.shape.exposure_time}
@@ -133,9 +128,9 @@ export const ImageProfile = ({
               onChange("luma_denoise", value);
             }}
           />
-        </Stack>
-        <Stack gap="xs">
-          <BooleanParameter
+        </div>
+          <div className="flex flex-col gap-2">
+            <BooleanParameter
             value={streamControl?.auto_exposure_enable ?? false}
             label="Auto Exposure Enable"
             onValueChange={(value) => {
@@ -218,8 +213,9 @@ export const ImageProfile = ({
               onChange("focus.lens_position", value);
             }}
           />
-        </Stack>
+          </div>
+        </div>
       </div>
-    </Stack>
+    </div>
   );
 };

@@ -6,19 +6,21 @@ from .augmentations.augmentation import AUG_REGISTRY
 from .base_schema import BaseSchema
 
 
+_AugUnion = Annotated[
+    Union[
+        tuple(
+            x for x in AUG_REGISTRY.values() for x in x
+        )  # pyright: ignore[reportInvalidTypeForm]
+    ],
+    Field(discriminator="type"),
+]
+
+
 class DatasetConfig(BaseSchema):
     dataset_split: tuple[int, int, int]  # (train, val, test)
     labels: list[int]
-    augmentations: list[
-        Annotated[
-            Union[
-                tuple(
-                    x for x in AUG_REGISTRY.values() for x in x
-                )  # pyright: ignore[reportInvalidTypeForm]
-            ],
-            Field(discriminator="type"),
-        ]
-    ]
+    augmentations: list[_AugUnion]
+    preprocessings: list[_AugUnion] = []
 
     @field_validator("dataset_split")
     @classmethod

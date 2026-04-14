@@ -1,15 +1,6 @@
-import {
-  AddLargeIcon,
-  BoxIcon,
-  CloseIcon,
-  SearchIcon,
-  SettingsIcon,
-  Stack,
-  Text,
-} from "@repo/ui";
-import clsx from "clsx";
+import { cn } from "@/lib/utils";
+import { Box, Plus, Search, Settings, X } from "lucide-react";
 import { ReactNode, useEffect, useRef, useState } from "react";
-import styles from "./NavDropdown.module.scss";
 
 export interface NavDropdownItem {
   id: string | number;
@@ -39,7 +30,7 @@ export const NavDropdown = ({
   items = [],
   activeItemId,
   placeholder = "Search...",
-  itemIcon = <BoxIcon />,
+  itemIcon = <Box />,
   onCreate,
   createLabel = "Create",
   onSettingsClick,
@@ -61,7 +52,10 @@ export const NavDropdown = ({
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         closeDropdown();
       }
     };
@@ -73,7 +67,8 @@ export const NavDropdown = ({
     item.label.toLowerCase().includes(search.toLowerCase()),
   );
 
-  const showCreateOption = onCreate && filteredItems.length === 0 && search.trim().length > 0;
+  const showCreateOption =
+    onCreate && filteredItems.length === 0 && search.trim().length > 0;
 
   const getDisplaySearch = () => {
     if (search.length <= MAX_SEARCH_LENGTH) return search;
@@ -97,62 +92,95 @@ export const NavDropdown = ({
   };
 
   return (
-    <div className={styles.dropdownContainer} ref={dropdownRef}>
+    <div className="relative" ref={dropdownRef}>
       <div
-        className={clsx(styles.navDropdown, isOpen && styles.active)}
-        onClick={() => isOpen ? closeDropdown() : setIsOpen(true)}
+        className={cn(
+          "cursor-pointer rounded-md px-2 py-1.5 transition-all hover:bg-white/5",
+          isOpen && "bg-white/5"
+        )}
+        onClick={() => (isOpen ? closeDropdown() : setIsOpen(true))}
       >
-        <Stack direction="row" align="center" gap={8}>
-          <Text
-            variant="text-14"
-            weight="500"
-            color="text-white-primary"
-            style={maxLabelWidth ? {
-              maxWidth: maxLabelWidth,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              display: "block",
-            } : undefined}
+        <div className="flex flex-row items-center gap-2">
+          <span
+            className="block text-sm font-medium text-white/90"
+            style={
+              maxLabelWidth
+                ? {
+                    maxWidth: maxLabelWidth,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }
+                : undefined
+            }
           >
             {label}
-          </Text>
-          <span className={clsx(styles.chevron, isOpen && styles.open)} />
-        </Stack>
+          </span>
+          <span
+            className={cn(
+              "ml-1 h-[0.45rem] w-[0.45rem] rotate-[-45deg] border-b-[1.5px] border-r-[1.5px] border-gray-400 transition-transform",
+              isOpen && "-mt-1 rotate-[135deg]"
+            )}
+          />
+        </div>
       </div>
 
       {isOpen && (
-        <div className={clsx(styles.dropdownMenu, align === "right" && styles.alignRight)}>
-          <Stack direction="row" align="center" justify="space-between" className={styles.menuHeader}>
-            <Text variant="text-14" weight="600" color="text-white-primary">{title}</Text>
-            <Stack direction="row" align="center" gap={12}>
+        <div
+          className={cn(
+            "absolute top-[calc(100%+12px)] z-[1000] w-[360px] rounded-xl border border-gray-800 bg-[#1c1c1f] p-2 shadow-[0_10px_30px_rgba(0,0,0,0.5)]",
+            align === "right" ? "right-0" : "left-0"
+          )}
+        >
+          <div className="flex flex-row items-center justify-between px-2 pb-3 pt-1">
+            <span className="text-sm font-semibold text-white/90">{title}</span>
+            <div className="flex flex-row items-center gap-3">
               {onCreate && (
-                <button className={styles.actionBtn} onClick={() => setIsCreating(!isCreating)}>
-                  <AddLargeIcon />
+                <button
+                  type="button"
+                  className="flex cursor-pointer border-none bg-transparent p-0.5 text-gray-400 transition-colors hover:text-white"
+                  onClick={() => setIsCreating(!isCreating)}
+                >
+                  <Plus className="size-4" />
                 </button>
               )}
               {onSettingsClick && (
-                <button className={styles.actionBtn} onClick={() => { onSettingsClick(); closeDropdown(); }}>
-                  <SettingsIcon />
+                <button
+                  type="button"
+                  className="flex cursor-pointer border-none bg-transparent p-0.5 text-gray-400 transition-colors hover:text-white"
+                  onClick={() => {
+                    onSettingsClick();
+                    closeDropdown();
+                  }}
+                >
+                  <Settings className="size-4" />
                 </button>
               )}
-              <button className={styles.actionBtn} onClick={closeDropdown}>
-                <CloseIcon />
+              <button
+                type="button"
+                className="flex cursor-pointer border-none bg-transparent p-0.5 text-gray-400 transition-colors hover:text-white"
+                onClick={closeDropdown}
+              >
+                <X className="size-4" />
               </button>
-            </Stack>
-          </Stack>
+            </div>
+          </div>
 
           {isCreating && (
-            <div className={styles.createForm}>
+            <div className="mb-2 flex items-center gap-2 rounded-md border border-gray-800 bg-white/[0.03] pr-2">
               <input
                 autoFocus
                 placeholder="Organization name"
                 value={createName}
                 onChange={(e) => setCreateName(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleCreateFromForm()}
+                onKeyDown={(e) =>
+                  e.key === "Enter" && handleCreateFromForm()
+                }
+                className="min-w-0 flex-1 border-none bg-transparent px-2.5 py-2 text-sm text-white outline-none placeholder:text-gray-600"
               />
               <button
-                className={styles.createBtn}
+                type="button"
+                className="cursor-pointer whitespace-nowrap rounded border-none bg-emerald-500 px-3 py-1 text-xs font-semibold text-gray-900 transition-opacity hover:opacity-90 disabled:cursor-default disabled:opacity-40"
                 onClick={handleCreateFromForm}
                 disabled={!createName.trim()}
               >
@@ -161,60 +189,69 @@ export const NavDropdown = ({
             </div>
           )}
 
-          <div className={styles.searchContainer}>
-            <SearchIcon className={styles.searchIcon} />
+          <div className="mb-2 flex items-center rounded-md border border-gray-800 bg-white/[0.03] px-2.5">
+            <Search className="size-4 text-gray-500" />
             <input
               autoFocus={!isCreating}
-              className={styles.searchInput}
+              className="w-full border-none bg-transparent p-2 text-sm text-white outline-none placeholder:text-gray-600"
               placeholder={placeholder}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && showCreateOption && handleCreate()}
+              onKeyDown={(e) =>
+                e.key === "Enter" && showCreateOption && handleCreate()
+              }
             />
           </div>
 
-          <div className={styles.itemsList}>
+          <div className="flex max-h-[200px] flex-col gap-1 overflow-y-auto [&::-webkit-scrollbar-thumb]:rounded-[10px] [&::-webkit-scrollbar-thumb]:bg-gray-700 [&::-webkit-scrollbar]:w-1">
             {filteredItems.length > 0 ? (
               filteredItems.map((item) => (
                 <div
                   key={item.id}
-                  className={clsx(
-                    styles.dropdownItem,
-                    activeItemId !== undefined && item.id === activeItemId && styles.activeItem,
+                  className={cn(
+                    "cursor-pointer rounded-lg px-3 py-2.5 text-gray-300 transition-all hover:bg-white/5 hover:text-emerald-400 [&_svg]:size-4",
+                    activeItemId !== undefined &&
+                      item.id === activeItemId &&
+                      "bg-emerald-500/10 text-emerald-400"
                   )}
                   onClick={() => {
                     item.onClick?.();
                     closeDropdown();
                   }}
                 >
-                  <Stack direction="row" align="center" gap={10}>
+                  <div className="flex flex-row items-center gap-2.5">
                     {itemIcon}
-                    <Text variant="text-14">{item.label}</Text>
-                  </Stack>
+                    <span className="text-sm">{item.label}</span>
+                  </div>
                 </div>
               ))
             ) : (
-              <div className={styles.noResults}>
-                <Text variant="text-14" color="gray-500">No results found</Text>
+              <div className="flex items-center justify-center p-6 text-gray-400">
+                <span className="text-sm">No results found</span>
               </div>
             )}
           </div>
 
           {showCreateOption && (
-            <div className={styles.createFooter} onClick={handleCreate}>
-              <Stack direction="row" align="center" justify="space-between">
-                <Stack direction="row" align="center" gap={8}>
-                  <div className={styles.createIcon}>
-                     <AddLargeIcon width={14} height={14} />
+            <div
+              className="m-3 cursor-pointer rounded-xl bg-emerald-500/10 px-4 py-2.5 transition-opacity hover:opacity-90"
+              onClick={handleCreate}
+            >
+              <div className="flex flex-row items-center justify-between">
+                <div className="flex flex-row items-center gap-2">
+                  <div className="m-1 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 p-0.5 text-gray-900">
+                    <Plus className="size-3.5" />
                   </div>
-                  <Text variant="text-14" weight="500">
+                  <span className="text-sm font-medium text-emerald-400">
                     {createLabel} "{getDisplaySearch()}"
-                  </Text>
-                </Stack>
-                <div className={styles.enterBadge}>
-                  <Text variant="text-10">Enter</Text>
+                  </span>
                 </div>
-              </Stack>
+                <div className="rounded-lg border border-black/5 bg-emerald-500 px-2.5 py-1">
+                  <span className="text-xs font-semibold text-gray-900">
+                    Enter
+                  </span>
+                </div>
+              </div>
             </div>
           )}
         </div>

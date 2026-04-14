@@ -6,6 +6,8 @@ export class EvalThresholdEntity {
   readonly name: string;
   readonly color: string;
   readonly value: number;
+  readonly testCaseId: string | null;
+  readonly dashboardConfigurationId: number | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 
@@ -14,6 +16,8 @@ export class EvalThresholdEntity {
     this.name = data.name;
     this.color = data.color;
     this.value = data.value;
+    this.testCaseId = data.testCaseId;
+    this.dashboardConfigurationId = data.dashboardConfigurationId;
     this.createdAt = data.createdAt;
     this.updatedAt = data.updatedAt;
   }

@@ -1,51 +1,57 @@
-import { Stack, Text } from "@repo/ui";
-import { SelectCamera } from "../SelectCamera";
-import { Orientation, SelectOrientation } from "../SelectOrientation";
-import { SelectStream } from "../SelectStream";
-
 import { CaptureStillImage } from "../CaptureStillImage";
-import styles from "./CaptureSettings.module.scss";
+import { CaptureVideo } from "../CaptureVideo";
+import { SelectCamera } from "../SelectCamera";
+import { SelectStream } from "../SelectStream";
 
 export interface CaptureSettingsProps {
   selectedCamera: string | null;
   selectedStream: string | null;
-  selectedOrientation: Orientation | null;
+  isStreaming: boolean;
   onSelectCamera: (camera: string | null) => void;
   onSelectStream: (stream: string | null) => void;
-  onSelectOrientation: (orientation: Orientation | null) => void;
+  onStreamSwitchingChange?: (isSwitching: boolean) => void;
+  mediaStream: MediaStream | null;
+  onRecordingChange: (isRecording: boolean) => void;
 }
 
 export const CaptureSettings = ({
   selectedCamera,
   selectedStream,
-  selectedOrientation,
+  isStreaming,
   onSelectCamera,
   onSelectStream,
-  onSelectOrientation,
+  onStreamSwitchingChange,
+  mediaStream,
+  onRecordingChange,
 }: CaptureSettingsProps) => {
   return (
-    <Stack className={styles.settings}>
-      <Text variant="text-10" weight="700" className={styles.preTitle}>
+    <div className="flex flex-col gap-4 border-r border-black/10 bg-black/[0.03] p-4 pl-6">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-black">
         Capture Settings
-      </Text>
+      </p>
       <SelectCamera value={selectedCamera} onSelect={onSelectCamera} />
       <SelectStream
         mxid={selectedCamera}
         value={selectedStream}
         onSelect={onSelectStream}
-      />
-      {/* TODO: File name pattern */}
-      <SelectOrientation
-        value={selectedOrientation}
-        onSelect={onSelectOrientation}
+        onSwitchingChange={onStreamSwitchingChange}
       />
 
-      {selectedCamera && selectedStream && (
-        <CaptureStillImage
-          selectedCamera={selectedCamera}
-          selectedStream={selectedStream}
-        />
+      {selectedCamera && (
+        <>
+          <CaptureStillImage
+            selectedCamera={selectedCamera}
+            selectedStream={selectedStream}
+            isStreaming={isStreaming}
+          />
+
+          <CaptureVideo
+            mediaStream={mediaStream}
+            isStreaming={isStreaming}
+            onRecordingChange={onRecordingChange}
+          />
+        </>
       )}
-    </Stack>
+    </div>
   );
 };

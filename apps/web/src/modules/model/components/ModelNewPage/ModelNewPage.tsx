@@ -1,6 +1,14 @@
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
-import { hyperparamsConfigSchema, Label, ModelOutputTypeEnum, ProjectTypeEnum } from "@repo/schema";
-import { Button, NumberInput, Stack, Text, TextInput } from "@repo/ui";
+import { Button } from "@/modules/shadcn/ui/button";
+import { Input } from "@/modules/shadcn/ui/input";
+import { Label } from "@/modules/shadcn/ui/label";
+import { NumberInput } from "@/modules/shadcn/ui/number-input";
+import {
+  hyperparamsConfigSchema,
+  Label as ProjectLabel,
+  ModelOutputTypeEnum,
+  ProjectTypeEnum,
+} from "@repo/schema";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { useCreateModelMutation, useTrainModelMutation } from "../../services";
@@ -9,11 +17,14 @@ import {
   AppliedAugmentation,
   AugmentationSettings,
 } from "../AugmentationSettings";
-import { DatasetSplit, DatasetSplitSettings } from "../DatasetSplitSettings";
+import {
+  DatasetSplit,
+  DatasetSplitSettings,
+} from "../DatasetSplitSettings";
 import { ModelLayout } from "../ModelLayout/ModelLayout";
 import { ModelTypeSettings } from "../ModelTypeSettings";
+import { PreprocessingSettings } from "../PreprocessingSettings";
 import { SourceImagesSettings } from "../SourceImagesSettings";
-import styles from "./ModelNewPage.module.scss";
 
 export interface ModelNewPageProps {}
 
@@ -28,18 +39,21 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
     ModelOutputTypeEnum.RAW,
     ModelOutputTypeEnum.RVC4,
   ]);
-  const [activeLabels, setActiveLabels] = useState<Label[]>([]);
+  const [activeLabels, setActiveLabels] = useState<ProjectLabel[]>([]);
   const [datasetSplit, setDatasetSplit] = useState<DatasetSplit>({
     train: 70,
     validation: 20,
     test: 10,
   });
   const [augmentations, setAugmentations] = useState<AppliedAugmentation[]>([]);
+  const [preprocessings, setPreprocessings] = useState<AppliedAugmentation[]>(
+    [],
+  );
   const [trainingType, setTrainingType] = useState<ProjectTypeEnum>(
-    activeProject?.type ?? ProjectTypeEnum.DETECTION,
+    ProjectTypeEnum.DETECTION,
   );
   const [annotationsUsed, setAnnotationsUsed] = useState<ProjectTypeEnum[]>(
-    activeProject ? [activeProject.type] : [ProjectTypeEnum.DETECTION],
+    [ProjectTypeEnum.DETECTION],
   );
   const [customHyperparams, setCustomHyperparams] = useState("");
   const [hyperparamsError, setHyperparamsError] = useState<string | null>(null);
@@ -48,7 +62,11 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
     if (!customHyperparams.trim()) return {};
     try {
       const parsed = JSON.parse(customHyperparams);
-      if (typeof parsed !== "object" || Array.isArray(parsed) || parsed === null) {
+      if (
+        typeof parsed !== "object" ||
+        Array.isArray(parsed) ||
+        parsed === null
+      ) {
         setHyperparamsError("Must be a JSON object");
         return undefined;
       }
@@ -72,6 +90,25 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
     const parsedHyperparams = parseHyperparams();
     if (parsedHyperparams === undefined) return;
 
+    const normalAugs = augmentations.filter((a) => !a.duplicateImage);
+    const duplicateAugs = augmentations.filter((a) => a.duplicateImage);
+
+    const allPreprocessings = [
+      ...preprocessings.map((p) => ({
+        type: p.type,
+        params: p.params,
+        keepOriginal: false,
+      })),
+      ...duplicateAugs.map((a) => {
+        const { p: _p, ...paramsWithoutP } = a.params;
+        return {
+          type: a.type,
+          params: paramsWithoutP,
+          keepOriginal: true,
+        };
+      }),
+    ];
+
     const newModel = await createModel({
       epochs,
       labelIds: activeLabels?.map((label) => label.id) || [],
@@ -83,7 +120,11 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
       outputTypes: outputs,
       trainingType,
       annotationsUsed,
-      augmentations,
+      augmentations: normalAugs.map((a) => ({
+        type: a.type,
+        params: a.params,
+      })),
+      preprocessings: allPreprocessings,
       customHyperparams: parsedHyperparams,
     }).unwrap();
     if (train) {
@@ -97,33 +138,30 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
 
   return (
     <ModelLayout>
-      <Stack gap={16} className={styles.modelNewPage}>
-        <Text weight="700">CREATE NEW VERSION</Text>
-        <Text as="p">
+      <div className="flex flex-col gap-4 pb-4">
+        <span className="font-bold">CREATE NEW VERSION</span>
+        <p>
           Prepare your images and data for training by compiling them into a
           dataset. Experiment with different configurations to achieve better
           training results
-        </Text>
-        <Stack direction="row" align="center">
-          <Stack direction="row" align="center">
-            <Text weight="500" as="p" variant="text-14">
-              Version name
-            </Text>
-            <TextInput
-              label=""
+        </p>
+        <div className="flex flex-row items-end gap-4">
+          <div className="flex flex-1 flex-col gap-1.5">
+            <Label htmlFor="versionName">Version name</Label>
+            <Input
+              id="versionName"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className={styles.input}
             />
-          </Stack>
+          </div>
           <NumberInput
             label="Epochs"
             value={epochs}
             min={1}
             onChange={(e) => setEpochs(Number(e.target.value))}
-            style={{ width: "30%" }}
+            className="w-[30%]"
           />
-        </Stack>
+        </div>
         <ModelTypeSettings
           trainingType={trainingType}
           annotationsUsed={annotationsUsed}
@@ -135,6 +173,10 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
           activeLabels={activeLabels}
         />
         <DatasetSplitSettings split={datasetSplit} onChange={setDatasetSplit} />
+        <PreprocessingSettings
+          preprocessings={preprocessings}
+          onChange={setPreprocessings}
+        />
         <AugmentationSettings
           augmentations={augmentations}
           onChange={setAugmentations}
@@ -149,11 +191,11 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
           onHyperparamsErrorChange={setHyperparamsError}
         />
 
-        <Stack direction="row" justify="end">
+        <div className="flex flex-row justify-end gap-2">
           <Button onClick={() => saveModel()}>Save</Button>
-          <Button onClick={() => saveModel(true)}>Save & Train</Button>
-        </Stack>
-      </Stack>
+          <Button onClick={() => saveModel(true)}>Save &amp; Train</Button>
+        </div>
+      </div>
     </ModelLayout>
   );
 };

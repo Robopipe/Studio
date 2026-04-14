@@ -49,12 +49,13 @@
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@types/pg": "^8.16.0",
+    "drizzle-kit": "1.0.0-beta.21",
     "tsx": "^4.21.0",
     "typescript": "~5.9.3"
   },
   "dependencies": {
     "@repo/schema": "workspace:*",
-    "drizzle-orm": "1.0.0-beta.17-67b1795",
+    "drizzle-orm": "1.0.0-beta.21",
     "uuid": "^11.1.0"
   }
 }

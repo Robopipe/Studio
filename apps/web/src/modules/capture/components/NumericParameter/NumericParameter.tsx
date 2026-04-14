@@ -1,9 +1,7 @@
-import { Slider } from "@repo/ui/components/Slider/Slider";
+import { Slider } from "@/modules/shadcn/ui/slider";
+import { Info } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ZodNumber, ZodOptional } from "zod";
-
-import { InformationIcon } from "@repo/ui";
-import styles from "./NumericParameter.module.scss";
 
 export interface NumericParameterProps {
   value: number | null;
@@ -46,19 +44,26 @@ export const NumericParameter = ({
   }
 
   return (
-    <div className={styles.parameter}>
-      <InformationIcon className={styles.infoIcon} />
-      <span className={styles.label}>{label}</span>
-      <span className={styles.value}>{formatValue(internalValue)}</span>
-
+    <div className="flex items-center gap-2 text-xs leading-4">
+      <Info className="size-4 shrink-0 text-foreground/40" />
+      <span className="w-[110px] truncate text-foreground/90">{label}</span>
+      <span className="w-8 shrink-0 text-right tabular-nums text-foreground/60">
+        {formatValue(internalValue)}
+      </span>
       <Slider
-        value={internalValue}
+        className="flex-1"
+        value={[internalValue]}
         min={schema.unwrap().minValue ?? undefined}
         max={schema.unwrap().maxValue ?? undefined}
         step={step}
-        onValueChange={(value) => {
-          setInternalValue(value as number);
-          onValueChange(value as number);
+        onValueChange={(values) => {
+          if (!Array.isArray(values)) {
+            return;
+          }
+          const next = values[0];
+          if (next === undefined) return;
+          setInternalValue(next);
+          onValueChange(next);
         }}
       />
     </div>

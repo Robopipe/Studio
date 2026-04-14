@@ -15,6 +15,8 @@ interface EditEvaluationItemModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (data: { name: string; color: string }) => void;
+  onDelete?: () => void;
+  canDelete?: boolean;
   initialName: string;
   initialColor: string;
 }
@@ -23,6 +25,8 @@ export function EditEvaluationItemModal({
   open,
   onOpenChange,
   onSave,
+  onDelete,
+  canDelete = false,
   initialName,
   initialColor,
 }: EditEvaluationItemModalProps) {
@@ -77,13 +81,22 @@ export function EditEvaluationItemModal({
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" size="sm" onClick={handleCancel}>
-            Cancel
-          </Button>
-          <Button size="sm" onClick={handleSave} disabled={!name.trim()}>
-            Save
-          </Button>
+        <DialogFooter className="flex justify-between sm:justify-between">
+          <div>
+            {canDelete && (
+              <Button variant="destructive" size="sm" onClick={onDelete}>
+                Delete
+              </Button>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleCancel}>
+              Cancel
+            </Button>
+            <Button size="sm" onClick={handleSave} disabled={!name.trim()}>
+              Save
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -1,6 +1,5 @@
 import { useGetProjectsQuery } from "@/modules/project/services/projectApi";
 import { ScreenAwareLayout } from "../ScreenAwareLayout";
-import styles from "./MainLayout.module.scss";
 import { Navbar } from "./Navbar";
 
 export interface MainLayoutProps {
@@ -12,9 +11,11 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
 
   return (
     <ScreenAwareLayout>
-      <div className={styles.wrapper}>
+      <div className="flex h-screen w-screen flex-col overflow-hidden bg-gray-50">
         <Navbar />
-        <main className={styles.content}>{children}</main>
+        <main className="flex flex-1 flex-col overflow-y-auto p-6">
+          {children}
+        </main>
       </div>
     </ScreenAwareLayout>
   );

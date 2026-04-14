@@ -4,23 +4,33 @@
  */
 
 import { ModelAugmentationTypeEnum } from "@repo/schema";
+import { ReactNode } from "react";
 import {
   BlurImage,
   BrightnessImage,
+  ClaheImage,
   CropImage,
   CutoutImage,
+  DownscaleImage,
+  EqualizeImage,
   ExposureImage,
   FlipImage,
   GrayscaleImage,
   HueImage,
+  ImageCompressionImage,
+  MedianBlurImage,
   MosaicImage,
+  MotionBlurImage,
   NoiseImage,
+  PerspectiveImage,
+  PosterizeImage,
+  RgbShiftImage,
   Rotate90Image,
   RotationImage,
   SaturationImage,
+  SharpenImage,
   ShearImage,
-} from "@repo/ui";
-import { ReactNode } from "react";
+} from "./illustrations";
 
 export type AugmentationCategory = "image" | "bbox";
 
@@ -53,6 +63,7 @@ export interface AppliedAugmentation {
   id: string;
   type: ModelAugmentationTypeEnum;
   params: Record<string, number | boolean | string>;
+  duplicateImage?: boolean;
 }
 
 /** Summary text for an applied augmentation */
@@ -89,6 +100,26 @@ export function getAugmentationSummary(
       return "Random cutout regions";
     case ModelAugmentationTypeEnum.MOSAIC:
       return `${params.rows}×${params.cols} grid`;
+    case ModelAugmentationTypeEnum.CLAHE:
+      return `Clip: ${params.clip_limit}, Grid: ${params.tile_grid_size}`;
+    case ModelAugmentationTypeEnum.SHARPEN:
+      return `Alpha: ${params.alpha_min}–${params.alpha_max}, Light: ${params.lightness_min}–${params.lightness_max}`;
+    case ModelAugmentationTypeEnum.MOTION_BLUR:
+      return `Kernel size: ${params.blur_limit}`;
+    case ModelAugmentationTypeEnum.MEDIAN_BLUR:
+      return `Kernel size: ${params.blur_limit}`;
+    case ModelAugmentationTypeEnum.DOWNSCALE:
+      return `Scale: ${params.scale_min}–${params.scale_max}`;
+    case ModelAugmentationTypeEnum.IMAGE_COMPRESSION:
+      return `Quality: ${params.quality_lower}–${params.quality_upper}`;
+    case ModelAugmentationTypeEnum.PERSPECTIVE:
+      return `Scale: ${params.scale}`;
+    case ModelAugmentationTypeEnum.EQUALIZE:
+      return "Histogram equalization";
+    case ModelAugmentationTypeEnum.POSTERIZE:
+      return `Bits: ${params.num_bits}`;
+    case ModelAugmentationTypeEnum.RGB_SHIFT:
+      return `R: ${params.r_shift_limit}, G: ${params.g_shift_limit}, B: ${params.b_shift_limit}`;
     default:
       return "";
   }
@@ -474,6 +505,277 @@ const mosaic: AugmentationDefinition = {
   image: <MosaicImage />,
 };
 
+const clahe: AugmentationDefinition = {
+  id: ModelAugmentationTypeEnum.CLAHE,
+  name: "CLAHE",
+  category: "image",
+  description:
+    "Contrast Limited Adaptive Histogram Equalization. Great for varying factory lighting conditions.",
+  params: [
+    {
+      key: "clip_limit",
+      label: "Clip Limit",
+      type: "number",
+      min: 1,
+      max: 20,
+      step: 0.5,
+      default: 4.0,
+    },
+    {
+      key: "tile_grid_size",
+      label: "Tile Grid Size",
+      type: "number",
+      min: 1,
+      max: 16,
+      step: 1,
+      default: 8,
+    },
+    probabilityParam,
+  ],
+  image: <ClaheImage />,
+};
+
+const sharpen: AugmentationDefinition = {
+  id: ModelAugmentationTypeEnum.SHARPEN,
+  name: "Sharpen",
+  category: "image",
+  description:
+    "Apply image sharpening. Useful for enhancing edge visibility in defect detection.",
+  params: [
+    {
+      key: "alpha_min",
+      label: "Min Alpha",
+      type: "number",
+      min: 0,
+      max: 1,
+      step: 0.05,
+      default: 0.2,
+    },
+    {
+      key: "alpha_max",
+      label: "Max Alpha",
+      type: "number",
+      min: 0,
+      max: 1,
+      step: 0.05,
+      default: 0.5,
+    },
+    {
+      key: "lightness_min",
+      label: "Min Lightness",
+      type: "number",
+      min: 0,
+      max: 1,
+      step: 0.05,
+      default: 0.5,
+    },
+    {
+      key: "lightness_max",
+      label: "Max Lightness",
+      type: "number",
+      min: 0,
+      max: 1,
+      step: 0.05,
+      default: 1.0,
+    },
+    probabilityParam,
+  ],
+  image: <SharpenImage />,
+};
+
+const motionBlur: AugmentationDefinition = {
+  id: ModelAugmentationTypeEnum.MOTION_BLUR,
+  name: "Motion Blur",
+  category: "image",
+  description:
+    "Simulates motion blur. Common artifact in conveyor belt scenarios.",
+  params: [
+    {
+      key: "blur_limit",
+      label: "Kernel Size",
+      type: "number",
+      min: 3,
+      max: 31,
+      step: 2,
+      default: 7,
+    },
+    probabilityParam,
+  ],
+  image: <MotionBlurImage />,
+};
+
+const medianBlur: AugmentationDefinition = {
+  id: ModelAugmentationTypeEnum.MEDIAN_BLUR,
+  name: "Median Blur",
+  category: "image",
+  description:
+    "Median blur filter. Good for salt-and-pepper noise from industrial cameras.",
+  params: [
+    {
+      key: "blur_limit",
+      label: "Kernel Size",
+      type: "number",
+      min: 3,
+      max: 31,
+      step: 2,
+      default: 5,
+    },
+    probabilityParam,
+  ],
+  image: <MedianBlurImage />,
+};
+
+const downscale: AugmentationDefinition = {
+  id: ModelAugmentationTypeEnum.DOWNSCALE,
+  name: "Downscale",
+  category: "image",
+  description:
+    "Simulates lower resolution by downscaling and upscaling. Simulates camera distance/quality variations.",
+  params: [
+    {
+      key: "scale_min",
+      label: "Min Scale",
+      type: "number",
+      min: 0.1,
+      max: 0.9,
+      step: 0.05,
+      default: 0.25,
+    },
+    {
+      key: "scale_max",
+      label: "Max Scale",
+      type: "number",
+      min: 0.1,
+      max: 0.99,
+      step: 0.01,
+      default: 0.5,
+    },
+    probabilityParam,
+  ],
+  image: <DownscaleImage />,
+};
+
+const imageCompression: AugmentationDefinition = {
+  id: ModelAugmentationTypeEnum.IMAGE_COMPRESSION,
+  name: "Compression",
+  category: "image",
+  description:
+    "JPEG compression artifacts. Common in industrial camera feeds with compression.",
+  params: [
+    {
+      key: "quality_lower",
+      label: "Min Quality",
+      type: "number",
+      min: 1,
+      max: 100,
+      step: 1,
+      default: 50,
+    },
+    {
+      key: "quality_upper",
+      label: "Max Quality",
+      type: "number",
+      min: 1,
+      max: 100,
+      step: 1,
+      default: 95,
+    },
+    probabilityParam,
+  ],
+  image: <ImageCompressionImage />,
+};
+
+const perspective: AugmentationDefinition = {
+  id: ModelAugmentationTypeEnum.PERSPECTIVE,
+  name: "Perspective",
+  category: "image",
+  description:
+    "Random perspective transformation. Simulates viewing angle variations.",
+  params: [
+    {
+      key: "scale",
+      label: "Scale",
+      type: "number",
+      min: 0,
+      max: 0.2,
+      step: 0.005,
+      default: 0.05,
+    },
+    probabilityParam,
+  ],
+  image: <PerspectiveImage />,
+};
+
+const equalize: AugmentationDefinition = {
+  id: ModelAugmentationTypeEnum.EQUALIZE,
+  name: "Equalize",
+  category: "image",
+  description:
+    "Histogram equalization. Normalizes lighting across different conditions.",
+  params: [probabilityParam],
+  image: <EqualizeImage />,
+};
+
+const posterize: AugmentationDefinition = {
+  id: ModelAugmentationTypeEnum.POSTERIZE,
+  name: "Posterize",
+  category: "image",
+  description:
+    "Reduces the number of bits per color channel. Simplifies color space for certain detection tasks.",
+  params: [
+    {
+      key: "num_bits",
+      label: "Number of Bits",
+      type: "number",
+      min: 1,
+      max: 8,
+      step: 1,
+      default: 4,
+    },
+    probabilityParam,
+  ],
+  image: <PosterizeImage />,
+};
+
+const rgbShift: AugmentationDefinition = {
+  id: ModelAugmentationTypeEnum.RGB_SHIFT,
+  name: "RGB Shift",
+  category: "image",
+  description:
+    "Shift R/G/B channels independently. Simulates lighting color temperature variations.",
+  params: [
+    {
+      key: "r_shift_limit",
+      label: "Red Shift Limit",
+      type: "number",
+      min: 0,
+      max: 1,
+      step: 0.05,
+      default: 0.2,
+    },
+    {
+      key: "g_shift_limit",
+      label: "Green Shift Limit",
+      type: "number",
+      min: 0,
+      max: 1,
+      step: 0.05,
+      default: 0.2,
+    },
+    {
+      key: "b_shift_limit",
+      label: "Blue Shift Limit",
+      type: "number",
+      min: 0,
+      max: 1,
+      step: 0.05,
+      default: 0.2,
+    },
+    probabilityParam,
+  ],
+  image: <RgbShiftImage />,
+};
+
 export const IMAGE_AUGMENTATIONS: AugmentationDefinition[] = [
   flip,
   rotate90,
@@ -489,6 +791,16 @@ export const IMAGE_AUGMENTATIONS: AugmentationDefinition[] = [
   noise,
   cutout,
   mosaic,
+  clahe,
+  sharpen,
+  motionBlur,
+  medianBlur,
+  downscale,
+  imageCompression,
+  perspective,
+  equalize,
+  posterize,
+  rgbShift,
 ];
 
 export const ALL_AUGMENTATIONS: AugmentationDefinition[] = [

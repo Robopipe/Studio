@@ -53,6 +53,9 @@ export class EvalLimitService {
             limitTo: limitItem.limitTo,
             parameter: limitItem.parameter,
             operator: limitItem.operator,
+            quantifierType: limitItem.quantifierType,
+            quantifierUnit: limitItem.quantifierUnit,
+            quantifierValue: limitItem.quantifierValue,
             position: index
         })))
     }
@@ -127,6 +130,9 @@ export class EvalLimitService {
           parameter: item.parameter,
           operator: item.operator,
           position: item.index,
+          quantifierType: item.quantifierType,
+          quantifierUnit: item.quantifierUnit,
+          quantifierValue: item.quantifierValue,
         })
         .where(and(eq(evalLimitItemTable.id, item.id), eq(evalLimitItemTable.limitId, limitId)))
     ))
@@ -141,6 +147,9 @@ export class EvalLimitService {
           operator: item.operator,
           position: item.index,
           limitId,
+          quantifierType: item.quantifierType,
+          quantifierUnit: item.quantifierUnit,
+          quantifierValue: item.quantifierValue,
         }))
       )
     }

@@ -32,6 +32,7 @@ function isUpdate(options: LimitFormOptions): options is UpdateOptions {
 function toFormValues(limit: EvalLimitDetail): CreateLimitFormSchema {
   return {
     name: limit.name,
+    severity: limit.severity,
     targetLabelId: limit.targetLabel.id,
     targetParentLabelId: limit.targetParentLabel?.id ?? null,
     limitItems: limit.limitItems.map((item) => ({
@@ -40,6 +41,9 @@ function toFormValues(limit: EvalLimitDetail): CreateLimitFormSchema {
       limitTo: item.limitTo,
       parameter: item.parameter,
       operator: item.operator,
+      quantifierType: item.quantifierType,
+      quantifierUnit: item.quantifierUnit,
+      quantifierValue: item.quantifierValue,
     })),
   };
 }

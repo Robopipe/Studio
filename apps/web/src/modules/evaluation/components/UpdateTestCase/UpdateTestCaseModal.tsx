@@ -5,7 +5,7 @@ import {
   DialogContent,
   DialogTitle,
 } from "@/modules/shadcn/ui/dialog";
-import { EvalLimit, EvalTestCaseDetail, EvalTestCaseSeverityEnum, EvalTestCaseTypeEnum } from "@repo/schema";
+import { EvalLimit, EvalTestCaseDetail, EvalSeverityEnum, EvalTestCaseTypeEnum } from "@repo/schema";
 import { useRef } from "react";
 import { ToggleGroupField } from "../CreateTestCase/ToggleGroupField";
 import { useTestCaseForm } from "../CreateTestCase/useTestCaseForm.hook";
@@ -18,8 +18,8 @@ const typeOptions = [
 ] as const;
 
 const severityOptions = [
-  { label: "Alert", value: EvalTestCaseSeverityEnum.ALERT },
-  { label: "Warning", value: EvalTestCaseSeverityEnum.WARNING },
+  { label: "Alert", value: EvalSeverityEnum.ALERT },
+  { label: "Warning", value: EvalSeverityEnum.WARNING },
 ] as const;
 
 export type UpdateTestCaseModalProps = {

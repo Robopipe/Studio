@@ -19,6 +19,10 @@ export const relationBase = defineRelations(schema, (r) => ({
       from: r.projectTable.id,
       to: r.dashboardConfigurationTable.projectId,
     }),
+    capturedVideos: r.many.capturedVideoTable({
+      from: r.projectTable.id,
+      to: r.capturedVideoTable.projectId,
+    }),
   },
   taskTable: {
     project: r.one.projectTable({
@@ -54,6 +58,10 @@ export const relationBase = defineRelations(schema, (r) => ({
     augmentations: r.many.modelAugmentationTable({
       from: r.modelTable.id,
       to: r.modelAugmentationTable.modelId,
+    }),
+    preprocessings: r.many.modelPreprocessingTable({
+      from: r.modelTable.id,
+      to: r.modelPreprocessingTable.modelId,
     }),
   },
   modelLabelTable: {
@@ -106,6 +114,16 @@ export const relationBase = defineRelations(schema, (r) => ({
     testCases: r.many.evalTestCaseTable({
       from: r.dashboardConfigurationTable.id,
       to: r.evalTestCaseTable.dashboardConfigurationId,
+    }),
+    masterThresholds: r.many.evalThresholdTable({
+      from: r.dashboardConfigurationTable.id,
+      to: r.evalThresholdTable.dashboardConfigurationId,
+    }),
+  },
+  capturedVideoTable: {
+    project: r.one.projectTable({
+      from: r.capturedVideoTable.projectId,
+      to: r.projectTable.id,
     }),
   },
   dashboardEvaluationTable: {

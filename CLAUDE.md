@@ -11,11 +11,10 @@ Robopipe Studio is an open-source industrial machine vision and AI quality inspe
 pnpm Turborepo monorepo with three apps and shared packages:
 
 - **`apps/api`** — NestJS v11 REST API (TypeScript, Express, Drizzle ORM, PostgreSQL)
-- **`apps/web`** — React 19 SPA (TypeScript, Vite 7, Redux Toolkit / RTK Query, react-router v7)
+- **`apps/web`** — React 19 SPA (TypeScript, Vite 7, Redux Toolkit / RTK Query, react-router v7, Tailwind v4 + shadcn-style primitives)
 - **`apps/ml`** — Python FastAPI ML training service (luxonis-train, PyTorch, ONNX)
 - **`packages/database`** — Drizzle ORM schema & relations (shared DB definitions)
 - **`packages/schema`** — Zod validation schemas (shared between API and web)
-- **`packages/ui`** — React component library (Base UI, SCSS modules, Storybook 10)
 - **`packages/eslint-config`** — Shared ESLint flat configs
 - **`packages/typescript-config`** — Shared tsconfig presets
 - **`packages/jest-config`** — Shared Jest configs
@@ -50,10 +49,6 @@ cd apps/ml && python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 python -m app             # Run ML service
 
-# UI package (packages/ui)
-pnpm -F @repo/ui storybook       # Launch Storybook
-pnpm -F @repo/ui test             # Vitest + Playwright component tests
-
 # Docker
 docker compose up --build                      # Start all services
 docker compose exec api pnpm -F api drizzle:push  # Run DB migrations
@@ -74,7 +69,9 @@ docker compose exec api pnpm -F api drizzle:push  # Run DB migrations
 - **State**: Redux Toolkit with RTK Query. Store in `src/store/`, hooks in `src/hooks/redux.ts`
 - **RTK Query APIs**: 5 API slices (studioApi, cameraApi, etc.) with automatic JWT refresh logic in `src/core/api/`
 - **Routing**: react-router v7 (`createBrowserRouter`), route paths defined in `src/config/web/routes.ts`
-- **Styling**: SCSS modules (`.module.scss`), theme system from `@repo/ui`
+- **Styling**: Tailwind v4 with the brand color palette (`bg-emerald-500`, `text-pear-300`, etc.) defined in `src/global.css`. Light theme only — see the dormant `.dark` block.
+- **UI primitives**: shadcn-style components (Base UI variant) in `src/modules/shadcn/ui/*`. Configured via `apps/web/components.json`. The only theming entrypoint is `src/global.css`.
+- **Brand-specific icons**: `src/components/icons/*` (industrial-domain icons with no `lucide-react` equivalent: AiPower, Connector, Controller, Ethernet, GSM, Indicator, Infere, Input, Model, Motor, NoCamera, Output, PowerSource, Sensor, RectBbox, Polygon, RemoveAnnotation, Annotate, CardView, TableView, StopCapture, Horizontal, Vertical, Xaxis, Yaxis). For everything else use `lucide-react`.
 - **Canvas**: Konva (react-konva) for image annotation in labeling module
 - **i18n**: react-i18next, translations in `public/locales/en/`
 - **Path alias**: `@/*` maps to `./src/*`
@@ -116,5 +113,4 @@ Requires: pnpm v10.28+, Node >= 18, PostgreSQL 16+, Python 3.11 (for ML)
 - ESLint flat config; `no-explicit-any` is turned off at root level
 - TypeScript strict mode with decorator metadata support (API)
 - Zod for all validation (shared via `@repo/schema`), never use class-validator
-- SCSS modules for styling (web and UI package), not CSS-in-JS
-- **Do NOT use `@repo/ui` (packages/ui) for web UI components** — use the shadcn module inside `apps/web` instead
+- **Web UI**: Tailwind v4 utility classes inline (no SCSS modules). For primitives use `@/modules/shadcn/ui/*`; for icons use `lucide-react` first, falling back to `@/components/icons` for brand-specific industrial icons.

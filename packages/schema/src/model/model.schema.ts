@@ -33,6 +33,16 @@ export enum ModelAugmentationTypeEnum {
   NOISE = "NOISE",
   CUTOUT = "CUTOUT",
   MOSAIC = "MOSAIC",
+  CLAHE = "CLAHE",
+  SHARPEN = "SHARPEN",
+  MOTION_BLUR = "MOTION_BLUR",
+  MEDIAN_BLUR = "MEDIAN_BLUR",
+  DOWNSCALE = "DOWNSCALE",
+  IMAGE_COMPRESSION = "IMAGE_COMPRESSION",
+  PERSPECTIVE = "PERSPECTIVE",
+  EQUALIZE = "EQUALIZE",
+  POSTERIZE = "POSTERIZE",
+  RGB_SHIFT = "RGB_SHIFT",
 }
 
 export const modelAugmentationSchema = z.object({
@@ -40,6 +50,14 @@ export const modelAugmentationSchema = z.object({
   modelId: z.number(),
   type: z.enum(ModelAugmentationTypeEnum),
   params: z.record(z.string(), z.unknown()),
+});
+
+export const modelPreprocessingSchema = z.object({
+  id: z.number(),
+  modelId: z.number(),
+  type: z.enum(ModelAugmentationTypeEnum),
+  params: z.record(z.string(), z.unknown()),
+  keepOriginal: z.boolean(),
 });
 
 export const modelSchema = z.object({
@@ -57,6 +75,7 @@ export const modelSchema = z.object({
   splitTest: z.number(),
   customHyperparams: z.record(z.string(), z.unknown()),
   augmentations: modelAugmentationSchema.pick({ type: true, params: true }).array(),
+  preprocessings: modelPreprocessingSchema.pick({ type: true, params: true, keepOriginal: true }).array(),
   errorMessage: z.string().nullable(),
   ...timestampsSchema,
 });
@@ -92,6 +111,14 @@ export const createModelSchema = modelSchema
       .object({
         type: z.enum(ModelAugmentationTypeEnum),
         params: z.record(z.string(), z.unknown()),
+      })
+      .array()
+      .default([]),
+    preprocessings: z
+      .object({
+        type: z.enum(ModelAugmentationTypeEnum),
+        params: z.record(z.string(), z.unknown()),
+        keepOriginal: z.boolean().default(false),
       })
       .array()
       .default([]),

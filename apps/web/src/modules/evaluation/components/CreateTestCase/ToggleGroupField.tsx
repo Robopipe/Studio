@@ -16,7 +16,7 @@ export function ToggleGroupField<T extends string>({
   label,
   options,
 }: ToggleGroupFieldProps<T>) {
-  const field = useFieldContext<T>();
+  const field = useFieldContext<T | null>();
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -30,7 +30,11 @@ export function ToggleGroupField<T extends string>({
           <button
             key={option.value}
             type="button"
-            onClick={() => field.handleChange(option.value)}
+            onClick={() =>
+              field.handleChange(
+                field.state.value === option.value ? null : option.value,
+              )
+            }
             className={cn(
               "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-medium transition-colors",
               field.state.value === option.value

@@ -45,7 +45,7 @@ export const UpdateLimitModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-160">
+      <DialogContent className="max-h-[calc(100vh-4rem)] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">Edit Limit</DialogTitle>
         </DialogHeader>

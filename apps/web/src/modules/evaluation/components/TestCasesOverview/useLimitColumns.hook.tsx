@@ -17,7 +17,11 @@ export function useLimitColumns(
       {
         accessorKey: "name",
         header: "Name",
-
+      },
+      {
+        accessorKey: "severity",
+        header: "Severity",
+        cell: ({ getValue }) => getValue() ?? "—",
       },
       {
         id: "targetLabel",

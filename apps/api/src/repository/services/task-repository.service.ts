@@ -4,8 +4,8 @@ import { DB_CONNECTION } from "src/core/database/database.constant";
 import type { DbConnection } from "src/core/database/types/database.types";
 import { TaskDetailEntity, TaskEntity } from "../../modules/task/entity/task.entity";
 import { TaskInsert } from "../types/task";
-import { and, asc, count, eq, isNotNull, isNull, max, sql, type SQL } from "drizzle-orm";
-import { ProjectTypeEnum, TaskStatusEnum } from "@repo/schema";
+import { and, asc, count, desc, eq, isNotNull, isNull, max, sql, type SQL } from "drizzle-orm";
+import { TaskStatusEnum } from "@repo/schema";
 
 @Injectable()
 export class TaskRepository {
@@ -118,23 +118,11 @@ export class TaskRepository {
    * @param projectType - Project type enum for relations
    * @returns TaskEntity[]
    */
-  public async getAllByProjectId(projectId: number, projectType: ProjectTypeEnum): Promise<TaskEntity[]> {
+  public async getAllByProjectId(projectId: number): Promise<TaskEntity[]> {
     const tasks = await this.db.query.taskTable.findMany({
       where: {
         projectId
       },
-      extras: {
-        annotationCount: (table) => {
-          switch (projectType){
-            case ProjectTypeEnum.DETECTION:
-              return this.db.$count(rectangleAnnotationTable, eq(rectangleAnnotationTable.taskId, table.id))
-            case ProjectTypeEnum.CLASSIFICATION:
-              return this.db.$count(classificationAnnotationTable, eq(classificationAnnotationTable.taskId, table.id))
-            case ProjectTypeEnum.SEGMENTATION:
-              return this.db.$count(polygonAnnotationTable, eq(polygonAnnotationTable.taskId, table.id))
-          }
-        }
-      }
     })
 
     return tasks.map((t) => new TaskEntity(t))
@@ -151,11 +139,12 @@ export class TaskRepository {
    */
   public async getAllByProjectIdPaginated(
     projectId: number,
-    projectType: ProjectTypeEnum,
     page: number,
     limit: number,
     deleted: boolean | null = false,
     annotated?: boolean,
+    order: "asc" | "desc" = "asc",
+    labelIds?: number[],
   ): Promise<{ data: TaskEntity[]; total: number }> {
     const offset = (page - 1) * limit;
 
@@ -180,37 +169,47 @@ export class TaskRepository {
       ? eq(taskTable.status, statusValue)
       : undefined;
 
+    // Build label filter: only return tasks that have annotations with the given label IDs
+    const buildLabelCondition = labelIds?.length
+      ? this.buildLabelExistsCondition(labelIds)
+      : undefined;
+
     const [tasks, totalResult] = await Promise.all([
       this.db.query.taskTable.findMany({
         where: {
           projectId,
           ...(deletedAtFilter && { deletedAt: deletedAtFilter }),
           ...(statusValue && { status: statusValue }),
+          ...(buildLabelCondition && { RAW: (table: typeof taskTable) => buildLabelCondition(table.id) }),
         },
-        orderBy: (t) => asc(t.createdAt),
+        orderBy: (t) => (order === "desc" ? desc(t.createdAt) : asc(t.createdAt)),
         limit,
         offset,
-        extras: {
-          annotationCount: (table) => {
-            switch (projectType) {
-              case ProjectTypeEnum.DETECTION:
-                return this.db.$count(rectangleAnnotationTable, eq(rectangleAnnotationTable.taskId, table.id))
-              case ProjectTypeEnum.CLASSIFICATION:
-                return this.db.$count(classificationAnnotationTable, eq(classificationAnnotationTable.taskId, table.id))
-              case ProjectTypeEnum.SEGMENTATION:
-                return this.db.$count(polygonAnnotationTable, eq(polygonAnnotationTable.taskId, table.id))
-            }
-          }
-        }
       }),
       this.db.select({ count: count() })
         .from(taskTable)
-        .where(and(eq(taskTable.projectId, projectId), deletedAtCondition, statusCondition)),
+        .where(and(eq(taskTable.projectId, projectId), deletedAtCondition, statusCondition, buildLabelCondition?.(taskTable.id))),
     ]);
 
     return {
       data: tasks.map((t) => new TaskEntity(t)),
       total: totalResult[0]?.count ?? 0,
+    };
+  }
+
+  private buildLabelExistsCondition(labelIds: number[]): (taskId: SQL | typeof taskTable.id) => SQL {
+    const inList = sql.join(labelIds.map((id) => sql`${id}`), sql`, `);
+    const labelCount = sql`${labelIds.length}`;
+    return (taskId) => {
+      return sql`(
+        SELECT COUNT(DISTINCT label_id) FROM (
+          SELECT ${rectangleAnnotationTable.labelId} AS label_id FROM ${rectangleAnnotationTable} WHERE ${rectangleAnnotationTable.taskId} = ${taskId} AND ${rectangleAnnotationTable.labelId} IN (${inList})
+          UNION
+          SELECT ${polygonAnnotationTable.labelId} FROM ${polygonAnnotationTable} WHERE ${polygonAnnotationTable.taskId} = ${taskId} AND ${polygonAnnotationTable.labelId} IN (${inList})
+          UNION
+          SELECT ${classificationAnnotationTable.labelId} FROM ${classificationAnnotationTable} WHERE ${classificationAnnotationTable.taskId} = ${taskId} AND ${classificationAnnotationTable.labelId} IN (${inList})
+        ) AS matched_labels
+      ) = ${labelCount}`;
     };
   }
 

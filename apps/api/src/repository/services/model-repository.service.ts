@@ -32,6 +32,7 @@ export class ModelRepository {
           orderBy: (l) => asc(l.id),
         },
         augmentations: true,
+        preprocessings: true,
       },
       orderBy: (m) => asc(m.createdAt)
     });
@@ -54,6 +55,7 @@ export class ModelRepository {
           orderBy: (l) => asc(l.id),
         },
         augmentations: true,
+        preprocessings: true,
       },
     });
 
@@ -77,6 +79,7 @@ export class ModelRepository {
           orderBy: (l) => asc(l.id)
         },
         augmentations: true,
+        preprocessings: true,
       }
     })
 
@@ -95,7 +98,7 @@ export class ModelRepository {
       throw new InternalServerErrorException("Failed creating model")
     }
 
-    return new ModelEntity({...createdModel, labels: [], augmentations: []})
+    return new ModelEntity({...createdModel, labels: [], augmentations: [], preprocessings: []})
   }
 
 
@@ -127,7 +130,11 @@ export class ModelRepository {
       where: { modelId: id },
     })
 
-    return new ModelEntity({...updatedModel, labels, augmentations})
+    const preprocessings = await this.db.query.modelPreprocessingTable.findMany({
+      where: { modelId: id },
+    })
+
+    return new ModelEntity({...updatedModel, labels, augmentations, preprocessings})
   }
 
   /**

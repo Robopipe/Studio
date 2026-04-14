@@ -1,9 +1,8 @@
 import { Button } from "@/modules/shadcn/ui/button";
-import { Stack, Text } from "@repo/ui";
-import clsx from "clsx";
+import { TabsList, TabsTrigger } from "@/modules/shadcn/ui/tabs";
+import { Tabs as TabsPrimitive } from "@base-ui/react/tabs";
 import { Play, Square } from "lucide-react";
 import type { ReactNode } from "react";
-import styles from "./RunSubheader.module.scss";
 
 export type RunTab = "inference" | "dashboard" | "configuration";
 
@@ -18,6 +17,12 @@ interface RunSubheaderProps {
   configSelector?: ReactNode;
 }
 
+const TABS: { key: RunTab; label: string }[] = [
+  { key: "inference", label: "Inference" },
+  { key: "dashboard", label: "Dashboard" },
+  { key: "configuration", label: "Configuration" },
+];
+
 export const RunSubheader = ({
   activeTab,
   onTabChange,
@@ -29,37 +34,24 @@ export const RunSubheader = ({
   configSelector,
 }: RunSubheaderProps) => {
   return (
-    <div className={styles.subheader}>
-      <Stack direction="row" align="center" gap={24}>
-        <button
-          className={clsx(styles.tab, activeTab === "inference" && styles.active)}
-          onClick={() => onTabChange("inference")}
-        >
-          <Text variant="text-14" weight="500">
-            Inference
-          </Text>
-        </button>
-        <button
-          className={clsx(styles.tab, activeTab === "dashboard" && styles.active)}
-          onClick={() => onTabChange("dashboard")}
-        >
-          <Text variant="text-14" weight="500">
-            Dashboard
-          </Text>
-        </button>
-        <button
-          className={clsx(styles.tab, activeTab === "configuration" && styles.active)}
-          onClick={() => onTabChange("configuration")}
-        >
-          <Text variant="text-14" weight="500">
-            Configuration
-          </Text>
-        </button>
-      </Stack>
+    <div className="flex h-12 flex-shrink-0 items-center justify-between border-b border-border bg-gray-100 pr-6">
+      <TabsPrimitive.Root
+        value={activeTab}
+        onValueChange={(v) => v && onTabChange(v as RunTab)}
+        className="group/tabs flex h-full flex-col justify-end"
+      >
+        <TabsList variant="line" className="h-full border-b-0 px-6">
+          {TABS.map((tab) => (
+            <TabsTrigger key={tab.key} value={tab.key}>
+              {tab.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </TabsPrimitive.Root>
 
-      <div className={styles.buttonGroup}>
+      <div className="flex items-center gap-2">
         {configSelector}
-        <div className={styles.divider} />
+        <div className="h-4 w-px bg-border" />
         <Button
           size="sm"
           variant="outline"

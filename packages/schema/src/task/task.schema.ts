@@ -65,6 +65,7 @@ export const createClassificationAnnotationSchema = z.object({
  */
 export const createTaskSchema = z.object({
   iid: z.string().optional(),
+  capturedAt: z.iso.datetime().optional(),
 })
 
 export const taskSchema = z.object({
@@ -90,6 +91,7 @@ export const updateTaskSchema = z.object({
   rectangleAnnotations: createRectangleAnnotationSchema.array().nullish(),
   polygonAnnotations: createPolygonAnnotationSchema.array().nullish(),
   classificationAnnotations: createClassificationAnnotationSchema.array().nullish(),
+  reviewed: z.boolean().optional(),
 });
 
 export const taskPaginationQuerySchema = paginationQuerySchema.extend({
@@ -109,6 +111,17 @@ export const taskPaginationQuerySchema = paginationQuerySchema.extend({
       if (val === "false") return false;
       return undefined;
     }),
+  labelIds: z
+    .string()
+    .optional()
+    .transform((val): number[] | undefined => {
+      if (!val) return undefined;
+      return val.split(",").map(Number).filter((n) => !isNaN(n));
+    }),
+  order: z
+    .union([z.literal("asc"), z.literal("desc")])
+    .optional()
+    .default("asc"),
 });
 
 export const paginatedTaskSchema = paginatedResponseSchema(taskSchema);

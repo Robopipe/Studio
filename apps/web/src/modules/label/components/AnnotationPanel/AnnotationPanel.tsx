@@ -1,9 +1,21 @@
-import { Tabs, Text } from "@repo/ui";
+import { AnnotateIcon } from "@/components/icons";
+import { cn } from "@/lib/utils";
+import {
+  Collapsible,
+  CollapsiblePanel,
+  CollapsibleTrigger,
+} from "@/modules/shadcn/ui/collapsible";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/modules/shadcn/ui/tabs";
 import { Label } from "@repo/schema";
+import { AlertTriangle, Eye, EyeOff, GripVertical, Trash2 } from "lucide-react";
+import { useDraggableList } from "../../hooks/useDraggableList";
 import { Annotation, HistoryEntry } from "../../types/annotations";
-import { LabelsTab } from "../LabelsTab";
 import { HistoryTab } from "../HistoryTab";
-import styles from "./AnnotationPanel.module.scss";
 
 export interface AnnotationPanelProps {
   annotations: Annotation[];
@@ -11,9 +23,13 @@ export interface AnnotationPanelProps {
   selectedAnnotationId: string | null;
   onSelectAnnotation: (id: string) => void;
   onDeleteAnnotation: (id: string) => void;
+  onReorderAnnotations: (fromIndex: number, toIndex: number) => void;
+  hiddenAnnotationIds: Set<string>;
+  onToggleAnnotationVisibility: (id: string) => void;
   historyEntries: HistoryEntry[];
   historyIndex: number;
   onJumpTo: (index: number) => void;
+  onOpenSettings?: () => void;
 }
 
 export const AnnotationPanel = ({
@@ -22,64 +38,198 @@ export const AnnotationPanel = ({
   selectedAnnotationId,
   onSelectAnnotation,
   onDeleteAnnotation,
+  onReorderAnnotations,
+  hiddenAnnotationIds,
+  onToggleAnnotationVisibility,
   historyEntries,
   historyIndex,
   onJumpTo,
+  onOpenSettings,
 }: AnnotationPanelProps) => {
   const classCounts = labels.map((label) => ({
     ...label,
     count: annotations.filter((a) => a.labelId === String(label.id)).length,
   }));
 
+  const { getItemProps } = useDraggableList(onReorderAnnotations);
+
   return (
     <Tabs
-      tabs={[
-        {
-          label: "Labels",
-          render: () => (
-            <LabelsTab
-              annotations={annotations}
-              selectedAnnotationId={selectedAnnotationId}
-              onSelectAnnotation={onSelectAnnotation}
-              onDeleteAnnotation={onDeleteAnnotation}
-            />
-          ),
-        },
-        {
-          label: "Info",
-          render: () => (
-            <div className={styles.infoTab}>
-              <Text variant="text-10" weight="700" className={styles.sectionTitle}>
-                Classes
-              </Text>
-              <div className={styles.classList}>
-                {classCounts.map((cls) => (
-                  <div key={cls.id} className={styles.classRow}>
-                    <span
-                      className={styles.colorDot}
-                      style={{ background: cls.color }}
+      defaultValue="labels"
+      className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden border-r border-border bg-black/[0.03]"
+    >
+      <TabsList variant="line" className="h-10 shrink-0">
+        <TabsTrigger value="labels">Annotations</TabsTrigger>
+        <TabsTrigger value="info" disabled>Info</TabsTrigger>
+        <TabsTrigger value="history" disabled>History</TabsTrigger>
+      </TabsList>
+
+      <TabsContent
+        value="labels"
+        className="min-h-0 flex-1 overflow-y-auto"
+      >
+        <Collapsible defaultOpen={false} className="px-4 pt-4">
+          <CollapsibleTrigger className="text-[10px] font-bold uppercase tracking-[1px] text-foreground/90 hover:text-foreground/90 py-0">
+            Classes
+          </CollapsibleTrigger>
+          <CollapsiblePanel className="pt-1">
+            <div className="flex flex-col gap-1">
+              <ClassRow
+                icon={<AnnotateIcon className="size-4 text-foreground/60" />}
+                name="Any"
+                count={annotations.length}
+              />
+              {classCounts.map((cls) => (
+                <ClassRow
+                  key={cls.id}
+                  icon={
+                    <AnnotateIcon
+                      className="size-4 shrink-0"
+                      style={{ color: cls.color }}
                     />
-                    <span className={styles.className}>{cls.name}</span>
-                    <span className={styles.classCount}>{cls.count}</span>
-                  </div>
-                ))}
-              </div>
+                  }
+                  name={cls.name}
+                  count={cls.count}
+                />
+              ))}
             </div>
-          ),
-        },
-        {
-          label: "History",
-          render: () => (
-            <HistoryTab
-              entries={historyEntries}
-              currentIndex={historyIndex}
-              onJumpTo={onJumpTo}
-            />
-          ),
-        },
-      ]}
-      defaultValue="Labels"
-      className={styles.panel}
-    />
+          </CollapsiblePanel>
+        </Collapsible>
+
+        <section className="flex flex-col gap-2 p-4 pt-2">
+          <p className="text-[10px] font-bold uppercase tracking-[1px] text-foreground/90">
+            Regions
+          </p>
+          {labels.length === 0 && (
+            <div className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
+              <AlertTriangle className="size-4 shrink-0 text-amber-500" />
+              <span className="text-xs text-amber-800">
+                Create labels in{" "}
+                <button
+                  type="button"
+                  className="cursor-pointer font-medium underline hover:text-amber-900"
+                  onClick={onOpenSettings}
+                >
+                  project settings
+                </button>
+                {" "}before annotating.
+              </span>
+            </div>
+          )}
+          <div className="flex flex-col">
+            {annotations.map((annotation, index) => {
+              const isSelected = annotation.id === selectedAnnotationId;
+              const isHidden = hiddenAnnotationIds.has(annotation.id);
+              const dnd = getItemProps(index);
+              return (
+                <div
+                  key={annotation.id}
+                  {...dnd.containerProps}
+                  onClick={() => onSelectAnnotation(annotation.id)}
+                  className={cn(
+                    "group relative flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-black/5",
+                    isSelected && "bg-primary/10",
+                    dnd.isDragging && "opacity-40",
+                    isHidden && "opacity-50 grayscale",
+                    dnd.showDropAbove && "before:absolute before:inset-x-1 before:-top-px before:h-0.5 before:rounded-full before:bg-primary",
+                    dnd.showDropBelow && "after:absolute after:inset-x-1 after:-bottom-px after:h-0.5 after:rounded-full after:bg-primary"
+                  )}
+                >
+                  <button
+                    type="button"
+                    aria-label="Drag to reorder"
+                    {...dnd.handleProps}
+                    className="flex shrink-0 cursor-grab items-center justify-center rounded text-muted-foreground/60 opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100 active:cursor-grabbing [&_svg]:size-3.5"
+                  >
+                    <GripVertical />
+                  </button>
+                  <AnnotateIcon
+                    className="size-4 shrink-0"
+                    style={{ color: annotation.color }}
+                  />
+                  <span
+                    className="flex h-[14px] w-6 shrink-0 items-center justify-center rounded-[3px] px-0.5 text-[11px] leading-3 text-foreground/90"
+                    style={{ background: annotation.color }}
+                  >
+                    {index + 1}
+                  </span>
+                  <span className="flex-1 truncate text-xs leading-4 text-foreground/90">
+                    {annotation.labelName}
+                  </span>
+                  <button
+                    type="button"
+                    title={isHidden ? "Show" : "Hide"}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleAnnotationVisibility(annotation.id);
+                    }}
+                    className={cn(
+                      "flex shrink-0 cursor-pointer items-center justify-center rounded p-1 text-muted-foreground transition-opacity hover:bg-black/5 hover:text-foreground [&_svg]:size-3.5",
+                      isHidden || isSelected
+                        ? "opacity-100"
+                        : "opacity-0 group-hover:opacity-100"
+                    )}
+                  >
+                    {isHidden ? <EyeOff /> : <Eye />}
+                  </button>
+                  <button
+                    type="button"
+                    title="Delete"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteAnnotation(annotation.id);
+                    }}
+                    className={cn(
+                      "flex shrink-0 cursor-pointer items-center justify-center rounded p-1 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive [&_svg]:size-3.5",
+                      isSelected && "opacity-100"
+                    )}
+                  >
+                    <Trash2 />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      </TabsContent>
+
+      <TabsContent
+        value="info"
+        className="min-h-0 flex-1 overflow-y-auto p-4"
+      >
+        <p className="text-xs text-muted-foreground">
+          No additional information available.
+        </p>
+      </TabsContent>
+
+      <TabsContent
+        value="history"
+        className="min-h-0 flex-1 overflow-y-auto p-4"
+      >
+        <HistoryTab
+          entries={historyEntries}
+          currentIndex={historyIndex}
+          onJumpTo={onJumpTo}
+        />
+      </TabsContent>
+    </Tabs>
   );
 };
+
+const ClassRow = ({
+  icon,
+  name,
+  count,
+}: {
+  icon: React.ReactNode;
+  name: string;
+  count: number;
+}) => (
+  <div className="flex items-center gap-2 rounded-md p-2">
+    {icon}
+    <span className="flex-1 text-xs text-foreground/90">{name}</span>
+    <span className="flex h-3.5 min-w-6 items-center justify-center rounded-full bg-black/[0.03] px-1.5 text-[11px] leading-none text-foreground/60">
+      {count}
+    </span>
+  </div>
+);

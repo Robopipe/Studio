@@ -41,6 +41,30 @@ _AnchorDumper.add_representer(_AnchoredInt, _anchored_int_representer)
 _AnchorDumper.add_representer(_FlowList, _flow_list_representer)
 
 
+def _get_custom_image_size(custom_hyperparams: dict) -> tuple[int, int] | None:
+    """Extract custom image size from user-supplied hyperparams, if present."""
+    try:
+        size = (
+            custom_hyperparams
+            .get("trainer", {})
+            .get("preprocessing", {})
+            .get("train_image_size")
+        )
+        if isinstance(size, list) and len(size) == 2:
+            return (int(size[0]), int(size[1]))
+    except (TypeError, ValueError):
+        pass
+    return None
+
+
+def get_image_size(model_config: ModelConfig) -> tuple[int, int]:
+    """Return the training image size — custom if provided, otherwise the default."""
+    custom = _get_custom_image_size(model_config.training_config.custom_hyperparams)
+    if custom is not None:
+        return custom
+    return (480, 640) if model_config.type != ModelType.CLASSIFICATION else (512, 512)
+
+
 def get_model_params(model_config: ModelConfig) -> tuple[dict, dict]:
     if model_config.type == ModelType.CLASSIFICATION:
         return {"variant": "light"}, {}
@@ -77,10 +101,7 @@ def generate_loader_config(model_config: ModelConfig, dir: str) -> dict:
 
 def generate_trainer_config(model_config: ModelConfig) -> dict:
     webhook_url = get_config().webhook_url
-    has_custom = bool(model_config.training_config.custom_hyperparams)
-    img_size = (
-        (480, 640) if model_config.type != ModelType.CLASSIFICATION else (512, 512)
-    )
+    img_size = get_image_size(model_config)
     augmentations_config = [
         aug
         for aug_list in model_config.training_config.dataset_config.augmentations
@@ -146,6 +167,45 @@ def _deep_merge(base: dict, override: dict) -> dict:
     return result
 
 
+# Config paths managed by the ML service or generated from UI controls.
+# These must never be overridden by user-supplied custom hyperparameters.
+_RESERVED_PATHS: set[str] = {
+    # ML service infrastructure
+    "model.name",
+    "model.predefined_model.name",
+    "loader.params.dataset_name",
+    "loader.params.dataset_dir",
+    "tracker.is_tensorboard",
+    "tracker.is_wandb",
+    "tracker.is_mlflow",
+    "tracker.save_directory",
+    "trainer.callbacks",
+    "trainer.accelerator",
+    "trainer.n_workers",
+    "trainer.validation_interval",
+    "trainer.log_sub_losses",
+    # UI-generated
+    "trainer.epochs",
+    "trainer.preprocessing.augmentations",
+}
+
+
+def _strip_reserved_keys(obj: dict, prefix: str = "") -> dict:
+    """Recursively remove reserved keys from a config dict."""
+    result = {}
+    for key, value in obj.items():
+        path = f"{prefix}.{key}" if prefix else key
+        if path in _RESERVED_PATHS:
+            continue
+        if isinstance(value, dict):
+            nested = _strip_reserved_keys(value, path)
+            if nested:
+                result[key] = nested
+        else:
+            result[key] = value
+    return result
+
+
 def generate_luxonis_config(model_config: ModelConfig, dir: str) -> str:
     config = {
         "model": generate_model_config(model_config),
@@ -156,6 +216,7 @@ def generate_luxonis_config(model_config: ModelConfig, dir: str) -> str:
 
     custom = model_config.training_config.custom_hyperparams
     if custom:
+        custom = _strip_reserved_keys(custom)
         config = _deep_merge(config, custom)
 
     return yaml.dump(config, Dumper=_AnchorDumper)

@@ -1,8 +1,13 @@
 import { useListCamerasQuery } from "@/core/cameraApi";
-import { CameraIcon } from "@repo/ui";
-import { Select } from "@repo/ui/components/Select/Select";
-import { useEffect } from "react";
-import styles from "./SelectCamera.module.scss";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/modules/shadcn/ui/select";
+import { Camera } from "lucide-react";
+import { useEffect, useMemo } from "react";
 
 export interface SelectCameraProps {
   value?: string | null;
@@ -12,29 +17,51 @@ export interface SelectCameraProps {
 export const SelectCamera = ({ value, onSelect }: SelectCameraProps) => {
   const { data: cameras } = useListCamerasQuery();
 
+  const cameraItems = useMemo(
+    () =>
+      cameras?.reduce(
+        (acc, camera) => ({ ...acc, [camera.mxid]: camera.camera_name }),
+        {} as Record<string, string>,
+      ),
+    [cameras],
+  );
+
   useEffect(() => {
-    // Select first camera automatically
-    if (cameras && cameras.length > 0 && !value) {
+    if (!cameras || cameras.length === 0) return;
+    if (!value || !cameras.some((c) => c.mxid === value)) {
       onSelect(cameras[0].mxid);
     }
-  }, [cameras]);
+  }, [cameras, value, onSelect]);
 
   return (
-    <Select<string>
-      placeholder="Select camera"
-      items={
-        cameras?.map((camera) => ({
-          label: (
-            <span className={styles.selectItem}>
-              <CameraIcon />
+    <Select
+      value={value}
+      onValueChange={(val) => onSelect(val)}
+      items={cameraItems}
+    >
+      <SelectTrigger className="w-full">
+        <SelectValue placeholder="Select camera">
+          {(mxid: string) => {
+            const camera = cameras?.find((c) => c.mxid === mxid);
+            return (
+              <span className="flex items-center gap-2">
+                <Camera className="size-4" />
+                {camera?.camera_name ?? mxid}
+              </span>
+            );
+          }}
+        </SelectValue>
+      </SelectTrigger>
+      <SelectContent>
+        {cameras?.map((camera) => (
+          <SelectItem key={camera.mxid} value={camera.mxid}>
+            <span className="flex items-center gap-2">
+              <Camera className="size-4" />
               {camera.camera_name}
             </span>
-          ),
-          value: camera.mxid,
-        })) || []
-      }
-      value={value}
-      onValueChange={(value) => onSelect(value)}
-    />
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 };

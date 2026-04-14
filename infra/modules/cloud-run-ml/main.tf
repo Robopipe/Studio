@@ -1,25 +1,34 @@
 resource "google_cloud_run_v2_job" "ml" {
-  project  = var.project_id
-  name     = "${var.name_prefix}-ml"
-  location = var.region
+  project      = var.project_id
+  name         = "${var.name_prefix}-ml"
+  location     = var.region
+  launch_stage        = "BETA"
+  deletion_protection = false
 
   template {
     task_count = 1
+
 
     template {
       max_retries     = 0
       service_account = var.service_account
       timeout         = "${var.timeout}s"
 
+      node_selector {
+        accelerator = var.gpu_type
+      }
+      gpu_zonal_redundancy_disabled = true
       containers {
         image = var.image
 
         resources {
           limits = {
-            cpu    = var.cpu
-            memory = var.memory
+            cpu              = var.cpu
+            memory           = var.memory
+            "nvidia.com/gpu" = tostring(var.gpu_count)
           }
         }
+
 
         env {
           name  = "APP_ENV"
@@ -28,7 +37,7 @@ resource "google_cloud_run_v2_job" "ml" {
 
         env {
           name  = "WEBHOOK_URL"
-          value = "${var.api_host}/v1/models"
+          value = "${var.api_host}/v1/training-external"
         }
 
         env {
@@ -54,10 +63,10 @@ resource "google_cloud_run_v2_job" "ml" {
     }
   }
 
+
   lifecycle {
     ignore_changes = [
       template[0].template[0].containers[0].image,
-      template[0].template[0].containers[0].resources,
       template[0].annotations,
     ]
   }

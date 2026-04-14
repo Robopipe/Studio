@@ -1,10 +1,10 @@
-import { Button, NumberInput, Stack, Switch } from "@repo/ui";
+import { Button } from "@/modules/shadcn/ui/button";
+import { NumberInput } from "@/modules/shadcn/ui/number-input";
+import { Switch } from "@/modules/shadcn/ui/switch";
 import { useState } from "react";
-import { useCaptureImageFromCamera } from "../../hooks/useCaptureImageFromCamera";
-
 import z from "zod";
+import { useCaptureImageFromCamera } from "../../hooks/useCaptureImageFromCamera";
 import { CaptureStillImageCountdown } from "../CaptureStillImageCountdown";
-import styles from "./CaptureStillImage.module.scss";
 
 const stringToNumber = z.string().transform((val, ctx) => {
   const parsed = parseInt(val);
@@ -64,12 +64,14 @@ export type IntervalShootingConfig = z.output<
 
 export interface CaptureStillImageProps {
   selectedCamera: string;
-  selectedStream: string;
+  selectedStream: string | null;
+  isStreaming: boolean;
 }
 
 export const CaptureStillImage = ({
   selectedCamera,
   selectedStream,
+  isStreaming,
 }: CaptureStillImageProps) => {
   const { handleCaptureImage, isLoading } = useCaptureImageFromCamera();
   const [useIntervalShooting, setUseIntervalShooting] = useState(false);
@@ -84,15 +86,18 @@ export const CaptureStillImage = ({
   );
 
   return (
-    <Stack>
-      <div className={styles.parameter}>
-        <span className={styles.label}>Use Interval shooting</span>
+    <div className="flex flex-col gap-4">
+      <div className="flex w-full items-center justify-between gap-2">
+        <span className="overflow-hidden text-ellipsis whitespace-nowrap [width:calc(100%-8.25rem)]">
+          Use Interval shooting
+        </span>
 
         <Switch
           checked={useIntervalShooting}
           onCheckedChange={(value) => {
             setUseIntervalShooting(value);
           }}
+          disabled={!selectedStream || !isStreaming}
         />
       </div>
 
@@ -129,18 +134,19 @@ export const CaptureStillImage = ({
           <CaptureStillImageCountdown
             selectedCamera={selectedCamera}
             selectedStream={selectedStream}
+            isStreaming={isStreaming}
             intervalShootingConfig={intervalShootingConfigResult.data}
           />
         ) : null
       ) : (
         <Button
           onClick={() => handleCaptureImage(selectedCamera!, selectedStream!)}
-          disabled={!selectedCamera || !selectedStream || isLoading}
+          disabled={!selectedCamera || !selectedStream || !isStreaming || isLoading}
           size="lg"
         >
           Capture image
         </Button>
       )}
-    </Stack>
+    </div>
   );
 };

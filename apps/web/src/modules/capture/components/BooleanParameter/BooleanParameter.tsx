@@ -1,7 +1,6 @@
+import { Switch } from "@/modules/shadcn/ui/switch";
+import { Info } from "lucide-react";
 import { useEffect, useState } from "react";
-
-import { InformationIcon, Switch } from "@repo/ui";
-import styles from "./BooleanParameter.module.scss";
 
 export interface BooleanParameterProps {
   value: boolean | null;
@@ -25,10 +24,9 @@ export const BooleanParameter = ({
   }
 
   return (
-    <div className={styles.parameter}>
-      <InformationIcon className={styles.infoIcon} />
-      <span className={styles.label}>{label}</span>
-
+    <div className="flex items-center gap-2 text-xs leading-4">
+      <Info className="size-4 shrink-0 text-foreground/40" />
+      <span className="flex-1 truncate text-foreground/90">{label}</span>
       <Switch
         checked={internalValue}
         onCheckedChange={(value) => {

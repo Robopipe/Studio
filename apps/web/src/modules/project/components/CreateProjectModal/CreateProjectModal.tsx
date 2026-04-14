@@ -1,5 +1,4 @@
-import { ProjectTypeEnum } from "@repo/schema";
-import { Button, Stack } from "@repo/ui";
+import { Button } from "@/modules/shadcn/ui/button";
 import { useState } from "react";
 import {
   useCreateProjectLabelMutation,
@@ -21,9 +20,6 @@ export const CreateProjectModal = ({
   const [name, setName] = useState(initialName ?? "");
   const [description, setDescription] = useState("");
   const [cameraApiUrl, setCameraApiUrl] = useState<string | null>(null);
-  const [projectType, setProjectType] = useState<ProjectTypeEnum>(
-    ProjectTypeEnum.SEGMENTATION,
-  );
   const [localLabels, setLocalLabels] = useState<LocalLabel[]>([]);
 
   const [createProject, { isLoading: isCreatingProject }] =
@@ -37,7 +33,6 @@ export const CreateProjectModal = ({
       const project = await createProject({
         name,
         description,
-        type: projectType,
         cameraApiUrl,
       }).unwrap();
 
@@ -79,8 +74,6 @@ export const CreateProjectModal = ({
           setDescription={setDescription}
           cameraApiUrl={cameraApiUrl}
           setCameraApiUrl={setCameraApiUrl}
-          projectType={projectType}
-          setProjectType={setProjectType}
         />
       ),
     },
@@ -98,9 +91,9 @@ export const CreateProjectModal = ({
   ];
 
   const buttons = (
-    <Stack direction="row" gap={12}>
+    <div className="flex flex-row gap-3">
       <Button
-        variant="danger"
+        variant="destructive"
         size="sm"
         onClick={onClose}
         disabled={isCreatingProject}
@@ -108,14 +101,13 @@ export const CreateProjectModal = ({
         Delete
       </Button>
       <Button
-        variant="filled"
         size="sm"
         onClick={handleSave}
         disabled={isCreatingProject || !name.trim()}
       >
         {isCreatingProject ? "Saving..." : "Save"}
       </Button>
-    </Stack>
+    </div>
   );
 
   return (

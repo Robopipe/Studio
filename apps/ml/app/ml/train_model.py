@@ -7,7 +7,8 @@ from ..config import get_config
 from ..models.model_config import ModelConfig
 from ..models.model_type import ModelOutputType
 from .dataset import prepare_dataset
-from .generate_config import generate_luxonis_config
+from .generate_config import generate_luxonis_config, get_image_size
+from .preprocess import preprocess_dataset
 from .model import Model
 from .model_conversion import convert_model
 from .callbacks import *
@@ -39,6 +40,14 @@ def run_training(config: ModelConfig):
             prepare_dataset(
                 dir, config.data, config.training_config.dataset_config, config.type
             )
+            preprocess_cfg = config.training_config.dataset_config
+            if preprocess_cfg.preprocessings:
+                preprocess_dataset(
+                    dir,
+                    preprocess_cfg.preprocessings,
+                    config.type,
+                    get_image_size(config),
+                )
             print(luxonis_config)
             with open(config_path, "w") as f:
                 f.write(luxonis_config)
