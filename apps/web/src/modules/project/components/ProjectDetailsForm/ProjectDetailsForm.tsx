@@ -2,15 +2,7 @@ import { useAuth } from "@/core/auth/hooks";
 import { DiscoverCameraApi } from "@/modules/discovery/components";
 import { Input } from "@/modules/shadcn/ui/input";
 import { Label } from "@/modules/shadcn/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/modules/shadcn/ui/select";
 import { Textarea } from "@/modules/shadcn/ui/textarea";
-import { ProjectTypeEnum } from "@repo/schema";
 
 interface ProjectDetailsFormProps {
   name: string;
@@ -19,8 +11,6 @@ interface ProjectDetailsFormProps {
   setDescription: (val: string) => void;
   cameraApiUrl: string | null;
   setCameraApiUrl: (val: string) => void;
-  projectType: ProjectTypeEnum;
-  setProjectType?: (val: ProjectTypeEnum) => void;
   multipleDashboardConfigs?: boolean;
   setMultipleDashboardConfigs?: (val: boolean) => void;
 }
@@ -32,8 +22,6 @@ export const ProjectDetailsForm = ({
   setDescription,
   cameraApiUrl,
   setCameraApiUrl,
-  projectType,
-  setProjectType,
   multipleDashboardConfigs,
   setMultipleDashboardConfigs,
 }: ProjectDetailsFormProps) => {
@@ -68,23 +56,6 @@ export const ProjectDetailsForm = ({
             onChange={(e) => setDescription(e.target.value)}
           />
         </div>
-
-        <Select
-          value={projectType}
-          onValueChange={(val) => setProjectType?.(val as ProjectTypeEnum)}
-          disabled={!setProjectType}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select project type" />
-          </SelectTrigger>
-          <SelectContent>
-            {Object.entries(ProjectTypeEnum).map(([key]) => (
-              <SelectItem key={key} value={key}>
-                {key.charAt(0) + key.slice(1).toLowerCase()}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
 
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="cameraApiUrl" className="font-semibold">

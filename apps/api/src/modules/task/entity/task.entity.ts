@@ -60,7 +60,7 @@ export class TaskDetailEntity extends TaskEntity {
   readonly classificationAnnotations: ClassificationAnnotationEntity[];
 
   constructor(data: TaskDetailSelect) {
-    const annotationCount = Math.max(data.rectangleAnnotations.length, data.polygonAnnotations.length, data.classificationAnnotations.length)
+    const annotationCount = data.rectangleAnnotations.length + data.polygonAnnotations.length + data.classificationAnnotations.length
     super({...data, annotationCount});
 
     this.rectangleAnnotations = data.rectangleAnnotations.map((rA) => new RectangleAnnotationEntity(rA))

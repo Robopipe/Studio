@@ -1,4 +1,6 @@
+import { clearCredentials } from "@/core/auth/services/authActions";
 import { useLogoutMutation, useProfileQuery } from "@/core/auth/services";
+import { useAppDispatch } from "@/hooks";
 import { AiPowerIcon, AnnotateIcon } from "@/components/icons";
 import { CreateProjectModal } from "@/modules/project/components/CreateProjectModal";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
@@ -19,6 +21,7 @@ import { OrgDropdown } from "./components/OrgDropdown";
 export const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const dispatch = useAppDispatch();
 
   const [logout] = useLogoutMutation();
   const { data: projects } = useGetProjectsQuery();
@@ -67,12 +70,11 @@ export const Navbar = () => {
   const handleLogout = async () => {
     try {
       await logout().unwrap();
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
-      navigate("/login");
-    } catch (error) {
-      navigate("/login");
+    } catch {
+      // Logout failed on server — clear local state anyway
     }
+    dispatch(clearCredentials());
+    navigate("/login");
   };
 
   const initials = profile

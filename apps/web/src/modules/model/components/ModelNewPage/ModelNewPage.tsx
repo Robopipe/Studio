@@ -50,10 +50,10 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
     [],
   );
   const [trainingType, setTrainingType] = useState<ProjectTypeEnum>(
-    activeProject?.type ?? ProjectTypeEnum.DETECTION,
+    ProjectTypeEnum.DETECTION,
   );
   const [annotationsUsed, setAnnotationsUsed] = useState<ProjectTypeEnum[]>(
-    activeProject ? [activeProject.type] : [ProjectTypeEnum.DETECTION],
+    [ProjectTypeEnum.DETECTION],
   );
   const [customHyperparams, setCustomHyperparams] = useState("");
   const [hyperparamsError, setHyperparamsError] = useState<string | null>(null);

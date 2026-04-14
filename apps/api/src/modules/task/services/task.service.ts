@@ -1,7 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { AssetsService } from "../../assets/services/assets.service";
 import { TaskRepository } from "../../../repository/services/task-repository.service";
-import { TaskFileTypeEnum, TaskStatusEnum, ProjectTypeEnum } from "@repo/schema";
+import { TaskFileTypeEnum, TaskStatusEnum } from "@repo/schema";
 import { TaskDetailEntity, TaskEntity } from "../entity/task.entity";
 import { TaskUpdateRequest } from "../dto/task.dto";
 import { DB_CONNECTION } from "../../../core/database/database.constant";
@@ -83,8 +83,7 @@ export class TaskService {
    * @returns Paginated task entities
    */
   public async getTasks(projectId: number, page: number = 1, limit: number = 50, deleted: boolean | null = false, annotated?: boolean, order: "asc" | "desc" = "asc", labelIds?: number[]): Promise<{ data: TaskEntity[]; total: number }>{
-    const project = await this.projectRepository.getByIdOrThrow(projectId)
-    return this.taskRepository.getAllByProjectIdPaginated(projectId, project.type, page, limit, deleted, annotated, order, labelIds)
+    return this.taskRepository.getAllByProjectIdPaginated(projectId, page, limit, deleted, annotated, order, labelIds)
   }
 
   /**
@@ -96,78 +95,54 @@ export class TaskService {
    */
   public async updateTask(id: number, projectId: number, data: TaskUpdateRequest): Promise<TaskDetailEntity>{
     const task = await this.taskRepository.getByIdAndProjectIdOrThrow(id, projectId);
-    const project = await this.projectRepository.getByIdOrThrow(projectId)
 
     await this.db.transaction(async(tx) => {
-      const updateTask = async (status: TaskStatusEnum, annotationCount: number) => {
-        await tx.update(taskTable).set({ status, annotationCount }).where(eq(taskTable.id, id));
+      // Delete and re-insert all annotation types
+      await Promise.all([
+        tx.delete(rectangleAnnotationTable).where(eq(rectangleAnnotationTable.taskId, id)),
+        tx.delete(polygonAnnotationTable).where(eq(polygonAnnotationTable.taskId, id)),
+        tx.delete(classificationAnnotationTable).where(eq(classificationAnnotationTable.taskId, id)),
+      ]);
+
+      const rectCount = data.rectangleAnnotations?.length ?? 0;
+      const polyCount = data.polygonAnnotations?.length ?? 0;
+      const classCount = data.classificationAnnotations?.length ?? 0;
+      const totalCount = rectCount + polyCount + classCount;
+
+      if (rectCount > 0) {
+        await tx.insert(rectangleAnnotationTable).values(
+          data.rectangleAnnotations!.map((annotation) => ({
+            taskId: task.id,
+            labelId: annotation.labelId,
+            x: annotation.x,
+            y: annotation.y,
+            width: annotation.width,
+            height: annotation.height,
+          })),
+        );
       }
 
-      if(project.type === ProjectTypeEnum.SEGMENTATION){
-        await tx.delete(polygonAnnotationTable).where(eq(polygonAnnotationTable.taskId, id))
-        const count = data.polygonAnnotations?.length ?? 0;
-
-        if(count > 0){
-          await tx.insert(polygonAnnotationTable).values(
-            data.polygonAnnotations!.map((annotation) => ({
-              taskId: task.id,
-              labelId: annotation.labelId,
-              value: annotation.value
-            })),
-          );
-          await updateTask(TaskStatusEnum.DONE, count)
-        } else if (data.reviewed) {
-          await updateTask(TaskStatusEnum.DONE, 0)
-        } else {
-          await updateTask(TaskStatusEnum.TODO, 0)
-        }
-
-        return
+      if (polyCount > 0) {
+        await tx.insert(polygonAnnotationTable).values(
+          data.polygonAnnotations!.map((annotation) => ({
+            taskId: task.id,
+            labelId: annotation.labelId,
+            value: annotation.value,
+          })),
+        );
       }
 
-      if(project.type === ProjectTypeEnum.CLASSIFICATION){
-        await tx.delete(classificationAnnotationTable).where(eq(classificationAnnotationTable.taskId, task.id))
-        const count = data.classificationAnnotations?.length ?? 0;
-
-        if(count > 0){
-          await tx.insert(classificationAnnotationTable).values(
-            data.classificationAnnotations!.map((annotation) => ({
-              taskId: task.id,
-              labelId: annotation.labelId,
-            })),
-          );
-          await updateTask(TaskStatusEnum.DONE, count)
-        } else if (data.reviewed) {
-          await updateTask(TaskStatusEnum.DONE, 0)
-        } else {
-          await updateTask(TaskStatusEnum.TODO, 0)
-        }
-
-        return
+      if (classCount > 0) {
+        await tx.insert(classificationAnnotationTable).values(
+          data.classificationAnnotations!.map((annotation) => ({
+            taskId: task.id,
+            labelId: annotation.labelId,
+          })),
+        );
       }
 
-      if(project.type === ProjectTypeEnum.DETECTION){
-        await tx.delete(rectangleAnnotationTable).where(eq(rectangleAnnotationTable.taskId, id))
-        const count = data.rectangleAnnotations?.length ?? 0;
-
-        if (count > 0) {
-          await tx.insert(rectangleAnnotationTable).values(
-            data.rectangleAnnotations!.map((annotation) => ({
-              taskId: task.id,
-              labelId: annotation.labelId,
-              x: annotation.x,
-              y: annotation.y,
-              width: annotation.width,
-              height: annotation.height
-            })),
-          );
-          await updateTask(TaskStatusEnum.DONE, count)
-        } else if (data.reviewed) {
-          await updateTask(TaskStatusEnum.DONE, 0)
-        } else {
-          await updateTask(TaskStatusEnum.TODO, 0)
-        }
-      }
+      const status = totalCount > 0 || data.reviewed ? TaskStatusEnum.DONE : TaskStatusEnum.TODO;
+      await tx.update(taskTable).set({ status, annotationCount: totalCount }).where(eq(taskTable.id, id));
     })
 
     return this.getTask(id, projectId)

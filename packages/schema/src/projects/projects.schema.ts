@@ -1,17 +1,10 @@
 import z from "zod";
 import { timestampsSchema } from "../helpers";
 
-export enum ProjectTypeEnum {
-  CLASSIFICATION = "CLASSIFICATION",
-  DETECTION = "DETECTION",
-  SEGMENTATION = "SEGMENTATION",
-}
-
 export const projectSchema = z.object({
   id: z.number(),
   name: z.string(),
   description: z.string(),
-  type: z.enum(ProjectTypeEnum),
   cameraApiUrl: z.url().nullable(),
   multipleDashboardConfigs: z.boolean(),
   organizationId: z.number(),
@@ -23,7 +16,6 @@ export const projectSchema = z.object({
 export const createProjectRequestSchema = z.object({
   name: z.string().min(1).max(256),
   description: z.string(),
-  type: z.enum(ProjectTypeEnum),
   cameraApiUrl: z.url().nullable(),
 });
 
@@ -33,6 +25,13 @@ export const updateProjectRequestSchema = z.object({
   cameraApiUrl: z.url().nullable(),
   multipleDashboardConfigs: z.boolean().optional(),
 });
+
+// ProjectTypeEnum is used by model training, not by projects themselves.
+export enum ProjectTypeEnum {
+  CLASSIFICATION = "CLASSIFICATION",
+  DETECTION = "DETECTION",
+  SEGMENTATION = "SEGMENTATION",
+}
 
 export const projectListResponseSchema = z.object({
   projects: z.array(projectSchema),
