@@ -173,7 +173,6 @@ _RESERVED_PATHS: set[str] = {
     # ML service infrastructure
     "model.name",
     "model.predefined_model.name",
-    "model.predefined_model.variant",
     "loader.params.dataset_name",
     "loader.params.dataset_dir",
     "tracker.is_tensorboard",
