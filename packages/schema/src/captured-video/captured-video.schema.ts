@@ -11,10 +11,6 @@ export const capturedVideoSchema = z.object({
   ...timestampsSchema,
 });
 
-export const createCapturedVideoQuerySchema = z.object({
-  durationMs: z.coerce.number().int().min(0),
-});
-
 export const capturedVideoPaginationQuerySchema = paginationQuerySchema.extend({
   order: z
     .union([z.literal("asc"), z.literal("desc")])
@@ -23,3 +19,24 @@ export const capturedVideoPaginationQuerySchema = paginationQuerySchema.extend({
 });
 
 export const paginatedCapturedVideoSchema = paginatedResponseSchema(capturedVideoSchema);
+
+export const requestVideoUploadUrlsSchema = z.object({
+  videoFileName: z.string().min(1),
+  videoContentType: z.string().min(1),
+  thumbnailFileName: z.string().min(1),
+  thumbnailContentType: z.string().min(1),
+});
+
+export const videoUploadUrlsResponseSchema = z.object({
+  videoSignedUrl: z.string().url(),
+  videoGcsPath: z.string(),
+  thumbnailSignedUrl: z.string().url(),
+  thumbnailGcsPath: z.string(),
+});
+
+export const confirmVideoUploadSchema = z.object({
+  videoGcsPath: z.string().min(1),
+  thumbnailGcsPath: z.string().min(1),
+  durationMs: z.number().int().min(0),
+  fileSizeBytes: z.number().int().min(0),
+});

@@ -62,6 +62,46 @@ export class AssetsService {
   }
 
   /**
+   * Generate a signed URL for direct browser-to-GCS upload
+   * @param assetName - GCS object path
+   * @param contentType - MIME type the client will upload
+   * @param expiresInMs - URL expiration (default 15 minutes)
+   */
+  public async generateSignedUploadUrl(
+    assetName: string,
+    contentType: string,
+    expiresInMs: number = 15 * 60 * 1000,
+  ): Promise<string> {
+    const file = this.bucket.file(assetName);
+    const [signedUrl] = await file.getSignedUrl({
+      version: "v4",
+      action: "write",
+      expires: Date.now() + expiresInMs,
+      contentType,
+    });
+    return signedUrl;
+  }
+
+  /**
+   * Make an existing GCS file public and return its public URL
+   * @param assetName - GCS object path
+   */
+  public async makeFilePublic(assetName: string): Promise<string> {
+    const blob = this.bucket.file(assetName);
+    await blob.makePublic();
+    return decodeURIComponent(blob.publicUrl());
+  }
+
+  /**
+   * Check if a file exists in GCS
+   * @param assetName - GCS object path
+   */
+  public async fileExists(assetName: string): Promise<boolean> {
+    const [exists] = await this.bucket.file(assetName).exists();
+    return exists;
+  }
+
+  /**
    * Delete file from GS
    * @param fileUrl - whole file URL
    */
