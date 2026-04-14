@@ -118,23 +118,11 @@ export class TaskRepository {
    * @param projectType - Project type enum for relations
    * @returns TaskEntity[]
    */
-  public async getAllByProjectId(projectId: number, projectType: ProjectTypeEnum): Promise<TaskEntity[]> {
+  public async getAllByProjectId(projectId: number): Promise<TaskEntity[]> {
     const tasks = await this.db.query.taskTable.findMany({
       where: {
         projectId
       },
-      extras: {
-        annotationCount: (table) => {
-          switch (projectType){
-            case ProjectTypeEnum.DETECTION:
-              return this.db.$count(rectangleAnnotationTable, eq(rectangleAnnotationTable.taskId, table.id))
-            case ProjectTypeEnum.CLASSIFICATION:
-              return this.db.$count(classificationAnnotationTable, eq(classificationAnnotationTable.taskId, table.id))
-            case ProjectTypeEnum.SEGMENTATION:
-              return this.db.$count(polygonAnnotationTable, eq(polygonAnnotationTable.taskId, table.id))
-          }
-        }
-      }
     })
 
     return tasks.map((t) => new TaskEntity(t))
@@ -157,6 +145,7 @@ export class TaskRepository {
     deleted: boolean | null = false,
     annotated?: boolean,
     order: "asc" | "desc" = "asc",
+    labelIds?: number[],
   ): Promise<{ data: TaskEntity[]; total: number }> {
     const offset = (page - 1) * limit;
 
@@ -181,38 +170,44 @@ export class TaskRepository {
       ? eq(taskTable.status, statusValue)
       : undefined;
 
+    // Build label filter: only return tasks that have annotations with the given label IDs
+    const labelCondition: SQL | undefined = labelIds?.length
+      ? this.buildLabelExistsCondition(projectType, labelIds)
+      : undefined;
+
     const [tasks, totalResult] = await Promise.all([
       this.db.query.taskTable.findMany({
         where: {
           projectId,
           ...(deletedAtFilter && { deletedAt: deletedAtFilter }),
           ...(statusValue && { status: statusValue }),
+          ...(labelCondition && { RAW: labelCondition }),
         },
         orderBy: (t) => (order === "desc" ? desc(t.createdAt) : asc(t.createdAt)),
         limit,
         offset,
-        extras: {
-          annotationCount: (table) => {
-            switch (projectType) {
-              case ProjectTypeEnum.DETECTION:
-                return this.db.$count(rectangleAnnotationTable, eq(rectangleAnnotationTable.taskId, table.id))
-              case ProjectTypeEnum.CLASSIFICATION:
-                return this.db.$count(classificationAnnotationTable, eq(classificationAnnotationTable.taskId, table.id))
-              case ProjectTypeEnum.SEGMENTATION:
-                return this.db.$count(polygonAnnotationTable, eq(polygonAnnotationTable.taskId, table.id))
-            }
-          }
-        }
       }),
       this.db.select({ count: count() })
         .from(taskTable)
-        .where(and(eq(taskTable.projectId, projectId), deletedAtCondition, statusCondition)),
+        .where(and(eq(taskTable.projectId, projectId), deletedAtCondition, statusCondition, labelCondition)),
     ]);
 
     return {
       data: tasks.map((t) => new TaskEntity(t)),
       total: totalResult[0]?.count ?? 0,
     };
+  }
+
+  private buildLabelExistsCondition(projectType: ProjectTypeEnum, labelIds: number[]): SQL {
+    const inList = sql.join(labelIds.map((id) => sql`${id}`), sql`, `);
+    switch (projectType) {
+      case ProjectTypeEnum.DETECTION:
+        return sql`EXISTS (SELECT 1 FROM ${rectangleAnnotationTable} WHERE ${rectangleAnnotationTable.taskId} = ${taskTable.id} AND ${rectangleAnnotationTable.labelId} IN (${inList}))`;
+      case ProjectTypeEnum.CLASSIFICATION:
+        return sql`EXISTS (SELECT 1 FROM ${classificationAnnotationTable} WHERE ${classificationAnnotationTable.taskId} = ${taskTable.id} AND ${classificationAnnotationTable.labelId} IN (${inList}))`;
+      case ProjectTypeEnum.SEGMENTATION:
+        return sql`EXISTS (SELECT 1 FROM ${polygonAnnotationTable} WHERE ${polygonAnnotationTable.taskId} = ${taskTable.id} AND ${polygonAnnotationTable.labelId} IN (${inList}))`;
+    }
   }
 
   /**

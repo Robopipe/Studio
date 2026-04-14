@@ -1,9 +1,9 @@
 import { PaginationNumbers } from "@/modules/shadcn/ui/pagination";
 import { cn } from "@/lib/utils";
-import { Task, TaskStatusEnum } from "@repo/schema";
+import { Label, Task, TaskStatusEnum } from "@repo/schema";
 import { Camera, Check, SlidersHorizontal } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { TaskFilterDialog } from "../TaskFilterDialog";
+import { TaskFilterDialog, TaskFilterState } from "../TaskFilterDialog";
 
 export type AnnotationFilter = "all" | "true" | "false";
 
@@ -15,8 +15,9 @@ export interface DataSourcePanelProps {
   page: number;
   totalPages: number;
   onPageChange: (page: number) => void;
-  annotationFilter: AnnotationFilter;
-  onAnnotationFilterChange: (value: AnnotationFilter) => void;
+  filter: TaskFilterState;
+  labels: Label[];
+  onFilterChange: (filter: TaskFilterState) => void;
 }
 
 export const DataSourcePanel = ({
@@ -27,11 +28,15 @@ export const DataSourcePanel = ({
   page,
   totalPages,
   onPageChange,
-  annotationFilter,
-  onAnnotationFilterChange,
+  filter,
+  labels,
+  onFilterChange,
 }: DataSourcePanelProps) => {
   const listRef = useRef<HTMLDivElement>(null);
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
+
+  const hasActiveFilter =
+    filter.annotationFilter !== "all" || filter.labelIds.length > 0;
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: 0 });
@@ -50,7 +55,7 @@ export const DataSourcePanel = ({
           onClick={() => setFilterDialogOpen(true)}
           className={cn(
             "flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent text-muted-foreground transition-colors hover:bg-black/[0.06] hover:text-foreground",
-            annotationFilter !== "all" && "bg-primary/10 text-primary",
+            hasActiveFilter && "bg-primary/10 text-primary",
           )}
         >
           <SlidersHorizontal className="size-4" />
@@ -60,8 +65,9 @@ export const DataSourcePanel = ({
       <TaskFilterDialog
         open={filterDialogOpen}
         onOpenChange={setFilterDialogOpen}
-        annotationFilter={annotationFilter}
-        onApply={onAnnotationFilterChange}
+        filter={filter}
+        labels={labels}
+        onApply={onFilterChange}
       />
 
       <div
