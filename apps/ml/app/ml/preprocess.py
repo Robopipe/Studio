@@ -271,9 +271,11 @@ def _run_pipeline(
     entries: list[Augmentation],
     task_type: ModelType,
     keep_originals: bool,
+    img_size: tuple[int, int] | None = None,
 ) -> int:
     """Run a single preprocessing pass (overwrite or duplicate) for a group of entries."""
-    img_size = (480, 640) if task_type != ModelType.CLASSIFICATION else (512, 512)
+    if img_size is None:
+        img_size = (480, 640) if task_type != ModelType.CLASSIFICATION else (512, 512)
     val_dir = "valid" if task_type == ModelType.CLASSIFICATION else VAL_DIR
     split_names = [TRAIN_DIR, val_dir, TEST_DIR]
 
@@ -309,6 +311,7 @@ def preprocess_dataset(
     dir: str,
     preprocessings: list[Augmentation],
     task_type: ModelType,
+    img_size: tuple[int, int] | None = None,
 ):
     """
     Compose preprocessing transforms into pipelines and apply them to the dataset.
@@ -331,12 +334,12 @@ def preprocess_dataset(
     total = 0
 
     if overwrite_entries:
-        count = _run_pipeline(dataset_dir, overwrite_entries, task_type, False)
+        count = _run_pipeline(dataset_dir, overwrite_entries, task_type, False, img_size)
         print(f"Preprocessing (overwrite): {count} images overwritten")
         total += count
 
     if duplicate_entries:
-        count = _run_pipeline(dataset_dir, duplicate_entries, task_type, True)
+        count = _run_pipeline(dataset_dir, duplicate_entries, task_type, True, img_size)
         print(f"Preprocessing (duplicate): {count} copies created")
         total += count
 
