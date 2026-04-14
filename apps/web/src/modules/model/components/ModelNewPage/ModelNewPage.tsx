@@ -4,59 +4,88 @@ import { Input } from "@/modules/shadcn/ui/input";
 import { Label } from "@/modules/shadcn/ui/label";
 import { NumberInput } from "@/modules/shadcn/ui/number-input";
 import {
-  hyperparamsConfigSchema,
+  // hyperparamsConfigSchema import kept for reference — validation intentionally bypassed
+  // hyperparamsConfigSchema,
   Label as ProjectLabel,
   ModelOutputTypeEnum,
   ProjectTypeEnum,
 } from "@repo/schema";
-import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router";
 import { useCreateModelMutation, useTrainModelMutation } from "../../services";
 import { AdvancedSettings } from "../AdvancedSettings";
-import {
-  AppliedAugmentation,
-  AugmentationSettings,
-} from "../AugmentationSettings";
+import { AppliedAugmentation } from "../AugmentationSettings/augmentationTypes";
+// AugmentationSettings and PreprocessingSettings imports kept for future re-enablement
+// import { AugmentationSettings } from "../AugmentationSettings";
+// import { PreprocessingSettings } from "../PreprocessingSettings";
 import {
   DatasetSplit,
   DatasetSplitSettings,
 } from "../DatasetSplitSettings";
 import { ModelLayout } from "../ModelLayout/ModelLayout";
 import { ModelTypeSettings } from "../ModelTypeSettings";
-import { PreprocessingSettings } from "../PreprocessingSettings";
 import { SourceImagesSettings } from "../SourceImagesSettings";
+
+export interface DuplicateModelState {
+  duplicateFrom: {
+    name: string;
+    epochs: number;
+    trainingType: ProjectTypeEnum;
+    annotationsUsed: ProjectTypeEnum[];
+    labels: ProjectLabel[];
+    outputs: ModelOutputTypeEnum[];
+    datasetSplit: DatasetSplit;
+    augmentations: AppliedAugmentation[];
+    preprocessings: AppliedAugmentation[];
+    customHyperparams: string;
+  };
+}
 
 export interface ModelNewPageProps {}
 
 export const ModelNewPage = ({}: ModelNewPageProps) => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const duplicateState = (location.state as DuplicateModelState | null)
+    ?.duplicateFrom;
   const [activeProject] = useActiveProject();
-  const [name, setName] = useState("");
-  const [epochs, setEpochs] = useState(10);
   const [createModel] = useCreateModelMutation();
   const [trainModel] = useTrainModelMutation();
-  const [outputs, setOutputs] = useState<ModelOutputTypeEnum[]>([
-    ModelOutputTypeEnum.RAW,
-    ModelOutputTypeEnum.RVC4,
-  ]);
-  const [activeLabels, setActiveLabels] = useState<ProjectLabel[]>([]);
-  const [datasetSplit, setDatasetSplit] = useState<DatasetSplit>({
-    train: 70,
-    validation: 20,
-    test: 10,
-  });
-  const [augmentations, setAugmentations] = useState<AppliedAugmentation[]>([]);
-  const [preprocessings, setPreprocessings] = useState<AppliedAugmentation[]>(
-    [],
+  const [name, setName] = useState(duplicateState?.name ?? "");
+  const [epochs, setEpochs] = useState(duplicateState?.epochs ?? 10);
+  const [outputs, setOutputs] = useState<ModelOutputTypeEnum[]>(
+    duplicateState?.outputs ?? [ModelOutputTypeEnum.RAW, ModelOutputTypeEnum.RVC4],
+  );
+  const [activeLabels, setActiveLabels] = useState<ProjectLabel[]>(
+    duplicateState?.labels ?? [],
+  );
+  const [datasetSplit, setDatasetSplit] = useState<DatasetSplit>(
+    duplicateState?.datasetSplit ?? { train: 70, validation: 20, test: 10 },
+  );
+  // Setters prefixed with _ — cards are hidden but state is used by saveModel and retained for re-enablement
+  const [augmentations, _setAugmentations] = useState<AppliedAugmentation[]>(
+    duplicateState?.augmentations ?? [],
+  );
+  const [preprocessings, _setPreprocessings] = useState<AppliedAugmentation[]>(
+    duplicateState?.preprocessings ?? [],
   );
   const [trainingType, setTrainingType] = useState<ProjectTypeEnum>(
-    ProjectTypeEnum.DETECTION,
+    duplicateState?.trainingType ?? ProjectTypeEnum.DETECTION,
   );
   const [annotationsUsed, setAnnotationsUsed] = useState<ProjectTypeEnum[]>(
-    [ProjectTypeEnum.DETECTION],
+    duplicateState?.annotationsUsed ?? [ProjectTypeEnum.DETECTION],
   );
-  const [customHyperparams, setCustomHyperparams] = useState("");
+  const [customHyperparams, setCustomHyperparams] = useState(
+    duplicateState?.customHyperparams ?? "",
+  );
   const [hyperparamsError, setHyperparamsError] = useState<string | null>(null);
+
+  // Clear location state after reading to prevent re-prefill on refresh
+  useEffect(() => {
+    if (location.state?.duplicateFrom) {
+      window.history.replaceState({}, "");
+    }
+  }, []);
 
   const parseHyperparams = (): Record<string, unknown> | undefined => {
     if (!customHyperparams.trim()) return {};
@@ -70,14 +99,15 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
         setHyperparamsError("Must be a JSON object");
         return undefined;
       }
-      const result = hyperparamsConfigSchema.safeParse(parsed);
-      if (!result.success) {
-        const messages = result.error.issues
-          .map((i) => `${i.path.join(".")}: ${i.message}`)
-          .join("; ");
-        setHyperparamsError(messages);
-        return undefined;
-      }
+      // Schema validation intentionally bypassed — any JSON object is accepted
+      // const result = hyperparamsConfigSchema.safeParse(parsed);
+      // if (!result.success) {
+      //   const messages = result.error.issues
+      //     .map((i) => `${i.path.join(".")}: ${i.message}`)
+      //     .join("; ");
+      //   setHyperparamsError(messages);
+      //   return undefined;
+      // }
       setHyperparamsError(null);
       return parsed;
     } catch {
@@ -173,14 +203,15 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
           activeLabels={activeLabels}
         />
         <DatasetSplitSettings split={datasetSplit} onChange={setDatasetSplit} />
+        {/* Preprocessing and augmentation cards hidden — state and save logic retained for future re-enablement
         <PreprocessingSettings
           preprocessings={preprocessings}
-          onChange={setPreprocessings}
+          onChange={_setPreprocessings}
         />
         <AugmentationSettings
           augmentations={augmentations}
-          onChange={setAugmentations}
-        />
+          onChange={_setAugmentations}
+        /> */}
 
         <AdvancedSettings
           outputs={outputs}

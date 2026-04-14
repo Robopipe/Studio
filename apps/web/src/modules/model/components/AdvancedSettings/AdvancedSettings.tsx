@@ -39,7 +39,7 @@ export const AdvancedSettings = ({
   return (
     <>
       <SettingsCard
-        stepNumber={5}
+        stepNumber={4}
         state={customHyperparams.trim() ? "complete" : "pending"}
         title="Advanced Options"
       >
@@ -49,8 +49,8 @@ export const AdvancedSettings = ({
             <CollapsiblePanel>
               <div className="flex flex-col gap-2">
                 <span className="text-xs">
-                  Choose which export formats to generate after training. RAW
-                  is the unoptimized ONNX model. RVC2, RVC3, and RVC4 produce
+                  Choose which export formats to generate after training. RAW is
+                  the unoptimized ONNX model. RVC2, RVC3, and RVC4 produce
                   hardware-optimized blobs for Luxonis cameras — select the
                   format matching your target device.
                 </span>
