@@ -1,13 +1,18 @@
 import { AnnotateIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import {
+  Collapsible,
+  CollapsiblePanel,
+  CollapsibleTrigger,
+} from "@/modules/shadcn/ui/collapsible";
+import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from "@/modules/shadcn/ui/tabs";
 import { Label } from "@repo/schema";
-import { Eye, EyeOff, GripVertical, Trash2 } from "lucide-react";
+import { AlertTriangle, Eye, EyeOff, GripVertical, Trash2 } from "lucide-react";
 import { useDraggableList } from "../../hooks/useDraggableList";
 import { Annotation, HistoryEntry } from "../../types/annotations";
 import { HistoryTab } from "../HistoryTab";
@@ -24,6 +29,7 @@ export interface AnnotationPanelProps {
   historyEntries: HistoryEntry[];
   historyIndex: number;
   onJumpTo: (index: number) => void;
+  onOpenSettings?: () => void;
 }
 
 export const AnnotationPanel = ({
@@ -38,6 +44,7 @@ export const AnnotationPanel = ({
   historyEntries,
   historyIndex,
   onJumpTo,
+  onOpenSettings,
 }: AnnotationPanelProps) => {
   const classCounts = labels.map((label) => ({
     ...label,
@@ -52,45 +59,63 @@ export const AnnotationPanel = ({
       className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden border-r border-border bg-black/[0.03]"
     >
       <TabsList variant="line" className="h-10 shrink-0">
-        <TabsTrigger value="labels">Labels</TabsTrigger>
-        <TabsTrigger value="info">Info</TabsTrigger>
-        <TabsTrigger value="history">History</TabsTrigger>
+        <TabsTrigger value="labels">Annotations</TabsTrigger>
+        <TabsTrigger value="info" disabled>Info</TabsTrigger>
+        <TabsTrigger value="history" disabled>History</TabsTrigger>
       </TabsList>
 
       <TabsContent
         value="labels"
         className="min-h-0 flex-1 overflow-y-auto"
       >
-        <section className="flex flex-col gap-2 p-4">
-          <p className="text-[10px] font-bold uppercase tracking-[1px] text-foreground/90">
+        <Collapsible defaultOpen={false} className="px-4 pt-4">
+          <CollapsibleTrigger className="text-[10px] font-bold uppercase tracking-[1px] text-foreground/90 hover:text-foreground/90 py-0">
             Classes
-          </p>
-          <div className="flex flex-col gap-1">
-            <ClassRow
-              icon={<AnnotateIcon className="size-4 text-foreground/60" />}
-              name="Any"
-              count={annotations.length}
-            />
-            {classCounts.map((cls) => (
+          </CollapsibleTrigger>
+          <CollapsiblePanel className="pt-1">
+            <div className="flex flex-col gap-1">
               <ClassRow
-                key={cls.id}
-                icon={
-                  <AnnotateIcon
-                    className="size-4 shrink-0"
-                    style={{ color: cls.color }}
-                  />
-                }
-                name={cls.name}
-                count={cls.count}
+                icon={<AnnotateIcon className="size-4 text-foreground/60" />}
+                name="Any"
+                count={annotations.length}
               />
-            ))}
-          </div>
-        </section>
+              {classCounts.map((cls) => (
+                <ClassRow
+                  key={cls.id}
+                  icon={
+                    <AnnotateIcon
+                      className="size-4 shrink-0"
+                      style={{ color: cls.color }}
+                    />
+                  }
+                  name={cls.name}
+                  count={cls.count}
+                />
+              ))}
+            </div>
+          </CollapsiblePanel>
+        </Collapsible>
 
         <section className="flex flex-col gap-2 p-4 pt-2">
           <p className="text-[10px] font-bold uppercase tracking-[1px] text-foreground/90">
             Regions
           </p>
+          {labels.length === 0 && (
+            <div className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
+              <AlertTriangle className="size-4 shrink-0 text-amber-500" />
+              <span className="text-xs text-amber-800">
+                Create labels in{" "}
+                <button
+                  type="button"
+                  className="cursor-pointer font-medium underline hover:text-amber-900"
+                  onClick={onOpenSettings}
+                >
+                  project settings
+                </button>
+                {" "}before annotating.
+              </span>
+            </div>
+          )}
           <div className="flex flex-col">
             {annotations.map((annotation, index) => {
               const isSelected = annotation.id === selectedAnnotationId;

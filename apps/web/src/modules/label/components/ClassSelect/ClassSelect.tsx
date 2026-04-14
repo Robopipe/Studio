@@ -7,12 +7,14 @@ export interface ClassSelectProps {
   labels: Label[];
   activeLabelId: number;
   onSelectLabel: (labelId: number) => void;
+  onOpenSettings?: () => void;
 }
 
 export const ClassSelect = ({
   labels,
   activeLabelId,
   onSelectLabel,
+  onOpenSettings,
 }: ClassSelectProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -55,6 +57,24 @@ export const ClassSelect = ({
   const scrollByAmount = (delta: number) => {
     scrollRef.current?.scrollBy({ left: delta, behavior: "smooth" });
   };
+
+  if (labels.length === 0) {
+    return (
+      <div className="rounded-2xl border border-black/10 bg-white/95 px-4 py-2 shadow-[0_0_12px_rgba(0,0,0,0.08)] backdrop-blur-md">
+        <span className="text-xs text-muted-foreground">
+          Create labels in{" "}
+          <button
+            type="button"
+            className="cursor-pointer font-medium underline hover:text-foreground"
+            onClick={onOpenSettings}
+          >
+            project settings
+          </button>
+          {" "}before annotating.
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="relative flex max-w-full items-center rounded-2xl border border-black/10 bg-white/95 p-2 shadow-[0_0_12px_rgba(0,0,0,0.08)] backdrop-blur-md">

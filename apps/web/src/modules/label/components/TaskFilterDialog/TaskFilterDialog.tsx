@@ -7,20 +7,22 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/modules/shadcn/ui/dialog";
+import { Label } from "@repo/schema";
 import { ReactNode, useEffect, useState } from "react";
 import { AnnotationFilter } from "../DataSourcePanel/DataSourcePanel";
+
+export interface TaskFilterState {
+  annotationFilter: AnnotationFilter;
+  labelIds: number[];
+}
 
 export interface TaskFilterDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  annotationFilter: AnnotationFilter;
-  onApply: (filter: AnnotationFilter) => void;
+  filter: TaskFilterState;
+  labels: Label[];
+  onApply: (filter: TaskFilterState) => void;
 }
-
-// TODO: replace with real users once the endpoint exists
-const DUMMY_USERS = ["John Wick", "Cindy Miracle", "William Bourke"];
-// TODO: replace with real labels (already available via project labels query)
-const DUMMY_LABELS = ["Pill Inside", "Pill Outside", "Empty"];
 
 const filterToCheckboxes = (filter: AnnotationFilter) => ({
   yes: filter === "all" || filter === "true",
@@ -38,46 +40,48 @@ const checkboxesToFilter = (yes: boolean, no: boolean): AnnotationFilter => {
 export const TaskFilterDialog = ({
   open,
   onOpenChange,
-  annotationFilter,
+  filter,
+  labels,
   onApply,
 }: TaskFilterDialogProps) => {
-  const initial = filterToCheckboxes(annotationFilter);
+  const initial = filterToCheckboxes(filter.annotationFilter);
   const [annotatedYes, setAnnotatedYes] = useState(initial.yes);
   const [annotatedNo, setAnnotatedNo] = useState(initial.no);
-  const [users, setUsers] = useState<Set<string>>(new Set());
-  const [labels, setLabels] = useState<Set<string>>(new Set());
+  const [selectedLabelIds, setSelectedLabelIds] = useState<Set<number>>(
+    () => new Set(filter.labelIds),
+  );
 
   // Reset local state to the parent's filter every time the dialog opens so
   // Cancel discards in-flight changes.
   useEffect(() => {
     if (!open) return;
-    const next = filterToCheckboxes(annotationFilter);
+    const next = filterToCheckboxes(filter.annotationFilter);
     setAnnotatedYes(next.yes);
     setAnnotatedNo(next.no);
-  }, [open, annotationFilter]);
+    setSelectedLabelIds(new Set(filter.labelIds));
+  }, [open, filter]);
 
-  const toggleSetItem = (
-    setter: (updater: (prev: Set<string>) => Set<string>) => void,
-    item: string,
-  ) => {
-    setter((prev) => {
+  const toggleLabel = (id: number) => {
+    setSelectedLabelIds((prev) => {
       const next = new Set(prev);
-      if (next.has(item)) next.delete(item);
-      else next.add(item);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };
 
   const handleSave = () => {
-    onApply(checkboxesToFilter(annotatedYes, annotatedNo));
+    onApply({
+      annotationFilter: checkboxesToFilter(annotatedYes, annotatedNo),
+      labelIds: [...selectedLabelIds],
+    });
     onOpenChange(false);
   };
 
   const handleReset = () => {
     setAnnotatedYes(true);
     setAnnotatedNo(true);
-    setUsers(new Set());
-    setLabels(new Set());
+    setSelectedLabelIds(new Set());
   };
 
   return (
@@ -86,17 +90,6 @@ export const TaskFilterDialog = ({
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">Filter</DialogTitle>
         </DialogHeader>
-
-        <FilterSection title="Annotated by">
-          {DUMMY_USERS.map((user) => (
-            <FilterCheckbox
-              key={user}
-              label={user}
-              checked={users.has(user)}
-              onCheckedChange={() => toggleSetItem(setUsers, user)}
-            />
-          ))}
-        </FilterSection>
 
         <FilterSection title="Annotated">
           <FilterCheckbox
@@ -111,16 +104,18 @@ export const TaskFilterDialog = ({
           />
         </FilterSection>
 
-        <FilterSection title="Label">
-          {DUMMY_LABELS.map((label) => (
-            <FilterCheckbox
-              key={label}
-              label={label}
-              checked={labels.has(label)}
-              onCheckedChange={() => toggleSetItem(setLabels, label)}
-            />
-          ))}
-        </FilterSection>
+        {labels.length > 0 && (
+          <FilterSection title="Label">
+            {labels.map((label) => (
+              <FilterCheckbox
+                key={label.id}
+                label={label.name}
+                checked={selectedLabelIds.has(label.id)}
+                onCheckedChange={() => toggleLabel(label.id)}
+              />
+            ))}
+          </FilterSection>
+        )}
 
         <DialogFooter className="sm:justify-end">
           <Button variant="outline" onClick={handleReset}>

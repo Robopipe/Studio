@@ -112,4 +112,4 @@ def prepare_dataset(
             )
             copy_image(image, f"{image_dir}/{curr_dir}")
             with open(f"{label_dir}/{curr_dir}/{label_filename}", "w") as f:
-                f.write("\n".join(image.labels_str()))
+                f.write("\n".join(image.labels_str(task_type)))

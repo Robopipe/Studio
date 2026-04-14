@@ -15,6 +15,8 @@ export const projectSchema = z.object({
   cameraApiUrl: z.url().nullable(),
   multipleDashboardConfigs: z.boolean(),
   organizationId: z.number(),
+  taskCount: z.number(),
+  annotatedTaskCount: z.number(),
   ...timestampsSchema,
 });
 

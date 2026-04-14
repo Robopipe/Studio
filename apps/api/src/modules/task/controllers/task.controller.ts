@@ -39,7 +39,7 @@ export class TaskController {
 
   @Get()
   public async listTasks(@ProjectId() projectId: number, @Query() query: TaskPaginationQuery): Promise<PaginatedTaskResponse>{
-    const { data, total } = await this.taskService.getTasks(projectId, query.page, query.limit, query.deleted, query.annotated, query.order)
+    const { data, total } = await this.taskService.getTasks(projectId, query.page, query.limit, query.deleted, query.annotated, query.order, query.labelIds)
     return {
       data: data.map((task) => task.toResponse()),
       total,
