@@ -2,9 +2,11 @@ import { DeleteLimitDialog } from "@/modules/dashboard/components/DeleteLimitDia
 import { Button } from "@/modules/shadcn/ui/button";
 import { Skeleton } from "@/modules/shadcn/ui/skeleton";
 import { ModelStatusEnum } from "@repo/schema";
-import { Trash2 } from "lucide-react";
+import { Copy, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
+import type { AppliedAugmentation } from "../AugmentationSettings/augmentationTypes";
+import type { DuplicateModelState } from "../ModelNewPage/ModelNewPage";
 import {
   useDeleteModelMutation,
   useGetModelLogsQuery,
@@ -60,6 +62,58 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
     const modelInterval = setInterval(() => refetchModel(), 3000);
     return () => clearInterval(modelInterval);
   }, [isActive, refetchModel]);
+
+  const handleDuplicate = () => {
+    if (!model) return;
+
+    // Convert preprocessings with keepOriginal back to duplicate-image augmentations
+    const preprocessingsAsAugs: AppliedAugmentation[] = (model.preprocessings ?? [])
+      .filter((p) => !p.keepOriginal)
+      .map((p) => ({
+        id: crypto.randomUUID(),
+        type: p.type,
+        params: p.params as Record<string, number | boolean | string>,
+      }));
+
+    const duplicateAugs: AppliedAugmentation[] = (model.preprocessings ?? [])
+      .filter((p) => p.keepOriginal)
+      .map((p) => ({
+        id: crypto.randomUUID(),
+        type: p.type,
+        params: { ...p.params, p: 1 } as Record<string, number | boolean | string>,
+        duplicateImage: true,
+      }));
+
+    const normalAugs: AppliedAugmentation[] = (model.augmentations ?? []).map((a) => ({
+      id: crypto.randomUUID(),
+      type: a.type,
+      params: a.params as Record<string, number | boolean | string>,
+    }));
+
+    const state: DuplicateModelState = {
+      duplicateFrom: {
+        name: `${model.name} (copy)`,
+        epochs: model.epochs,
+        trainingType: model.trainingType,
+        annotationsUsed: model.annotationsUsed,
+        labels: model.labels,
+        outputs: model.outputTypes,
+        datasetSplit: {
+          train: model.splitTrain,
+          validation: model.splitValidate,
+          test: model.splitTest,
+        },
+        augmentations: [...normalAugs, ...duplicateAugs],
+        preprocessings: preprocessingsAsAugs,
+        customHyperparams:
+          model.customHyperparams && Object.keys(model.customHyperparams).length > 0
+            ? JSON.stringify(model.customHyperparams, null, 2)
+            : "",
+      },
+    };
+
+    navigate(`/projects/${projectId}/models/new`, { state });
+  };
 
   if (showSkeleton) {
     return (
@@ -117,6 +171,16 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
               onClick={() => setShowParamsDialog(true)}
             >
               Show parameters
+            </Button>
+          )}
+          {model && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDuplicate}
+            >
+              <Copy className="mr-1 size-4" />
+              Duplicate
             </Button>
           )}
           {model?.status === ModelStatusEnum.DRAFT && (
