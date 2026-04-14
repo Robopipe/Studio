@@ -5,7 +5,7 @@ import type { DbConnection } from "src/core/database/types/database.types";
 import { TaskDetailEntity, TaskEntity } from "../../modules/task/entity/task.entity";
 import { TaskInsert } from "../types/task";
 import { and, asc, count, desc, eq, isNotNull, isNull, max, sql, type SQL } from "drizzle-orm";
-import { ProjectTypeEnum, TaskStatusEnum } from "@repo/schema";
+import { TaskStatusEnum } from "@repo/schema";
 
 @Injectable()
 export class TaskRepository {
@@ -139,7 +139,6 @@ export class TaskRepository {
    */
   public async getAllByProjectIdPaginated(
     projectId: number,
-    projectType: ProjectTypeEnum,
     page: number,
     limit: number,
     deleted: boolean | null = false,
@@ -172,7 +171,7 @@ export class TaskRepository {
 
     // Build label filter: only return tasks that have annotations with the given label IDs
     const buildLabelCondition = labelIds?.length
-      ? this.buildLabelExistsCondition(projectType, labelIds)
+      ? this.buildLabelExistsCondition(labelIds)
       : undefined;
 
     const [tasks, totalResult] = await Promise.all([
@@ -198,18 +197,19 @@ export class TaskRepository {
     };
   }
 
-  private buildLabelExistsCondition(projectType: ProjectTypeEnum, labelIds: number[]): (taskId: SQL | typeof taskTable.id) => SQL {
+  private buildLabelExistsCondition(labelIds: number[]): (taskId: SQL | typeof taskTable.id) => SQL {
     const inList = sql.join(labelIds.map((id) => sql`${id}`), sql`, `);
     const labelCount = sql`${labelIds.length}`;
     return (taskId) => {
-      switch (projectType) {
-        case ProjectTypeEnum.DETECTION:
-          return sql`(SELECT COUNT(DISTINCT ${rectangleAnnotationTable.labelId}) FROM ${rectangleAnnotationTable} WHERE ${rectangleAnnotationTable.taskId} = ${taskId} AND ${rectangleAnnotationTable.labelId} IN (${inList})) = ${labelCount}`;
-        case ProjectTypeEnum.CLASSIFICATION:
-          return sql`(SELECT COUNT(DISTINCT ${classificationAnnotationTable.labelId}) FROM ${classificationAnnotationTable} WHERE ${classificationAnnotationTable.taskId} = ${taskId} AND ${classificationAnnotationTable.labelId} IN (${inList})) = ${labelCount}`;
-        case ProjectTypeEnum.SEGMENTATION:
-          return sql`(SELECT COUNT(DISTINCT ${polygonAnnotationTable.labelId}) FROM ${polygonAnnotationTable} WHERE ${polygonAnnotationTable.taskId} = ${taskId} AND ${polygonAnnotationTable.labelId} IN (${inList})) = ${labelCount}`;
-      }
+      return sql`(
+        SELECT COUNT(DISTINCT label_id) FROM (
+          SELECT ${rectangleAnnotationTable.labelId} AS label_id FROM ${rectangleAnnotationTable} WHERE ${rectangleAnnotationTable.taskId} = ${taskId} AND ${rectangleAnnotationTable.labelId} IN (${inList})
+          UNION
+          SELECT ${polygonAnnotationTable.labelId} FROM ${polygonAnnotationTable} WHERE ${polygonAnnotationTable.taskId} = ${taskId} AND ${polygonAnnotationTable.labelId} IN (${inList})
+          UNION
+          SELECT ${classificationAnnotationTable.labelId} FROM ${classificationAnnotationTable} WHERE ${classificationAnnotationTable.taskId} = ${taskId} AND ${classificationAnnotationTable.labelId} IN (${inList})
+        ) AS matched_labels
+      ) = ${labelCount}`;
     };
   }
 

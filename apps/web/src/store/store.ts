@@ -1,5 +1,6 @@
 import { api } from "@/core/api";
 import { authApi, authSlice } from "@/core/auth/services";
+import { clearCredentials } from "@/core/auth/services/authActions";
 import { cameraApi } from "@/core/cameraApi";
 import { organizationApi } from "@/modules/account/services";
 import { captureApi } from "@/modules/capture/services/captureApi";
@@ -9,7 +10,7 @@ import { dashboardConfigApi } from "@/modules/dashboard/services";
 import { modelApi } from "@/modules/model/services";
 import { projectApi } from "@/modules/project/services/projectApi";
 import { projectSlice } from "@/modules/project/services/projectSlice";
-import { configureStore } from "@reduxjs/toolkit";
+import { combineReducers, configureStore } from "@reduxjs/toolkit";
 
 const slices = {
   [authSlice.name]: authSlice.reducer,
@@ -37,13 +38,23 @@ const middlewares = [
   modelApi.middleware,
   dashboardConfigApi.middleware,
 ];
-const mainReducer = {
+
+const appReducer = combineReducers({
   ...slices,
   ...apis,
+});
+
+// On logout (clearCredentials), reset all state except the auth slice.
+// This wipes stale RTK Query caches so the next session starts clean.
+const rootReducer: typeof appReducer = (state, action) => {
+  if (clearCredentials.match(action)) {
+    return appReducer(undefined, action);
+  }
+  return appReducer(state, action);
 };
 
 export const store = configureStore({
-  reducer: mainReducer,
+  reducer: rootReducer,
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(middlewares),
 });

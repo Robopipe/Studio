@@ -67,7 +67,6 @@ export const EditProjectModal = ({
           setDescription={setDescription}
           cameraApiUrl={cameraApiUrl}
           setCameraApiUrl={setCameraApiUrl}
-          projectType={project.type}
           multipleDashboardConfigs={multipleDashboardConfigs}
         />
       ),

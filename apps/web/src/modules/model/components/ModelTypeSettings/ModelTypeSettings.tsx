@@ -1,4 +1,4 @@
-import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
+
 import {
   Select,
   SelectContent,
@@ -50,8 +50,6 @@ export const ModelTypeSettings = ({
   onTrainingTypeChange,
   onAnnotationsUsedChange,
 }: ModelTypeSettingsProps) => {
-  const [project] = useActiveProject();
-
   const handleTrainingTypeChange = (type: ProjectTypeEnum) => {
     onTrainingTypeChange(type);
     if (type === ProjectTypeEnum.DETECTION) {
@@ -83,11 +81,6 @@ export const ModelTypeSettings = ({
               ))}
             </SelectContent>
           </Select>
-          {project && trainingType !== project.type && (
-            <span className="text-xs">
-              Default for this project: {TYPE_LABELS[project.type]}
-            </span>
-          )}
         </div>
 
         {trainingType === ProjectTypeEnum.DETECTION ? (

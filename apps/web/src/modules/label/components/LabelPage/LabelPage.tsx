@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Label, ProjectTypeEnum } from "@repo/schema";
+import { Label } from "@repo/schema";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import { useGetTasksQuery } from "@/modules/capture/services/captureApi";
 import { useGetProjectLabelsQuery } from "@/modules/project/services/projectApi";
@@ -110,10 +110,10 @@ export const LabelPage = () => {
 
   // Set default active label when labels load
   useEffect(() => {
-    if (labels.length > 0 && !activeLabel && activeProject?.type !== ProjectTypeEnum.CLASSIFICATION) {
+    if (labels.length > 0 && !activeLabel) {
       setActiveLabel(labels[0]);
     }
-  }, [labels, activeLabel, activeProject]);
+  }, [labels, activeLabel]);
 
   // Sync annotations from task detail
   useEffect(() => {
@@ -122,23 +122,9 @@ export const LabelPage = () => {
       setIsDirty(false);
       setHiddenAnnotationIds(new Set());
       history.reset();
-
-      if (activeProject?.type === ProjectTypeEnum.CLASSIFICATION) {
-        const classAnnotation = taskDetail.classificationAnnotations?.[0];
-        if (classAnnotation) {
-          setSelectedAnnotationId(classAnnotation.id.toString());
-          const label = labels.find((l) => l.id.toString() === classAnnotation.label.id.toString());
-          if (label) {
-            setActiveLabel(label);
-          }
-        } else {
-          setActiveLabel(null);
-        }
-      } else {
-        setSelectedAnnotationId(null);
-      }
+      setSelectedAnnotationId(null);
     }
-  }, [taskDetail, activeProject, labels]);
+  }, [taskDetail]);
 
   const handleReorderAnnotations = useCallback(
     (fromIndex: number, toIndex: number) => {
@@ -164,27 +150,12 @@ export const LabelPage = () => {
       const label = labels.find((l) => l.id === labelId);
       if (label) {
         setActiveLabel(label);
-        if (activeProject?.type !== ProjectTypeEnum.CLASSIFICATION) {
-          return;
-        }
-        const annotationPayload: Annotation = {
-          id: selectedAnnotationId ?? `temp-${Date.now()}`,
-          labelId: label.id.toString(),
-          color: label.color,
-          labelName: label.name,
-          type: "class",
-        };
-        if (activeLabel) {
-          history.updateAnnotation(annotationPayload.id, annotationPayload);
-        } else {
-          history.addAnnotation(annotationPayload);
-        }
       }
     },
-    [labels, activeProject, history, selectedAnnotationId],
+    [labels],
   );
 
-  const canMarkEmpty = activeProject?.type !== ProjectTypeEnum.CLASSIFICATION;
+  const canMarkEmpty = true;
 
   const [isSaving, setIsSaving] = useState(false);
   const handleSave = useCallback(async (options?: { reviewed?: boolean }) => {

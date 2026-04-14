@@ -1,4 +1,4 @@
-import type { Project, ProjectTypeEnum } from "@repo/schema";
+import type { Project } from "@repo/schema";
 import type { ProjectSelect } from "src/repository/types/project";
 
 export class ProjectEntity {
@@ -6,7 +6,6 @@ export class ProjectEntity {
   readonly name: string;
   readonly description: string;
   readonly organizationId: number;
-  readonly type: ProjectTypeEnum;
   readonly cameraApiUrl: string | null;
   readonly multipleDashboardConfigs: boolean;
   readonly taskCount: number;
@@ -19,7 +18,6 @@ export class ProjectEntity {
     this.id = data.id;
     this.name = data.name;
     this.description = data.description;
-    this.type = data.type;
     this.organizationId = data.organizationId;
     this.cameraApiUrl = data.cameraApiUrl;
     this.multipleDashboardConfigs = data.multipleDashboardConfigs;
@@ -35,7 +33,6 @@ export class ProjectEntity {
       id: this.id,
       name: this.name,
       description: this.description,
-      type: this.type,
       organizationId: this.organizationId,
       cameraApiUrl: this.cameraApiUrl,
       multipleDashboardConfigs: this.multipleDashboardConfigs,
