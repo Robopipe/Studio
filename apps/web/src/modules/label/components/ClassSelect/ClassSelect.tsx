@@ -8,6 +8,7 @@ export interface ClassSelectProps {
   activeLabelId: number;
   onSelectLabel: (labelId: number) => void;
   onOpenSettings?: () => void;
+  isLoadingLabels?: boolean;
 }
 
 export const ClassSelect = ({
@@ -15,6 +16,7 @@ export const ClassSelect = ({
   activeLabelId,
   onSelectLabel,
   onOpenSettings,
+  isLoadingLabels,
 }: ClassSelectProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -58,7 +60,7 @@ export const ClassSelect = ({
     scrollRef.current?.scrollBy({ left: delta, behavior: "smooth" });
   };
 
-  if (labels.length === 0) {
+  if (labels.length === 0 && !isLoadingLabels) {
     return (
       <div className="rounded-2xl border border-black/10 bg-white/95 px-4 py-2 shadow-[0_0_12px_rgba(0,0,0,0.08)] backdrop-blur-md">
         <span className="text-xs text-muted-foreground">
