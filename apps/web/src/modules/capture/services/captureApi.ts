@@ -2,7 +2,15 @@ import { appConfig } from "@/config";
 import { baseRefreshingQuery } from "@/core/api/baseQuery";
 import { HttpMethod } from "@/types";
 import { createApi } from "@reduxjs/toolkit/query/react";
-import { CapturedVideo, PaginatedCapturedVideos, PaginatedTasks, Task } from "@repo/schema";
+import {
+  CapturedVideo,
+  ConfirmVideoUpload,
+  PaginatedCapturedVideos,
+  PaginatedTasks,
+  RequestVideoUploadUrls,
+  Task,
+  VideoUploadUrlsResponse,
+} from "@repo/schema";
 
 export enum CaptureApiTagType {
   Tasks = "Tasks",
@@ -81,32 +89,6 @@ export const captureApi = captureApiBase.injectEndpoints({
         { type: CaptureApiTagType.Tasks, id: projectId },
       ],
     }),
-    createCapturedVideo: builder.mutation<
-      CapturedVideo,
-      {
-        videoFile: Blob;
-        thumbnailFile: Blob;
-        projectId: number;
-        durationMs: number;
-      }
-    >({
-      query: ({ videoFile, thumbnailFile, projectId, durationMs }) => {
-        const formData = new FormData();
-        formData.append("file", videoFile, `video-${Date.now()}.webm`);
-        formData.append("thumbnail", thumbnailFile, `thumb-${Date.now()}.webp`);
-        return {
-          url: capturedVideos.list(projectId),
-          method: "POST",
-          headers: { "Content-Type": "multipart/form-data" },
-          params: { durationMs },
-          body: formData,
-          formData: true,
-        };
-      },
-      invalidatesTags: (_result, _error, { projectId }) => [
-        { type: CaptureApiTagType.CapturedVideos, id: projectId },
-      ],
-    }),
     getCapturedVideos: builder.query<
       PaginatedCapturedVideos,
       { projectId: number; page?: number; limit?: number; order?: "asc" | "desc" }
@@ -117,6 +99,29 @@ export const captureApi = captureApiBase.injectEndpoints({
         params: { page, limit, order },
       }),
       providesTags: (_result, _error, { projectId }) => [
+        { type: CaptureApiTagType.CapturedVideos, id: projectId },
+      ],
+    }),
+    requestVideoUploadUrls: builder.mutation<
+      VideoUploadUrlsResponse,
+      { projectId: number } & RequestVideoUploadUrls
+    >({
+      query: ({ projectId, ...body }) => ({
+        url: capturedVideos.uploadUrl(projectId),
+        method: "POST",
+        body,
+      }),
+    }),
+    confirmVideoUpload: builder.mutation<
+      CapturedVideo,
+      { projectId: number } & ConfirmVideoUpload
+    >({
+      query: ({ projectId, ...body }) => ({
+        url: capturedVideos.confirm(projectId),
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: (_result, _error, { projectId }) => [
         { type: CaptureApiTagType.CapturedVideos, id: projectId },
       ],
     }),
@@ -137,7 +142,8 @@ export const {
   useCreateTaskMutation,
   useGetTasksQuery,
   useDeleteTaskMutation,
-  useCreateCapturedVideoMutation,
+  useRequestVideoUploadUrlsMutation,
+  useConfirmVideoUploadMutation,
   useGetCapturedVideosQuery,
   useDeleteCapturedVideoMutation,
 } = captureApi;
