@@ -12,7 +12,6 @@ export const RESERVED_HYPERPARAMS_PATHS: Record<string, string> = {
   "model.name": "Set automatically by the ML service (model identifier)",
   "model.predefined_model.name":
     "Determined automatically by the selected training type",
-  "model.predefined_model.variant": "Set automatically by the ML service",
   "loader.params.dataset_name":
     "Generated automatically by the ML service (dataset identifier)",
   "loader.params.dataset_dir":
