@@ -13,11 +13,13 @@ import { ProjectDetailsForm } from "../ProjectDetailsForm";
 
 interface EditProjectModalProps {
   project: Project;
+  initialTabId?: string;
   onClose: () => void;
 }
 
 export const EditProjectModal = ({
   project,
+  initialTabId,
   onClose,
 }: EditProjectModalProps) => {
   const [name, setName] = useState(project.name);
@@ -113,6 +115,7 @@ export const EditProjectModal = ({
       tabs={tabs}
       closeButton={false}
       buttons={buttons}
+      initialTabId={initialTabId}
       onClose={onClose}
     />
   );

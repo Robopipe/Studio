@@ -11,6 +11,7 @@ import { useCanvasState } from "../../hooks/useCanvasState";
 import { useLabelShortcuts } from "../../hooks/useLabelShortcuts";
 import { Annotation } from "../../types/annotations";
 import { taskDetailToAnnotations, annotationsToUpdatePayload } from "../../utils/mapAnnotations";
+import { EditProjectModal } from "@/modules/project/components/EditProjectModal";
 import { AnnotationPanel } from "../AnnotationPanel";
 import { Canvas } from "../Canvas";
 import { ClassSelect } from "../ClassSelect";
@@ -93,6 +94,7 @@ export const LabelPage = () => {
     });
   }, []);
   const [activeLabel, setActiveLabel] = useState<Label | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const canvasState = useCanvasState();
 
   const setAnnotationsAndDirty: typeof setAnnotations = useCallback((value) => {
@@ -270,6 +272,7 @@ export const LabelPage = () => {
         historyEntries={history.entries}
         historyIndex={history.currentIndex}
         onJumpTo={history.jumpTo}
+        onOpenSettings={() => setSettingsOpen(true)}
       />
       <div className="relative flex min-h-0 flex-col overflow-hidden">
         <Canvas
@@ -309,6 +312,7 @@ export const LabelPage = () => {
               canUndo={history.canUndo}
               canRedo={history.canRedo}
               hasSelection={selectedAnnotationId !== null}
+              hasLabels={labels.length > 0}
               showCrosshair={showCrosshair}
               onToggleCrosshair={toggleCrosshair}
             />
@@ -320,10 +324,18 @@ export const LabelPage = () => {
               labels={labels}
               activeLabelId={activeLabel?.id ?? 0}
               onSelectLabel={handleSelectLabel}
+              onOpenSettings={() => setSettingsOpen(true)}
             />
           </div>
         </div>
       </div>
+      {settingsOpen && activeProject && (
+        <EditProjectModal
+          project={activeProject}
+          initialTabId="labeling"
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
     </div>
   );
 };

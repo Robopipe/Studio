@@ -1,5 +1,5 @@
 import { Project } from "@repo/schema";
-import { Check, Lightbulb, Minus, Settings, Trash2 } from "lucide-react";
+import { Settings, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useDeleteProjectMutation } from "../../services/projectApi";
 import { EditProjectModal } from "../EditProjectModal";
@@ -59,23 +59,8 @@ export const ProjectCard = ({ project, onClick }: ProjectCardProps) => {
             </div>
           </div>
 
-          <div className="flex flex-row items-center justify-between">
-            <span className="text-sm">0/0</span>
-
-            <div className="flex flex-row items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Check className="size-5 text-emerald-600" />
-                <span className="text-sm">0</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Minus className="size-5 text-red-800" />
-                <span className="text-sm">0</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Lightbulb className="size-5 text-gray-900" />
-                <span className="text-sm">0</span>
-              </div>
-            </div>
+          <div className="flex flex-row items-center">
+            <span className="text-sm">{project.annotatedTaskCount}/{project.taskCount}</span>
           </div>
         </div>
         <div className="h-px w-full bg-gray-300" />

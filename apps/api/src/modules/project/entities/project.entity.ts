@@ -9,6 +9,8 @@ export class ProjectEntity {
   readonly type: ProjectTypeEnum;
   readonly cameraApiUrl: string | null;
   readonly multipleDashboardConfigs: boolean;
+  readonly taskCount: number;
+  readonly annotatedTaskCount: number;
   readonly createdAt: Date;
   readonly updatedAt: Date;
   readonly deletedAt: Date | null;
@@ -21,6 +23,8 @@ export class ProjectEntity {
     this.organizationId = data.organizationId;
     this.cameraApiUrl = data.cameraApiUrl;
     this.multipleDashboardConfigs = data.multipleDashboardConfigs;
+    this.taskCount = data.taskCount ?? 0;
+    this.annotatedTaskCount = data.annotatedTaskCount ?? 0;
     this.createdAt = data.createdAt;
     this.updatedAt = data.updatedAt;
     this.deletedAt = data.deletedAt;
@@ -35,6 +39,8 @@ export class ProjectEntity {
       organizationId: this.organizationId,
       cameraApiUrl: this.cameraApiUrl,
       multipleDashboardConfigs: this.multipleDashboardConfigs,
+      taskCount: this.taskCount,
+      annotatedTaskCount: this.annotatedTaskCount,
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),
       deletedAt: this.deletedAt ? this.deletedAt.toISOString() : null,
