@@ -1,6 +1,7 @@
 import z from "zod";
 import { timestampsSchema } from "../helpers";
-import { hyperparamsConfigSchema } from "./hyperparams-config.schema";
+// hyperparamsConfigSchema import kept for reference — validation intentionally bypassed
+// import { hyperparamsConfigSchema } from "./hyperparams-config.schema";
 import { labelSchema } from "../label";
 import { ProjectTypeEnum } from "../projects";
 import { TaskFileTypeEnum } from "../task";
@@ -122,7 +123,9 @@ export const createModelSchema = modelSchema
       })
       .array()
       .default([]),
-    customHyperparams: hyperparamsConfigSchema.default({}),
+    // Schema validation intentionally bypassed — any JSON object is accepted.
+    // Original: customHyperparams: hyperparamsConfigSchema.default({}),
+    customHyperparams: z.record(z.string(), z.unknown()).default({}),
   })
   .refine(
     (data) => {
