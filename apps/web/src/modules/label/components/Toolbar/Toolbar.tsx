@@ -26,6 +26,7 @@ export interface ToolbarProps {
   canUndo: boolean;
   canRedo: boolean;
   hasSelection: boolean;
+  hasLabels: boolean;
   showCrosshair: boolean;
   onToggleCrosshair: () => void;
 }
@@ -44,6 +45,7 @@ export const Toolbar = ({
   canUndo,
   canRedo,
   hasSelection,
+  hasLabels,
   showCrosshair,
   onToggleCrosshair,
 }: ToolbarProps) => {
@@ -53,13 +55,15 @@ export const Toolbar = ({
     icon: React.ReactNode;
     title: string;
     mode: ToolMode;
+    disabled?: boolean;
   }[] = [
     { icon: <MousePointer2 />, title: "Select (A)", mode: ToolMode.SELECT },
-    { icon: <RectBboxIcon />, title: "Draw bbox (R)", mode: ToolMode.DRAW_BBOX },
+    { icon: <RectBboxIcon />, title: "Draw bbox (R)", mode: ToolMode.DRAW_BBOX, disabled: !hasLabels },
     {
       icon: <PolygonIcon />,
       title: "Draw polygon (P)",
       mode: ToolMode.DRAW_POLYGON,
+      disabled: !hasLabels,
     },
   ];
 
@@ -98,10 +102,12 @@ export const Toolbar = ({
           className={cn(
             toolButtonClass,
             toolMode === tool.mode &&
-              "bg-emerald-500/10 text-black hover:bg-emerald-500/[0.18] hover:text-black"
+              "bg-emerald-500/10 text-black hover:bg-emerald-500/[0.18] hover:text-black",
+            tool.disabled && "cursor-not-allowed opacity-[0.35]",
           )}
           title={tool.title}
           onClick={() => onSetToolMode(tool.mode)}
+          disabled={tool.disabled}
         >
           {tool.icon}
         </button>

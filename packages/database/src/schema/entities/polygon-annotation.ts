@@ -8,4 +8,6 @@ export const polygonAnnotationTable = p.pgTable("polygon_annotation", {
   taskId: p.integer("task_id").references(() => taskTable.id, {onDelete: 'cascade'}).notNull(),
   labelId: p.integer("label_id").references(() => projectLabelTable.id, {onDelete: 'cascade'}).notNull(),
   value: p.point({mode: 'tuple'}).array().notNull()
-})
+}, (t) => [
+  p.index("poly_annotation_task_id_idx").on(t.taskId),
+])

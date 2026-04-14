@@ -132,7 +132,7 @@ export const Navbar = () => {
           />
           <NavItem
             to={`/projects/${activeId}/label`}
-            label="Label"
+            label="Annotate"
             icon={<AnnotateIcon />}
           />
           <NavItem

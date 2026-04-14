@@ -41,6 +41,30 @@ _AnchorDumper.add_representer(_AnchoredInt, _anchored_int_representer)
 _AnchorDumper.add_representer(_FlowList, _flow_list_representer)
 
 
+def _get_custom_image_size(custom_hyperparams: dict) -> tuple[int, int] | None:
+    """Extract custom image size from user-supplied hyperparams, if present."""
+    try:
+        size = (
+            custom_hyperparams
+            .get("trainer", {})
+            .get("preprocessing", {})
+            .get("train_image_size")
+        )
+        if isinstance(size, list) and len(size) == 2:
+            return (int(size[0]), int(size[1]))
+    except (TypeError, ValueError):
+        pass
+    return None
+
+
+def get_image_size(model_config: ModelConfig) -> tuple[int, int]:
+    """Return the training image size — custom if provided, otherwise the default."""
+    custom = _get_custom_image_size(model_config.training_config.custom_hyperparams)
+    if custom is not None:
+        return custom
+    return (480, 640) if model_config.type != ModelType.CLASSIFICATION else (512, 512)
+
+
 def get_model_params(model_config: ModelConfig) -> tuple[dict, dict]:
     if model_config.type == ModelType.CLASSIFICATION:
         return {"variant": "light"}, {}
@@ -77,10 +101,7 @@ def generate_loader_config(model_config: ModelConfig, dir: str) -> dict:
 
 def generate_trainer_config(model_config: ModelConfig) -> dict:
     webhook_url = get_config().webhook_url
-    has_custom = bool(model_config.training_config.custom_hyperparams)
-    img_size = (
-        (480, 640) if model_config.type != ModelType.CLASSIFICATION else (512, 512)
-    )
+    img_size = get_image_size(model_config)
     augmentations_config = [
         aug
         for aug_list in model_config.training_config.dataset_config.augmentations
@@ -152,7 +173,6 @@ _RESERVED_PATHS: set[str] = {
     # ML service infrastructure
     "model.name",
     "model.predefined_model.name",
-    "model.predefined_model.variant",
     "loader.params.dataset_name",
     "loader.params.dataset_dir",
     "tracker.is_tensorboard",
@@ -166,7 +186,6 @@ _RESERVED_PATHS: set[str] = {
     "trainer.log_sub_losses",
     # UI-generated
     "trainer.epochs",
-    "trainer.preprocessing.train_image_size",
     "trainer.preprocessing.augmentations",
 }
 

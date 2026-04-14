@@ -12,7 +12,6 @@ export const RESERVED_HYPERPARAMS_PATHS: Record<string, string> = {
   "model.name": "Set automatically by the ML service (model identifier)",
   "model.predefined_model.name":
     "Determined automatically by the selected training type",
-  "model.predefined_model.variant": "Set automatically by the ML service",
   "loader.params.dataset_name":
     "Generated automatically by the ML service (dataset identifier)",
   "loader.params.dataset_dir":
@@ -32,8 +31,6 @@ export const RESERVED_HYPERPARAMS_PATHS: Record<string, string> = {
 
   // UI-generated — should only be changed via the respective UI controls
   "trainer.epochs": "Use the Epochs field in the training form instead",
-  "trainer.preprocessing.train_image_size":
-    "Derived automatically from the model type",
   "trainer.preprocessing.augmentations":
     "Use the Augmentations settings in the training form instead",
 };
