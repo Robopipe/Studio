@@ -74,7 +74,7 @@ export const CapturedPhotos = ({}: CapturedPhotosProps) => {
             <div className="flex flex-col gap-0.5">
               <Skeleton className="h-5 w-12 bg-muted-foreground/20" />
               <span className="text-muted-foreground">
-                {format(new Date(pending.capturedAt), "Ppp")}
+                {format(new Date(pending.capturedAt), "dd/MM/yyyy, HH:mm:ss")}
               </span>
             </div>
           </div>
@@ -100,7 +100,7 @@ export const CapturedPhotos = ({}: CapturedPhotosProps) => {
             <div className="flex flex-col gap-0.5">
               <span className="text-base font-medium">{`#${task.iid}`}</span>
               <span className="text-muted-foreground">
-                {format(new Date(task.createdAt), "Ppp")}
+                {format(new Date(task.createdAt), "dd/MM/yyyy HH:mm:ss")}
               </span>
             </div>
           </div>
