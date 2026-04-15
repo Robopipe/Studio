@@ -33,7 +33,7 @@ export const Modal = ({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-10"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="flex max-h-[calc(100vh-5rem)] min-h-[45rem] w-full max-w-[1472px] flex-col overflow-hidden rounded-3xl bg-white">
+      <div className="flex h-[min(45rem,calc(100vh-5rem))] w-full max-w-[1472px] flex-col overflow-hidden rounded-3xl bg-white">
         <header className="flex items-center justify-between border-b border-gray-400 px-10 py-6">
           <h4 className="text-2xl font-bold tracking-tight">{title}</h4>
 
@@ -68,7 +68,7 @@ export const Modal = ({
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-[200px] py-[60px]">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-[200px] py-[60px]">
           {activeTab?.content}
         </div>
       </div>
