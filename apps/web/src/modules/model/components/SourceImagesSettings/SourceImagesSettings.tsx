@@ -35,7 +35,7 @@ export const SourceImagesSettings = (props: SourceImagesSettingsProps) => {
   }, [labels]);
 
   return (
-    <SettingsCard title="source images" state="complete" stepNumber={1}>
+    <SettingsCard title="source images" state="complete" stepNumber={2}>
       <div className="flex flex-row flex-wrap items-center gap-2">
         <span className="mr-3 text-xs text-foreground/90">Labels</span>
         {mappedLabels.map((label) => (
