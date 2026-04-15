@@ -1,9 +1,12 @@
+import { useLazyExportTasksQuery } from "@/modules/capture/services/captureApi";
+import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import { PaginationNumbers } from "@/modules/shadcn/ui/pagination";
 import { TaskListItem } from "@/modules/ui";
 import { cn } from "@/lib/utils";
 import { Label, Task, TaskStatusEnum } from "@repo/schema";
-import { Check, SlidersHorizontal } from "lucide-react";
+import { Check, Download, SlidersHorizontal } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { TaskFilterDialog, TaskFilterState } from "../TaskFilterDialog";
 
 export type AnnotationFilter = "all" | "true" | "false";
@@ -35,6 +38,8 @@ export const DataSourcePanel = ({
 }: DataSourcePanelProps) => {
   const listRef = useRef<HTMLDivElement>(null);
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
+  const [activeProject] = useActiveProject();
+  const [triggerExport, { isFetching: isExporting }] = useLazyExportTasksQuery();
 
   const hasActiveFilter =
     filter.annotationFilter !== "all" || filter.labelIds.length > 0;
@@ -42,6 +47,44 @@ export const DataSourcePanel = ({
   useEffect(() => {
     listRef.current?.scrollTo({ top: 0 });
   }, [page]);
+
+  const handleExport = async () => {
+    if (!activeProject) return;
+    try {
+      const data = await triggerExport({
+        projectId: activeProject.id,
+        annotated:
+          filter.annotationFilter === "all"
+            ? undefined
+            : filter.annotationFilter,
+        labelIds: filter.labelIds.length
+          ? filter.labelIds.join(",")
+          : undefined,
+      }).unwrap();
+
+      const json = JSON.stringify(data, null, 2);
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+
+      const slug = activeProject.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+      const now = new Date();
+      const pad = (n: number) => String(n).padStart(2, "0");
+      const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(
+        now.getDate(),
+      )}-${pad(now.getHours())}${pad(now.getMinutes())}`;
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `tasks-${slug}-${stamp}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error("Failed to export tasks", e);
+      toast.error("Failed to export tasks");
+    }
+  };
 
   return (
     <div className="flex max-h-full min-h-0 flex-col overflow-hidden border-r border-black/10 bg-black/[0.03]">
@@ -60,6 +103,16 @@ export const DataSourcePanel = ({
           )}
         >
           <SlidersHorizontal className="size-4" />
+        </button>
+        <button
+          type="button"
+          aria-label="Export tasks as JSON"
+          title="Export tasks as JSON (respects current filters)"
+          onClick={handleExport}
+          disabled={isExporting || !activeProject}
+          className="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent text-muted-foreground transition-colors hover:bg-black/[0.06] hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <Download className="size-4" />
         </button>
       </div>
 

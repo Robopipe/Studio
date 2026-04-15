@@ -10,6 +10,8 @@ import {
   rectangleAnnotationSchema,
   requestTaskUploadSchema,
   taskDetailSchema,
+  taskExportQuerySchema,
+  taskExportSchema,
   taskPaginationQuerySchema,
   taskSchema,
   taskUploadUrlSchema,
@@ -32,3 +34,5 @@ export type PaginatedTasks = z.infer<typeof paginatedTaskSchema>
 export type RequestTaskUpload = z.infer<typeof requestTaskUploadSchema>
 export type TaskUploadUrl = z.infer<typeof taskUploadUrlSchema>
 export type ConfirmTaskUpload = z.infer<typeof confirmTaskUploadSchema>
+export type TaskExport = z.infer<typeof taskExportSchema>
+export type TaskExportQuery = z.infer<typeof taskExportQuerySchema>
