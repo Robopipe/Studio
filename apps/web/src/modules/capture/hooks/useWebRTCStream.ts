@@ -33,7 +33,7 @@ export const useWebRTCStream = (
   options: UseWebRTCStreamOptions,
 ): UseWebRTCStreamReturn => {
   const { selectedMxid, selectedSensorName, onMediaStreamChange } = options;
-  const apiHost = useCameraApiUrl();
+  const { url: apiHost } = useCameraApiUrl();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);

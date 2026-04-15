@@ -16,7 +16,7 @@ export const useMJPEGStream = (
   options: UseMJPEGStreamOptions,
 ): UseMJPEGStreamReturn => {
   const { selectedMxid, selectedSensorName } = options;
-  const apiHost = useCameraApiUrl();
+  const { url: apiHost } = useCameraApiUrl();
   const imageRef = useRef<HTMLImageElement | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
 

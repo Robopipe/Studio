@@ -5,6 +5,7 @@ import {
   useGetDashboardConfigQuery,
   useGetDashboardConfigsQuery,
 } from "@/modules/dashboard/services/dashboardConfigApi";
+import { EditProjectModal } from "@/modules/project/components/EditProjectModal";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import { Button } from "@/modules/shadcn/ui/button";
 import {
@@ -29,10 +30,11 @@ export const RunPage = () => {
   const [activeTab, setActiveTab] = useState<RunTab>("configuration");
   const [activeConfigId, setActiveConfigId] = useState<number | null>(null);
   const [selectedConfigs, setSelectedConfigs] = useState<ConfigSelection[]>([]);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const [activeProject] = useActiveProject();
   const projectId = activeProject?.id;
-  const cameraApiUrl = useCameraApiUrl();
+  const { url: cameraApiUrl, isOverride } = useCameraApiUrl();
 
   // Fetch configs list so we can auto-select on mount (regardless of active tab)
   const { data: configs = [] } = useGetDashboardConfigsQuery(
@@ -121,8 +123,22 @@ export const RunPage = () => {
     }
 
     // inference
+    const openSettings = activeProject
+      ? () => setSettingsOpen(true)
+      : undefined;
+
+    if (!cameraApiUrl) {
+      return (
+        <NoCameraDetected
+          onRefresh={refetchCameras}
+          isRefreshing={camerasFetching}
+          onOpenSettings={openSettings}
+        />
+      );
+    }
+
     if (camerasLoading) {
-      return <SearchingForCamera />;
+      return <SearchingForCamera url={cameraApiUrl} isOverride={isOverride} />;
     }
 
     if (!hasCameras) {
@@ -130,6 +146,7 @@ export const RunPage = () => {
         <NoCameraDetected
           onRefresh={refetchCameras}
           isRefreshing={camerasFetching}
+          onOpenSettings={openSettings}
         />
       );
     }
@@ -164,6 +181,13 @@ export const RunPage = () => {
         onConfirm={handleConfirmDeploy}
         onCancel={handleCancelDeploy}
       />
+
+      {settingsOpen && activeProject && (
+        <EditProjectModal
+          project={activeProject}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
     </div>
   );
 };

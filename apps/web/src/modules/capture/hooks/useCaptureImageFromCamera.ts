@@ -24,7 +24,7 @@ interface QueuedUpload {
 export const useCaptureImageFromCamera = () => {
   const [createTask] = useCreateTaskMutation();
   const [activeProject] = useActiveProject();
-  const cameraApiUrl = useCameraApiUrl();
+  const { url: cameraApiUrl } = useCameraApiUrl();
   const dispatch = useAppDispatch();
   const [isLoading, setIsLoading] = useState(false);
   const [uploadQueue, setUploadQueue] = useState<QueuedUpload[]>([]);

@@ -10,7 +10,6 @@ export interface SessionUser {
   username: string;
   email: string;
   fullName: string;
-  cameraApiUrl: string;
   organizationId: number;
   role: string;
   createdAt: Date;
@@ -51,7 +50,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       username: user.username,
       email: user.email,
       fullName: user.fullName,
-      cameraApiUrl: user.cameraApiUrl,
       organizationId: payload.orgId as number,
       role: payload.role as string,
       createdAt: user.createdAt,
