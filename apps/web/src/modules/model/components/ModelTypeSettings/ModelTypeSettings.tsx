@@ -17,6 +17,12 @@ const TYPE_LABELS: Record<ProjectTypeEnum, string> = {
 
 type DetectionAnnotationPreset = "detection" | "segmentation" | "both";
 
+const PRESET_LABELS: Record<DetectionAnnotationPreset, string> = {
+  detection: "Detection annotations only",
+  segmentation: "Segmentation annotations only",
+  both: "Both detection & segmentation",
+};
+
 const presetToAnnotations = (
   preset: DetectionAnnotationPreset,
 ): ProjectTypeEnum[] => {
@@ -61,9 +67,9 @@ export const ModelTypeSettings = ({
 
   return (
     <SettingsCard title="model type" state="complete" stepNumber={1}>
-      <div className="flex flex-row items-start gap-4">
+      <div className="flex w-full flex-1 flex-row items-start gap-9">
         <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <span className="text-xs font-medium">Training type</span>
+          <span className="text-xs font-normal text-black/90">Training type</span>
           <Select
             value={trainingType}
             onValueChange={(v) =>
@@ -71,7 +77,11 @@ export const ModelTypeSettings = ({
             }
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select type" />
+              <SelectValue placeholder="Select type">
+                {(value) =>
+                  value ? TYPE_LABELS[value as ProjectTypeEnum] : "Select type"
+                }
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {Object.values(ProjectTypeEnum).map((v) => (
@@ -85,7 +95,7 @@ export const ModelTypeSettings = ({
 
         {trainingType === ProjectTypeEnum.DETECTION ? (
           <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <span className="text-xs font-medium">Annotations used</span>
+            <span className="text-xs font-normal text-black/90">Annotations used</span>
             <Select
               value={annotationsToPreset(annotationsUsed)}
               onValueChange={(v) =>
@@ -95,7 +105,13 @@ export const ModelTypeSettings = ({
               }
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select annotations" />
+                <SelectValue placeholder="Select annotations">
+                  {(value) =>
+                    value
+                      ? PRESET_LABELS[value as DetectionAnnotationPreset]
+                      : "Select annotations"
+                  }
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="detection">
@@ -112,7 +128,7 @@ export const ModelTypeSettings = ({
           </div>
         ) : (
           <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <span className="text-xs font-medium">Annotations used</span>
+            <span className="text-xs font-normal text-black/90">Annotations used</span>
             <span className="text-sm">
               {TYPE_LABELS[trainingType]} annotations
             </span>

@@ -1,9 +1,4 @@
-import { Button } from "@/modules/shadcn/ui/button";
-import {
-  Collapsible,
-  CollapsiblePanel,
-  CollapsibleTrigger,
-} from "@/modules/shadcn/ui/collapsible";
+import { cn } from "@/lib/utils";
 import { ModelOutputTypeEnum } from "@repo/schema";
 import { useState } from "react";
 import { SettingsCard } from "../SettingsCard";
@@ -39,84 +34,86 @@ export const AdvancedSettings = ({
   return (
     <>
       <SettingsCard
-        stepNumber={4}
+        stepNumber={6}
         state={customHyperparams.trim() ? "complete" : "pending"}
         title="Advanced Options"
       >
         <div className="flex flex-1 flex-col gap-4">
-          <Collapsible>
-            <CollapsibleTrigger>Output Formats</CollapsibleTrigger>
-            <CollapsiblePanel>
-              <div className="flex flex-col gap-2">
-                <span className="text-xs">
-                  Choose which export formats to generate after training. RAW is
-                  the unoptimized ONNX model. RVC2, RVC3, and RVC4 produce
-                  hardware-optimized blobs for Luxonis cameras — select the
-                  format matching your target device.
-                </span>
-                <div className="flex flex-row gap-2">
-                  {Object.values(ModelOutputTypeEnum).map((outputType) => (
-                    <Button
-                      key={outputType}
-                      variant={
-                        outputs.includes(outputType) ? "default" : "outline"
-                      }
-                      onClick={() => {
-                        if (outputs.includes(outputType)) {
-                          onOutputsChange(
+          <div className="flex flex-col gap-0.5">
+            <span className="text-sm font-medium leading-5 text-black/90">
+              Output Formats
+            </span>
+            <p className="text-sm leading-5 text-black/60">
+              Choose which export formats to generate after training. RAW is the
+              unoptimized ONNX model. RVC2, RVC3, and RVC4 produce
+              hardware-optimized blobs for Luxonis cameras — select the format
+              matching your target device.
+            </p>
+            <div className="flex flex-row gap-2 py-2">
+              {Object.values(ModelOutputTypeEnum).map((outputType) => {
+                const selected = outputs.includes(outputType);
+                return (
+                  <button
+                    key={outputType}
+                    type="button"
+                    onClick={() =>
+                      selected
+                        ? onOutputsChange(
                             outputs.filter((t) => t !== outputType),
-                          );
-                        } else {
-                          onOutputsChange([...outputs, outputType]);
-                        }
-                      }}
-                    >
-                      {outputType}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            </CollapsiblePanel>
-          </Collapsible>
-          <Collapsible>
-            <CollapsibleTrigger>
-              Custom Training Hyperparameters
-            </CollapsibleTrigger>
-            <CollapsiblePanel>
-              <div className="flex flex-col gap-2">
-                {hasSummary && (
-                  <div className="max-h-20 overflow-hidden whitespace-pre rounded bg-black/[0.04] p-2 font-mono text-xs text-muted-foreground">
-                    {customHyperparams}
-                  </div>
-                )}
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" onClick={() => setModalOpen(true)}>
-                    {hasSummary ? "Edit" : "Configure"}
-                  </Button>
-                  {hasSummary && (
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        onCustomHyperparamsChange("");
-                        onHyperparamsErrorChange(null);
-                      }}
-                    >
-                      Clear
-                    </Button>
-                  )}
-                </div>
-                {hyperparamsError && (
-                  <span className="text-xs text-red-500">
-                    {hyperparamsError}
-                  </span>
-                )}
-                <span className="text-xs">
-                  JSON object that deep-merges with the generated config.
-                  Top-level keys: model, loader, trainer, tracker.
-                </span>
-              </div>
-            </CollapsiblePanel>
-          </Collapsible>
+                          )
+                        : onOutputsChange([...outputs, outputType])
+                    }
+                    className={cn(
+                      "cursor-pointer rounded-full border px-2 py-0.5 text-sm leading-5 transition-colors",
+                      selected
+                        ? "border-emerald-900 bg-emerald-50 text-emerald-700"
+                        : "border-transparent bg-white text-black/90 hover:bg-black/5",
+                    )}
+                  >
+                    {outputType}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <div className="flex flex-row items-center gap-2">
+              <span className="text-sm font-medium leading-5 text-black/90">
+                Custom Training Hyperparameters
+              </span>
+              <button
+                type="button"
+                onClick={() => setModalOpen(true)}
+                className="cursor-pointer text-sm font-medium leading-5 text-emerald-700 hover:underline"
+              >
+                {hasSummary ? "Edit" : "Configure"}
+              </button>
+              {hasSummary && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onCustomHyperparamsChange("");
+                    onHyperparamsErrorChange(null);
+                  }}
+                  className="cursor-pointer text-sm font-medium leading-5 text-black/60 hover:underline"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+            <p className="text-sm leading-5 text-black/60">
+              JSON object that deep-merges with the generated config. Top-level
+              keys: model, loader, trainer, tracker.
+            </p>
+            {hasSummary && (
+              <pre className="mt-2 overflow-x-auto whitespace-pre rounded bg-black/[0.04] p-2 font-mono text-xs text-muted-foreground">
+                {customHyperparams}
+              </pre>
+            )}
+            {hyperparamsError && (
+              <span className="text-xs text-red-500">{hyperparamsError}</span>
+            )}
+          </div>
         </div>
       </SettingsCard>
 
