@@ -6,6 +6,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/modules/shadcn/ui/select";
+import type { CapturedVideo } from "@repo/schema";
 
 interface Camera {
   mxid: string;
@@ -21,10 +22,21 @@ interface TrainedModel {
   name: string;
 }
 
+const formatVideoLabel = (video: CapturedVideo): string => {
+  const date = new Date(video?.createdAt).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+  const seconds = Math.round(video?.durationMs / 1000);
+  return `${date} - ${seconds}s`;
+};
+
 interface CameraConfigPanelProps {
   cameras: Camera[] | undefined;
   streams: Stream[] | undefined;
   trainedModels: TrainedModel[];
+  capturedVideos: CapturedVideo[];
   selectedCamera: string | null;
   onCameraChange: (mxid: string | null) => void;
   selectedStream: string | null;
@@ -32,12 +44,15 @@ interface CameraConfigPanelProps {
   selectedModelId: string | null;
   onModelChange: (id: string | null) => void;
   onModelClear: () => void;
+  selectedVideoId: number | null;
+  onVideoChange: (id: number | null) => void;
 }
 
 export const CameraConfigPanel = ({
   cameras,
   streams,
   trainedModels,
+  capturedVideos,
   selectedCamera,
   onCameraChange,
   selectedStream,
@@ -45,6 +60,8 @@ export const CameraConfigPanel = ({
   selectedModelId,
   onModelChange,
   onModelClear,
+  selectedVideoId,
+  onVideoChange,
 }: CameraConfigPanelProps) => {
   return (
     <div className="flex w-96 shrink-0 flex-col gap-6 p-6 bg-card rounded-xl">
@@ -139,6 +156,48 @@ export const CameraConfigPanel = ({
               variant="ghost"
               className="self-start px-0 text-xs text-muted-foreground"
               onClick={onModelClear}
+            >
+              Clear
+            </Button>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm text-muted-foreground">Replay Video</label>
+          <Select
+            value={
+              selectedVideoId != null ? String(selectedVideoId) : undefined
+            }
+            onValueChange={(val) => onVideoChange(Number(val))}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="None selected">
+                {selectedVideoId != null
+                  ? formatVideoLabel(
+                      capturedVideos.find((v) => v.id === selectedVideoId)!,
+                    )
+                  : undefined}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {capturedVideos.map((video) => (
+                <SelectItem key={video.id} value={String(video.id)}>
+                  {formatVideoLabel(video)}
+                </SelectItem>
+              ))}
+              {capturedVideos.length === 0 && (
+                <p className="px-2 py-1.5 text-sm text-muted-foreground">
+                  No captured videos
+                </p>
+              )}
+            </SelectContent>
+          </Select>
+          {selectedVideoId !== null && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="self-start px-0 text-xs text-muted-foreground"
+              onClick={() => onVideoChange(null)}
             >
               Clear
             </Button>

@@ -89,6 +89,18 @@ export const captureApi = captureApiBase.injectEndpoints({
         { type: CaptureApiTagType.Tasks, id: projectId },
       ],
     }),
+    getCapturedVideo: builder.query<
+      CapturedVideo,
+      { projectId: number; videoId: number }
+    >({
+      query: ({ projectId, videoId }) => ({
+        url: capturedVideos.single(projectId, videoId),
+        method: HttpMethod.GET,
+      }),
+      providesTags: (_result, _error, { videoId }) => [
+        { type: CaptureApiTagType.CapturedVideos, id: videoId },
+      ],
+    }),
     getCapturedVideos: builder.query<
       PaginatedCapturedVideos,
       { projectId: number; page?: number; limit?: number; order?: "asc" | "desc" }
@@ -145,5 +157,6 @@ export const {
   useRequestVideoUploadUrlsMutation,
   useConfirmVideoUploadMutation,
   useGetCapturedVideosQuery,
+  useLazyGetCapturedVideoQuery,
   useDeleteCapturedVideoMutation,
 } = captureApi;
