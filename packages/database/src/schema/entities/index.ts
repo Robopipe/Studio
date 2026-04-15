@@ -13,6 +13,7 @@ export * from "./project";
 export * from "./project-label";
 export * from "./rectangle-annotation";
 export * from "./task";
+export * from "./pending-task";
 export * from "./user";
 export * from "./password-reset";
 export * from './dashboard-configuration'
