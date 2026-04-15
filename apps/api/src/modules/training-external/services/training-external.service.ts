@@ -85,8 +85,14 @@ export class TrainingExternalService {
 
     // Check if this is the last model to be uploaded
     if(modelOutputs.length === model.outputTypes.length - 1) {
+      const lastLog = await this.modelLogRepository.getLatestByModelId(model.id)
+      const metrics = (lastLog?.metrics ?? {}) as Record<string, unknown>
+      const finalAccuracy = typeof metrics.accuracy === "number" ? metrics.accuracy : null
+      const finalLoss = typeof metrics.loss === "number" ? metrics.loss : null
       await this.modelRepository.update(model.id, {
-        status: ModelStatusEnum.DONE
+        status: ModelStatusEnum.DONE,
+        finalAccuracy,
+        finalLoss,
       })
     }
   }

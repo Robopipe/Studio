@@ -78,6 +78,8 @@ export const modelSchema = z.object({
   augmentations: modelAugmentationSchema.pick({ type: true, params: true }).array(),
   preprocessings: modelPreprocessingSchema.pick({ type: true, params: true, keepOriginal: true }).array(),
   errorMessage: z.string().nullable(),
+  finalAccuracy: z.number().nullable(),
+  finalLoss: z.number().nullable(),
   ...timestampsSchema,
 });
 
