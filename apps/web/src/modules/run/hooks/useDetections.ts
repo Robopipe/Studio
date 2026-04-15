@@ -25,7 +25,7 @@ export const useDetections = ({
   onDetections,
   enabled = true,
 }: UseDetectionsOptions): UseDetectionsReturn => {
-  const apiHost = useCameraApiUrl();
+  const { url: apiHost } = useCameraApiUrl();
   const { data: nnInfo } = useGetNNQuery(
     { mxid: selectedMxid, streamName: selectedSensorName },
     { skip: !selectedMxid || !selectedSensorName },

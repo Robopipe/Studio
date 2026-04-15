@@ -1,4 +1,7 @@
 import { useListCamerasQuery } from "@/core/cameraApi";
+import { useCameraApiUrl } from "@/hooks";
+import { EditProjectModal } from "@/modules/project/components/EditProjectModal";
+import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import { NoCameraDetected, SearchingForCamera } from "@/modules/ui";
 import { useCallback, useState } from "react";
 import { Captured } from "../Captured";
@@ -9,12 +12,15 @@ import { LiveCapture } from "../LiveCapture";
 export interface CapturePageProps {}
 
 export const CapturePage = ({}: CapturePageProps) => {
+  const { url: cameraApiUrl, isOverride } = useCameraApiUrl();
+  const [activeProject] = useActiveProject();
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const {
     data: cameras,
     isLoading,
     refetch,
     isFetching,
-  } = useListCamerasQuery();
+  } = useListCamerasQuery(undefined, { skip: !cameraApiUrl });
 
   const [selectedCamera, setSelectedCamera] = useState<string | null>(null);
   const [selectedStream, setSelectedStream] = useState<string | null>(null);
@@ -30,12 +36,36 @@ export const CapturePage = ({}: CapturePageProps) => {
 
   const hasCameras = cameras && cameras.length > 0;
 
+  const openSettings = activeProject
+    ? () => setSettingsOpen(true)
+    : undefined;
+
+  const renderNoCamera = () => (
+    <>
+      <NoCameraDetected
+        onRefresh={refetch}
+        isRefreshing={isFetching}
+        onOpenSettings={openSettings}
+      />
+      {settingsOpen && activeProject && (
+        <EditProjectModal
+          project={activeProject}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
+    </>
+  );
+
+  if (!cameraApiUrl) {
+    return renderNoCamera();
+  }
+
   if (isLoading) {
-    return <SearchingForCamera />;
+    return <SearchingForCamera url={cameraApiUrl} isOverride={isOverride} />;
   }
 
   if (!hasCameras) {
-    return <NoCameraDetected onRefresh={refetch} isRefreshing={isFetching} />;
+    return renderNoCamera();
   }
 
   return (

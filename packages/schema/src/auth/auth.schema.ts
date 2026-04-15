@@ -48,7 +48,6 @@ export const registerSchema = z.object({
 
 export const updateUserSchema = z.object({
   fullName: z.string().nonempty(),
-  cameraApiUrl: z.url(),
 });
 
 export const forgotPasswordSchema = z.object({
