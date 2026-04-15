@@ -1,5 +1,8 @@
 import { useListCamerasQuery, useListStreamsQuery } from "@/core/cameraApi";
-import { useGetTasksQuery } from "@/modules/capture/services/captureApi";
+import {
+  useGetCapturedVideosQuery,
+  useGetTasksQuery,
+} from "@/modules/capture/services/captureApi";
 import { LineConfig } from "@/modules/dashboard/components/DashboardLineConfiguration";
 import {
   useGetDashboardConfigQuery,
@@ -29,12 +32,19 @@ export const useConfigurationState = (
   const [updateConfig, { isLoading: isSaving }] =
     useUpdateDashboardConfigMutation();
   const { data: tasks } = useGetTasksQuery({ projectId, limit: 1 });
+  const { data: capturedVideosPage } = useGetCapturedVideosQuery({
+    projectId,
+    limit: 100,
+    order: "desc",
+  });
+  const capturedVideos = capturedVideosPage?.data ?? [];
 
   const trainedModels = models.filter((m) => m.status === ModelStatusEnum.DONE);
 
   const [selectedCamera, setSelectedCamera] = useState<string | null>(null);
   const [selectedStream, setSelectedStream] = useState<string | null>(null);
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
+  const [selectedVideoId, setSelectedVideoId] = useState<number | null>(null);
   const [lineConfig, setLineConfig] = useState<LineConfig>(defaultLineConfig);
 
   const { data: streams } = useListStreamsQuery(selectedCamera!, {
@@ -48,6 +58,7 @@ export const useConfigurationState = (
       setSelectedModelId(
         config.modelId != null ? String(config.modelId) : null,
       );
+      setSelectedVideoId(config.capturedVideoId ?? null);
       setLineConfig({
         lineDirection: config.lineDirection,
         linePosition: Math.round(config.linePosition * 100),
@@ -63,6 +74,7 @@ export const useConfigurationState = (
       (selectedModelId === null
         ? config.modelId != null
         : Number(selectedModelId) !== config.modelId) ||
+      selectedVideoId !== (config.capturedVideoId ?? null) ||
       lineConfig.lineDirection !== config.lineDirection ||
       lineConfig.linePosition !== Math.round(config.linePosition * 100) ||
       lineConfig.lineFlow !== config.lineFlow);
@@ -74,6 +86,7 @@ export const useConfigurationState = (
       cameraMxid: selectedCamera,
       streamName: selectedStream,
       modelId: selectedModelId === null ? null : Number(selectedModelId),
+      capturedVideoId: selectedVideoId,
       lineDirection: lineConfig.lineDirection,
       linePosition: lineConfig.linePosition / 100,
       lineFlow: lineConfig.lineFlow,
@@ -84,6 +97,7 @@ export const useConfigurationState = (
     cameras,
     streams,
     trainedModels,
+    capturedVideos,
     previewImageUrl: tasks?.data[0]?.filePath,
     selectedCamera,
     setSelectedCamera,
@@ -91,6 +105,8 @@ export const useConfigurationState = (
     setSelectedStream,
     selectedModelId,
     setSelectedModelId,
+    selectedVideoId,
+    setSelectedVideoId,
     lineConfig,
     setLineConfig,
     hasChanges,

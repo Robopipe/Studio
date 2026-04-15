@@ -77,6 +77,8 @@ export const RunPage = () => {
     selectedStream,
     selectedCameraInfo,
     activeConfigId,
+    activeProjectId: projectId ?? null,
+    capturedVideoId: dashboardConfig?.capturedVideoId ?? null,
     cameraApiUrl,
     selectedConfigs,
   });

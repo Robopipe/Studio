@@ -11,6 +11,10 @@ export class CapturedVideoService {
     private readonly capturedVideoRepository: CapturedVideoRepository,
   ) {}
 
+  public async getCapturedVideoById(id: number, projectId: number): Promise<CapturedVideoEntity> {
+    return this.capturedVideoRepository.getByIdAndProjectIdOrThrow(id, projectId);
+  }
+
   public async getCapturedVideos(
     projectId: number,
     page: number = 1,
