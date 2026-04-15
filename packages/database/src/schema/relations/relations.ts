@@ -107,6 +107,10 @@ export const relationBase = defineRelations(schema, (r) => ({
       from: r.dashboardConfigurationTable.modelId,
       to: r.modelTable.id,
     }),
+    capturedVideo: r.one.capturedVideoTable({
+      from: r.dashboardConfigurationTable.capturedVideoId,
+      to: r.capturedVideoTable.id,
+    }),
     evaluation: r.one.dashboardEvaluationTable({
       from: r.dashboardConfigurationTable.id,
       to: r.dashboardEvaluationTable.dashboardConfigurationId,
@@ -124,6 +128,10 @@ export const relationBase = defineRelations(schema, (r) => ({
     project: r.one.projectTable({
       from: r.capturedVideoTable.projectId,
       to: r.projectTable.id,
+    }),
+    dashboardConfigurations: r.many.dashboardConfigurationTable({
+      from: r.capturedVideoTable.id,
+      to: r.dashboardConfigurationTable.capturedVideoId,
     }),
   },
   dashboardEvaluationTable: {

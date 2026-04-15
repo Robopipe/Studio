@@ -43,6 +43,15 @@ export class CapturedVideoController {
     return video.toResponse();
   }
 
+  @Get(":videoId")
+  public async getById(
+    @ProjectId() projectId: number,
+    @Param("videoId", ParseIntPipe) videoId: number,
+  ): Promise<CapturedVideoResponse> {
+    const video = await this.capturedVideoService.getCapturedVideoById(videoId, projectId);
+    return video.toResponse();
+  }
+
   @Get()
   public async list(
     @ProjectId() projectId: number,
