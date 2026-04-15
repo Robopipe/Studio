@@ -35,10 +35,10 @@ export const LabelingSetup = ({
   };
 
   return (
-    <div className="relative flex flex-col gap-8">
+    <div className="relative flex h-full flex-col gap-8">
       <h5 className="text-xl font-semibold">Labeling Setup</h5>
 
-      <div className="flex flex-row items-start gap-[60px]">
+      <div className="flex min-h-0 flex-1 flex-row items-start gap-[60px]">
         <div className="flex flex-1 flex-col gap-6">
           <div className="flex flex-col gap-1.5">
             <ShadcnLabel htmlFor="labelName" className="font-semibold">
@@ -58,11 +58,11 @@ export const LabelingSetup = ({
           </Button>
         </div>
 
-        <div className="flex w-[300px] flex-col gap-4">
+        <div className="flex h-full w-[300px] min-h-0 flex-col gap-4 self-stretch">
           <span className="text-base font-bold">
             Labels ({labels.length})
           </span>
-          <div className="flex flex-col gap-2">
+          <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1">
             {labels.map((label) => (
               <LabelChip
                 key={label.name}
