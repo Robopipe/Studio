@@ -119,13 +119,16 @@ export class ModelService{
       await this.modelRepository.update(createdModel.id, {
         status: ModelStatusEnum.TRAINING,
       })
+
       const fullModel = await this.getModelById(createdModel.id, projectId)
+
       this.trainingExternalService.train(fullModel).catch(async (err) => {
         await this.modelRepository.update(createdModel.id, {
           status: ModelStatusEnum.ERROR,
           errorMessage: err instanceof Error ? err.message : String(err),
         })
       })
+
       return fullModel
     }
 

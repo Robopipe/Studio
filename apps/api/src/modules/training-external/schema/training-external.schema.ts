@@ -13,6 +13,7 @@ import z from "zod";
 
 export enum TrainingProgressTypeEnum {
   LOG = "log",
+  CONVERTING = "converting",
   ERROR = "error",
 }
 
@@ -25,9 +26,14 @@ export const trainingProgressLogRequestSchema = z.object({
   metrics: modelLogMetricsSchema,
 });
 
+export const trainingProgressConvertingRequestSchema = z.object({});
+
 export const trainingProgressContentSchema = z.discriminatedUnion("type", [
   trainingProgressLogRequestSchema.extend({
     type: z.literal(TrainingProgressTypeEnum.LOG),
+  }),
+  trainingProgressConvertingRequestSchema.extend({
+    type: z.literal(TrainingProgressTypeEnum.CONVERTING),
   }),
   trainingProgressErrorRequestSchema.extend({
     type: z.literal(TrainingProgressTypeEnum.ERROR),
@@ -37,6 +43,24 @@ export const trainingProgressContentSchema = z.discriminatedUnion("type", [
 export const trainingProgressRequestSchema = z.object({progress: trainingProgressContentSchema});
 
 export type TrainingProgressData = z.infer<typeof trainingProgressRequestSchema>;
+
+/**
+ * Training complete
+ * ML Service -> Backend
+ * Fired once after all model outputs have been PUT to their signed URLs.
+ */
+export const trainingCompleteRequestSchema = z.object({
+  outputs: z
+    .object({
+      type: z.enum(ModelOutputTypeEnum),
+      objectPath: z.string(),
+    })
+    .array(),
+  finalAccuracy: z.number().nullable(),
+  finalLoss: z.number().nullable(),
+});
+
+export type TrainingCompleteData = z.infer<typeof trainingCompleteRequestSchema>;
 
 /**
  * Training payload
@@ -88,9 +112,16 @@ export const trainingConfigSchema = z.object({
   custom_hyperparams: z.record(z.string(), z.unknown()).default({}),
 });
 
+export const trainingOutputUploadSchema = z.object({
+  type: z.enum(ModelOutputTypeEnum),
+  url: z.string(),
+  object_path: z.string(),
+});
+
 const basePayload = z.object({
   id: z.number(),
   training_config: trainingConfigSchema,
+  output_config: trainingOutputUploadSchema.array(),
 });
 
 const createDataSchema = <T extends z.ZodTypeAny>(labelSchema: T) =>
