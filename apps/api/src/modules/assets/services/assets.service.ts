@@ -121,6 +121,14 @@ export class AssetsService {
   }
 
   /**
+   * Download an object's bytes from GCS.
+   */
+  public async downloadFile(assetName: string): Promise<Buffer> {
+    const [buffer] = await this.bucket.file(assetName).download();
+    return buffer;
+  }
+
+  /**
    * Delete file from GS
    * @param fileUrl - whole file URL
    */

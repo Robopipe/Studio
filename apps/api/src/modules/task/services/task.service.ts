@@ -1,7 +1,8 @@
-import { Inject, Injectable } from "@nestjs/common";
+import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { AssetsService } from "../../assets/services/assets.service";
 import { TaskRepository } from "../../../repository/services/task-repository.service";
-import { TaskFileTypeEnum, TaskStatusEnum } from "@repo/schema";
+import { PendingTaskRepository } from "../../../repository/services/pending-task-repository.service";
+import { TaskFileTypeEnum, TaskStatusEnum, type ConfirmTaskUpload, type TaskUploadUrl } from "@repo/schema";
 import { TaskDetailEntity, TaskEntity } from "../entity/task.entity";
 import { TaskUpdateRequest } from "../dto/task.dto";
 import { DB_CONNECTION } from "../../../core/database/database.constant";
@@ -13,91 +14,119 @@ import {
   taskTable,
 } from "@repo/database";
 import { eq } from "drizzle-orm";
-import { ProjectRepository } from "../../../repository/services/project-repository.service";
-import sharp from 'sharp'
+import sharp from "sharp";
 
 @Injectable()
 export class TaskService {
+  private readonly logger = new Logger(TaskService.name);
+
   constructor(
     @Inject(DB_CONNECTION) private readonly db: DbConnection,
     private readonly assetsService: AssetsService,
     private readonly taskRepository: TaskRepository,
-    private readonly projectRepository: ProjectRepository,
-    ) {}
+    private readonly pendingTaskRepository: PendingTaskRepository,
+  ) {}
 
   /**
-   * Create task from file upload
-   * @param projectId
-   * @param file - Express multer file
-   * @returns Task Entity
+   * Step 1 of the capture upload flow: reserve an iid, stash the GCS object
+   * path in `pending_task`, and hand the browser a signed PUT URL.
    */
-  public async createTask(projectId: number, file: Express.Multer.File, iid?: string, capturedAt?: string): Promise<TaskEntity>{
-    const assetMetadata = await sharp(file.buffer).metadata()
-    const assetName = this.assetsService.getAssetName(file.originalname, projectId, 'asset')
-    const thumbnailName = this.assetsService.getAssetName(file.originalname, projectId, 'thumbnail')
+  public async requestUploadUrl(projectId: number, capturedAt?: string): Promise<TaskUploadUrl> {
+    const filename = `image-${Date.now()}.jpeg`;
+    const objectPath = this.assetsService.getAssetName(filename, projectId, "asset");
 
-    const thumbnailBuffer = await sharp(file.buffer)
-      .resize(400, 400, { fit: 'inside', withoutEnlargement: true })
-      .webp({ quality: 80 })
-      .toBuffer()
-
-    const [filePublicUrl, thumbnailPublicUrl] = await Promise.all([
-      this.assetsService.saveFile(file.buffer, file.mimetype, assetName),
-      this.assetsService.saveFile(thumbnailBuffer, 'image/webp', thumbnailName),
-    ])
-
-    const taskData = {
+    const pending = await this.pendingTaskRepository.createWithNextIid(projectId, {
       projectId,
-      fileType: TaskFileTypeEnum.GS,
-      filePath: filePublicUrl,
-      thumbnailUrl: thumbnailPublicUrl,
-      status: TaskStatusEnum.TODO,
-      width: assetMetadata.width,
-      height: assetMetadata.height,
-      ...(capturedAt && { createdAt: new Date(capturedAt) }),
-    }
+      objectPath,
+      capturedAt: capturedAt ? new Date(capturedAt) : null,
+    });
 
-    if (iid) {
-      return this.taskRepository.create({ ...taskData, iid })
-    }
+    const uploadUrl = await this.assetsService.generateSignedUploadUrl(
+      objectPath,
+      "image/jpeg",
+    );
 
-    return this.taskRepository.createWithNextIid(projectId, taskData)
+    return { pendingTaskId: pending.id, uploadUrl, objectPath };
   }
 
   /**
-   * Get task
-   * @param id
-   * @param projectId
-   * @returns TaskEntity
+   * Step 3: browser confirms the upload finished. Verify the object exists,
+   * promote the pending row to a real Task (using the dimensions the browser
+   * measured locally), and kick off thumbnail generation asynchronously so
+   * the user-visible response returns fast.
    */
+  public async confirmUpload(projectId: number, data: ConfirmTaskUpload): Promise<TaskEntity> {
+    const pending = await this.pendingTaskRepository.getById(data.pendingTaskId);
+    if (!pending || pending.projectId !== projectId) {
+      throw new NotFoundException("Pending task not found");
+    }
+
+    if (!pending.objectPath.startsWith(`${projectId}/assets/`)) {
+      throw new BadRequestException("Invalid object path");
+    }
+
+    const exists = await this.assetsService.fileExists(pending.objectPath);
+    if (!exists) {
+      throw new BadRequestException("Uploaded file not found in storage");
+    }
+
+    const filePath = this.assetsService.getPublicUrl(pending.objectPath);
+
+    const task = await this.taskRepository.create({
+      projectId,
+      iid: pending.iid,
+      fileType: TaskFileTypeEnum.GS,
+      filePath,
+      // Placeholder: full image serves as thumbnail until the async job finishes.
+      thumbnailUrl: filePath,
+      width: data.width,
+      height: data.height,
+      status: TaskStatusEnum.TODO,
+      ...(pending.capturedAt && { createdAt: pending.capturedAt }),
+    });
+
+    await this.pendingTaskRepository.delete(pending.id);
+
+    // Fire-and-forget. Requires Cloud Run CPU-always-allocated.
+    void this.generateThumbnail(task.id, projectId, pending.objectPath).catch((e) =>
+      this.logger.error(`Thumbnail generation failed for task ${task.id}`, e),
+    );
+
+    return task;
+  }
+
+  /**
+   * Background: fetch the uploaded image from GCS, downscale to a 400px webp,
+   * upload it, and patch the task row with the real thumbnail URL.
+   */
+  private async generateThumbnail(taskId: number, projectId: number, sourcePath: string): Promise<void> {
+    const buffer = await this.assetsService.downloadFile(sourcePath);
+    const thumb = await sharp(buffer)
+      .resize(400, 400, { fit: "inside", withoutEnlargement: true })
+      .webp({ quality: 80 })
+      .toBuffer();
+
+    const thumbName = this.assetsService.getAssetName(`${taskId}.jpeg`, projectId, "thumbnail");
+    const thumbnailUrl = await this.assetsService.saveFile(thumb, "image/webp", thumbName);
+
+    await this.db
+      .update(taskTable)
+      .set({ thumbnailUrl })
+      .where(eq(taskTable.id, taskId));
+  }
+
   public async getTask(id: number, projectId: number): Promise<TaskDetailEntity>{
     return this.taskRepository.getByIdAndProjectIdOrThrow(id, projectId)
   }
 
-  /**
-   * Get tasks by project ID with pagination
-   * @param projectId
-   * @param page - Page number (1-based)
-   * @param limit - Items per page
-   * @param deleted - true: only deleted, false: only non-deleted, null: both
-   * @returns Paginated task entities
-   */
   public async getTasks(projectId: number, page: number = 1, limit: number = 50, deleted: boolean | null = false, annotated?: boolean, order: "asc" | "desc" = "asc", labelIds?: number[]): Promise<{ data: TaskEntity[]; total: number }>{
     return this.taskRepository.getAllByProjectIdPaginated(projectId, page, limit, deleted, annotated, order, labelIds)
   }
 
-  /**
-   * Update task annotations
-   * @param id - task id
-   * @param projectId
-   * @param data - TaskUpdateRequest
-   * @returns TaskDetailEntity
-   */
   public async updateTask(id: number, projectId: number, data: TaskUpdateRequest): Promise<TaskDetailEntity>{
     const task = await this.taskRepository.getByIdAndProjectIdOrThrow(id, projectId);
 
     await this.db.transaction(async(tx) => {
-      // Delete and re-insert all annotation types
       await Promise.all([
         tx.delete(rectangleAnnotationTable).where(eq(rectangleAnnotationTable.taskId, id)),
         tx.delete(polygonAnnotationTable).where(eq(polygonAnnotationTable.taskId, id)),
@@ -148,15 +177,8 @@ export class TaskService {
     return this.getTask(id, projectId)
   }
 
-  /**
-   * Delete task
-   * @param id
-   * @param projectId
-   * @throws NotFoundException - Task not found
-   */
   public async deleteTask(id: number, projectId: number): Promise<void>{
     const task = await this.taskRepository.getByIdAndProjectIdOrThrow(id, projectId)
-
     await this.taskRepository.delete(task.id)
   }
 }

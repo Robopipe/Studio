@@ -126,4 +126,26 @@ export const taskPaginationQuerySchema = paginationQuerySchema.extend({
 
 export const paginatedTaskSchema = paginatedResponseSchema(taskSchema);
 
+/**
+ * Capture upload — 3-step signed-URL flow
+ *  1. POST request-upload-url → { pendingTaskId, uploadUrl, objectPath }
+ *  2. browser PUTs image bytes directly to GCS
+ *  3. POST confirm → promotes pending row into a real Task
+ */
+export const requestTaskUploadSchema = z.object({
+  capturedAt: z.iso.datetime().optional(),
+});
+
+export const taskUploadUrlSchema = z.object({
+  pendingTaskId: z.number(),
+  uploadUrl: z.string(),
+  objectPath: z.string(),
+});
+
+export const confirmTaskUploadSchema = z.object({
+  pendingTaskId: z.number(),
+  width: z.number().int().positive(),
+  height: z.number().int().positive(),
+});
+
 

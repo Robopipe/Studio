@@ -5,7 +5,7 @@ import { Skeleton } from "@/modules/shadcn/ui/skeleton";
 import { RootState } from "@/store";
 import { format } from "date-fns";
 import { Download, Loader2, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   useDeleteTaskMutation,
   useGetTasksQuery,
@@ -58,9 +58,21 @@ export const CapturedPhotos = ({}: CapturedPhotosProps) => {
     (state: RootState) => state.pendingCaptures.captures,
   );
 
+  // Split pending entries: unlinked ones still uploading (show as placeholder
+  // rows), linked ones provide a blob URL override for a corresponding task.
+  const { unlinkedPending, blobByTaskId } = useMemo(() => {
+    const blobByTaskId = new Map<number, string>();
+    const unlinkedPending = pendingCaptures.filter((p) => {
+      if (p.taskId == null) return true;
+      blobByTaskId.set(p.taskId, p.blobUrl);
+      return false;
+    });
+    return { unlinkedPending, blobByTaskId };
+  }, [pendingCaptures]);
+
   return (
     <div className="flex w-full flex-col gap-4">
-      {pendingCaptures.map((pending) => (
+      {unlinkedPending.map((pending) => (
         <div
           className="flex w-full items-center justify-between"
           key={pending.id}
@@ -89,39 +101,42 @@ export const CapturedPhotos = ({}: CapturedPhotosProps) => {
           </div>
         </div>
       ))}
-      {tasks.map((task) => (
-        <div className="flex w-full items-center justify-between" key={task.id}>
-          <div className="flex gap-4">
-            <img
-              src={task.thumbnailUrl}
-              alt={`#${task.iid}`}
-              className="aspect-4/3 w-16 rounded-lg bg-muted-foreground object-cover"
-            />
-            <div className="flex flex-col gap-0.5">
-              <span className="text-base font-medium">{`#${task.iid}`}</span>
-              <span className="text-muted-foreground">
-                {format(new Date(task.createdAt), "dd/MM/yyyy HH:mm:ss")}
-              </span>
+      {tasks.map((task) => {
+        const localBlobUrl = blobByTaskId.get(task.id);
+        return (
+          <div className="flex w-full items-center justify-between" key={task.id}>
+            <div className="flex gap-4">
+              <img
+                src={localBlobUrl ?? task.thumbnailUrl}
+                alt={`#${task.iid}`}
+                className="aspect-4/3 w-16 rounded-lg bg-muted-foreground object-cover"
+              />
+              <div className="flex flex-col gap-0.5">
+                <span className="text-base font-medium">{`#${task.iid}`}</span>
+                <span className="text-muted-foreground">
+                  {format(new Date(task.createdAt), "dd/MM/yyyy HH:mm:ss")}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 text-muted-foreground [&>svg]:cursor-pointer [&>svg:hover]:text-foreground">
+              <Download
+                onClick={() => handleDownload(task.filePath, task.id)}
+                className="size-5"
+              />
+              <Trash2
+                onClick={() => {
+                  if (activeProject)
+                    deleteTask({
+                      projectId: activeProject.id,
+                      taskId: task.id,
+                    });
+                }}
+                className="size-5"
+              />
             </div>
           </div>
-          <div className="flex items-center gap-4 text-muted-foreground [&>svg]:cursor-pointer [&>svg:hover]:text-foreground">
-            <Download
-              onClick={() => handleDownload(task.filePath, task.id)}
-              className="size-5"
-            />
-            <Trash2
-              onClick={() => {
-                if (activeProject)
-                  deleteTask({
-                    projectId: activeProject.id,
-                    taskId: task.id,
-                  });
-              }}
-              className="size-5"
-            />
-          </div>
-        </div>
-      ))}
+        );
+      })}
       <PaginationNumbers
         currentPage={page}
         totalPages={totalPages}
