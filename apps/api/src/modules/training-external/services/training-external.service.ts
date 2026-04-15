@@ -1,9 +1,10 @@
-import { BadRequestException, ConflictException, Inject, Injectable, InternalServerErrorException, Logger, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Inject, Injectable, InternalServerErrorException, Logger, NotFoundException } from "@nestjs/common";
 import { DB_CONNECTION } from "../../../core/database/database.constant";
 import type { DbConnection } from "../../../core/database/types/database.types";
 import {
   TrainingProgressTypeEnum,
   type TrainingBasePayload,
+  type TrainingCompleteData,
   type TrainingPayload,
   type TrainingProgressData,
 } from "../schema/training-external.schema";
@@ -24,6 +25,11 @@ import { AppConfig } from "../../../core/configuration/app.config";
 import { Storage } from "@google-cloud/storage";
 import { JobsClient } from "@google-cloud/run";
 
+/** Signed-URL TTL for model-output uploads. Matches the 1h Cloud Run Job timeout with plenty of headroom. */
+const UPLOAD_URL_TTL_MS = 24 * 60 * 60 * 1000;
+
+type OutputUpload = { type: ModelOutputTypeEnum; url: string; object_path: string };
+
 @Injectable()
 export class TrainingExternalService {
   private readonly logger = new Logger(TrainingExternalService.name);
@@ -40,67 +46,7 @@ export class TrainingExternalService {
   ) {}
 
   /**
-   * Upload model output
-   * @param modelId
-   * @param type
-   * @param file
-   * @throws NotFoundException - Model not found
-   */
-  public async uploadModelOutput(
-    modelId: number,
-    type: string,
-    file: Express.Multer.File,
-  ): Promise<void> {
-    const modelOutputType = this.parseModelOutputType(type)
-    if(!modelOutputType){
-      throw new BadRequestException(`Invalid model output type: ${type}`)
-    }
-
-    const model = await this.modelRepository.getById(modelId);
-    if(!model){
-      throw new NotFoundException("Model not found")
-    }
-
-    const modelOutputs = await this.modelOutputRepository.getAllByModelId(modelId)
-    const foundExistingOutput = modelOutputs.some((modelOutput) => modelOutput.type === modelOutputType)
-    if(foundExistingOutput){
-      throw new ConflictException("Model output with this type already exists")
-    }
-
-    const assetPath = this.assetsService.getModelOutputName(file.originalname, model.projectId, model.id, modelOutputType)
-    const assetPublicUrl = await this.assetsService.saveFile(file.buffer, file.mimetype, assetPath)
-
-    await this.modelOutputRepository.create({
-      modelId: model.id,
-      type: modelOutputType,
-      filePath: assetPublicUrl,
-      fileType: TaskFileTypeEnum.GS
-    })
-
-    if(modelOutputType === ModelOutputTypeEnum.RAW){
-      await this.modelRepository.update(model.id, {
-        status: ModelStatusEnum.CONVERTING
-      })
-    }
-
-    // Check if this is the last model to be uploaded
-    if(modelOutputs.length === model.outputTypes.length - 1) {
-      const lastLog = await this.modelLogRepository.getLatestByModelId(model.id)
-      const metrics = (lastLog?.metrics ?? {}) as Record<string, unknown>
-      const finalAccuracy = typeof metrics.accuracy === "number" ? metrics.accuracy : null
-      const finalLoss = typeof metrics.loss === "number" ? metrics.loss : null
-      await this.modelRepository.update(model.id, {
-        status: ModelStatusEnum.DONE,
-        finalAccuracy,
-        finalLoss,
-      })
-    }
-  }
-
-  /**
-   * Update training progress
-   * @param modelId
-   * @param data - TrainingProgressRequest
+   * Update training progress (per-epoch log, conversion-started marker, or error).
    * @throws NotFoundException - Model not found
    */
   public async updateTrainingProgress(
@@ -114,18 +60,95 @@ export class TrainingExternalService {
 
     const { progress } = data;
 
-    if (progress.type === TrainingProgressTypeEnum.ERROR) {
-      await this.modelRepository.update(modelId, {
-        status: ModelStatusEnum.ERROR,
-        errorMessage: progress.errorMessage,
-      });
-      return;
+    switch (progress.type) {
+      case TrainingProgressTypeEnum.ERROR:
+        await this.modelRepository.update(modelId, {
+          status: ModelStatusEnum.ERROR,
+          errorMessage: progress.errorMessage,
+        });
+        return;
+
+      case TrainingProgressTypeEnum.CONVERTING:
+        await this.modelRepository.update(modelId, {
+          status: ModelStatusEnum.CONVERTING,
+        });
+        return;
+
+      case TrainingProgressTypeEnum.LOG:
+        await this.modelLogRepository.create({
+          modelId,
+          epoch: progress.epoch,
+          metrics: progress.metrics,
+        });
+        return;
+    }
+  }
+
+  /**
+   * Finalize a training job after the ML service has uploaded every output
+   * directly to its signed GCS URL. Verifies each expected object exists,
+   * persists ModelOutput rows, and flips the model to DONE.
+   *
+   * Security: each reported objectPath must fall under the model's own prefix
+   * to prevent a compromised ML service from linking arbitrary GCS objects.
+   */
+  public async completeTraining(
+    modelId: number,
+    data: TrainingCompleteData,
+  ): Promise<void> {
+    const model = await this.modelRepository.getById(modelId);
+    if (!model) {
+      throw new NotFoundException("Model not found");
     }
 
-    await this.modelLogRepository.create({
-      modelId,
-      epoch: progress.epoch,
-      metrics: progress.metrics,
+    const expectedTypes = new Set(model.outputTypes);
+    const reportedTypes = new Set(data.outputs.map((o) => o.type));
+
+    for (const type of expectedTypes) {
+      if (!reportedTypes.has(type)) {
+        await this.failModel(modelId, `Training complete webhook missing output type: ${type}`);
+        throw new BadRequestException(`Missing output type in complete payload: ${type}`);
+      }
+    }
+
+    const prefix = `${model.projectId}/model/${model.id}/`;
+    const existingOutputs = await this.modelOutputRepository.getAllByModelId(modelId);
+    const existingTypes = new Set(existingOutputs.map((o) => o.type));
+
+    for (const output of data.outputs) {
+      if (!expectedTypes.has(output.type)) {
+        // Not a hard failure — just skip unexpected types.
+        this.logger.warn(`Model ${modelId} reported unexpected output type ${output.type}`);
+        continue;
+      }
+
+      if (existingTypes.has(output.type)) {
+        continue;
+      }
+
+      if (!output.objectPath.startsWith(prefix)) {
+        await this.failModel(modelId, `Rejected object path outside model prefix: ${output.objectPath}`);
+        throw new BadRequestException(`Object path must start with ${prefix}`);
+      }
+
+      const exists = await this.assetsService.fileExists(output.objectPath);
+      if (!exists) {
+        await this.failModel(modelId, `Uploaded file not found in storage: ${output.objectPath}`);
+        throw new BadRequestException(`File not found in storage: ${output.objectPath}`);
+      }
+
+      await this.modelOutputRepository.create({
+        modelId: model.id,
+        type: output.type,
+        filePath: this.assetsService.getPublicUrl(output.objectPath),
+        fileType: TaskFileTypeEnum.GS,
+      });
+    }
+
+    await this.modelRepository.update(model.id, {
+      status: ModelStatusEnum.DONE,
+      finalAccuracy: data.finalAccuracy,
+      finalLoss: data.finalLoss,
     });
   }
 
@@ -134,7 +157,8 @@ export class TrainingExternalService {
    * @param model - Model entity
    */
   public async train(model: ModelEntity): Promise<void> {
-    const trainingPayload = await this.getTrainingPayload(model);
+    const outputUploads = await this.generateOutputUploads(model);
+    const trainingPayload = await this.getTrainingPayload(model, outputUploads);
 
     this.logger.log(`Train config: mlJobName=${this.config.mlJobName}, mlHost=${this.config.mlHost}`);
     if (this.config.mlJobName) {
@@ -144,6 +168,33 @@ export class TrainingExternalService {
     } else {
       throw new InternalServerErrorException("No ML training backend configured. Set either ML_HOST or ML_JOB_NAME.");
     }
+  }
+
+  /**
+   * Generate a signed PUT URL for every output type the model expects.
+   * Paths follow `{projectId}/model/{modelId}/{type_lower}/{uuid}.{ext}`
+   * so verification can enforce the prefix later.
+   */
+  private async generateOutputUploads(model: ModelEntity): Promise<OutputUpload[]> {
+    const uploads: OutputUpload[] = [];
+    for (const type of model.outputTypes) {
+      const objectPath = this.assetsService.getModelOutputPath(model.projectId, model.id, type);
+      const url = await this.assetsService.generateSignedUploadUrl(
+        objectPath,
+        "application/octet-stream",
+        UPLOAD_URL_TTL_MS,
+      );
+      uploads.push({ type, url, object_path: objectPath });
+    }
+    return uploads;
+  }
+
+  private async failModel(modelId: number, message: string): Promise<void> {
+    this.logger.error(`Model ${modelId}: ${message}`);
+    await this.modelRepository.update(modelId, {
+      status: ModelStatusEnum.ERROR,
+      errorMessage: message,
+    });
   }
 
   private async trainViaHttp(trainingPayload: TrainingPayload): Promise<void> {
@@ -198,11 +249,10 @@ export class TrainingExternalService {
 
   /**
    * Get training payload for machine learning service
-   * @param model - ModelEntity
-   * @return TrainingPayload
    */
   private async getTrainingPayload(
     model: ModelEntity,
+    outputUploads: OutputUpload[],
   ): Promise<TrainingPayload> {
     const tasks = await this.db.query.taskTable.findMany({
       where: {
@@ -238,6 +288,7 @@ export class TrainingExternalService {
 
     const basePayload: TrainingBasePayload = {
       id: model.id,
+      output_config: outputUploads,
       training_config: {
         output_types: model.outputTypes,
         epochs: model.epochs,
@@ -322,26 +373,6 @@ export class TrainingExternalService {
 
         return { ...basePayload, type: ProjectTypeEnum.DETECTION, data };
       }
-    }
-  }
-
-  /**
-   * Parse model output type from string
-   * @param type
-   * @return ModelOutputTypeEnum or null if doesn't match
-   */
-  private parseModelOutputType(type: string): ModelOutputTypeEnum | null {
-    switch (type.toUpperCase()) {
-      case ModelOutputTypeEnum.RAW.valueOf():
-        return ModelOutputTypeEnum.RAW;
-      case ModelOutputTypeEnum.RVC2.valueOf():
-        return ModelOutputTypeEnum.RVC2;
-      case ModelOutputTypeEnum.RVC3.valueOf():
-        return ModelOutputTypeEnum.RVC3;
-      case ModelOutputTypeEnum.RVC4.valueOf():
-        return ModelOutputTypeEnum.RVC4;
-      default:
-        return null
     }
   }
 }

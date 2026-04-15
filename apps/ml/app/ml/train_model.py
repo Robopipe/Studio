@@ -6,29 +6,63 @@ import requests
 from ..config import get_config
 from ..models.model_config import ModelConfig
 from ..models.model_type import ModelOutputType
+from ..models.training_config import OutputUpload
 from .dataset import prepare_dataset
 from .generate_config import generate_luxonis_config, get_image_size
 from .preprocess import preprocess_dataset
 from .model import Model
 from .model_conversion import convert_model
-from .callbacks import *
+from .callbacks import *  # noqa: F401,F403  (registers LuxonisTrain callbacks)
+from .callbacks import FINAL_METRICS
 
 
-def __upload_model(url: str, file_path: str, api_key: str) -> None:
-    """Upload a model file to the webhook URL with proper error handling."""
+def __upload_to_signed_url(upload: OutputUpload, file_path: str) -> None:
+    """PUT a file directly to a pre-signed GCS URL.
+
+    Signed URLs embed auth in the query string — no Authorization header. The
+    Content-Type must match what the backend signed the URL with (generic
+    octet-stream, since we don't know the size up front).
+    """
     try:
         with open(file_path, "rb") as f:
-            response = requests.post(
-                url,
-                files={"file": f},
-                headers={"Authorization": api_key},
+            response = requests.put(
+                upload.url,
+                data=f,
+                headers={"Content-Type": "application/octet-stream"},
             )
             response.raise_for_status()
-            print(f"Successfully uploaded model to {url}")
+            print(f"Uploaded {upload.type.value} to {upload.object_path}")
     except FileNotFoundError:
-        print(f"Failed to upload model: file not found at {file_path}")
+        print(f"Failed to upload {upload.type.value}: file not found at {file_path}")
+        raise
     except requests.exceptions.RequestException as e:
-        print(f"Failed to upload model to {url}: {e}")
+        print(f"Failed to upload {upload.type.value} to signed URL: {e}")
+        raise
+
+
+def __post_progress(webhook_url: str, api_key: str, model_id: int, payload: dict) -> None:
+    try:
+        response = requests.post(
+            f"{webhook_url}/progress/{model_id}",
+            json=payload,
+            headers={"Authorization": api_key},
+        )
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        print(f"Failed to send progress webhook: {e}")
+
+
+def __post_complete(webhook_url: str, api_key: str, model_id: int, payload: dict) -> None:
+    try:
+        response = requests.post(
+            f"{webhook_url}/complete/{model_id}",
+            json=payload,
+            headers={"Authorization": api_key},
+        )
+        response.raise_for_status()
+        print(f"Posted training-complete for model {model_id}")
+    except requests.exceptions.RequestException as e:
+        print(f"Failed to post training-complete: {e}")
 
 
 def run_training(config: ModelConfig):
@@ -63,14 +97,34 @@ def run_training(config: ModelConfig):
                 print("No webhook_url configured, skipping model upload")
                 return
 
+            # Index uploads by type for quick lookup
+            uploads_by_type: dict[ModelOutputType, OutputUpload] = {
+                u.type: u for u in config.output_config
+            }
+
+            def upload_for(t: ModelOutputType) -> OutputUpload:
+                upload = uploads_by_type.get(t)
+                if upload is None:
+                    raise RuntimeError(f"No signed upload URL for output type {t.value}")
+                return upload
+
+            completed_outputs: list[OutputUpload] = []
+
             if ModelOutputType.RAW in output_types:
-                __upload_model(
-                    f"{webhook_url}/upload/{config.id}/raw",
-                    f"{dir}/{output_dir}/{ONNX_PATH}",
+                raw_upload = upload_for(ModelOutputType.RAW)
+                __upload_to_signed_url(raw_upload, f"{dir}/{output_dir}/{ONNX_PATH}")
+                completed_outputs.append(raw_upload)
+
+            non_raw_types = [t for t in output_types if t != ModelOutputType.RAW]
+            if non_raw_types:
+                __post_progress(
+                    webhook_url,
                     api_key,
+                    config.id,
+                    {"progress": {"type": "converting"}},
                 )
 
-            for output_type in filter(lambda x: x != ModelOutputType.RAW, output_types):
+            for output_type in non_raw_types:
                 try:
                     print(f"Converting model to {output_type.value}...")
                     res = convert_model(
@@ -79,28 +133,37 @@ def run_training(config: ModelConfig):
                         target_format=output_type,
                     )
                     print(f"Conversion complete, uploading {output_type.value}...")
-                    __upload_model(
-                        f"{webhook_url}/upload/{config.id}/{output_type.value}",
-                        res.downloaded_path,
-                        api_key,
-                    )
+                    conv_upload = upload_for(output_type)
+                    __upload_to_signed_url(conv_upload, res.downloaded_path)
+                    completed_outputs.append(conv_upload)
                 except Exception as e:
                     print(f"Failed to convert/upload {output_type.value}: {e}")
+                    raise
+
+            __post_complete(
+                webhook_url,
+                api_key,
+                config.id,
+                {
+                    "outputs": [
+                        {"type": u.type.value, "objectPath": u.object_path}
+                        for u in completed_outputs
+                    ],
+                    "finalAccuracy": FINAL_METRICS.get("accuracy"),
+                    "finalLoss": FINAL_METRICS.get("loss"),
+                },
+            )
     except Exception as e:
         url = get_config().webhook_url
         api_key = get_config().api_key
         error_message = str(e)
         if url is not None:
-            try:
-                response = requests.post(
-                    f"{url}/progress/{config.id}",
-                    json={"progress": {"type": "error", "errorMessage": error_message}},
-                    headers={"Authorization": api_key},
-                )
-                response.raise_for_status()
-                print(f"Successfully sent error message to {url}")
-            except requests.exceptions.RequestException as req_e:
-                print(f"Failed to send error message to {url}: {req_e}")
+            __post_progress(
+                url,
+                api_key,
+                config.id,
+                {"progress": {"type": "error", "errorMessage": error_message}},
+            )
         else:
             print(f"Error during training: {error_message}")
 

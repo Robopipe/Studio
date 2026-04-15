@@ -1,6 +1,7 @@
 import requests
 import math
 from numbers import Real
+from typing import Optional
 
 import lightning.pytorch as pl
 from luxonis_train import LuxonisLightningModule
@@ -8,6 +9,11 @@ from luxonis_train.registry import CALLBACKS
 
 from ..models.model_config import ModelType
 from ..config import get_config
+
+
+# Captures the latest epoch's accuracy/loss so run_training can forward them
+# in the final `training-external/complete` webhook. Populated by WebhookStats.
+FINAL_METRICS: dict[str, Optional[float]] = {"accuracy": None, "loss": None}
 
 
 @CALLBACKS.register()
@@ -57,6 +63,9 @@ class WebhookStats(pl.Callback):
         # Keep canonical keys required by the API while forwarding all trainer metrics.
         metrics["accuracy"] = acc
         metrics["loss"] = loss
+
+        FINAL_METRICS["accuracy"] = acc
+        FINAL_METRICS["loss"] = loss
 
         data = {
             "progress": {
