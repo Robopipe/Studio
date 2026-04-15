@@ -126,6 +126,7 @@ export const createModelSchema = modelSchema
     // Schema validation intentionally bypassed — any JSON object is accepted.
     // Original: customHyperparams: hyperparamsConfigSchema.default({}),
     customHyperparams: z.record(z.string(), z.unknown()).default({}),
+    train: z.boolean().default(false),
   })
   .refine(
     (data) => {
