@@ -38,6 +38,7 @@ const ConfigurationTabContent = ({
     cameras,
     streams,
     trainedModels,
+    capturedVideos,
     previewImageUrl,
     selectedCamera,
     setSelectedCamera,
@@ -45,6 +46,8 @@ const ConfigurationTabContent = ({
     setSelectedStream,
     selectedModelId,
     setSelectedModelId,
+    selectedVideoId,
+    setSelectedVideoId,
     lineConfig,
     setLineConfig,
     hasChanges,
@@ -56,7 +59,7 @@ const ConfigurationTabContent = ({
     <div className="flex min-h-full flex-col gap-6 bg-gray-100 p-6">
       <h1 className="text-xl font-semibold">Configuration</h1>
 
-      <div className="flex max-h-105 overflow-hidden rounded-xl gap-2">
+      <div className="flex max-h-130 overflow-hidden rounded-xl gap-2">
         <div className="flex flex-3/5 bg-card rounded-xl">
           <LinePositionPanel value={lineConfig} onChange={setLineConfig} />
 
@@ -67,6 +70,7 @@ const ConfigurationTabContent = ({
           cameras={cameras}
           streams={streams}
           trainedModels={trainedModels}
+          capturedVideos={capturedVideos}
           selectedCamera={selectedCamera}
           onCameraChange={(mxid) => {
             setSelectedCamera(mxid);
@@ -77,6 +81,8 @@ const ConfigurationTabContent = ({
           selectedModelId={selectedModelId}
           onModelChange={setSelectedModelId}
           onModelClear={() => setSelectedModelId(null)}
+          selectedVideoId={selectedVideoId}
+          onVideoChange={setSelectedVideoId}
         />
       </div>
 
