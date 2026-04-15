@@ -148,4 +148,77 @@ export const confirmTaskUploadSchema = z.object({
   height: z.number().int().positive(),
 });
 
+/**
+ * Bulk task export — one JSON document containing every task that matches
+ * the data-source filters, with its full annotation set split by type.
+ * Annotations carry only labelId; the top-level `labels` list lets
+ * consumers decode them.
+ */
+export const taskExportRectangleAnnotationSchema = z.object({
+  id: z.number(),
+  labelId: z.number(),
+  x: z.number(),
+  y: z.number(),
+  width: z.number(),
+  height: z.number(),
+});
+
+export const taskExportPolygonAnnotationSchema = z.object({
+  id: z.number(),
+  labelId: z.number(),
+  value: z.tuple([z.number(), z.number()]).array(),
+});
+
+export const taskExportClassificationAnnotationSchema = z.object({
+  id: z.number(),
+  labelId: z.number(),
+});
+
+export const taskExportItemSchema = z.object({
+  id: z.number(),
+  iid: z.string(),
+  filePath: z.string(),
+  width: z.number(),
+  height: z.number(),
+  status: z.enum(TaskStatusEnum),
+  createdAt: z.iso.datetime(),
+  rectangleAnnotations: taskExportRectangleAnnotationSchema.array(),
+  polygonAnnotations: taskExportPolygonAnnotationSchema.array(),
+  classificationAnnotations: taskExportClassificationAnnotationSchema.array(),
+});
+
+export const taskExportSchema = z.object({
+  project: z.object({
+    id: z.number(),
+    name: z.string(),
+  }),
+  exportedAt: z.iso.datetime(),
+  labels: z
+    .object({
+      id: z.number(),
+      name: z.string(),
+      color: z.string(),
+    })
+    .array(),
+  tasks: taskExportItemSchema.array(),
+});
+
+export const taskExportQuerySchema = z.object({
+  annotated: z
+    .union([z.literal("true"), z.literal("false")])
+    .optional()
+    .transform((val): boolean | undefined => {
+      if (val === "true") return true;
+      if (val === "false") return false;
+      return undefined;
+    }),
+  labelIds: z
+    .string()
+    .optional()
+    .transform((val): number[] | undefined => {
+      if (!val) return undefined;
+      return val.split(",").map(Number).filter((n) => !isNaN(n));
+    }),
+});
+
 

@@ -214,6 +214,44 @@ export class TaskRepository {
   }
 
   /**
+   * Fetch all non-deleted tasks for a project with their full annotation
+   * set, honoring the same `annotated` + `labelIds` filters as the list
+   * endpoint. No pagination — intended for the export endpoint.
+   */
+  public async getAllForExport(
+    projectId: number,
+    annotated?: boolean,
+    labelIds?: number[],
+  ): Promise<TaskDetailEntity[]> {
+    const statusValue = annotated === true ? TaskStatusEnum.DONE
+      : annotated === false ? TaskStatusEnum.TODO
+      : undefined;
+
+    const buildLabelCondition = labelIds?.length
+      ? this.buildLabelExistsCondition(labelIds)
+      : undefined;
+
+    const tasks = await this.db.query.taskTable.findMany({
+      where: {
+        projectId,
+        deletedAt: { isNull: true },
+        ...(statusValue && { status: statusValue }),
+        ...(buildLabelCondition && { RAW: (table: typeof taskTable) => buildLabelCondition(table.id) }),
+      },
+      orderBy: (t) => asc(t.createdAt),
+      with: {
+        rectangleAnnotations: { with: { label: true } },
+        polygonAnnotations: { with: { label: true } },
+        classificationAnnotations: { with: { label: true } },
+      },
+    });
+
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
+    return tasks.map((t) => new TaskDetailEntity(t));
+  }
+
+  /**
    * Delete task by id
    * @param id
    */

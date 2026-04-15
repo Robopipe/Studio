@@ -28,6 +28,7 @@ export const studioApiEndpoints = {
     task: (projectId: number, taskId: number) => `task/${projectId}/${taskId}`,
     uploadUrl: (projectId: number) => `task/${projectId}/upload-url`,
     confirm: (projectId: number) => `task/${projectId}/confirm`,
+    export: (projectId: number) => `task/${projectId}/export`,
   },
   projects: {
     projects: "projects",

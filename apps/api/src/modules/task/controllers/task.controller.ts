@@ -18,6 +18,8 @@ import {
   PaginatedTaskResponse,
   RequestTaskUploadDto,
   TaskDetailResponse,
+  TaskExportQuery,
+  TaskExportResponse,
   TaskPaginationQuery,
   TaskResponse,
   TaskUpdateRequest,
@@ -44,6 +46,14 @@ export class TaskController {
   ): Promise<TaskResponse> {
     const task = await this.taskService.confirmUpload(projectId, body);
     return task.toResponse();
+  }
+
+  @Get("export")
+  public async exportTasks(
+    @ProjectId() projectId: number,
+    @Query() query: TaskExportQuery,
+  ): Promise<TaskExportResponse> {
+    return this.taskService.exportTasks(projectId, query.annotated, query.labelIds);
   }
 
   @Get()

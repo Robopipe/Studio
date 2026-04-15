@@ -2,7 +2,9 @@ import { BadRequestException, Inject, Injectable, Logger, NotFoundException } fr
 import { AssetsService } from "../../assets/services/assets.service";
 import { TaskRepository } from "../../../repository/services/task-repository.service";
 import { PendingTaskRepository } from "../../../repository/services/pending-task-repository.service";
-import { TaskFileTypeEnum, TaskStatusEnum, type ConfirmTaskUpload, type TaskUploadUrl } from "@repo/schema";
+import { ProjectRepository } from "../../../repository/services/project-repository.service";
+import { ProjectLabelRepository } from "../../../repository/services/project-label-repository.service";
+import { TaskFileTypeEnum, TaskStatusEnum, type ConfirmTaskUpload, type TaskExport, type TaskUploadUrl } from "@repo/schema";
 import { TaskDetailEntity, TaskEntity } from "../entity/task.entity";
 import { TaskUpdateRequest } from "../dto/task.dto";
 import { DB_CONNECTION } from "../../../core/database/database.constant";
@@ -25,6 +27,8 @@ export class TaskService {
     private readonly assetsService: AssetsService,
     private readonly taskRepository: TaskRepository,
     private readonly pendingTaskRepository: PendingTaskRepository,
+    private readonly projectRepository: ProjectRepository,
+    private readonly projectLabelRepository: ProjectLabelRepository,
   ) {}
 
   /**
@@ -180,5 +184,55 @@ export class TaskService {
   public async deleteTask(id: number, projectId: number): Promise<void>{
     const task = await this.taskRepository.getByIdAndProjectIdOrThrow(id, projectId)
     await this.taskRepository.delete(task.id)
+  }
+
+  /**
+   * Build the export JSON — all matching tasks with every annotation type,
+   * plus a top-level labels list so labelIds can be decoded externally.
+   * Mirrors the shape used by the ML training payload but keeps every
+   * annotation type present (not just the one the model trains on).
+   */
+  public async exportTasks(
+    projectId: number,
+    annotated?: boolean,
+    labelIds?: number[],
+  ): Promise<TaskExport> {
+    const [project, labels, tasks] = await Promise.all([
+      this.projectRepository.getByIdOrThrow(projectId),
+      this.projectLabelRepository.getAllByProjectId(projectId),
+      this.taskRepository.getAllForExport(projectId, annotated, labelIds),
+    ]);
+
+    return {
+      project: { id: project.id, name: project.name },
+      exportedAt: new Date().toISOString(),
+      labels: labels.map((l) => ({ id: l.id, name: l.name, color: l.color })),
+      tasks: tasks.map((task) => ({
+        id: task.id,
+        iid: task.iid,
+        filePath: task.filePath,
+        width: task.width,
+        height: task.height,
+        status: task.status,
+        createdAt: task.createdAt.toISOString(),
+        rectangleAnnotations: task.rectangleAnnotations.map((a) => ({
+          id: a.id,
+          labelId: a.label.id,
+          x: a.x,
+          y: a.y,
+          width: a.width,
+          height: a.height,
+        })),
+        polygonAnnotations: task.polygonAnnotations.map((a) => ({
+          id: a.id,
+          labelId: a.label.id,
+          value: a.value,
+        })),
+        classificationAnnotations: task.classificationAnnotations.map((a) => ({
+          id: a.id,
+          labelId: a.label.id,
+        })),
+      })),
+    };
   }
 }
