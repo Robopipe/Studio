@@ -35,16 +35,16 @@ export class TaskService {
     const filename = `image-${Date.now()}.jpeg`;
     const objectPath = this.assetsService.getAssetName(filename, projectId, "asset");
 
-    const pending = await this.pendingTaskRepository.createWithNextIid(projectId, {
-      projectId,
-      objectPath,
-      capturedAt: capturedAt ? new Date(capturedAt) : null,
-    });
-
-    const uploadUrl = await this.assetsService.generateSignedUploadUrl(
-      objectPath,
-      "image/jpeg",
-    );
+    // Run the DB reservation and the IAM signBlob round-trip in parallel —
+    // they're independent (both only need `projectId`/`objectPath`).
+    const [pending, uploadUrl] = await Promise.all([
+      this.pendingTaskRepository.createWithNextIid(projectId, {
+        projectId,
+        objectPath,
+        capturedAt: capturedAt ? new Date(capturedAt) : null,
+      }),
+      this.assetsService.generateSignedUploadUrl(objectPath, "image/jpeg"),
+    ]);
 
     return { pendingTaskId: pending.id, uploadUrl, objectPath };
   }

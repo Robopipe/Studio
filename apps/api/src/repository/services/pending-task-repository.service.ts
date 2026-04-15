@@ -1,9 +1,12 @@
 import { Inject, Injectable, InternalServerErrorException } from "@nestjs/common";
-import { pendingTaskTable, taskTable } from "@repo/database";
-import { eq, max, sql } from "drizzle-orm";
+import { pendingTaskTable } from "@repo/database";
+import { eq, sql } from "drizzle-orm";
 import { DB_CONNECTION } from "src/core/database/database.constant";
 import type { DbConnection } from "src/core/database/types/database.types";
 import { PendingTaskInsert, PendingTaskSelect } from "../types/pending-task";
+
+const UNIQUE_VIOLATION = "23505";
+const MAX_IID_RETRIES = 3;
 
 @Injectable()
 export class PendingTaskRepository {
@@ -17,48 +20,59 @@ export class PendingTaskRepository {
   }
 
   /**
-   * Reserve the next numeric iid for the project (gaps allowed) and insert
-   * a pending-task row in a single transaction. Uses an advisory lock so
-   * concurrent captures don't collide on iid. Looks across both the real
-   * task table and the pending table to pick the true next iid.
+   * Reserve the next numeric iid + insert the pending row in a single SQL
+   * round-trip. Computes `GREATEST(MAX(task), MAX(pending)) + 1` inline and
+   * relies on the `UNIQUE(project_id, iid)` constraint for correctness under
+   * concurrency — if two callers race, the loser retries. Cheaper than an
+   * advisory-lock transaction (6 RTTs → 1 RTT in the happy path).
+   *
+   * Gaps in the iid sequence are acceptable (abandoned uploads leave holes).
    */
   public async createWithNextIid(
     projectId: number,
     data: Omit<PendingTaskInsert, "iid">,
   ): Promise<PendingTaskSelect> {
-    return this.db.transaction(async (tx) => {
-      await tx.execute(sql`SELECT pg_advisory_xact_lock(${projectId})`);
+    const nextIidExpr = sql<string>`(GREATEST(
+      COALESCE((SELECT MAX(iid::int) FROM task
+                WHERE project_id = ${projectId} AND iid ~ '^[0-9]+$'), 0),
+      COALESCE((SELECT MAX(iid::int) FROM pending_task
+                WHERE project_id = ${projectId} AND iid ~ '^[0-9]+$'), 0)
+    ) + 1)::text`;
 
-      const [taskMax] = await tx
-        .select({
-          maxIid: max(sql`CASE WHEN ${taskTable.iid} ~ '^[0-9]+$' THEN ${taskTable.iid}::int END`),
-        })
-        .from(taskTable)
-        .where(eq(taskTable.projectId, projectId));
+    for (let attempt = 0; attempt < MAX_IID_RETRIES; attempt++) {
+      try {
+        const [created] = await this.db
+          .insert(pendingTaskTable)
+          .values({
+            projectId,
+            objectPath: data.objectPath,
+            capturedAt: data.capturedAt ?? null,
+            iid: nextIidExpr,
+          })
+          .returning();
 
-      const [pendingMax] = await tx
-        .select({
-          maxIid: max(sql`CASE WHEN ${pendingTaskTable.iid} ~ '^[0-9]+$' THEN ${pendingTaskTable.iid}::int END`),
-        })
-        .from(pendingTaskTable)
-        .where(eq(pendingTaskTable.projectId, projectId));
-
-      const currentMax = Math.max(Number(taskMax?.maxIid ?? 0), Number(pendingMax?.maxIid ?? 0));
-      const nextIid = String(currentMax + 1);
-
-      const [created] = await tx
-        .insert(pendingTaskTable)
-        .values({ ...data, iid: nextIid })
-        .returning();
-
-      if (!created) {
-        throw new InternalServerErrorException("Failed creating pending task");
+        if (!created) {
+          throw new InternalServerErrorException("Failed creating pending task");
+        }
+        return created;
+      } catch (e) {
+        if (isUniqueViolation(e) && attempt < MAX_IID_RETRIES - 1) {
+          continue;
+        }
+        throw e;
       }
-      return created;
-    });
+    }
+
+    throw new InternalServerErrorException("Failed reserving iid after retries");
   }
 
   public async delete(id: number): Promise<void> {
     await this.db.delete(pendingTaskTable).where(eq(pendingTaskTable.id, id));
   }
+}
+
+function isUniqueViolation(e: unknown): boolean {
+  const code = (e as { code?: string; cause?: { code?: string } })?.code
+    ?? (e as { cause?: { code?: string } })?.cause?.code;
+  return code === UNIQUE_VIOLATION;
 }
