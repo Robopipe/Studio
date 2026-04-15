@@ -1,7 +1,8 @@
 import { PaginationNumbers } from "@/modules/shadcn/ui/pagination";
+import { TaskListItem } from "@/modules/ui";
 import { cn } from "@/lib/utils";
 import { Label, Task, TaskStatusEnum } from "@repo/schema";
-import { Camera, Check, SlidersHorizontal } from "lucide-react";
+import { Check, SlidersHorizontal } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { TaskFilterDialog, TaskFilterState } from "../TaskFilterDialog";
 
@@ -79,42 +80,14 @@ export const DataSourcePanel = ({
           const count =
             isSelected ? annotationCount : task.annotationCount ?? 0;
           return (
-            <button
+            <TaskListItem
               key={task.id}
-              type="button"
-              className={cn(
-                "flex w-full cursor-pointer items-center gap-4 border-b border-black/10 px-4 py-2 text-left transition-colors hover:bg-black/[0.04]",
-                isSelected && "bg-emerald-500/15 hover:bg-emerald-500/15",
-              )}
+              task={task}
+              imageSrc={task.thumbnailUrl}
+              selected={isSelected}
               onClick={() => onSelectTask(task.id)}
-            >
-              <img
-                src={task.thumbnailUrl}
-                alt={`#${task.iid}`}
-                className={cn(
-                  "h-[52px] w-[60px] shrink-0 rounded bg-muted object-cover",
-                  isSelected && "border border-emerald-500",
-                )}
-              />
-              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span className="truncate text-xs font-bold leading-4 text-foreground/90">
-                  #{task.iid}
-                </span>
-                <div className="flex items-center gap-1 text-xs leading-4 text-foreground/60">
-                  <Camera className="size-4 shrink-0" />
-                  <span className="truncate">
-                    {new Date(task.createdAt).toLocaleString(undefined, {
-                      day: "2-digit",
-                      month: "2-digit",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
-                </div>
-              </div>
-              <AnnotationChip count={count} status={task.status} />
-            </button>
+              rightSlot={<AnnotationChip count={count} status={task.status} />}
+            />
           );
         })}
       </div>

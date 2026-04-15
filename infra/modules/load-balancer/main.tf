@@ -22,10 +22,12 @@ resource "google_compute_region_network_endpoint_group" "api" {
 }
 
 resource "google_compute_backend_service" "api" {
-  project     = var.project_id
-  name        = "${var.name_prefix}-api-backend"
-  protocol    = "HTTPS"
-  timeout_sec = 30
+  project               = var.project_id
+  name                  = "${var.name_prefix}-api-backend"
+  protocol              = "HTTPS"
+  timeout_sec           = 30
+  # Required for default_custom_error_response_policy on the url_map.
+  load_balancing_scheme = "EXTERNAL_MANAGED"
 
   backend {
     group = google_compute_region_network_endpoint_group.api.id
@@ -36,6 +38,18 @@ resource "google_compute_url_map" "web" {
   project         = var.project_id
   name            = "${var.name_prefix}-web-url-map"
   default_service = google_compute_backend_bucket.web.id
+
+  # SPA deep-link handling: GCS serves index.html as its 404 page (see the
+  # web bucket's website config) but keeps the 404 status. This rewrites
+  # that to 200 at the LB so /projects/5 etc. refresh cleanly.
+  default_custom_error_response_policy {
+    error_response_rule {
+      match_response_codes   = ["404"]
+      path                   = "/index.html"
+      override_response_code = 200
+    }
+    error_service = google_compute_backend_bucket.web.id
+  }
 
   host_rule {
     hosts        = [var.api_domain]
@@ -73,12 +87,13 @@ resource "google_compute_target_https_proxy" "web" {
 }
 
 resource "google_compute_global_forwarding_rule" "https" {
-  count      = var.domain != "" ? 1 : 0
-  project    = var.project_id
-  name       = "${var.name_prefix}-web-https"
-  target     = google_compute_target_https_proxy.web[0].id
-  ip_address = google_compute_global_address.web.address
-  port_range = "443"
+  count                 = var.domain != "" ? 1 : 0
+  project               = var.project_id
+  name                  = "${var.name_prefix}-web-https"
+  target                = google_compute_target_https_proxy.web[0].id
+  ip_address            = google_compute_global_address.web.address
+  port_range            = "443"
+  load_balancing_scheme = "EXTERNAL_MANAGED"
 }
 
 # HTTP (always created — serves as redirect if HTTPS exists, or main if no domain)
@@ -100,9 +115,10 @@ resource "google_compute_url_map" "http_redirect" {
 }
 
 resource "google_compute_global_forwarding_rule" "http" {
-  project    = var.project_id
-  name       = "${var.name_prefix}-web-http"
-  target     = google_compute_target_http_proxy.web.id
-  ip_address = google_compute_global_address.web.address
-  port_range = "80"
+  project               = var.project_id
+  name                  = "${var.name_prefix}-web-http"
+  target                = google_compute_target_http_proxy.web.id
+  ip_address            = google_compute_global_address.web.address
+  port_range            = "80"
+  load_balancing_scheme = "EXTERNAL_MANAGED"
 }

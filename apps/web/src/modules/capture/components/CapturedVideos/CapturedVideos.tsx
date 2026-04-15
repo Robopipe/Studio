@@ -2,10 +2,10 @@ import { useAppSelector } from "@/hooks/redux";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import { PaginationNumbers } from "@/modules/shadcn/ui/pagination";
 import { Skeleton } from "@/modules/shadcn/ui/skeleton";
+import { MediaListItem, MediaListItemDate } from "@/modules/ui";
 import { RootState } from "@/store";
-import { format } from "date-fns";
 import { Download, Loader2, Play, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { MouseEvent, useState } from "react";
 import {
   useDeleteCapturedVideoMutation,
   useGetCapturedVideosQuery,
@@ -36,6 +36,27 @@ const handleDownload = async (fileUrl: string, id: number) => {
   URL.revokeObjectURL(url);
 };
 
+const VideoThumbnail = ({
+  src,
+  alt,
+  durationMs,
+}: {
+  src: string;
+  alt: string;
+  durationMs: number;
+}) => (
+  <div className="relative shrink-0">
+    <img
+      src={src}
+      alt={alt}
+      className="h-[52px] w-[92px] rounded bg-muted object-cover"
+    />
+    <span className="absolute bottom-0.5 right-0.5 rounded bg-black/70 px-1 text-[10px] font-medium leading-3 text-white">
+      {formatDuration(durationMs)}
+    </span>
+  </div>
+);
+
 export const CapturedVideos = ({}: CapturedVideosProps) => {
   const [deleteCapturedVideo] = useDeleteCapturedVideoMutation();
   const [activeProject] = useActiveProject();
@@ -61,113 +82,100 @@ export const CapturedVideos = ({}: CapturedVideosProps) => {
     ? Math.ceil(videosData.total / videosData.limit)
     : 0;
 
-  type VideoRow =
-    | {
-        type: "pending";
-        id: string;
-        thumbnailUrl: string;
-        durationMs: number;
-        date: string;
-        uploadProgress: number;
-      }
-    | {
-        type: "uploaded";
-        id: number;
-        thumbnailUrl: string;
-        durationMs: number;
-        date: string;
-        fileUrl: string;
-      };
-
-  const rows: VideoRow[] = [
-    ...pendingCaptures.map((p) => ({
-      type: "pending" as const,
-      id: p.id,
-      thumbnailUrl: p.thumbnailBlobUrl,
-      durationMs: p.durationMs,
-      date: p.capturedAt,
-      uploadProgress: p.uploadProgress,
-    })),
-    ...videos.map((v) => ({
-      type: "uploaded" as const,
-      id: v.id,
-      thumbnailUrl: v.thumbnailUrl,
-      durationMs: v.durationMs,
-      date: v.createdAt,
-      fileUrl: v.fileUrl,
-    })),
-  ];
+  const stop = (fn: () => void) => (e: MouseEvent) => {
+    e.stopPropagation();
+    fn();
+  };
 
   return (
-    <div className="flex w-full flex-col gap-4">
-      {rows.length === 0 && (
-        <p className="text-sm text-muted-foreground">No captured videos yet.</p>
+    <div className="flex w-full flex-col">
+      {pendingCaptures.length === 0 && videos.length === 0 && (
+        <p className="p-4 text-sm text-muted-foreground">
+          No captured videos yet.
+        </p>
       )}
-      {rows.map((row) => (
-        <div className="flex w-full items-center justify-between" key={row.id}>
-          <div className="flex gap-4">
-            <div className="relative">
-              <img
-                src={row.thumbnailUrl}
-                alt={
-                  row.type === "pending" ? "Uploading..." : `Video ${row.id}`
-                }
-                className="aspect-video w-16 rounded-lg bg-muted-foreground object-cover"
-              />
-              <span className="absolute bottom-0.5 right-0.5 rounded bg-black/70 px-1 text-[10px] font-medium text-white">
-                {formatDuration(row.durationMs)}
+
+      {pendingCaptures.map((pending) => (
+        <MediaListItem
+          key={pending.id}
+          image={
+            <VideoThumbnail
+              src={pending.thumbnailBlobUrl}
+              alt="Uploading..."
+              durationMs={pending.durationMs}
+            />
+          }
+          title={<Skeleton className="h-4 w-12 bg-muted-foreground/20" />}
+          subtitle={<MediaListItemDate iso={pending.capturedAt} />}
+          rightSlot={
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" />
+              <span className="text-xs tabular-nums">
+                {pending.uploadProgress}%
               </span>
             </div>
-            <div className="flex flex-col gap-0.5">
-              {row.type === "pending" ? (
-                <Skeleton className="h-5 w-12 bg-muted-foreground/20" />
-              ) : (
-                <span className="text-base font-medium">{`#${row.id}`}</span>
-              )}
-              <span className="whitespace-nowrap text-muted-foreground">
-                {format(new Date(row.date), "dd/MM/yyyy HH:mm:ss")}
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center gap-4 text-muted-foreground">
-            {row.type === "pending" ? (
-              <div className="flex items-center gap-2">
-                <Loader2 className="size-4 animate-spin" />
-                <span className="text-sm tabular-nums">
-                  {row.uploadProgress}%
-                </span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-4 [&>svg]:cursor-pointer [&>svg:hover]:text-foreground">
-                <Play
-                  onClick={() => setPlayingVideoUrl(row.fileUrl)}
-                  className="size-5"
-                />
-                <Download
-                  onClick={() => handleDownload(row.fileUrl, row.id)}
-                  className="size-5"
-                />
-                <Trash2
-                  onClick={() => {
-                    if (activeProject)
-                      deleteCapturedVideo({
-                        projectId: activeProject.id,
-                        videoId: row.id,
-                      });
-                  }}
-                  className="size-5"
-                />
-              </div>
-            )}
-          </div>
-        </div>
+          }
+        />
       ))}
-      <PaginationNumbers
-        currentPage={page}
-        totalPages={totalPages}
-        onPageChange={setPage}
-        className="mx-auto"
-      />
+
+      {videos.map((video) => (
+        <MediaListItem
+          key={video.id}
+          image={
+            <VideoThumbnail
+              src={video.thumbnailUrl}
+              alt={`Video ${video.id}`}
+              durationMs={video.durationMs}
+            />
+          }
+          title={`#${video.id}`}
+          subtitle={<MediaListItemDate iso={video.createdAt} />}
+          rightSlot={
+            <div className="flex items-center gap-3 text-muted-foreground">
+              <button
+                type="button"
+                onClick={stop(() => setPlayingVideoUrl(video.fileUrl))}
+                className="cursor-pointer border-0 bg-transparent p-0 hover:text-foreground"
+                aria-label="Play"
+              >
+                <Play className="size-4" />
+              </button>
+              <button
+                type="button"
+                onClick={stop(() => handleDownload(video.fileUrl, video.id))}
+                className="cursor-pointer border-0 bg-transparent p-0 hover:text-foreground"
+                aria-label="Download"
+              >
+                <Download className="size-4" />
+              </button>
+              <button
+                type="button"
+                onClick={stop(() => {
+                  if (activeProject)
+                    deleteCapturedVideo({
+                      projectId: activeProject.id,
+                      videoId: video.id,
+                    });
+                })}
+                className="cursor-pointer border-0 bg-transparent p-0 hover:text-foreground"
+                aria-label="Delete"
+              >
+                <Trash2 className="size-4" />
+              </button>
+            </div>
+          }
+        />
+      ))}
+
+      <div className="py-4">
+        <PaginationNumbers
+          currentPage={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          className="mx-auto"
+        />
+      </div>
+
       {playingVideoUrl && (
         <VideoPlaybackDialog
           videoUrl={playingVideoUrl}
