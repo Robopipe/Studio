@@ -13,9 +13,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { useCreateModelMutation, useGetModelsQuery } from "../../services";
 import { AdvancedSettings } from "../AdvancedSettings";
-import { AugmentationSettings } from "../AugmentationSettings";
 import { AppliedAugmentation } from "../AugmentationSettings/augmentationTypes";
-import { PreprocessingSettings } from "../PreprocessingSettings";
 import {
   DatasetSplit,
   DatasetSplitSettings,
@@ -63,12 +61,10 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
   const [datasetSplit, setDatasetSplit] = useState<DatasetSplit>(
     duplicateState?.datasetSplit ?? { train: 70, validation: 20, test: 10 },
   );
-  const [augmentations, setAugmentations] = useState<AppliedAugmentation[]>(
-    duplicateState?.augmentations ?? [],
-  );
-  const [preprocessings, setPreprocessings] = useState<AppliedAugmentation[]>(
-    duplicateState?.preprocessings ?? [],
-  );
+  // Preprocessing + augmentation UI is hidden; values come from a duplicated
+  // model's payload (when duplicating) or default to empty.
+  const augmentations: AppliedAugmentation[] = duplicateState?.augmentations ?? [];
+  const preprocessings: AppliedAugmentation[] = duplicateState?.preprocessings ?? [];
   const [trainingType, setTrainingType] = useState<ProjectTypeEnum>(
     duplicateState?.trainingType ?? ProjectTypeEnum.DETECTION,
   );
@@ -241,14 +237,6 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
           activeLabels={activeLabels}
         />
         <DatasetSplitSettings split={datasetSplit} onChange={setDatasetSplit} />
-        <PreprocessingSettings
-          preprocessings={preprocessings}
-          onChange={setPreprocessings}
-        />
-        <AugmentationSettings
-          augmentations={augmentations}
-          onChange={setAugmentations}
-        />
         <AdvancedSettings
           outputs={outputs}
           onOutputsChange={setOutputs}

@@ -2,10 +2,10 @@ import { useAppSelector } from "@/hooks/redux";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import { PaginationNumbers } from "@/modules/shadcn/ui/pagination";
 import { Skeleton } from "@/modules/shadcn/ui/skeleton";
+import { MediaListItem, MediaListItemDate, TaskListItem } from "@/modules/ui";
 import { RootState } from "@/store";
-import { format } from "date-fns";
 import { Download, Loader2, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { MouseEvent, useMemo, useState } from "react";
 import {
   useDeleteTaskMutation,
   useGetTasksQuery,
@@ -58,8 +58,6 @@ export const CapturedPhotos = ({}: CapturedPhotosProps) => {
     (state: RootState) => state.pendingCaptures.captures,
   );
 
-  // Split pending entries: unlinked ones still uploading (show as placeholder
-  // rows), linked ones provide a blob URL override for a corresponding task.
   const { unlinkedPending, blobByTaskId } = useMemo(() => {
     const blobByTaskId = new Map<number, string>();
     const unlinkedPending = pendingCaptures.filter((p) => {
@@ -71,78 +69,84 @@ export const CapturedPhotos = ({}: CapturedPhotosProps) => {
   }, [pendingCaptures]);
 
   return (
-    <div className="flex w-full flex-col gap-4">
+    <div className="flex w-full flex-col">
       {unlinkedPending.map((pending) => (
-        <div
-          className="flex w-full items-center justify-between"
+        <MediaListItem
           key={pending.id}
-        >
-          <div className="flex gap-4">
+          image={
             <img
               src={pending.blobUrl}
               alt="Uploading..."
-              className="aspect-4/3 w-16 rounded-lg bg-muted-foreground object-cover"
+              className="h-[52px] w-[60px] shrink-0 rounded bg-muted object-cover"
             />
-            <div className="flex flex-col gap-0.5">
-              <Skeleton className="h-5 w-12 bg-muted-foreground/20" />
-              <span className="text-muted-foreground">
-                {format(new Date(pending.capturedAt), "dd/MM/yyyy, HH:mm:ss")}
-              </span>
+          }
+          title={<Skeleton className="h-4 w-12 bg-muted-foreground/20" />}
+          subtitle={<MediaListItemDate iso={pending.capturedAt} />}
+          rightSlot={
+            <div className="flex items-center gap-3 text-muted-foreground">
+              <button
+                type="button"
+                className="cursor-pointer border-0 bg-transparent p-0 hover:text-foreground"
+                onClick={() =>
+                  handlePendingDownload(pending.blobUrl, pending.filename)
+                }
+                aria-label="Download"
+              >
+                <Download className="size-4" />
+              </button>
+              <Loader2 className="size-4 animate-spin" />
             </div>
-          </div>
-          <div className="flex items-center gap-4 text-muted-foreground">
-            <Download
-              onClick={() =>
-                handlePendingDownload(pending.blobUrl, pending.filename)
-              }
-              className="size-5 cursor-pointer hover:text-foreground"
-            />
-            <Loader2 className="size-5 animate-spin" />
-          </div>
-        </div>
+          }
+        />
       ))}
       {tasks.map((task) => {
         const localBlobUrl = blobByTaskId.get(task.id);
+        const handleRowDelete = (e: MouseEvent) => {
+          e.stopPropagation();
+          if (activeProject) {
+            deleteTask({ projectId: activeProject.id, taskId: task.id });
+          }
+        };
+        const handleRowDownload = (e: MouseEvent) => {
+          e.stopPropagation();
+          handleDownload(task.filePath, task.id);
+        };
         return (
-          <div className="flex w-full items-center justify-between" key={task.id}>
-            <div className="flex gap-4">
-              <img
-                src={localBlobUrl ?? task.thumbnailUrl}
-                alt={`#${task.iid}`}
-                className="aspect-4/3 w-16 rounded-lg bg-muted-foreground object-cover"
-              />
-              <div className="flex flex-col gap-0.5">
-                <span className="text-base font-medium">{`#${task.iid}`}</span>
-                <span className="text-muted-foreground">
-                  {format(new Date(task.createdAt), "dd/MM/yyyy HH:mm:ss")}
-                </span>
+          <TaskListItem
+            key={task.id}
+            task={task}
+            imageSrc={localBlobUrl ?? task.thumbnailUrl}
+            rightSlot={
+              <div className="flex items-center gap-3 text-muted-foreground">
+                <button
+                  type="button"
+                  onClick={handleRowDownload}
+                  className="cursor-pointer border-0 bg-transparent p-0 hover:text-foreground"
+                  aria-label="Download"
+                >
+                  <Download className="size-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRowDelete}
+                  className="cursor-pointer border-0 bg-transparent p-0 hover:text-foreground"
+                  aria-label="Delete"
+                >
+                  <Trash2 className="size-4" />
+                </button>
               </div>
-            </div>
-            <div className="flex items-center gap-4 text-muted-foreground [&>svg]:cursor-pointer [&>svg:hover]:text-foreground">
-              <Download
-                onClick={() => handleDownload(task.filePath, task.id)}
-                className="size-5"
-              />
-              <Trash2
-                onClick={() => {
-                  if (activeProject)
-                    deleteTask({
-                      projectId: activeProject.id,
-                      taskId: task.id,
-                    });
-                }}
-                className="size-5"
-              />
-            </div>
-          </div>
+            }
+          />
         );
       })}
-      <PaginationNumbers
-        currentPage={page}
-        totalPages={totalPages}
-        onPageChange={setPage}
-        className="mx-auto"
-      />
+      <div className="py-4">
+        <PaginationNumbers
+          currentPage={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          className="mx-auto"
+        />
+      </div>
     </div>
   );
 };
