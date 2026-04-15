@@ -12,7 +12,7 @@ import {
 } from "@repo/schema";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { useCreateModelMutation, useTrainModelMutation } from "../../services";
+import { useCreateModelMutation } from "../../services";
 import { AdvancedSettings } from "../AdvancedSettings";
 import { AppliedAugmentation } from "../AugmentationSettings/augmentationTypes";
 // AugmentationSettings and PreprocessingSettings imports kept for future re-enablement
@@ -50,7 +50,6 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
     ?.duplicateFrom;
   const [activeProject] = useActiveProject();
   const [createModel] = useCreateModelMutation();
-  const [trainModel] = useTrainModelMutation();
   const [name, setName] = useState(duplicateState?.name ?? "");
   const [epochs, setEpochs] = useState(duplicateState?.epochs ?? 10);
   const [outputs, setOutputs] = useState<ModelOutputTypeEnum[]>(
@@ -156,13 +155,8 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
       })),
       preprocessings: allPreprocessings,
       customHyperparams: parsedHyperparams,
+      train,
     }).unwrap();
-    if (train) {
-      await trainModel({
-        projectId: activeProject?.id!,
-        modelId: newModel.id,
-      }).unwrap();
-    }
     navigate(`/projects/${activeProject?.id}/models/${newModel.id}`);
   };
 

@@ -17,6 +17,7 @@ import { ModelLayout } from "../ModelLayout";
 import { ModelLogs } from "../ModelLogs";
 import { ModelParametersDialog } from "../ModelParametersDialog";
 import { TrainingChart } from "../TrainingChart";
+import { TrainingStartupScreen } from "../TrainingStartupScreen";
 
 export interface ModelDetailPageProps {}
 
@@ -49,7 +50,6 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
   const isActive = isTraining || model?.status === ModelStatusEnum.CONVERTING;
   const isInitialLoading = isModelLoading || isLogsLoading;
   const isWaitingForLogs = isTraining && (!logs || logs.length === 0);
-  const showSkeleton = isInitialLoading || isWaitingForLogs;
 
   useEffect(() => {
     if (!isTraining) return;
@@ -115,11 +115,10 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
     navigate(`/projects/${projectId}/models/new`, { state });
   };
 
-  if (showSkeleton) {
+  if (isInitialLoading) {
     return (
       <ModelLayout>
         <div className="flex min-h-0 flex-1 flex-col gap-6">
-          {/* Header */}
           <div className="flex items-center justify-between">
             <Skeleton className="h-8 w-[40%]" />
             <div className="flex gap-2">
@@ -127,34 +126,20 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
               <Skeleton className="h-10 w-20 rounded-md" />
             </div>
           </div>
-
-          {/* Charts */}
           <div className="flex gap-4">
             <Skeleton className="h-62.5 w-1/2 rounded-lg" />
             <Skeleton className="h-62.5 w-1/2 rounded-lg" />
           </div>
-
-          {/* Logs area */}
-          <div
-            className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 rounded-2xl p-6"
-            style={{ backgroundColor: "#0f0f18" }}
-          >
-            {isWaitingForLogs && (
-              <span className="text-sm text-white/60">
-                Training is starting up...
-              </span>
-            )}
-            <div className="flex w-full flex-col gap-2">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <Skeleton
-                  key={i}
-                  className="h-4 rounded"
-                  style={{ width: `${85 - i * 10}%` }}
-                />
-              ))}
-            </div>
-          </div>
+          <Skeleton className="min-h-0 flex-1 rounded-2xl" />
         </div>
+      </ModelLayout>
+    );
+  }
+
+  if (isWaitingForLogs) {
+    return (
+      <ModelLayout>
+        <TrainingStartupScreen modelName={model?.name} />
       </ModelLayout>
     );
   }
