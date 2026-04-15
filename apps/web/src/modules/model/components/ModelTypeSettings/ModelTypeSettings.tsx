@@ -7,13 +7,8 @@ import {
   SelectValue,
 } from "@/modules/shadcn/ui/select";
 import { ProjectTypeEnum } from "@repo/schema";
+import { TRAINING_TYPE_LABELS } from "../../constants/labels";
 import { SettingsCard } from "../SettingsCard";
-
-const TYPE_LABELS: Record<ProjectTypeEnum, string> = {
-  [ProjectTypeEnum.CLASSIFICATION]: "Classification",
-  [ProjectTypeEnum.DETECTION]: "Detection",
-  [ProjectTypeEnum.SEGMENTATION]: "Segmentation",
-};
 
 type DetectionAnnotationPreset = "detection" | "segmentation" | "both";
 
@@ -79,14 +74,14 @@ export const ModelTypeSettings = ({
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Select type">
                 {(value) =>
-                  value ? TYPE_LABELS[value as ProjectTypeEnum] : "Select type"
+                  value ? TRAINING_TYPE_LABELS[value as ProjectTypeEnum] : "Select type"
                 }
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {Object.values(ProjectTypeEnum).map((v) => (
                 <SelectItem key={v} value={v}>
-                  {TYPE_LABELS[v]}
+                  {TRAINING_TYPE_LABELS[v]}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -130,7 +125,7 @@ export const ModelTypeSettings = ({
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <span className="text-xs font-normal text-black/90">Annotations used</span>
             <span className="text-sm">
-              {TYPE_LABELS[trainingType]} annotations
+              {TRAINING_TYPE_LABELS[trainingType]} annotations
             </span>
           </div>
         )}

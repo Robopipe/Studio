@@ -31,6 +31,8 @@ export const modelTable = p.pgTable("model", {
   customHyperparams: p.jsonb("custom_hyperparams").notNull().default({}),
   status: modelStatusEnum("status").notNull(),
   errorMessage: p.text("error_message"),
+  finalAccuracy: p.real("final_accuracy"),
+  finalLoss: p.real("final_loss"),
   projectId: p
     .integer("project_id")
     .references(() => projectTable.id, { onDelete: "cascade" })

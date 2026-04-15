@@ -4,7 +4,7 @@ import type { DbConnection } from "../../core/database/types/database.types";
 import { ModelLogEntity } from "../../modules/model/entity/model-log.entity";
 import { ModelLogInsert } from "../types/model-log";
 import { modelLogTable } from "@repo/database";
-import { asc } from "drizzle-orm";
+import { asc, desc } from "drizzle-orm";
 
 @Injectable()
 export class ModelLogRepository {
@@ -32,5 +32,16 @@ export class ModelLogRepository {
    */
   public async create(data: ModelLogInsert): Promise<void>{
     await this.db.insert(modelLogTable).values(data)
+  }
+
+  /**
+   * Get the latest log (by epoch) for a model, or null if none exist
+   */
+  public async getLatestByModelId(id: number): Promise<ModelLogEntity | null>{
+    const log = await this.db.query.modelLogTable.findFirst({
+      where: { modelId: id },
+      orderBy: (l) => desc(l.epoch),
+    })
+    return log ? new ModelLogEntity(log) : null
   }
 }

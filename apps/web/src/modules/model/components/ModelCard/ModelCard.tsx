@@ -2,6 +2,12 @@ import { Badge } from "@/modules/shadcn/ui/badge";
 import { cn } from "@/lib/utils";
 import { Model, ModelStatusEnum } from "@repo/schema";
 import { Link, useParams } from "react-router";
+import { TRAINING_TYPE_LABELS } from "../../constants/labels";
+
+const formatMetric = (value: number | null | undefined): string => {
+  if (value == null || !Number.isFinite(value)) return "—";
+  return value.toFixed(3);
+};
 
 export interface ModelCardProps {
   model: Model;
@@ -76,6 +82,46 @@ export const ModelCard = ({ model, order }: ModelCardProps) => {
             minute: "2-digit",
           })}
         </p>
+        {model.status === ModelStatusEnum.DONE && (
+          <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-black/5 pt-2">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[10px] uppercase leading-3 tracking-[0.5px] text-black/50">
+                Type
+              </span>
+              <span className="text-xs font-semibold leading-4 text-black/90">
+                {TRAINING_TYPE_LABELS[model.trainingType]}
+              </span>
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[10px] uppercase leading-3 tracking-[0.5px] text-black/50">
+                Epochs
+              </span>
+              <span className="text-xs font-semibold leading-4 text-black/90">
+                {model.epochs}
+              </span>
+            </div>
+            {(model.finalAccuracy != null || model.finalLoss != null) && (
+              <>
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[10px] uppercase leading-3 tracking-[0.5px] text-black/50">
+                    Accuracy
+                  </span>
+                  <span className="text-xs font-semibold leading-4 text-emerald-700">
+                    {formatMetric(model.finalAccuracy)}
+                  </span>
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[10px] uppercase leading-3 tracking-[0.5px] text-black/50">
+                    Loss
+                  </span>
+                  <span className="text-xs font-semibold leading-4 text-black/90">
+                    {formatMetric(model.finalLoss)}
+                  </span>
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </Link>
   );
