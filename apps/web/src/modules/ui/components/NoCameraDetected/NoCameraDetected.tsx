@@ -25,7 +25,8 @@ export const NoCameraDetected = ({
       </p>
 
       <p className="mb-6 text-sm text-black/60">
-        Please make sure camera is connected to the controller.
+        Please make sure camera is connected to local network and configured
+        in project settings.
       </p>
 
       <div className="mb-6 flex flex-row gap-4">
