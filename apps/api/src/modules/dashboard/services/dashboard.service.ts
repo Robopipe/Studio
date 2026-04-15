@@ -79,6 +79,7 @@ export class DashboardService {
     if (data.lineFlow !== undefined) updateData.lineFlow = data.lineFlow;
     if (data.cameraMxid !== undefined) updateData.cameraMxid = data.cameraMxid;
     if (data.streamName !== undefined) updateData.streamName = data.streamName;
+    if (data.capturedVideoId !== undefined) updateData.capturedVideoId = data.capturedVideoId;
 
     return this.dashboardConfigurationRepository.update(id, updateData);
   }

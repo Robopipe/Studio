@@ -4,6 +4,7 @@ import {
 } from "@repo/schema";
 import * as p from "drizzle-orm/pg-core";
 import { createdAt, id, updatedAt } from "../helpers";
+import { capturedVideoTable } from "./captured-video";
 import { modelTable } from "./model";
 import { projectTable } from "./project";
 
@@ -45,6 +46,9 @@ export const dashboardConfigurationTable = p.pgTable(
       .references(() => modelTable.id, { onDelete: "set null" }),
     cameraMxid: p.varchar("camera_mxid", { length: 256 }),
     streamName: p.varchar("stream_name", { length: 256 }),
+    capturedVideoId: p
+      .integer("captured_video_id")
+      .references(() => capturedVideoTable.id, { onDelete: "set null" }),
     createdAt,
     updatedAt,
   },

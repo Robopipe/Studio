@@ -17,6 +17,7 @@ export class DashboardConfigurationEntity {
   readonly modelId: number | null;
   readonly cameraMxid: string | null;
   readonly streamName: string | null;
+  readonly capturedVideoId: number | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 
@@ -30,6 +31,7 @@ export class DashboardConfigurationEntity {
     this.modelId = data.modelId;
     this.cameraMxid = data.cameraMxid;
     this.streamName = data.streamName;
+    this.capturedVideoId = data.capturedVideoId;
     this.createdAt = data.createdAt;
     this.updatedAt = data.updatedAt;
   }
@@ -45,6 +47,7 @@ export class DashboardConfigurationEntity {
       modelId: this.modelId,
       cameraMxid: this.cameraMxid,
       streamName: this.streamName,
+      capturedVideoId: this.capturedVideoId,
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),
     };

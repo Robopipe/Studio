@@ -233,6 +233,39 @@ export const cameraApi = cameraApiBase.injectEndpoints({
         { type: CameraApiTagType.Dashboard, id: `${mxid}-${streamName}` },
       ],
     }),
+
+    // ========== Replay Video Endpoints ==========
+
+    addReplayVideo: builder.mutation<
+      void,
+      { mxid: string; streamName: string; video: File }
+    >({
+      query: ({ mxid, streamName, video }) => {
+        const data = new FormData();
+        data.append("video", video);
+        return {
+          url: `/cameras/${mxid}/streams/${streamName}/replay`,
+          method: HttpMethod.POST,
+          body: data,
+        };
+      },
+      invalidatesTags: (_result, _error, { mxid, streamName }) => [
+        { type: CameraApiTagType.Replay, id: `${mxid}-${streamName}` },
+      ],
+    }),
+
+    removeReplayVideo: builder.mutation<
+      void,
+      { mxid: string; streamName: string }
+    >({
+      query: ({ mxid, streamName }) => ({
+        url: `/cameras/${mxid}/streams/${streamName}/replay`,
+        method: HttpMethod.DELETE,
+      }),
+      invalidatesTags: (_result, _error, { mxid, streamName }) => [
+        { type: CameraApiTagType.Replay, id: `${mxid}-${streamName}` },
+      ],
+    }),
   }),
   overrideExisting: true,
 });
@@ -262,4 +295,8 @@ export const {
   useGetDashboardQuery,
   useDeployDashboardMutation,
   useRemoveDashboardMutation,
+
+  // Replay hooks
+  useAddReplayVideoMutation,
+  useRemoveReplayVideoMutation,
 } = cameraApi;
