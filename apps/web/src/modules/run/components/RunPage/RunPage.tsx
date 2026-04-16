@@ -1,4 +1,5 @@
 import { useListCamerasQuery } from "@/core/cameraApi";
+import type { SahiConfig } from "@/core/cameraApi/schemas/nn";
 import { useCameraApiUrl } from "@/hooks";
 import { DashboardPage } from "@/modules/dashboard";
 import {
@@ -31,6 +32,7 @@ export const RunPage = () => {
   const [activeConfigId, setActiveConfigId] = useState<number | null>(null);
   const [selectedConfigs, setSelectedConfigs] = useState<ConfigSelection[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [sahiConfig, setSahiConfig] = useState<SahiConfig | null>(null);
 
   const [activeProject] = useActiveProject();
   const projectId = activeProject?.id;
@@ -83,6 +85,7 @@ export const RunPage = () => {
     capturedVideoId: dashboardConfig?.capturedVideoId ?? null,
     cameraApiUrl,
     selectedConfigs,
+    sahiConfig,
   });
 
   const configSelector = projectId ? (
@@ -109,7 +112,12 @@ export const RunPage = () => {
   const renderTabContent = () => {
     if (activeTab === "configuration") {
       return projectId ? (
-        <ConfigurationTab projectId={projectId} configId={activeConfigId} />
+        <ConfigurationTab
+          projectId={projectId}
+          configId={activeConfigId}
+          sahiConfig={sahiConfig}
+          onSahiConfigChange={setSahiConfig}
+        />
       ) : null;
     }
 
