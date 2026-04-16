@@ -95,6 +95,7 @@ module "secrets" {
   database_url    = module.cloud_sql.connection_string
   cloud_run_sa    = google_service_account.api.email
   cloud_run_ml_sa = google_service_account.ml.email
+  cloud_build_sa  = "${data.google_project.current.number}-compute@developer.gserviceaccount.com"
 
   depends_on = [google_project_service.apis]
 }

@@ -17,3 +17,9 @@ variable "cloud_run_ml_sa" {
   type        = string
   default     = ""
 }
+
+variable "cloud_build_sa" {
+  description = "Cloud Build service account email for IAM bindings"
+  type        = string
+  default     = ""
+}

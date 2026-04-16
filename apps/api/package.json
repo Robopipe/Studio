@@ -31,6 +31,7 @@
     "@repo/database": "workspace:*",
     "@repo/schema": "workspace:*",
     "@sendgrid/mail": "^8.1.6",
+    "@sentry/nestjs": "^10.48.0",
     "axios": "^1.13.4",
     "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",
