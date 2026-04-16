@@ -8,6 +8,7 @@ import {
 } from "@/core/cameraApi";
 import type { DeployConfigEntry } from "@/core/cameraApi/schemas/dashboard";
 import type { DeviceInfo } from "@/core/cameraApi/schemas";
+import type { SahiConfig } from "@/core/cameraApi/schemas/nn";
 import { useLazyGetDashboardConfigsQuery } from "@/modules/dashboard/services/dashboardConfigApi";
 import {
   useLazyGetEvalLimitQuery,
@@ -48,6 +49,7 @@ interface UseRunDeployParams {
   capturedVideoId: number | null;
   cameraApiUrl: string | null;
   selectedConfigs?: ConfigSelection[];
+  sahiConfig: SahiConfig | null;
 }
 
 interface AssembledConfig {
@@ -65,6 +67,7 @@ export const useRunDeploy = ({
   capturedVideoId,
   cameraApiUrl,
   selectedConfigs,
+  sahiConfig,
 }: UseRunDeployParams) => {
   const [dashboardUrl, setDashboardUrl] = useState<string | null>(null);
   const [showDeployConfirm, setShowDeployConfirm] = useState(false);
@@ -383,7 +386,9 @@ export const useRunDeploy = ({
         nn_config: {
           type: "Generic",
           model_id: config.modelId,
-          nn_config: {},
+          nn_config: sahiConfig
+            ? { sahi_config: sahiConfig }
+            : {},
         },
       },
       modelFile: new File([modelBuffer], "model.tar.xz"),

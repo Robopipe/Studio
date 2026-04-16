@@ -1,18 +1,24 @@
+import type { SahiConfig } from "@/core/cameraApi/schemas/nn";
 import { Button } from "@/modules/shadcn/ui/button";
 import { Save } from "lucide-react";
 import { CameraConfigPanel } from "./CameraConfigPanel";
 import { CameraPreview } from "./CameraPreview";
 import { LinePositionPanel } from "./LinePositionPanel";
+import { SahiConfigPanel } from "./SahiConfigPanel";
 import { useConfigurationState } from "./useConfigurationState";
 
 interface ConfigurationTabProps {
   projectId: number;
   configId: number | null;
+  sahiConfig: SahiConfig | null;
+  onSahiConfigChange: (config: SahiConfig | null) => void;
 }
 
 export const ConfigurationTab = ({
   projectId,
   configId,
+  sahiConfig,
+  onSahiConfigChange,
 }: ConfigurationTabProps) => {
   if (!configId) {
     return (
@@ -24,15 +30,26 @@ export const ConfigurationTab = ({
     );
   }
 
-  return <ConfigurationTabContent projectId={projectId} configId={configId} />;
+  return (
+    <ConfigurationTabContent
+      projectId={projectId}
+      configId={configId}
+      sahiConfig={sahiConfig}
+      onSahiConfigChange={onSahiConfigChange}
+    />
+  );
 };
 
 const ConfigurationTabContent = ({
   projectId,
   configId,
+  sahiConfig,
+  onSahiConfigChange,
 }: {
   projectId: number;
   configId: number;
+  sahiConfig: SahiConfig | null;
+  onSahiConfigChange: (config: SahiConfig | null) => void;
 }) => {
   const {
     cameras,
@@ -85,6 +102,8 @@ const ConfigurationTabContent = ({
           onVideoChange={setSelectedVideoId}
         />
       </div>
+
+      <SahiConfigPanel value={sahiConfig} onChange={onSahiConfigChange} />
 
       <div className="flex">
         <Button

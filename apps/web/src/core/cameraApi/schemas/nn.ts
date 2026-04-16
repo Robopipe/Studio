@@ -10,3 +10,17 @@ export const nnConfigSchema = z.object({
     nn_config: z.record(z.string(), z.unknown()),
 });
 export type NNConfig = z.infer<typeof nnConfigSchema>;
+
+export interface SahiConfig {
+    slice_width: number;
+    slice_height: number;
+    overlap_ratio: number;
+    nms_iou_threshold: number;
+}
+
+export const DEFAULT_SAHI_CONFIG: SahiConfig = {
+    slice_width: 0.5,
+    slice_height: 0.5,
+    overlap_ratio: 0.2,
+    nms_iou_threshold: 0.5,
+};
