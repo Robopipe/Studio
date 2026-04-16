@@ -68,6 +68,7 @@ export const useRunDeploy = ({
 }: UseRunDeployParams) => {
   const [dashboardUrl, setDashboardUrl] = useState<string | null>(null);
   const [showDeployConfirm, setShowDeployConfirm] = useState(false);
+  const [isDeployInProgress, setIsDeployInProgress] = useState(false);
 
   // Check if a dashboard is already deployed on the camera (survives refresh).
   // The GET endpoint returns the dashboard HTML (200) or 404 if none is running.
@@ -96,8 +97,7 @@ export const useRunDeploy = ({
   const [triggerGetLimit] = useLazyGetEvalLimitQuery();
 
   // Mutations
-  const [deployDashboardMut, { isLoading: isDeploying }] =
-    useDeployDashboardMutation();
+  const [deployDashboardMut] = useDeployDashboardMutation();
   const [removeNNMut] = useRemoveNNMutation();
   const [removeDashboardMut] = useRemoveDashboardMutation();
   const [addReplayVideoMut] = useAddReplayVideoMutation();
@@ -121,6 +121,9 @@ export const useRunDeploy = ({
   /** Actually runs the deploy (called directly or after user confirms override). */
   const executeDeploy = async () => {
     if (!selectedCamera || !selectedStream || !selectedCameraInfo) return;
+
+    setIsDeployInProgress(true);
+    try {
 
     const requiredOutputType =
       PLATFORM_TO_OUTPUT_TYPE[selectedCameraInfo.platform];
@@ -251,6 +254,10 @@ export const useRunDeploy = ({
 
     // Set URL immediately so the dashboard tab works right away
     setDashboardUrl(`${cameraApiUrl}${dashboard_url}`);
+
+    } finally {
+      setIsDeployInProgress(false);
+    }
   };
 
   /**
@@ -414,7 +421,7 @@ export const useRunDeploy = ({
   return {
     handleDeploy,
     handleStop,
-    isDeploying,
+    isDeploying: isDeployInProgress,
     dashboardUrl: effectiveDashboardUrl,
     canDeploy,
     showDeployConfirm,
