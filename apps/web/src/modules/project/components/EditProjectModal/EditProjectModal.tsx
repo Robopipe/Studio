@@ -1,3 +1,6 @@
+import { cameraApi } from "@/core/cameraApi";
+import { useAuth } from "@/core/auth/hooks";
+import { useAppDispatch } from "@/hooks/redux";
 import { Button } from "@/modules/shadcn/ui/button";
 import { Project } from "@repo/schema";
 import { useState } from "react";
@@ -7,6 +10,10 @@ import {
   useGetProjectLabelsQuery,
   useUpdateProjectMutation,
 } from "../../services/projectApi";
+import {
+  readCameraApiOverride,
+  writeCameraApiOverride,
+} from "../../utils/cameraApiOverride";
 import { LabelingSetup, LocalLabel } from "../LabelingSetup";
 import { Modal, ModalTab } from "../Modal";
 import { ProjectDetailsForm } from "../ProjectDetailsForm";
@@ -22,10 +29,16 @@ export const EditProjectModal = ({
   initialTabId,
   onClose,
 }: EditProjectModalProps) => {
+  const { user } = useAuth();
+  const dispatch = useAppDispatch();
+
   const [name, setName] = useState(project.name);
   const [description, setDescription] = useState(project.description || "");
   const [cameraApiUrl, setCameraApiUrl] = useState<string | null>(
     project.cameraApiUrl,
+  );
+  const [localOverride, setLocalOverride] = useState<string>(
+    () => readCameraApiOverride(user?.id, project.id) ?? "",
   );
   const [multipleDashboardConfigs] = useState(project.multipleDashboardConfigs);
 
@@ -49,6 +62,15 @@ export const EditProjectModal = ({
         multipleDashboardConfigs,
       }).unwrap();
 
+      if (user) {
+        const trimmed = localOverride.trim();
+        const previous = readCameraApiOverride(user.id, project.id) ?? "";
+        writeCameraApiOverride(user.id, project.id, trimmed || null);
+        if (trimmed !== previous) {
+          dispatch(cameraApi.util.resetApiState());
+        }
+      }
+
       onClose();
     } catch (error) {
       console.error("Update failed:", error);
@@ -67,6 +89,8 @@ export const EditProjectModal = ({
           setDescription={setDescription}
           cameraApiUrl={cameraApiUrl}
           setCameraApiUrl={setCameraApiUrl}
+          localOverride={localOverride}
+          setLocalOverride={setLocalOverride}
           multipleDashboardConfigs={multipleDashboardConfigs}
         />
       ),

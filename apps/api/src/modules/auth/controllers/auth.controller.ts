@@ -229,7 +229,6 @@ export class AuthController {
       username: user.username,
       email: user.email,
       fullName: user.fullName,
-      cameraApiUrl: user.cameraApiUrl,
       createdAt: user.createdAt.toISOString(),
       updatedAt: user.updatedAt.toISOString(),
       deletedAt: user.deletedAt ? user.deletedAt.toISOString() : null,

@@ -45,8 +45,7 @@ def _get_custom_image_size(custom_hyperparams: dict) -> tuple[int, int] | None:
     """Extract custom image size from user-supplied hyperparams, if present."""
     try:
         size = (
-            custom_hyperparams
-            .get("trainer", {})
+            custom_hyperparams.get("trainer", {})
             .get("preprocessing", {})
             .get("train_image_size")
         )
@@ -216,7 +215,7 @@ def generate_luxonis_config(model_config: ModelConfig, dir: str) -> str:
 
     custom = model_config.training_config.custom_hyperparams
     if custom:
-        custom = _strip_reserved_keys(custom)
+        # custom = _strip_reserved_keys(custom)
         config = _deep_merge(config, custom)
 
     return yaml.dump(config, Dumper=_AnchorDumper)

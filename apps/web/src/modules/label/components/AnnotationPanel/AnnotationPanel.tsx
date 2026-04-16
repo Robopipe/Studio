@@ -30,6 +30,7 @@ export interface AnnotationPanelProps {
   historyIndex: number;
   onJumpTo: (index: number) => void;
   onOpenSettings?: () => void;
+  isLoadingLabels?: boolean;
 }
 
 export const AnnotationPanel = ({
@@ -45,6 +46,7 @@ export const AnnotationPanel = ({
   historyIndex,
   onJumpTo,
   onOpenSettings,
+  isLoadingLabels,
 }: AnnotationPanelProps) => {
   const classCounts = labels.map((label) => ({
     ...label,
@@ -100,7 +102,7 @@ export const AnnotationPanel = ({
           <p className="text-[10px] font-bold uppercase tracking-[1px] text-foreground/90">
             Regions
           </p>
-          {labels.length === 0 && (
+          {labels.length === 0 && !isLoadingLabels && (
             <div className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
               <AlertTriangle className="size-4 shrink-0 text-amber-500" />
               <span className="text-xs text-amber-800">

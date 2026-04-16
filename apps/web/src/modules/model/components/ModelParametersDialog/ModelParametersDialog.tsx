@@ -23,9 +23,9 @@ export interface ModelParametersDialogProps {
 }
 
 const ParamItem = ({ label, value }: { label: string; value: string }) => (
-  <div className="flex min-w-0 flex-1 flex-col gap-1">
+  <div className="flex min-w-0 basis-[180px] grow flex-col gap-1">
     <span className="text-xs">{label}</span>
-    <span className="text-sm font-bold">{value}</span>
+    <span className="text-sm font-bold break-words">{value}</span>
   </div>
 );
 

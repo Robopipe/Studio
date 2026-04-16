@@ -1,6 +1,7 @@
 import z from "zod";
 import { timestampsSchema } from "../helpers";
-import { hyperparamsConfigSchema } from "./hyperparams-config.schema";
+// hyperparamsConfigSchema import kept for reference — validation intentionally bypassed
+// import { hyperparamsConfigSchema } from "./hyperparams-config.schema";
 import { labelSchema } from "../label";
 import { ProjectTypeEnum } from "../projects";
 import { TaskFileTypeEnum } from "../task";
@@ -77,6 +78,8 @@ export const modelSchema = z.object({
   augmentations: modelAugmentationSchema.pick({ type: true, params: true }).array(),
   preprocessings: modelPreprocessingSchema.pick({ type: true, params: true, keepOriginal: true }).array(),
   errorMessage: z.string().nullable(),
+  finalAccuracy: z.number().nullable(),
+  finalLoss: z.number().nullable(),
   ...timestampsSchema,
 });
 
@@ -122,7 +125,10 @@ export const createModelSchema = modelSchema
       })
       .array()
       .default([]),
-    customHyperparams: hyperparamsConfigSchema.default({}),
+    // Schema validation intentionally bypassed — any JSON object is accepted.
+    // Original: customHyperparams: hyperparamsConfigSchema.default({}),
+    customHyperparams: z.record(z.string(), z.unknown()).default({}),
+    train: z.boolean().default(false),
   })
   .refine(
     (data) => {

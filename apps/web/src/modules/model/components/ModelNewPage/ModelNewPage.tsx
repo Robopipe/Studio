@@ -2,61 +2,96 @@ import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import { Button } from "@/modules/shadcn/ui/button";
 import { Input } from "@/modules/shadcn/ui/input";
 import { Label } from "@/modules/shadcn/ui/label";
-import { NumberInput } from "@/modules/shadcn/ui/number-input";
 import {
-  hyperparamsConfigSchema,
+  // hyperparamsConfigSchema import kept for reference — validation intentionally bypassed
+  // hyperparamsConfigSchema,
   Label as ProjectLabel,
   ModelOutputTypeEnum,
   ProjectTypeEnum,
 } from "@repo/schema";
-import { useState } from "react";
-import { useNavigate } from "react-router";
-import { useCreateModelMutation, useTrainModelMutation } from "../../services";
+import { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router";
+import { useCreateModelMutation, useGetModelsQuery } from "../../services";
 import { AdvancedSettings } from "../AdvancedSettings";
-import {
-  AppliedAugmentation,
-  AugmentationSettings,
-} from "../AugmentationSettings";
+import { AppliedAugmentation } from "../AugmentationSettings/augmentationTypes";
 import {
   DatasetSplit,
   DatasetSplitSettings,
 } from "../DatasetSplitSettings";
 import { ModelLayout } from "../ModelLayout/ModelLayout";
 import { ModelTypeSettings } from "../ModelTypeSettings";
-import { PreprocessingSettings } from "../PreprocessingSettings";
 import { SourceImagesSettings } from "../SourceImagesSettings";
+
+export interface DuplicateModelState {
+  duplicateFrom: {
+    name: string;
+    epochs: number;
+    trainingType: ProjectTypeEnum;
+    annotationsUsed: ProjectTypeEnum[];
+    labels: ProjectLabel[];
+    outputs: ModelOutputTypeEnum[];
+    datasetSplit: DatasetSplit;
+    augmentations: AppliedAugmentation[];
+    preprocessings: AppliedAugmentation[];
+    customHyperparams: string;
+  };
+}
 
 export interface ModelNewPageProps {}
 
 export const ModelNewPage = ({}: ModelNewPageProps) => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const duplicateState = (location.state as DuplicateModelState | null)
+    ?.duplicateFrom;
   const [activeProject] = useActiveProject();
-  const [name, setName] = useState("");
-  const [epochs, setEpochs] = useState(10);
   const [createModel] = useCreateModelMutation();
-  const [trainModel] = useTrainModelMutation();
-  const [outputs, setOutputs] = useState<ModelOutputTypeEnum[]>([
-    ModelOutputTypeEnum.RAW,
-    ModelOutputTypeEnum.RVC4,
-  ]);
-  const [activeLabels, setActiveLabels] = useState<ProjectLabel[]>([]);
-  const [datasetSplit, setDatasetSplit] = useState<DatasetSplit>({
-    train: 70,
-    validation: 20,
-    test: 10,
-  });
-  const [augmentations, setAugmentations] = useState<AppliedAugmentation[]>([]);
-  const [preprocessings, setPreprocessings] = useState<AppliedAugmentation[]>(
-    [],
+  const { data: existingModels } = useGetModelsQuery(
+    { projectId: activeProject?.id! },
+    { skip: !activeProject },
   );
+  const [name, setName] = useState(duplicateState?.name ?? "");
+  const [epochs, setEpochs] = useState(duplicateState?.epochs ?? 100);
+  const [outputs, setOutputs] = useState<ModelOutputTypeEnum[]>(
+    duplicateState?.outputs ?? [ModelOutputTypeEnum.RAW, ModelOutputTypeEnum.RVC4],
+  );
+  const [activeLabels, setActiveLabels] = useState<ProjectLabel[]>(
+    duplicateState?.labels ?? [],
+  );
+  const [datasetSplit, setDatasetSplit] = useState<DatasetSplit>(
+    duplicateState?.datasetSplit ?? { train: 70, validation: 20, test: 10 },
+  );
+  // Preprocessing + augmentation UI is hidden; values come from a duplicated
+  // model's payload (when duplicating) or default to empty.
+  const augmentations: AppliedAugmentation[] = duplicateState?.augmentations ?? [];
+  const preprocessings: AppliedAugmentation[] = duplicateState?.preprocessings ?? [];
   const [trainingType, setTrainingType] = useState<ProjectTypeEnum>(
-    ProjectTypeEnum.DETECTION,
+    duplicateState?.trainingType ?? ProjectTypeEnum.DETECTION,
   );
   const [annotationsUsed, setAnnotationsUsed] = useState<ProjectTypeEnum[]>(
-    [ProjectTypeEnum.DETECTION],
+    duplicateState?.annotationsUsed ?? [ProjectTypeEnum.DETECTION],
   );
-  const [customHyperparams, setCustomHyperparams] = useState("");
+  const [customHyperparams, setCustomHyperparams] = useState(
+    duplicateState?.customHyperparams ?? "",
+  );
   const [hyperparamsError, setHyperparamsError] = useState<string | null>(null);
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [epochsError, setEpochsError] = useState<string | null>(null);
+  const didPrefillName = useRef(Boolean(duplicateState?.name));
+
+  // Clear location state after reading to prevent re-prefill on refresh
+  useEffect(() => {
+    if (location.state?.duplicateFrom) {
+      window.history.replaceState({}, "");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (didPrefillName.current || !existingModels) return;
+    didPrefillName.current = true;
+    const next = existingModels.length + 1;
+    setName(`Model V${String(next).padStart(2, "0")}`);
+  }, [existingModels]);
 
   const parseHyperparams = (): Record<string, unknown> | undefined => {
     if (!customHyperparams.trim()) return {};
@@ -70,14 +105,15 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
         setHyperparamsError("Must be a JSON object");
         return undefined;
       }
-      const result = hyperparamsConfigSchema.safeParse(parsed);
-      if (!result.success) {
-        const messages = result.error.issues
-          .map((i) => `${i.path.join(".")}: ${i.message}`)
-          .join("; ");
-        setHyperparamsError(messages);
-        return undefined;
-      }
+      // Schema validation intentionally bypassed — any JSON object is accepted
+      // const result = hyperparamsConfigSchema.safeParse(parsed);
+      // if (!result.success) {
+      //   const messages = result.error.issues
+      //     .map((i) => `${i.path.join(".")}: ${i.message}`)
+      //     .join("; ");
+      //   setHyperparamsError(messages);
+      //   return undefined;
+      // }
       setHyperparamsError(null);
       return parsed;
     } catch {
@@ -87,6 +123,14 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
   };
 
   const saveModel = async (train = false) => {
+    const trimmedName = name.trim();
+    const nextNameError = trimmedName ? null : "Version name is required";
+    const nextEpochsError =
+      epochs > 0 ? null : "Epochs must be greater than 0";
+    setNameError(nextNameError);
+    setEpochsError(nextEpochsError);
+    if (nextNameError || nextEpochsError) return;
+
     const parsedHyperparams = parseHyperparams();
     if (parsedHyperparams === undefined) return;
 
@@ -126,41 +170,61 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
       })),
       preprocessings: allPreprocessings,
       customHyperparams: parsedHyperparams,
+      train,
     }).unwrap();
-    if (train) {
-      await trainModel({
-        projectId: activeProject?.id!,
-        modelId: newModel.id,
-      }).unwrap();
-    }
     navigate(`/projects/${activeProject?.id}/models/${newModel.id}`);
   };
 
   return (
     <ModelLayout>
-      <div className="flex flex-col gap-4 pb-4">
-        <span className="font-bold">CREATE NEW VERSION</span>
-        <p>
-          Prepare your images and data for training by compiling them into a
-          dataset. Experiment with different configurations to achieve better
-          training results
-        </p>
-        <div className="flex flex-row items-end gap-4">
-          <div className="flex flex-1 flex-col gap-1.5">
-            <Label htmlFor="versionName">Version name</Label>
+      <div className="flex flex-col gap-6 pb-4">
+        <div className="flex flex-col gap-2">
+          <h2 className="text-base font-bold leading-6 text-black/90">
+            Create new version
+          </h2>
+          <p className="text-sm leading-5 text-black/60">
+            Prepare your images and data for training by compiling them into a
+            dataset. Experiment with different configurations to achieve better
+            training results
+          </p>
+        </div>
+        <div className="flex flex-row items-start gap-2">
+          <Label
+            htmlFor="versionName"
+            className="h-9 w-[152px] shrink-0 items-center text-xs font-normal text-black/60"
+          >
+            Version name
+          </Label>
+          <div className="flex flex-1 flex-col gap-1">
             <Input
               id="versionName"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => {
+                setName(e.target.value);
+                if (nameError) setNameError(null);
+              }}
+              aria-invalid={Boolean(nameError) || undefined}
             />
+            {nameError && (
+              <span className="text-xs text-red-600">{nameError}</span>
+            )}
           </div>
-          <NumberInput
-            label="Epochs"
-            value={epochs}
-            min={1}
-            onChange={(e) => setEpochs(Number(e.target.value))}
-            className="w-[30%]"
-          />
+          <div className="flex flex-1 flex-col gap-1">
+            <Input
+              type="number"
+              min={1}
+              value={epochs}
+              onChange={(e) => {
+                setEpochs(Number(e.target.value));
+                if (epochsError) setEpochsError(null);
+              }}
+              placeholder="Epochs"
+              aria-invalid={Boolean(epochsError) || undefined}
+            />
+            {epochsError && (
+              <span className="text-xs text-red-600">{epochsError}</span>
+            )}
+          </div>
         </div>
         <ModelTypeSettings
           trainingType={trainingType}
@@ -173,15 +237,6 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
           activeLabels={activeLabels}
         />
         <DatasetSplitSettings split={datasetSplit} onChange={setDatasetSplit} />
-        <PreprocessingSettings
-          preprocessings={preprocessings}
-          onChange={setPreprocessings}
-        />
-        <AugmentationSettings
-          augmentations={augmentations}
-          onChange={setAugmentations}
-        />
-
         <AdvancedSettings
           outputs={outputs}
           onOutputsChange={setOutputs}

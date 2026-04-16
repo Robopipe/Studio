@@ -1,7 +1,15 @@
 import { Spinner } from "@/modules/shadcn/ui/spinner";
 import { Camera } from "lucide-react";
 
-export const SearchingForCamera = () => {
+export interface SearchingForCameraProps {
+  url?: string | null;
+  isOverride?: boolean;
+}
+
+export const SearchingForCamera = ({
+  url,
+  isOverride,
+}: SearchingForCameraProps) => {
   return (
     <div className="flex flex-1 flex-col items-center justify-center p-8">
       <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-black/5">
@@ -17,6 +25,15 @@ export const SearchingForCamera = () => {
       </p>
 
       <Spinner />
+
+      {url && (
+        <p className="mt-6 font-mono text-xs text-black/40">
+          Trying: {url}
+          {isOverride && (
+            <span className="ml-1 text-black/50">(local override)</span>
+          )}
+        </p>
+      )}
     </div>
   );
 };

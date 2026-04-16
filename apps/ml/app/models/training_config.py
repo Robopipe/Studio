@@ -3,6 +3,12 @@ from .dataset_config import DatasetConfig
 from .model_type import ModelOutputType
 
 
+class OutputUpload(BaseSchema):
+    type: ModelOutputType
+    url: str
+    object_path: str
+
+
 class TrainingConfig(BaseSchema):
     epochs: int
     batch_size: int = 8

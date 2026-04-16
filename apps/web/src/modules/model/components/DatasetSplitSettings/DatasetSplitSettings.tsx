@@ -26,7 +26,7 @@ export const DatasetSplitSettings = ({
   const totalImages = tasks?.total ?? 0;
 
   return (
-    <SettingsCard state="complete" stepNumber={2} title="Dataset split">
+    <SettingsCard state="complete" stepNumber={3} title="Train/Test split">
       <div className="flex w-full flex-col gap-2">
         <div className="flex flex-row gap-4 text-sm">
           <span className="flex items-center gap-1.5">

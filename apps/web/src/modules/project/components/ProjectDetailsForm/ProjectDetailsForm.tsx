@@ -1,4 +1,3 @@
-import { useAuth } from "@/core/auth/hooks";
 import { DiscoverCameraApi } from "@/modules/discovery/components";
 import { Input } from "@/modules/shadcn/ui/input";
 import { Label } from "@/modules/shadcn/ui/label";
@@ -13,6 +12,8 @@ interface ProjectDetailsFormProps {
   setCameraApiUrl: (val: string) => void;
   multipleDashboardConfigs?: boolean;
   setMultipleDashboardConfigs?: (val: boolean) => void;
+  localOverride?: string;
+  setLocalOverride?: (val: string) => void;
 }
 
 export const ProjectDetailsForm = ({
@@ -24,8 +25,10 @@ export const ProjectDetailsForm = ({
   setCameraApiUrl,
   multipleDashboardConfigs,
   setMultipleDashboardConfigs,
+  localOverride,
+  setLocalOverride,
 }: ProjectDetailsFormProps) => {
-  const { user } = useAuth();
+  const showLocalOverride = setLocalOverride !== undefined;
 
   return (
     <div className="relative flex flex-col gap-8">
@@ -65,13 +68,35 @@ export const ProjectDetailsForm = ({
             <Input
               id="cameraApiUrl"
               className="flex-1"
-              placeholder={`${user?.cameraApiUrl} (inherited from account settings)`}
+              placeholder="https://robopipe-1.local"
               value={cameraApiUrl ?? ""}
               onChange={(e) => setCameraApiUrl(e.target.value)}
             />
             <DiscoverCameraApi onSelect={(url) => setCameraApiUrl(url)} />
           </div>
         </div>
+
+        {showLocalOverride && (
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="cameraApiUrlOverride" className="font-semibold">
+              Local camera API URL override (stored locally)
+            </Label>
+            <div className="flex flex-row gap-2">
+              <Input
+                id="cameraApiUrlOverride"
+                className="flex-1"
+                placeholder="Leave empty to use the shared project URL"
+                value={localOverride ?? ""}
+                onChange={(e) => setLocalOverride!(e.target.value)}
+              />
+              <DiscoverCameraApi onSelect={(url) => setLocalOverride!(url)} />
+            </div>
+            <p className="text-xs text-black/50">
+              Applies only to you on this browser. Overrides the project URL
+              above for all camera communication.
+            </p>
+          </div>
+        )}
 
         {setMultipleDashboardConfigs !== undefined && (
           <label className="flex cursor-pointer items-center gap-2">

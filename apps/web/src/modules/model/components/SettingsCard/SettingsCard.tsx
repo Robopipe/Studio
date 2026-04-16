@@ -14,22 +14,22 @@ export const SettingsCard = (props: SettingsCardProps) => {
   const { title, children, state, stepNumber } = props;
 
   return (
-    <div className="w-full rounded-xl border border-black/10 bg-black/[0.03] p-6">
-      <div className="flex flex-row gap-4">
-        <div className="flex flex-row items-center gap-4">
-          <div>
+    <div className="w-full rounded-2xl bg-black/[0.03] p-4">
+      <div className="flex flex-row items-start gap-9">
+        <div className="flex flex-row items-center gap-3">
+          <div className="flex items-center p-0.5">
             {state === "complete" ? (
-              <div className="flex size-5 items-center justify-center rounded-full bg-emerald-600 pl-px text-white [&_svg]:size-3">
+              <div className="flex size-6 items-center justify-center rounded-full bg-emerald-600 text-white [&_svg]:size-3">
                 <Check />
               </div>
             ) : (
-              <span className="flex size-5 items-center justify-center rounded-full border border-muted-foreground text-xs font-medium">
+              <span className="flex size-5 items-center justify-center rounded-full border border-black/60 text-xs font-medium text-black/60">
                 {stepNumber}
               </span>
             )}
           </div>
-          <span className="min-w-[12.5rem] whitespace-nowrap text-sm font-medium">
-            {title.toUpperCase()}
+          <span className="w-[136px] whitespace-nowrap text-[10px] font-bold uppercase leading-4 tracking-[1px] text-black/90">
+            {title}
           </span>
         </div>
         {children}

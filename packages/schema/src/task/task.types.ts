@@ -1,5 +1,6 @@
 import {
   classificationAnnotationSchema,
+  confirmTaskUploadSchema,
   createClassificationAnnotationSchema,
   createPolygonAnnotationSchema,
   createRectangleAnnotationSchema,
@@ -7,9 +8,13 @@ import {
   paginatedTaskSchema,
   polygonAnnotationSchema,
   rectangleAnnotationSchema,
+  requestTaskUploadSchema,
   taskDetailSchema,
+  taskExportQuerySchema,
+  taskExportSchema,
   taskPaginationQuerySchema,
   taskSchema,
+  taskUploadUrlSchema,
   updateTaskSchema,
 } from "./task.schema";
 import z from "zod";
@@ -26,3 +31,8 @@ export type TaskDetail = z.infer<typeof taskDetailSchema>
 export type UpdateTask = z.infer<typeof updateTaskSchema>
 export type TaskPaginationQuery = z.infer<typeof taskPaginationQuerySchema>
 export type PaginatedTasks = z.infer<typeof paginatedTaskSchema>
+export type RequestTaskUpload = z.infer<typeof requestTaskUploadSchema>
+export type TaskUploadUrl = z.infer<typeof taskUploadUrlSchema>
+export type ConfirmTaskUpload = z.infer<typeof confirmTaskUploadSchema>
+export type TaskExport = z.infer<typeof taskExportSchema>
+export type TaskExportQuery = z.infer<typeof taskExportQuerySchema>

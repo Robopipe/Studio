@@ -1,3 +1,4 @@
+import { readCameraApiOverride } from "@/modules/project/utils/cameraApiOverride";
 import { RootState } from "@/store";
 import {
   BaseQueryFn,
@@ -7,8 +8,8 @@ import {
 } from "@reduxjs/toolkit/query";
 
 /**
- * Dynamic base query that resolves camera API URL from Redux state.
- * Priority: activeProject.cameraApiUrl (if non-null) > user.cameraApiUrl
+ * Dynamic base query that resolves the camera API URL from the active project,
+ * preferring the current user's local override (localStorage) when set.
  */
 export const baseQuery: BaseQueryFn<
   string | FetchArgs,
@@ -16,9 +17,10 @@ export const baseQuery: BaseQueryFn<
   FetchBaseQueryError
 > = (args, api, extraOptions) => {
   const state = api.getState() as RootState;
-  const projectUrl = state.project.activeProject?.cameraApiUrl;
-  const userUrl = state.auth.user?.cameraApiUrl;
-  const baseUrl = projectUrl ?? userUrl ?? "";
+  const projectId = state.project.activeProject?.id;
+  const userId = state.auth.user?.id;
+  const override = readCameraApiOverride(userId, projectId);
+  const baseUrl = override ?? state.project.activeProject?.cameraApiUrl ?? "";
 
   const dynamicBaseQuery = fetchBaseQuery({
     baseUrl,

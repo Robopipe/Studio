@@ -21,6 +21,7 @@ export const dashboardConfigurationSchema = z.object({
   modelId: z.number().nullable(),
   cameraMxid: z.string().nullable(),
   streamName: z.string().nullable(),
+  capturedVideoId: z.number().nullable(),
   createdAt: timestampsSchema.createdAt,
   updatedAt: timestampsSchema.updatedAt,
 });
@@ -37,6 +38,7 @@ export const updateDashboardConfigurationSchema = z.object({
   lineFlow: z.enum(DashboardConfigurationLineFlowEnum).optional(),
   cameraMxid: z.string().nullable().optional(),
   streamName: z.string().nullable().optional(),
+  capturedVideoId: z.number().nullable().optional(),
 });
 
 const gradeFields = {

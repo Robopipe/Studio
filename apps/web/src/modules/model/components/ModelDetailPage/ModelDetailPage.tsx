@@ -2,9 +2,11 @@ import { DeleteLimitDialog } from "@/modules/dashboard/components/DeleteLimitDia
 import { Button } from "@/modules/shadcn/ui/button";
 import { Skeleton } from "@/modules/shadcn/ui/skeleton";
 import { ModelStatusEnum } from "@repo/schema";
-import { Trash2 } from "lucide-react";
+import { Copy, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
+import type { AppliedAugmentation } from "../AugmentationSettings/augmentationTypes";
+import type { DuplicateModelState } from "../ModelNewPage/ModelNewPage";
 import {
   useDeleteModelMutation,
   useGetModelLogsQuery,
@@ -15,6 +17,7 @@ import { ModelLayout } from "../ModelLayout";
 import { ModelLogs } from "../ModelLogs";
 import { ModelParametersDialog } from "../ModelParametersDialog";
 import { TrainingChart } from "../TrainingChart";
+import { TrainingStartupScreen } from "../TrainingStartupScreen";
 
 export interface ModelDetailPageProps {}
 
@@ -47,7 +50,6 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
   const isActive = isTraining || model?.status === ModelStatusEnum.CONVERTING;
   const isInitialLoading = isModelLoading || isLogsLoading;
   const isWaitingForLogs = isTraining && (!logs || logs.length === 0);
-  const showSkeleton = isInitialLoading || isWaitingForLogs;
 
   useEffect(() => {
     if (!isTraining) return;
@@ -61,11 +63,62 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
     return () => clearInterval(modelInterval);
   }, [isActive, refetchModel]);
 
-  if (showSkeleton) {
+  const handleDuplicate = () => {
+    if (!model) return;
+
+    // Convert preprocessings with keepOriginal back to duplicate-image augmentations
+    const preprocessingsAsAugs: AppliedAugmentation[] = (model.preprocessings ?? [])
+      .filter((p) => !p.keepOriginal)
+      .map((p) => ({
+        id: crypto.randomUUID(),
+        type: p.type,
+        params: p.params as Record<string, number | boolean | string>,
+      }));
+
+    const duplicateAugs: AppliedAugmentation[] = (model.preprocessings ?? [])
+      .filter((p) => p.keepOriginal)
+      .map((p) => ({
+        id: crypto.randomUUID(),
+        type: p.type,
+        params: { ...p.params, p: 1 } as Record<string, number | boolean | string>,
+        duplicateImage: true,
+      }));
+
+    const normalAugs: AppliedAugmentation[] = (model.augmentations ?? []).map((a) => ({
+      id: crypto.randomUUID(),
+      type: a.type,
+      params: a.params as Record<string, number | boolean | string>,
+    }));
+
+    const state: DuplicateModelState = {
+      duplicateFrom: {
+        name: `${model.name} (copy)`,
+        epochs: model.epochs,
+        trainingType: model.trainingType,
+        annotationsUsed: model.annotationsUsed,
+        labels: model.labels,
+        outputs: model.outputTypes,
+        datasetSplit: {
+          train: model.splitTrain,
+          validation: model.splitValidate,
+          test: model.splitTest,
+        },
+        augmentations: [...normalAugs, ...duplicateAugs],
+        preprocessings: preprocessingsAsAugs,
+        customHyperparams:
+          model.customHyperparams && Object.keys(model.customHyperparams).length > 0
+            ? JSON.stringify(model.customHyperparams, null, 2)
+            : "",
+      },
+    };
+
+    navigate(`/projects/${projectId}/models/new`, { state });
+  };
+
+  if (isInitialLoading) {
     return (
       <ModelLayout>
         <div className="flex min-h-0 flex-1 flex-col gap-6">
-          {/* Header */}
           <div className="flex items-center justify-between">
             <Skeleton className="h-8 w-[40%]" />
             <div className="flex gap-2">
@@ -73,34 +126,20 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
               <Skeleton className="h-10 w-20 rounded-md" />
             </div>
           </div>
-
-          {/* Charts */}
           <div className="flex gap-4">
             <Skeleton className="h-62.5 w-1/2 rounded-lg" />
             <Skeleton className="h-62.5 w-1/2 rounded-lg" />
           </div>
-
-          {/* Logs area */}
-          <div
-            className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 rounded-2xl p-6"
-            style={{ backgroundColor: "#0f0f18" }}
-          >
-            {isWaitingForLogs && (
-              <span className="text-sm text-white/60">
-                Training is starting up...
-              </span>
-            )}
-            <div className="flex w-full flex-col gap-2">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <Skeleton
-                  key={i}
-                  className="h-4 rounded"
-                  style={{ width: `${85 - i * 10}%` }}
-                />
-              ))}
-            </div>
-          </div>
+          <Skeleton className="min-h-0 flex-1 rounded-2xl" />
         </div>
+      </ModelLayout>
+    );
+  }
+
+  if (isWaitingForLogs) {
+    return (
+      <ModelLayout>
+        <TrainingStartupScreen modelName={model?.name} />
       </ModelLayout>
     );
   }
@@ -117,6 +156,16 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
               onClick={() => setShowParamsDialog(true)}
             >
               Show parameters
+            </Button>
+          )}
+          {model && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDuplicate}
+            >
+              <Copy className="mr-1 size-4" />
+              Duplicate
             </Button>
           )}
           {model?.status === ModelStatusEnum.DRAFT && (

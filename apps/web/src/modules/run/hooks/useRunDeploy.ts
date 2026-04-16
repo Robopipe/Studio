@@ -1,8 +1,10 @@
 import {
+  useAddReplayVideoMutation,
   useDeployDashboardMutation,
   useGetDashboardQuery,
   useRemoveDashboardMutation,
   useRemoveNNMutation,
+  useRemoveReplayVideoMutation,
 } from "@/core/cameraApi";
 import type { DeployConfigEntry } from "@/core/cameraApi/schemas/dashboard";
 import type { DeviceInfo } from "@/core/cameraApi/schemas";
@@ -14,6 +16,7 @@ import {
   useLazyGetEvalThresholdsQuery,
 } from "@/modules/evaluation/api/evaluationApi";
 
+import { useLazyGetCapturedVideoQuery } from "@/modules/capture/services/captureApi";
 import { useLazyGetModelOutputsQuery } from "@/modules/model/services/modelApi";
 import {
   useLazyGetProjectLabelsQuery,
@@ -41,6 +44,8 @@ interface UseRunDeployParams {
   selectedStream: string | null;
   selectedCameraInfo: DeviceInfo | undefined;
   activeConfigId: number | null;
+  activeProjectId: number | null;
+  capturedVideoId: number | null;
   cameraApiUrl: string | null;
   selectedConfigs?: ConfigSelection[];
 }
@@ -56,6 +61,8 @@ export const useRunDeploy = ({
   selectedStream,
   selectedCameraInfo,
   activeConfigId,
+  activeProjectId,
+  capturedVideoId,
   cameraApiUrl,
   selectedConfigs,
 }: UseRunDeployParams) => {
@@ -93,6 +100,9 @@ export const useRunDeploy = ({
     useDeployDashboardMutation();
   const [removeNNMut] = useRemoveNNMutation();
   const [removeDashboardMut] = useRemoveDashboardMutation();
+  const [addReplayVideoMut] = useAddReplayVideoMutation();
+  const [removeReplayVideoMut] = useRemoveReplayVideoMutation();
+  const [triggerGetCapturedVideo] = useLazyGetCapturedVideoQuery();
 
   const canDeploy = !!selectedCamera && !!selectedStream;
 
@@ -192,6 +202,45 @@ export const useRunDeploy = ({
       if (b.configId === activeConfigId) return 1;
       return 0;
     });
+
+    // Handle replay video before deploying
+    try {
+      if (capturedVideoId != null && activeProjectId != null) {
+        const video = await triggerGetCapturedVideo({
+          projectId: activeProjectId,
+          videoId: capturedVideoId,
+        }).unwrap();
+
+        const videoResponse = await fetch(video.fileUrl);
+        if (!videoResponse.ok) {
+          throw new Error(`Failed to download replay video: ${videoResponse.status}`);
+        }
+        const videoBlob = await videoResponse.blob();
+        const videoFile = new File(
+          [videoBlob],
+          "replay.mp4",
+          { type: videoBlob.type || "video/mp4" },
+        );
+
+        await addReplayVideoMut({
+          mxid: selectedCamera,
+          streamName: selectedStream,
+          video: videoFile,
+        }).unwrap();
+      } else {
+        await removeReplayVideoMut({
+          mxid: selectedCamera,
+          streamName: selectedStream,
+        })
+          .unwrap()
+          .catch(() => {});
+      }
+    } catch (error) {
+      toast.error(
+        `Replay video setup failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+      return;
+    }
 
     const { dashboard_url } = await deployDashboardMut({
       mxid: selectedCamera,
@@ -343,6 +392,9 @@ export const useRunDeploy = ({
         .unwrap()
         .catch(() => {}),
       removeDashboardMut({ mxid: selectedCamera, streamName: selectedStream })
+        .unwrap()
+        .catch(() => {}),
+      removeReplayVideoMut({ mxid: selectedCamera, streamName: selectedStream })
         .unwrap()
         .catch(() => {}),
     ]);

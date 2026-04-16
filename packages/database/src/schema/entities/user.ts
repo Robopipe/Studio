@@ -8,6 +8,5 @@ export const userTable = p.pgTable("user", {
   email: p.varchar("email", { length: 256 }).notNull().unique(),
   fullName: p.varchar("full_name", { length: 256 }).notNull(),
   password: p.text("password").notNull(),
-  cameraApiUrl: p.text("camera_api_url").notNull().default("https://robopipe-1.local"),
   ...timestamps,
 });

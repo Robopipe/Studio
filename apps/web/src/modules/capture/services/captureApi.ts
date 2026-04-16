@@ -4,11 +4,15 @@ import { HttpMethod } from "@/types";
 import { createApi } from "@reduxjs/toolkit/query/react";
 import {
   CapturedVideo,
+  ConfirmTaskUpload,
   ConfirmVideoUpload,
   PaginatedCapturedVideos,
   PaginatedTasks,
+  RequestTaskUpload,
   RequestVideoUploadUrls,
   Task,
+  TaskExport,
+  TaskUploadUrl,
   VideoUploadUrlsResponse,
 } from "@repo/schema";
 
@@ -27,25 +31,25 @@ const captureApiBase = createApi({
 
 export const captureApi = captureApiBase.injectEndpoints({
   endpoints: (builder) => ({
-    createTask: builder.mutation<Task, { file: File; projectId: number; capturedAt: string }>({
-      query: ({ file, projectId, capturedAt }) => {
-        var bodyFormData = new FormData();
-        bodyFormData.append("file", file);
-
-        return {
-          url: tasks.tasks(projectId),
-          method: "POST",
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-          params: { capturedAt },
-          body: bodyFormData,
-          formData: true,
-        };
-      },
-      invalidatesTags: (_result, _error, { projectId }) => [
-        { type: CaptureApiTagType.Tasks, id: projectId },
-      ],
+    requestTaskUploadUrl: builder.mutation<
+      TaskUploadUrl,
+      { projectId: number } & RequestTaskUpload
+    >({
+      query: ({ projectId, ...body }) => ({
+        url: tasks.uploadUrl(projectId),
+        method: "POST",
+        body,
+      }),
+    }),
+    confirmTaskUpload: builder.mutation<
+      Task,
+      { projectId: number } & ConfirmTaskUpload
+    >({
+      query: ({ projectId, ...body }) => ({
+        url: tasks.confirm(projectId),
+        method: "POST",
+        body,
+      }),
       onQueryStarted: async ({ projectId }, { dispatch, queryFulfilled }) => {
         try {
           const { data: newTask } = await queryFulfilled;
@@ -63,7 +67,7 @@ export const captureApi = captureApiBase.injectEndpoints({
             ),
           );
         } catch {
-          // Mutation failed — invalidatesTags won't fire either
+          // Confirm failed — user can retry; no optimistic update applied.
         }
       },
     }),
@@ -80,6 +84,19 @@ export const captureApi = captureApiBase.injectEndpoints({
         { type: CaptureApiTagType.Tasks, id: projectId },
       ],
     }),
+    exportTasks: builder.query<
+      TaskExport,
+      { projectId: number; annotated?: string; labelIds?: string }
+    >({
+      query: ({ projectId, annotated, labelIds }) => ({
+        url: tasks.export(projectId),
+        method: HttpMethod.GET,
+        params: {
+          ...(annotated && { annotated }),
+          ...(labelIds && { labelIds }),
+        },
+      }),
+    }),
     deleteTask: builder.mutation<void, { projectId: number; taskId: number }>({
       query: ({ projectId, taskId }) => ({
         url: tasks.task(projectId, taskId),
@@ -87,6 +104,18 @@ export const captureApi = captureApiBase.injectEndpoints({
       }),
       invalidatesTags: (_result, _error, { projectId }) => [
         { type: CaptureApiTagType.Tasks, id: projectId },
+      ],
+    }),
+    getCapturedVideo: builder.query<
+      CapturedVideo,
+      { projectId: number; videoId: number }
+    >({
+      query: ({ projectId, videoId }) => ({
+        url: capturedVideos.single(projectId, videoId),
+        method: HttpMethod.GET,
+      }),
+      providesTags: (_result, _error, { videoId }) => [
+        { type: CaptureApiTagType.CapturedVideos, id: videoId },
       ],
     }),
     getCapturedVideos: builder.query<
@@ -139,11 +168,14 @@ export const captureApi = captureApiBase.injectEndpoints({
 });
 
 export const {
-  useCreateTaskMutation,
+  useRequestTaskUploadUrlMutation,
+  useConfirmTaskUploadMutation,
   useGetTasksQuery,
+  useLazyExportTasksQuery,
   useDeleteTaskMutation,
   useRequestVideoUploadUrlsMutation,
   useConfirmVideoUploadMutation,
   useGetCapturedVideosQuery,
+  useLazyGetCapturedVideoQuery,
   useDeleteCapturedVideoMutation,
 } = captureApi;

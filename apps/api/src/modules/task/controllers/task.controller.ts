@@ -1,27 +1,29 @@
 import {
   Body,
-  Controller, Delete,
+  Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
   Post,
   Put,
   Query,
-  UploadedFile,
   UseGuards,
-  UseInterceptors,
 } from "@nestjs/common";
-import { FileInterceptor } from "@nestjs/platform-express";
 import { TaskService } from "../services/task.service";
 import { ProjectGuard } from "../../auth/guards/project-guard";
 import { ProjectId } from "../../auth/decorators/project-id.decorator";
 import {
-  CreateTaskQuery,
+  ConfirmTaskUploadDto,
   PaginatedTaskResponse,
+  RequestTaskUploadDto,
   TaskDetailResponse,
+  TaskExportQuery,
+  TaskExportResponse,
   TaskPaginationQuery,
   TaskResponse,
   TaskUpdateRequest,
+  TaskUploadUrlResponse,
 } from "../dto/task.dto";
 
 @Controller("task/:projectId")
@@ -29,13 +31,30 @@ import {
 export class TaskController {
   constructor(private readonly taskService: TaskService) {}
 
-  @Post()
-  @UseInterceptors(FileInterceptor("file"))
-  public async createTask(@ProjectId() projectId: number, @UploadedFile() file: Express.Multer.File, @Query() query: CreateTaskQuery): Promise<TaskResponse>{
-    const createdTask = await this.taskService.createTask(projectId, file, query.iid, query.capturedAt)
-    return createdTask.toResponse()
+  @Post("upload-url")
+  public async requestUploadUrl(
+    @ProjectId() projectId: number,
+    @Body() body: RequestTaskUploadDto,
+  ): Promise<TaskUploadUrlResponse> {
+    return this.taskService.requestUploadUrl(projectId, body.capturedAt);
   }
 
+  @Post("confirm")
+  public async confirmUpload(
+    @ProjectId() projectId: number,
+    @Body() body: ConfirmTaskUploadDto,
+  ): Promise<TaskResponse> {
+    const task = await this.taskService.confirmUpload(projectId, body);
+    return task.toResponse();
+  }
+
+  @Get("export")
+  public async exportTasks(
+    @ProjectId() projectId: number,
+    @Query() query: TaskExportQuery,
+  ): Promise<TaskExportResponse> {
+    return this.taskService.exportTasks(projectId, query.annotated, query.labelIds);
+  }
 
   @Get()
   public async listTasks(@ProjectId() projectId: number, @Query() query: TaskPaginationQuery): Promise<PaginatedTaskResponse>{
@@ -48,13 +67,11 @@ export class TaskController {
     }
   }
 
-
   @Get(":taskId")
   public async getTask(@ProjectId() projectId: number, @Param("taskId", ParseIntPipe) taskId: number): Promise<TaskDetailResponse> {
     const task = await this.taskService.getTask(taskId, projectId);
     return task.toDetailResponse()
   }
-
 
   @Put(":taskId")
   public async updateTask(@ProjectId() projectId: number, @Param("taskId", ParseIntPipe) taskId: number, @Body() data: TaskUpdateRequest): Promise<TaskDetailResponse> {

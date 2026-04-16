@@ -40,7 +40,7 @@ export const LabelPage = () => {
   const tasks = tasksData?.data ?? [];
   const totalPages = tasksData ? Math.ceil(tasksData.total / tasksData.limit) : 0;
 
-  const { data: labels = [] } = useGetProjectLabelsQuery(
+  const { data: labels = [], isLoading: isLoadingLabels } = useGetProjectLabelsQuery(
     { projectId: projectId! },
     { skip: !projectId },
   );
@@ -244,6 +244,7 @@ export const LabelPage = () => {
         historyIndex={history.currentIndex}
         onJumpTo={history.jumpTo}
         onOpenSettings={() => setSettingsOpen(true)}
+        isLoadingLabels={isLoadingLabels}
       />
       <div className="relative flex min-h-0 flex-col overflow-hidden">
         <Canvas
@@ -283,7 +284,7 @@ export const LabelPage = () => {
               canUndo={history.canUndo}
               canRedo={history.canRedo}
               hasSelection={selectedAnnotationId !== null}
-              hasLabels={labels.length > 0}
+              hasLabels={labels.length > 0 || isLoadingLabels}
               showCrosshair={showCrosshair}
               onToggleCrosshair={toggleCrosshair}
             />
@@ -296,6 +297,7 @@ export const LabelPage = () => {
               activeLabelId={activeLabel?.id ?? 0}
               onSelectLabel={handleSelectLabel}
               onOpenSettings={() => setSettingsOpen(true)}
+              isLoadingLabels={isLoadingLabels}
             />
           </div>
         </div>

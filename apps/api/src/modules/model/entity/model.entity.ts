@@ -22,6 +22,8 @@ export class ModelEntity {
   readonly splitTest: number;
   readonly customHyperparams: Record<string, unknown>;
   readonly errorMessage: string | null;
+  readonly finalAccuracy: number | null;
+  readonly finalLoss: number | null;
   readonly labels: ProjectLabelEntity[];
   readonly augmentations: ModelAugmentationSelect[];
   readonly preprocessings: ModelPreprocessingSelect[];
@@ -49,6 +51,8 @@ export class ModelEntity {
     this.updatedAt = data.updatedAt;
     this.deletedAt = data.deletedAt;
     this.errorMessage = data.errorMessage;
+    this.finalAccuracy = data.finalAccuracy;
+    this.finalLoss = data.finalLoss;
     this.labels = data.labels.map((label) => new ProjectLabelEntity(label));
     this.augmentations = data.augmentations;
     this.preprocessings = data.preprocessings;
@@ -78,6 +82,8 @@ export class ModelEntity {
         keepOriginal: pp.keepOriginal,
       })),
       errorMessage: this.errorMessage,
+      finalAccuracy: this.finalAccuracy,
+      finalLoss: this.finalLoss,
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),
       deletedAt: this.deletedAt ? this.deletedAt.toISOString() : null,

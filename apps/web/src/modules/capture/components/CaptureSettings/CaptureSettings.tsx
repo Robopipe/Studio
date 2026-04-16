@@ -11,7 +11,6 @@ export interface CaptureSettingsProps {
   onSelectStream: (stream: string | null) => void;
   onStreamSwitchingChange?: (isSwitching: boolean) => void;
   mediaStream: MediaStream | null;
-  onRecordingChange: (isRecording: boolean) => void;
 }
 
 export const CaptureSettings = ({
@@ -22,7 +21,6 @@ export const CaptureSettings = ({
   onSelectStream,
   onStreamSwitchingChange,
   mediaStream,
-  onRecordingChange,
 }: CaptureSettingsProps) => {
   return (
     <div className="flex flex-col gap-4 border-r border-black/10 bg-black/[0.03] p-4 pl-6">
@@ -48,7 +46,6 @@ export const CaptureSettings = ({
           <CaptureVideo
             mediaStream={mediaStream}
             isStreaming={isStreaming}
-            onRecordingChange={onRecordingChange}
           />
         </>
       )}

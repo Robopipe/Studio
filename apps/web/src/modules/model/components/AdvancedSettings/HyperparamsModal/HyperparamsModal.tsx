@@ -6,18 +6,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/modules/shadcn/ui/select";
-import { hyperparamsConfigSchema } from "@repo/schema";
+// hyperparamsConfigSchema and createZodLinter imports kept for reference — validation intentionally bypassed
+// import { hyperparamsConfigSchema } from "@repo/schema";
+// import { createZodLinter } from "./zodLinter";
 import { X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { toast } from "sonner";
+import { useEffect, useRef, useState } from "react";
+// import { toast } from "sonner";
 import { HYPERPARAMS_PRESETS } from "../presets";
-import {
-  RESERVED_HYPERPARAMS_PATHS,
-  createReservedKeysLinter,
-  stripReservedKeys,
-} from "./reservedKeys";
+// Reserved keys imports kept for reference — stripping intentionally bypassed
+// import {
+//   RESERVED_HYPERPARAMS_PATHS,
+//   createReservedKeysLinter,
+//   stripReservedKeys,
+// } from "./reservedKeys";
 import { useCodeMirror } from "./useCodeMirror";
-import { createZodLinter } from "./zodLinter";
 
 export interface HyperparamsModalProps {
   value: string;
@@ -40,13 +42,14 @@ function validateJson(text: string): string[] {
     return ["Must be a JSON object"];
   }
 
-  const result = hyperparamsConfigSchema.safeParse(parsed);
-  if (!result.success) {
-    return result.error.issues.map((issue) => {
-      const path = issue.path.length > 0 ? issue.path.join(".") : "root";
-      return `${path}: ${issue.message}`;
-    });
-  }
+  // Schema validation intentionally bypassed — any JSON object is accepted
+  // const result = hyperparamsConfigSchema.safeParse(parsed);
+  // if (!result.success) {
+  //   return result.error.issues.map((issue) => {
+  //     const path = issue.path.length > 0 ? issue.path.join(".") : "root";
+  //     return `${path}: ${issue.message}`;
+  //   });
+  // }
 
   return [];
 }
@@ -59,23 +62,25 @@ export const HyperparamsModal = ({
   const [editorValue, setEditorValue] = useState(value.trim() || "{\n  \n}");
   const [errors, setErrors] = useState<string[]>([]);
   const [selectedPreset, setSelectedPreset] = useState("");
-  const [showReservedPaths, setShowReservedPaths] = useState(false);
+  // Reserved paths UI hidden — reserved keys bypass intentionally disabled
+  // const [showReservedPaths, setShowReservedPaths] = useState(false);
 
-  const zodLinterExtension = useMemo(
-    () => createZodLinter(hyperparamsConfigSchema),
-    [],
-  );
-  const reservedKeysLinterExtension = useMemo(
-    () => createReservedKeysLinter(),
-    [],
-  );
+  // Zod linter and reserved keys linter intentionally bypassed
+  // const zodLinterExtension = useMemo(
+  //   () => createZodLinter(hyperparamsConfigSchema),
+  //   [],
+  // );
+  // const reservedKeysLinterExtension = useMemo(
+  //   () => createReservedKeysLinter(),
+  //   [],
+  // );
 
   const { containerRef, setValue } = useCodeMirror({
     initialValue: editorValue,
     onChange: (val) => {
       setEditorValue(val);
     },
-    extensions: [zodLinterExtension, reservedKeysLinterExtension],
+    extensions: [],
   });
 
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -138,20 +143,23 @@ export const HyperparamsModal = ({
     }
 
     const parsed = JSON.parse(trimmed);
-    const { cleaned, removed } = stripReservedKeys(parsed);
+    // Reserved keys stripping intentionally bypassed — all keys pass through
+    // const { cleaned, removed } = stripReservedKeys(parsed);
+    //
+    // if (removed.length > 0) {
+    //   const labels = removed.map(
+    //     (path) => `${path}: ${RESERVED_HYPERPARAMS_PATHS[path]}`,
+    //   );
+    //   toast.warning("Some settings were ignored", {
+    //     description: labels.join("\n"),
+    //     duration: 8000,
+    //   });
+    // }
+    //
+    // const isEmpty = Object.keys(cleaned).length === 0;
+    // const formatted = isEmpty ? "" : JSON.stringify(cleaned, null, 2);
 
-    if (removed.length > 0) {
-      const labels = removed.map(
-        (path) => `${path}: ${RESERVED_HYPERPARAMS_PATHS[path]}`,
-      );
-      toast.warning("Some settings were ignored", {
-        description: labels.join("\n"),
-        duration: 8000,
-      });
-    }
-
-    const isEmpty = Object.keys(cleaned).length === 0;
-    const formatted = isEmpty ? "" : JSON.stringify(cleaned, null, 2);
+    const formatted = JSON.stringify(parsed, null, 2);
     onApply(formatted);
   };
 
@@ -212,20 +220,8 @@ export const HyperparamsModal = ({
           )}
 
           <span className="text-xs text-muted-foreground [&_code]:rounded-[3px] [&_code]:bg-black/[0.06] [&_code]:px-1 [&_code]:py-px [&_code]:font-mono [&_code]:text-emerald-700">
-            Override training config with a JSON object. Supported top-level
-            keys: <code>model</code>, <code>loader</code>,{" "}
-            <code>trainer</code>, <code>tracker</code>. Some paths are reserved
-            and will be ignored.{" "}
-            <button
-              type="button"
-              className="cursor-pointer whitespace-nowrap border-none bg-none p-0 text-emerald-600 hover:underline"
-              onClick={() => setShowReservedPaths((prev) => !prev)}
-            >
-              {showReservedPaths
-                ? "Hide reserved paths"
-                : "View reserved paths"}
-            </button>{" "}
-            ·{" "}
+            Override training config with a JSON object. Any valid JSON object
+            is accepted and will be deep-merged with the generated config.{" "}
             <a
               href="https://github.com/luxonis/luxonis-train/blob/main/configs/README.md"
               target="_blank"
@@ -236,6 +232,7 @@ export const HyperparamsModal = ({
             </a>
           </span>
 
+          {/* Reserved paths UI hidden — reserved keys bypass intentionally disabled
           {showReservedPaths && (
             <div className="flex max-h-[200px] flex-col gap-2 overflow-y-auto rounded-md border border-black/[0.08] bg-black/[0.03] p-3">
               <span className="text-xs font-semibold">Reserved paths</span>
@@ -250,7 +247,7 @@ export const HyperparamsModal = ({
                 )}
               </ul>
             </div>
-          )}
+          )} */}
         </div>
 
         <div className="flex justify-end gap-2 border-t border-black/[0.08] px-6 py-4">

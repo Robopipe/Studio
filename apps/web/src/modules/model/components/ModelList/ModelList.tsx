@@ -30,17 +30,23 @@ export const ModelList = ({ className }: ModelListProps) => {
 
   return (
     <div
-      className={`overflow-y-auto border-r border-black/10 bg-black/[0.03] p-6 pt-0 ${className ?? ""}`}
+      className={`flex min-h-0 flex-col border-r border-black/10 bg-black/[0.03] py-4 pl-6 pr-2 ${className ?? ""}`}
     >
-      <div className="flex flex-col gap-4">
-        <div className="sticky top-0 z-10 flex flex-col gap-4 rounded-b-lg bg-[#f3f3f3] pt-6">
-          <span>VERSIONS</span>
-          <Link to={`/projects/${projectId}/models/new`}>
-            <Button variant="outline" size="sm" className="w-full">
-              Create new version
-            </Button>
-          </Link>
-        </div>
+      <div className="flex flex-shrink-0 flex-col gap-3 pb-3">
+        <span className="text-[10px] font-bold uppercase leading-4 tracking-[1px] text-black/90">
+          Versions
+        </span>
+        <Link to={`/projects/${projectId}/models/new`}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full border-emerald-700 bg-transparent text-emerald-700 shadow-none hover:bg-emerald-50 hover:text-emerald-700"
+          >
+            Create new version
+          </Button>
+        </Link>
+      </div>
+      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
         {models?.toReversed().map((model, i) => (
           <ModelCard key={model.id} model={model} order={models.length - i} />
         ))}

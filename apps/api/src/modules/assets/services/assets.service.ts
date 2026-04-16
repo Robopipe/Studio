@@ -46,6 +46,25 @@ export class AssetsService {
   }
 
   /**
+   * Build a pre-training GCS object path for a model output.
+   * Filename convention matches what the ML service produces:
+   *   - RAW  -> {uuid}.onnx.tar.xz
+   *   - RVC* -> {uuid}.{type_lower}.tar.xz
+   */
+  public getModelOutputPath(projectId: number, modelId: number, type: ModelOutputTypeEnum): string {
+    const typeLower = type.toLowerCase();
+    const ext = type === ModelOutputTypeEnum.RAW ? "onnx.tar.xz" : `${typeLower}.tar.xz`;
+    return `${projectId}/model/${modelId}/${typeLower}/${uuidv4()}.${ext}`;
+  }
+
+  /**
+   * Public URL for a GCS object (all objects in this bucket are public-read).
+   */
+  public getPublicUrl(objectPath: string): string {
+    return decodeURIComponent(this.bucket.file(objectPath).publicUrl());
+  }
+
+  /**
    * Save buffer to Google cloud storage
    * @param buffer - file buffer
    * @param contentType - MIME type
@@ -99,6 +118,14 @@ export class AssetsService {
   public async fileExists(assetName: string): Promise<boolean> {
     const [exists] = await this.bucket.file(assetName).exists();
     return exists;
+  }
+
+  /**
+   * Download an object's bytes from GCS.
+   */
+  public async downloadFile(assetName: string): Promise<Buffer> {
+    const [buffer] = await this.bucket.file(assetName).download();
+    return buffer;
   }
 
   /**

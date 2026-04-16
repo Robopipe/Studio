@@ -6,11 +6,13 @@ import { RefreshCw, Usb } from "lucide-react";
 export interface NoCameraDetectedProps {
   onRefresh: () => void;
   isRefreshing?: boolean;
+  onOpenSettings?: () => void;
 }
 
 export const NoCameraDetected = ({
   onRefresh,
   isRefreshing,
+  onOpenSettings,
 }: NoCameraDetectedProps) => {
   return (
     <div className="flex flex-1 flex-col items-center justify-center p-8">
@@ -23,7 +25,8 @@ export const NoCameraDetected = ({
       </p>
 
       <p className="mb-6 text-sm text-black/60">
-        Please make sure camera is connected to the controller.
+        Please make sure camera is connected to local network and configured
+        in project settings.
       </p>
 
       <div className="mb-6 flex flex-row gap-4">
@@ -47,6 +50,19 @@ export const NoCameraDetected = ({
         {isRefreshing ? <Spinner /> : <RefreshCw />}
         Refresh
       </Button>
+
+      {onOpenSettings && (
+        <p className="mb-4 text-sm text-black/60">
+          Wrong address?{" "}
+          <button
+            type="button"
+            className="cursor-pointer font-medium underline hover:text-foreground"
+            onClick={onOpenSettings}
+          >
+            Set a different camera API URL
+          </button>
+        </p>
+      )}
 
       <a
         href="https://robopipe.gitbook.io/doc/getting-started/connection"
