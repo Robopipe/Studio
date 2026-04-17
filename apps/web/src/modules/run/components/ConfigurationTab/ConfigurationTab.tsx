@@ -1,17 +1,23 @@
 import type { SahiConfig } from "@/core/cameraApi/schemas/nn";
 import { Button } from "@/modules/shadcn/ui/button";
 import { Save } from "lucide-react";
+import { useImperativeHandle, type Ref } from "react";
 import { CameraConfigPanel } from "./CameraConfigPanel";
 import { CameraPreview } from "./CameraPreview";
 import { LinePositionPanel } from "./LinePositionPanel";
 import { SahiConfigPanel } from "./SahiConfigPanel";
 import { useConfigurationState } from "./useConfigurationState";
 
+export interface ConfigurationTabHandle {
+  saveIfDirty: () => Promise<void>;
+}
+
 interface ConfigurationTabProps {
   projectId: number;
   configId: number | null;
   sahiConfig: SahiConfig | null;
   onSahiConfigChange: (config: SahiConfig | null) => void;
+  ref?: Ref<ConfigurationTabHandle>;
 }
 
 export const ConfigurationTab = ({
@@ -19,6 +25,7 @@ export const ConfigurationTab = ({
   configId,
   sahiConfig,
   onSahiConfigChange,
+  ref,
 }: ConfigurationTabProps) => {
   if (!configId) {
     return (
@@ -32,6 +39,7 @@ export const ConfigurationTab = ({
 
   return (
     <ConfigurationTabContent
+      ref={ref}
       projectId={projectId}
       configId={configId}
       sahiConfig={sahiConfig}
@@ -45,11 +53,13 @@ const ConfigurationTabContent = ({
   configId,
   sahiConfig,
   onSahiConfigChange,
+  ref,
 }: {
   projectId: number;
   configId: number;
   sahiConfig: SahiConfig | null;
   onSahiConfigChange: (config: SahiConfig | null) => void;
+  ref?: Ref<ConfigurationTabHandle>;
 }) => {
   const {
     cameras,
@@ -71,6 +81,16 @@ const ConfigurationTabContent = ({
     handleSave,
     isSaving,
   } = useConfigurationState(projectId, configId);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      saveIfDirty: async () => {
+        if (hasChanges) await handleSave();
+      },
+    }),
+    [hasChanges, handleSave],
+  );
 
   return (
     <div className="flex min-h-full flex-col gap-6 bg-gray-100 p-6">
