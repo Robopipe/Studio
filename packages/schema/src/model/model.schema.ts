@@ -67,6 +67,7 @@ export const modelSchema = z.object({
   status: z.enum(ModelStatusEnum),
   epochs: z.number(),
   labels: labelSchema.array(),
+  taskIds: z.number().array(),
   outputTypes: z.enum(ModelOutputTypeEnum).array(),
   trainingType: z.enum(ProjectTypeEnum),
   annotationsUsed: z.enum(ProjectTypeEnum).array(),
@@ -110,6 +111,7 @@ export const createModelSchema = modelSchema
   })
   .extend({
     labelIds: z.number().array(),
+    taskIds: z.number().array().default([]),
     augmentations: z
       .object({
         type: z.enum(ModelAugmentationTypeEnum),

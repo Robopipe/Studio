@@ -37,7 +37,10 @@ export class ModelRepository {
       orderBy: (m) => asc(m.createdAt)
     });
 
-    return models.map((model) => new ModelEntity(model))
+    return Promise.all(models.map(async (model) => {
+      const taskIds = await this.getVersionTaskIds(model.datasetVersionId);
+      return new ModelEntity({ ...model, taskIds });
+    }));
   }
 
   /**
@@ -59,7 +62,9 @@ export class ModelRepository {
       },
     });
 
-    return foundModel ? new ModelEntity(foundModel) : null;
+    if (!foundModel) return null;
+    const taskIds = await this.getVersionTaskIds(foundModel.datasetVersionId);
+    return new ModelEntity({ ...foundModel, taskIds });
   }
 
   /**
@@ -83,7 +88,9 @@ export class ModelRepository {
       }
     })
 
-    return foundModel ? new ModelEntity(foundModel) : null
+    if (!foundModel) return null;
+    const taskIds = await this.getVersionTaskIds(foundModel.datasetVersionId);
+    return new ModelEntity({ ...foundModel, taskIds });
   }
 
   /**
@@ -98,7 +105,7 @@ export class ModelRepository {
       throw new InternalServerErrorException("Failed creating model")
     }
 
-    return new ModelEntity({...createdModel, labels: [], augmentations: [], preprocessings: []})
+    return new ModelEntity({...createdModel, labels: [], augmentations: [], preprocessings: [], taskIds: []})
   }
 
 
@@ -134,7 +141,9 @@ export class ModelRepository {
       where: { modelId: id },
     })
 
-    return new ModelEntity({...updatedModel, labels, augmentations, preprocessings})
+    const taskIds = await this.getVersionTaskIds(updatedModel.datasetVersionId);
+
+    return new ModelEntity({...updatedModel, labels, augmentations, preprocessings, taskIds})
   }
 
   /**
@@ -156,5 +165,18 @@ export class ModelRepository {
     await this.db.update(modelTable).set({
       deletedAt: new Date()
     }).where(eq(modelTable.id, id))
+  }
+
+  /**
+   * Get task IDs associated with a model's dataset version
+   * @param datasetVersionId
+   * @returns number[] of task IDs
+   */
+  private async getVersionTaskIds(datasetVersionId: number | null): Promise<number[]> {
+    if (!datasetVersionId) return [];
+    const rows = await this.db.query.datasetVersionTaskTable.findMany({
+      where: { datasetVersionId },
+    });
+    return rows.map((row) => row.taskId);
   }
 }
