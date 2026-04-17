@@ -118,6 +118,13 @@ export const taskPaginationQuerySchema = paginationQuerySchema.extend({
       if (!val) return undefined;
       return val.split(",").map(Number).filter((n) => !isNaN(n));
     }),
+  ids: z
+    .string()
+    .optional()
+    .transform((val): number[] | undefined => {
+      if (!val) return undefined;
+      return val.split(",").map(Number).filter((n) => !isNaN(n));
+    }),
   order: z
     .union([z.literal("asc"), z.literal("desc")])
     .optional()

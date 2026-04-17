@@ -11,19 +11,25 @@ export interface DatasetSplit {
 export interface DatasetSplitSettingsProps {
   split: DatasetSplit;
   onChange: (newSplit: DatasetSplit) => void;
+  /** When a custom dataset is selected, override the total image count. */
+  customTotal?: number;
 }
 
 export const DatasetSplitSettings = ({
   split,
   onChange,
+  customTotal,
 }: DatasetSplitSettingsProps) => {
   const { train, validation, test } = split;
   const [activeProject] = useActiveProject();
-  const { data: tasks } = useGetTasksQuery({
-    projectId: activeProject?.id!,
-    annotated: "true",
-  });
-  const totalImages = tasks?.total ?? 0;
+  const { data: tasks } = useGetTasksQuery(
+    {
+      projectId: activeProject?.id!,
+      annotated: "true",
+    },
+    { skip: customTotal !== undefined || !activeProject?.id },
+  );
+  const totalImages = customTotal ?? tasks?.total ?? 0;
 
   return (
     <SettingsCard state="complete" stepNumber={3} title="Train/Test split">

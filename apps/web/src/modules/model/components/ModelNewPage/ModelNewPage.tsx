@@ -1,3 +1,4 @@
+import { useGetTasksQuery } from "@/modules/capture/services/captureApi";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import { Button } from "@/modules/shadcn/ui/button";
 import { Input } from "@/modules/shadcn/ui/input";
@@ -37,6 +38,8 @@ export interface DuplicateModelState {
     customHyperparams: string;
     taskIds?: number[];
     taskPreviews?: { id: number; thumbnailUrl: string }[];
+    /** Source model's dataset version — lets the new model reuse the exact same version (no duplication) when taskIds are unchanged. */
+    datasetVersionId?: number | null;
   };
 }
 
@@ -91,6 +94,33 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
   const [selectedTaskPreviews, setSelectedTaskPreviews] = useState<
     { id: number; thumbnailUrl: string }[]
   >(duplicateState?.taskPreviews ?? []);
+  // Source model's dataset version (only set when duplicating). The backend
+  // reuses this version if taskIds are unchanged, or appends a new version
+  // under the same dataset if they've been edited.
+  const sourceDatasetVersionId = duplicateState?.datasetVersionId ?? undefined;
+
+  // When duplicating, we receive taskIds but no thumbnail URLs. Fetch them
+  // so the Source Images card can render the preview row.
+  const needsPreviewFetch =
+    selectedTaskIds.length > 0 && selectedTaskPreviews.length === 0;
+  const { data: previewTasksData } = useGetTasksQuery(
+    {
+      projectId: activeProject?.id!,
+      limit: selectedTaskIds.length || 1,
+      ids: selectedTaskIds.join(","),
+    },
+    { skip: !activeProject?.id || !needsPreviewFetch },
+  );
+
+  useEffect(() => {
+    if (!needsPreviewFetch || !previewTasksData) return;
+    setSelectedTaskPreviews(
+      previewTasksData.data.map((t) => ({
+        id: t.id,
+        thumbnailUrl: t.thumbnailUrl,
+      })),
+    );
+  }, [needsPreviewFetch, previewTasksData]);
 
   // Clear location state after reading to prevent re-prefill on refresh
   useEffect(() => {
@@ -161,6 +191,7 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
       epochs,
       labelIds: activeLabels?.map((label) => label.id) || [],
       taskIds: selectedTaskIds,
+      ...(sourceDatasetVersionId != null && { sourceDatasetVersionId }),
       name,
       projectId: activeProject?.id!,
       splitTest: datasetSplit.test,
@@ -244,7 +275,11 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
           selectedTaskPreviews={selectedTaskPreviews}
           onEditSelection={() => setSelectionDialogOpen(true)}
         />
-        <DatasetSplitSettings split={datasetSplit} onChange={setDatasetSplit} />
+        <DatasetSplitSettings
+          split={datasetSplit}
+          onChange={setDatasetSplit}
+          customTotal={selectedTaskIds.length > 0 ? selectedTaskIds.length : undefined}
+        />
         <AdvancedSettings
           outputs={outputs}
           onOutputsChange={setOutputs}

@@ -123,8 +123,8 @@ export class TaskService {
     return this.taskRepository.getByIdAndProjectIdOrThrow(id, projectId)
   }
 
-  public async getTasks(projectId: number, page: number = 1, limit: number = 50, deleted: boolean | null = false, annotated?: boolean, order: "asc" | "desc" = "asc", labelIds?: number[]): Promise<{ data: TaskEntity[]; total: number }>{
-    return this.taskRepository.getAllByProjectIdPaginated(projectId, page, limit, deleted, annotated, order, labelIds)
+  public async getTasks(projectId: number, page: number = 1, limit: number = 50, deleted: boolean | null = false, annotated?: boolean, order: "asc" | "desc" = "asc", labelIds?: number[], ids?: number[]): Promise<{ data: TaskEntity[]; total: number }>{
+    return this.taskRepository.getAllByProjectIdPaginated(projectId, page, limit, deleted, annotated, order, labelIds, ids)
   }
 
   public async updateTask(id: number, projectId: number, data: TaskUpdateRequest): Promise<TaskDetailEntity>{

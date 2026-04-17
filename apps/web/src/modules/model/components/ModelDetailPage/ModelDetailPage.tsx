@@ -110,6 +110,7 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
             ? JSON.stringify(model.customHyperparams, null, 2)
             : "",
         taskIds: model.taskIds ?? [],
+        datasetVersionId: model.datasetVersionId ?? null,
       },
     };
 

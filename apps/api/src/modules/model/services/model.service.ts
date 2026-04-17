@@ -103,7 +103,7 @@ export class ModelService{
         projectId,
         `Dataset for ${data.name}`,
         data.taskIds,
-        null,
+        data.sourceDatasetVersionId ?? null,
       );
       await this.modelRepository.update(createdModel.id, { datasetVersionId: versionId });
     }
@@ -278,8 +278,10 @@ export class ModelService{
     if (existingDatasetVersionId) {
       const current = await this.db.query.datasetVersionTable.findFirst({
         where: { id: existingDatasetVersionId },
+        with: { dataset: true },
       });
-      if (current) {
+      // Only reuse/extend a version if its dataset belongs to this project
+      if (current && current.dataset?.projectId === projectId) {
         const currentTasks = await this.db.query.datasetVersionTaskTable.findMany({
           where: { datasetVersionId: existingDatasetVersionId },
         });
