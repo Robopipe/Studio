@@ -4,6 +4,6 @@ import { ProjectLabelSelect } from "./project-label";
 
 export type ModelAugmentationSelect = InferSelectModel<typeof modelAugmentationTable>;
 export type ModelPreprocessingSelect = InferSelectModel<typeof modelPreprocessingTable>;
-export type ModelSelect = InferSelectModel<typeof modelTable> & {labels: ProjectLabelSelect[], augmentations: ModelAugmentationSelect[], preprocessings: ModelPreprocessingSelect[]}
+export type ModelSelect = InferSelectModel<typeof modelTable> & {labels: ProjectLabelSelect[], augmentations: ModelAugmentationSelect[], preprocessings: ModelPreprocessingSelect[], taskIds: number[]}
 export type ModelInsert = InferInsertModel<typeof modelTable>;
-export type ModelUpdate = Partial<Pick<ModelInsert, "name" | "epochs" | "splitTest" | "splitValidate" | "splitTrain" | "status" | "outputTypes" | "trainingType" | "annotationsUsed" | "customHyperparams" | "errorMessage" | "finalAccuracy" | "finalLoss">>
+export type ModelUpdate = Partial<Pick<ModelInsert, "name" | "epochs" | "splitTest" | "splitValidate" | "splitTrain" | "status" | "outputTypes" | "trainingType" | "annotationsUsed" | "customHyperparams" | "errorMessage" | "finalAccuracy" | "finalLoss" | "datasetVersionId">>

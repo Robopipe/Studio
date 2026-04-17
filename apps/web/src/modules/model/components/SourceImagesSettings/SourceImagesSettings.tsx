@@ -1,17 +1,30 @@
 import { cn } from "@/lib/utils";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import { useGetProjectLabelsQuery } from "@/modules/project/services/projectApi";
+import { Button } from "@/modules/shadcn/ui/button";
 import { Label } from "@repo/schema";
+import { Pencil } from "lucide-react";
 import { CSSProperties, useEffect, useMemo } from "react";
 import { SettingsCard } from "../SettingsCard";
+
+const MAX_VISIBLE_THUMBNAILS = 15;
 
 export interface SourceImagesSettingsProps {
   activeLabels: Label[];
   setActiveLabels: (labels: Label[]) => void;
+  selectedTaskIds: number[];
+  selectedTaskPreviews: { id: number; thumbnailUrl: string }[];
+  onEditSelection: () => void;
 }
 
 export const SourceImagesSettings = (props: SourceImagesSettingsProps) => {
-  const { activeLabels, setActiveLabels } = props;
+  const {
+    activeLabels,
+    setActiveLabels,
+    selectedTaskIds,
+    selectedTaskPreviews,
+    onEditSelection,
+  } = props;
   const [project] = useActiveProject();
   const { data: labels } = useGetProjectLabelsQuery(
     { projectId: project?.id! },
@@ -34,43 +47,91 @@ export const SourceImagesSettings = (props: SourceImagesSettingsProps) => {
     }
   }, [labels]);
 
+  const hasSelection = selectedTaskIds.length > 0;
+  const visiblePreviews = selectedTaskPreviews.slice(0, MAX_VISIBLE_THUMBNAILS);
+  const overflow = selectedTaskIds.length - visiblePreviews.length;
+
   return (
-    <SettingsCard title="source images" state="complete" stepNumber={2}>
-      <div className="flex flex-row flex-wrap items-center gap-2">
-        <span className="mr-3 text-xs text-foreground/90">Labels</span>
-        {mappedLabels.map((label) => (
-          <button
-            type="button"
-            key={label.id}
-            style={{ "--label-color": label.color } as CSSProperties}
-            onClick={() =>
-              label.isActive
-                ? setActiveLabels(
-                    activeLabels.filter((l) => l.id !== label.id),
-                  )
-                : setActiveLabels([...activeLabels, label])
-            }
-            className={cn(
-              "flex cursor-pointer items-center rounded-md border border-transparent p-1 transition-colors",
-              label.isActive
-                ? "[background-color:color-mix(in_oklab,var(--label-color),transparent_85%)] [border-color:var(--label-color)]"
-                : "bg-black/10 opacity-60 hover:opacity-80",
+    <SettingsCard
+      title="source images"
+      state={hasSelection ? "complete" : "pending"}
+      stepNumber={2}
+    >
+      <div className="flex flex-1 flex-col gap-4 py-1">
+        {/* Images row */}
+        <div className="flex items-center gap-5">
+          <span className="text-xs text-foreground/90">Images</span>
+          <div className="flex flex-1 items-center gap-1.5">
+            {hasSelection ? (
+              <>
+                {visiblePreviews.map((preview) => (
+                  <img
+                    key={preview.id}
+                    src={preview.thumbnailUrl}
+                    alt=""
+                    className="size-9 shrink-0 rounded-lg object-cover"
+                  />
+                ))}
+                {overflow > 0 && (
+                  <div className="relative size-9 shrink-0 overflow-hidden rounded-lg">
+                    <img
+                      src={visiblePreviews[visiblePreviews.length - 1]?.thumbnailUrl}
+                      alt=""
+                      className="size-full object-cover"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/65">
+                      <span className="text-xs text-white">+{overflow}</span>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <span className="text-xs text-foreground/60">All images</span>
             )}
-          >
-            <span
-              className="h-6 w-2 shrink-0 rounded-[4px]"
-              style={{ background: "var(--label-color)" }}
-            />
-            <span
+          </div>
+          <Button variant="ghost" size="sm" onClick={onEditSelection}>
+            <Pencil className="mr-1.5 size-4" />
+            Edit
+          </Button>
+        </div>
+
+        {/* Labels row */}
+        <div className="flex flex-row flex-wrap items-center gap-2">
+          <span className="mr-3 text-xs text-foreground/90">Labels</span>
+          {mappedLabels.map((label) => (
+            <button
+              type="button"
+              key={label.id}
+              style={{ "--label-color": label.color } as CSSProperties}
+              onClick={() =>
+                label.isActive
+                  ? setActiveLabels(
+                      activeLabels.filter((l) => l.id !== label.id),
+                    )
+                  : setActiveLabels([...activeLabels, label])
+              }
               className={cn(
-                "px-2 text-xs leading-4 text-foreground/90",
-                label.isActive ? "font-bold" : "font-normal",
+                "flex cursor-pointer items-center rounded-md border border-transparent p-1 transition-colors",
+                label.isActive
+                  ? "[background-color:color-mix(in_oklab,var(--label-color),transparent_85%)] [border-color:var(--label-color)]"
+                  : "bg-black/10 opacity-60 hover:opacity-80",
               )}
             >
-              {label.name}
-            </span>
-          </button>
-        ))}
+              <span
+                className="h-6 w-2 shrink-0 rounded-[4px]"
+                style={{ background: "var(--label-color)" }}
+              />
+              <span
+                className={cn(
+                  "px-2 text-xs leading-4 text-foreground/90",
+                  label.isActive ? "font-bold" : "font-normal",
+                )}
+              >
+                {label.name}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
     </SettingsCard>
   );

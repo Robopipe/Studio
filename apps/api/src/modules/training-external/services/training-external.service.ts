@@ -254,7 +254,7 @@ export class TrainingExternalService {
     model: ModelEntity,
     outputUploads: OutputUpload[],
   ): Promise<TrainingPayload> {
-    const tasks = await this.db.query.taskTable.findMany({
+    const allTasks = await this.db.query.taskTable.findMany({
       where: {
         projectId: model.projectId,
         status: TaskStatusEnum.DONE,
@@ -265,6 +265,11 @@ export class TrainingExternalService {
         polygonAnnotations: true,
       },
     });
+
+    // If model has a custom dataset, filter to only selected tasks
+    const tasks = model.taskIds.length > 0
+      ? allTasks.filter((t) => model.taskIds.includes(t.id))
+      : allTasks;
 
     const labelsIndexMap = model.labels.reduce(
       (acc: Record<number, number>, current, currentIndex) => {

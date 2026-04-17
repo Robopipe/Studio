@@ -1,4 +1,7 @@
 export * from "./classification-annotation";
+export * from "./dataset";
+export * from "./dataset-version";
+export * from "./dataset-version-task";
 export * from "./invitation";
 export * from "./model";
 export * from "./model-augmentation";
