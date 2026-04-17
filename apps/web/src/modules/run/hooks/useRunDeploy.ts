@@ -1,4 +1,5 @@
 import {
+  useAddReplayVideoFromUrlMutation,
   useAddReplayVideoMutation,
   useDeployDashboardMutation,
   useGetDashboardQuery,
@@ -6,8 +7,8 @@ import {
   useRemoveNNMutation,
   useRemoveReplayVideoMutation,
 } from "@/core/cameraApi";
-import type { DeployConfigEntry } from "@/core/cameraApi/schemas/dashboard";
 import type { DeviceInfo } from "@/core/cameraApi/schemas";
+import type { DeployConfigEntry } from "@/core/cameraApi/schemas/dashboard";
 import type { SahiConfig } from "@/core/cameraApi/schemas/nn";
 import { useLazyGetDashboardConfigsQuery } from "@/modules/dashboard/services/dashboardConfigApi";
 import {
@@ -34,6 +35,12 @@ const PLATFORM_TO_OUTPUT_TYPE: Record<string, string> = {
   X_LINK_RVC3: ModelOutputTypeEnum.RVC3,
   X_LINK_RVC4: ModelOutputTypeEnum.RVC4,
 };
+
+// Camera versions older than the URL-pull endpoint respond 404/405; if the
+// camera is reachable but can't fetch the URL itself it responds 502. Any of
+// these mean we should fall back to browser-side buffered upload rather than
+// surface the error.
+const URL_PULL_FALLBACK_STATUSES = new Set([404, 405, 502]);
 
 export interface ConfigSelection {
   configId: number;
@@ -104,6 +111,7 @@ export const useRunDeploy = ({
   const [removeNNMut] = useRemoveNNMutation();
   const [removeDashboardMut] = useRemoveDashboardMutation();
   const [addReplayVideoMut] = useAddReplayVideoMutation();
+  const [addReplayVideoFromUrlMut] = useAddReplayVideoFromUrlMutation();
   const [removeReplayVideoMut] = useRemoveReplayVideoMutation();
   const [triggerGetCapturedVideo] = useLazyGetCapturedVideoQuery();
 
@@ -127,137 +135,162 @@ export const useRunDeploy = ({
 
     setIsDeployInProgress(true);
     try {
+      const requiredOutputType =
+        PLATFORM_TO_OUTPUT_TYPE[selectedCameraInfo.platform];
 
-    const requiredOutputType =
-      PLATFORM_TO_OUTPUT_TYPE[selectedCameraInfo.platform];
-
-    // Fetch all projects and their dashboard configs
-    const allProjects = await triggerGetProjects().unwrap();
-    const projectConfigPairs = await Promise.all(
-      allProjects.map(async (project) => {
-        const projectConfigs = await triggerGetDashboardConfigs({
-          projectId: project.id,
-        }).unwrap();
-        return projectConfigs
-          .filter((c) => c.modelId != null)
-          .map((config) => ({
+      // Fetch all projects and their dashboard configs
+      const allProjects = await triggerGetProjects().unwrap();
+      const projectConfigPairs = await Promise.all(
+        allProjects.map(async (project) => {
+          const projectConfigs = await triggerGetDashboardConfigs({
             projectId: project.id,
-            projectName: project.name,
-            config,
-          }));
-      }),
-    );
-    let allConfigEntries = projectConfigPairs.flat();
-
-    // If user has selected specific configs, filter to only those + active config
-    if (selectedConfigs && selectedConfigs.length > 0) {
-      const selectedIds = new Set(selectedConfigs.map((s) => s.configId));
-      if (activeConfigId != null) selectedIds.add(activeConfigId);
-      allConfigEntries = allConfigEntries.filter((e) =>
-        selectedIds.has(e.config.id),
+          }).unwrap();
+          return projectConfigs
+            .filter((c) => c.modelId != null)
+            .map((config) => ({
+              projectId: project.id,
+              projectName: project.name,
+              config,
+            }));
+        }),
       );
-    }
+      let allConfigEntries = projectConfigPairs.flat();
 
-    if (allConfigEntries.length === 0) {
-      toast.error("No deployable configurations found across projects");
-      return;
-    }
-
-    // Assemble deploy payload for each config in parallel
-    const assembled: AssembledConfig[] = [];
-    const skippedReasons: string[] = [];
-
-    await Promise.all(
-      allConfigEntries.map(async ({ projectId: pid, projectName, config }) => {
-        try {
-          const result = await assembleConfigPayload(
-            pid,
-            projectName,
-            config,
-            requiredOutputType,
-          );
-          if (result) {
-            assembled.push(result);
-          } else {
-            skippedReasons.push(
-              `"${config.name}" (${projectName}): no compatible model output${requiredOutputType ? ` for ${requiredOutputType}` : ""}`,
-            );
-          }
-        } catch {
-          skippedReasons.push(
-            `"${config.name}" (${projectName}): failed to assemble`,
-          );
-        }
-      }),
-    );
-
-    if (skippedReasons.length > 0) {
-      toast.warning(
-        `Skipped ${skippedReasons.length} config(s): ${skippedReasons.join(", ")}`,
-      );
-    }
-
-    if (assembled.length === 0) {
-      toast.error("No configurations could be assembled for deployment");
-      return;
-    }
-
-    // Active config first (backend deploys first config immediately)
-    assembled.sort((a, b) => {
-      if (a.configId === activeConfigId) return -1;
-      if (b.configId === activeConfigId) return 1;
-      return 0;
-    });
-
-    // Handle replay video before deploying
-    try {
-      if (capturedVideoId != null && activeProjectId != null) {
-        const video = await triggerGetCapturedVideo({
-          projectId: activeProjectId,
-          videoId: capturedVideoId,
-        }).unwrap();
-
-        const videoResponse = await fetch(video.fileUrl);
-        if (!videoResponse.ok) {
-          throw new Error(`Failed to download replay video: ${videoResponse.status}`);
-        }
-        const videoBlob = await videoResponse.blob();
-        const videoFile = new File(
-          [videoBlob],
-          "replay.mp4",
-          { type: videoBlob.type || "video/mp4" },
+      // If user has selected specific configs, filter to only those + active config
+      if (selectedConfigs && selectedConfigs.length > 0) {
+        const selectedIds = new Set(selectedConfigs.map((s) => s.configId));
+        if (activeConfigId != null) selectedIds.add(activeConfigId);
+        allConfigEntries = allConfigEntries.filter((e) =>
+          selectedIds.has(e.config.id),
         );
-
-        await addReplayVideoMut({
-          mxid: selectedCamera,
-          streamName: selectedStream,
-          video: videoFile,
-        }).unwrap();
-      } else {
-        await removeReplayVideoMut({
-          mxid: selectedCamera,
-          streamName: selectedStream,
-        })
-          .unwrap()
-          .catch(() => {});
       }
-    } catch (error) {
-      toast.error(
-        `Replay video setup failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+
+      if (allConfigEntries.length === 0) {
+        toast.error("No deployable configurations found across projects");
+        return;
+      }
+
+      // Assemble deploy payload for each config in parallel
+      const assembled: AssembledConfig[] = [];
+      const skippedReasons: string[] = [];
+
+      await Promise.all(
+        allConfigEntries.map(
+          async ({ projectId: pid, projectName, config }) => {
+            try {
+              const result = await assembleConfigPayload(
+                pid,
+                projectName,
+                config,
+                requiredOutputType,
+              );
+              if (result) {
+                assembled.push(result);
+              } else {
+                skippedReasons.push(
+                  `"${config.name}" (${projectName}): no compatible model output${requiredOutputType ? ` for ${requiredOutputType}` : ""}`,
+                );
+              }
+            } catch {
+              skippedReasons.push(
+                `"${config.name}" (${projectName}): failed to assemble`,
+              );
+            }
+          },
+        ),
       );
-      return;
-    }
 
-    const { dashboard_url } = await deployDashboardMut({
-      mxid: selectedCamera,
-      streamName: selectedStream,
-      configs: assembled.map((a) => a.deployConfig),
-      models: assembled.map((a) => a.modelFile),
-    }).unwrap();
+      if (skippedReasons.length > 0) {
+        toast.warning(
+          `Skipped ${skippedReasons.length} config(s): ${skippedReasons.join(", ")}`,
+        );
+      }
 
-    // Set URL immediately so the dashboard tab works right away
-    setDashboardUrl(`${cameraApiUrl}${dashboard_url}`);
+      if (assembled.length === 0) {
+        toast.error("No configurations could be assembled for deployment");
+        return;
+      }
 
+      // Active config first (backend deploys first config immediately)
+      assembled.sort((a, b) => {
+        if (a.configId === activeConfigId) return -1;
+        if (b.configId === activeConfigId) return 1;
+        return 0;
+      });
+
+      // Handle replay video before deploying
+      try {
+        if (capturedVideoId != null && activeProjectId != null) {
+          const video = await triggerGetCapturedVideo({
+            projectId: activeProjectId,
+            videoId: capturedVideoId,
+          }).unwrap();
+
+          const uploadBuffered = async () => {
+            const videoResponse = await fetch(video.fileUrl);
+            if (!videoResponse.ok) {
+              throw new Error(
+                `Failed to download replay video: ${videoResponse.status}`,
+              );
+            }
+            const videoBlob = await videoResponse.blob();
+            const videoFile = new File([videoBlob], "replay.webm", {
+              type: videoBlob.type || "video/webm",
+            });
+
+            await addReplayVideoMut({
+              mxid: selectedCamera,
+              streamName: selectedStream,
+              video: videoFile,
+            }).unwrap();
+          };
+
+          // Preferred path: camera downloads the video itself. Avoids browser
+          // buffering the whole file and sidesteps the HTTP/2 streaming-body
+          // requirement for large in-browser uploads.
+          try {
+            await addReplayVideoFromUrlMut({
+              mxid: selectedCamera,
+              streamName: selectedStream,
+              url: video.fileUrl,
+              filename: "replay.webm",
+            }).unwrap();
+          } catch (err) {
+            const status = (err as { status?: unknown })?.status;
+            const shouldFallBack =
+              typeof status === "number" &&
+              URL_PULL_FALLBACK_STATUSES.has(status);
+            if (!shouldFallBack) throw err;
+            console.warn(
+              "Camera URL-pull replay upload unavailable; falling back to buffered browser upload",
+              err,
+            );
+            await uploadBuffered();
+          }
+        } else {
+          await removeReplayVideoMut({
+            mxid: selectedCamera,
+            streamName: selectedStream,
+          })
+            .unwrap()
+            .catch(() => {});
+        }
+      } catch (error) {
+        toast.error(
+          `Replay video setup failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+        );
+        return;
+      }
+
+      const { dashboard_url } = await deployDashboardMut({
+        mxid: selectedCamera,
+        streamName: selectedStream,
+        configs: assembled.map((a) => a.deployConfig),
+        models: assembled.map((a) => a.modelFile),
+      }).unwrap();
+
+      // Set URL immediately so the dashboard tab works right away
+      setDashboardUrl(`${cameraApiUrl}${dashboard_url}`);
     } finally {
       setIsDeployInProgress(false);
     }
@@ -386,9 +419,7 @@ export const useRunDeploy = ({
         nn_config: {
           type: "Generic",
           model_id: config.modelId,
-          nn_config: sahiConfig
-            ? { sahi_config: sahiConfig }
-            : {},
+          nn_config: sahiConfig ? { sahi_config: sahiConfig } : {},
         },
       },
       modelFile: new File([modelBuffer], "model.tar.xz"),
