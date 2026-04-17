@@ -93,7 +93,7 @@ export const CameraPreview = ({ imageUrl, lineConfig }: CameraPreviewProps) => {
       };
 
   return (
-    <div className="relative flex-1 overflow-hidden m-8 rounded-xl">
+    <div className="relative m-6 flex-1 self-center overflow-hidden rounded-xl aspect-video">
       <img
         className="block h-full w-full object-cover"
         src={imageUrl}
