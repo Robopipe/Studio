@@ -19,10 +19,13 @@ import {
 } from "@/modules/shadcn/ui/dialog";
 import { NoCameraDetected, SearchingForCamera } from "@/modules/ui";
 import { Settings, TriangleAlert, Video } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ConfigSelection } from "../../hooks/useRunDeploy";
 import { useRunDeploy } from "../../hooks/useRunDeploy";
-import { ConfigurationTab } from "../ConfigurationTab";
+import {
+  ConfigurationTab,
+  type ConfigurationTabHandle,
+} from "../ConfigurationTab";
 import { DeployConfigSelector } from "../DeployConfigSelector/DeployConfigSelector";
 import { LiveInference } from "../LiveInference";
 import { RunSubheader, RunTab } from "../RunSubheader";
@@ -33,6 +36,7 @@ export const RunPage = () => {
   const [selectedConfigs, setSelectedConfigs] = useState<ConfigSelection[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [sahiConfig, setSahiConfig] = useState<SahiConfig | null>(null);
+  const configTabRef = useRef<ConfigurationTabHandle>(null);
 
   const [activeProject] = useActiveProject();
   const projectId = activeProject?.id;
@@ -86,6 +90,9 @@ export const RunPage = () => {
     cameraApiUrl,
     selectedConfigs,
     sahiConfig,
+    beforeDeploy: async () => {
+      await configTabRef.current?.saveIfDirty();
+    },
   });
 
   const configSelector = projectId ? (
@@ -113,6 +120,7 @@ export const RunPage = () => {
     if (activeTab === "configuration") {
       return projectId ? (
         <ConfigurationTab
+          ref={configTabRef}
           projectId={projectId}
           configId={activeConfigId}
           sahiConfig={sahiConfig}

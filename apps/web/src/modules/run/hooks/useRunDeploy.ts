@@ -57,6 +57,7 @@ interface UseRunDeployParams {
   cameraApiUrl: string | null;
   selectedConfigs?: ConfigSelection[];
   sahiConfig: SahiConfig | null;
+  beforeDeploy?: () => Promise<void>;
 }
 
 interface AssembledConfig {
@@ -75,6 +76,7 @@ export const useRunDeploy = ({
   cameraApiUrl,
   selectedConfigs,
   sahiConfig,
+  beforeDeploy,
 }: UseRunDeployParams) => {
   const [dashboardUrl, setDashboardUrl] = useState<string | null>(null);
   const [showDeployConfirm, setShowDeployConfirm] = useState(false);
@@ -135,6 +137,17 @@ export const useRunDeploy = ({
 
     setIsDeployInProgress(true);
     try {
+      if (beforeDeploy) {
+        try {
+          await beforeDeploy();
+        } catch (error) {
+          toast.error(
+            `Failed to save configuration changes: ${error instanceof Error ? error.message : "Unknown error"}`,
+          );
+          return;
+        }
+      }
+
       const requiredOutputType =
         PLATFORM_TO_OUTPUT_TYPE[selectedCameraInfo.platform];
 
