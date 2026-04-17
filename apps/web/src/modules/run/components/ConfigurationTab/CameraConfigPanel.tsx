@@ -1,4 +1,3 @@
-import { Button } from "@/modules/shadcn/ui/button";
 import {
   Select,
   SelectContent,
@@ -7,6 +6,7 @@ import {
   SelectValue,
 } from "@/modules/shadcn/ui/select";
 import type { CapturedVideo } from "@repo/schema";
+import { X } from "lucide-react";
 
 interface Camera {
   mxid: string;
@@ -125,83 +125,97 @@ export const CameraConfigPanel = ({
 
         <div className="flex flex-col gap-1.5">
           <label className="text-sm text-muted-foreground">Model</label>
-          <Select
-            value={selectedModelId ?? undefined}
-            onValueChange={onModelChange}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="None selected">
-                {
-                  trainedModels.find((m) => String(m.id) === selectedModelId)
-                    ?.name
-                }
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {trainedModels.map((model) => (
-                <SelectItem key={model.id} value={String(model.id)}>
-                  {model.name}
-                </SelectItem>
-              ))}
-              {trainedModels.length === 0 && (
-                <p className="px-2 py-1.5 text-sm text-muted-foreground">
-                  No trained models
-                </p>
-              )}
-            </SelectContent>
-          </Select>
-          {selectedModelId !== null && (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="self-start px-0 text-xs text-muted-foreground"
-              onClick={onModelClear}
+          <div className="relative">
+            <Select
+              key={selectedModelId ?? "empty"}
+              value={selectedModelId ?? undefined}
+              onValueChange={onModelChange}
             >
-              Clear
-            </Button>
-          )}
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="None selected">
+                  {
+                    trainedModels.find((m) => String(m.id) === selectedModelId)
+                      ?.name
+                  }
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {trainedModels.map((model) => (
+                  <SelectItem key={model.id} value={String(model.id)}>
+                    {model.name}
+                  </SelectItem>
+                ))}
+                {trainedModels.length === 0 && (
+                  <p className="px-2 py-1.5 text-sm text-muted-foreground">
+                    No trained models
+                  </p>
+                )}
+              </SelectContent>
+            </Select>
+            {selectedModelId !== null && (
+              <button
+                type="button"
+                aria-label="Clear model"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onModelClear();
+                }}
+                onPointerDown={(e) => e.stopPropagation()}
+                className="absolute right-8 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                <X className="size-3.5" />
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-col gap-1.5">
           <label className="text-sm text-muted-foreground">Replay Video</label>
-          <Select
-            value={
-              selectedVideoId != null ? String(selectedVideoId) : undefined
-            }
-            onValueChange={(val) => onVideoChange(Number(val))}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="None selected">
-                {selectedVideoId != null
-                  ? formatVideoLabel(
-                      capturedVideos.find((v) => v.id === selectedVideoId)!,
-                    )
-                  : undefined}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {capturedVideos.map((video) => (
-                <SelectItem key={video.id} value={String(video.id)}>
-                  {formatVideoLabel(video)}
-                </SelectItem>
-              ))}
-              {capturedVideos.length === 0 && (
-                <p className="px-2 py-1.5 text-sm text-muted-foreground">
-                  No captured videos
-                </p>
-              )}
-            </SelectContent>
-          </Select>
-          {selectedVideoId !== null && (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="self-start px-0 text-xs text-muted-foreground"
-              onClick={() => onVideoChange(null)}
+          <div className="relative">
+            <Select
+              key={selectedVideoId ?? "empty"}
+              value={
+                selectedVideoId != null ? String(selectedVideoId) : undefined
+              }
+              onValueChange={(val) => onVideoChange(Number(val))}
             >
-              Clear
-            </Button>
-          )}
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="None selected">
+                  {selectedVideoId != null
+                    ? formatVideoLabel(
+                        capturedVideos.find((v) => v.id === selectedVideoId)!,
+                      )
+                    : undefined}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {capturedVideos.map((video) => (
+                  <SelectItem key={video.id} value={String(video.id)}>
+                    {formatVideoLabel(video)}
+                  </SelectItem>
+                ))}
+                {capturedVideos.length === 0 && (
+                  <p className="px-2 py-1.5 text-sm text-muted-foreground">
+                    No captured videos
+                  </p>
+                )}
+              </SelectContent>
+            </Select>
+            {selectedVideoId !== null && (
+              <button
+                type="button"
+                aria-label="Clear replay video"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onVideoChange(null);
+                }}
+                onPointerDown={(e) => e.stopPropagation()}
+                className="absolute right-8 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                <X className="size-3.5" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

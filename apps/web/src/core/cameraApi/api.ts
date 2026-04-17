@@ -254,6 +254,20 @@ export const cameraApi = cameraApiBase.injectEndpoints({
       ],
     }),
 
+    addReplayVideoFromUrl: builder.mutation<
+      void,
+      { mxid: string; streamName: string; url: string; filename?: string }
+    >({
+      query: ({ mxid, streamName, url, filename }) => ({
+        url: `/cameras/${mxid}/streams/${streamName}/replay`,
+        method: HttpMethod.POST,
+        body: { url, filename },
+      }),
+      invalidatesTags: (_result, _error, { mxid, streamName }) => [
+        { type: CameraApiTagType.Replay, id: `${mxid}-${streamName}` },
+      ],
+    }),
+
     removeReplayVideo: builder.mutation<
       void,
       { mxid: string; streamName: string }
@@ -298,5 +312,6 @@ export const {
 
   // Replay hooks
   useAddReplayVideoMutation,
+  useAddReplayVideoFromUrlMutation,
   useRemoveReplayVideoMutation,
 } = cameraApi;
