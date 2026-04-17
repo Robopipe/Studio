@@ -1,15 +1,11 @@
-import { cn } from "@/lib/utils";
 import { CardViewIcon, TableViewIcon } from "@/components/icons";
+import { cn } from "@/lib/utils";
+import { useGetTasksQuery } from "@/modules/capture/services/captureApi";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import { Button } from "@/modules/shadcn/ui/button";
 import { Checkbox } from "@/modules/shadcn/ui/checkbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-} from "@/modules/shadcn/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/modules/shadcn/ui/dialog";
 import { PaginationNumbers } from "@/modules/shadcn/ui/pagination";
-import { useGetTasksQuery } from "@/modules/capture/services/captureApi";
 import { ArrowDownUp } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { TaskFileRow } from "./TaskFileRow";
@@ -112,7 +108,10 @@ export const TaskSelectionDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex h-[85vh] max-w-[min(1200px,calc(100vw-4rem))]! flex-col gap-0 p-0">
+      <DialogContent
+        showCloseButton={false}
+        className="flex h-[85vh] max-w-[min(1200px,calc(100vw-4rem))]! flex-col gap-0 p-0"
+      >
         <DialogTitle className="sr-only">Select training images</DialogTitle>
 
         {/* Header */}
@@ -160,7 +159,9 @@ export const TaskSelectionDialog = ({
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
+              onClick={() =>
+                setSortOrder(sortOrder === "desc" ? "asc" : "desc")
+              }
               className="flex cursor-pointer items-center gap-1.5 rounded-lg p-2 text-xs font-medium text-foreground/60 hover:bg-black/5"
             >
               <ArrowDownUp className="size-4" />
