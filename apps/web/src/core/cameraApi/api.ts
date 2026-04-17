@@ -1,7 +1,13 @@
 import { HttpMethod } from "@/types";
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQuery } from "./baseQuery";
-import type { DeviceInfo, SensorControl, StreamInfo } from "./schemas";
+import type {
+  DeviceInfo,
+  SensorControl,
+  SensorControlCapabilities,
+  SensorControlUpdate,
+  StreamInfo,
+} from "./schemas";
 import {
   DeployConfigEntry,
   DeployDashboardResponse,
@@ -128,15 +134,46 @@ export const cameraApi = cameraApiBase.injectEndpoints({
       ],
     }),
 
-    // Update stream control
+    // Get stream control capabilities
+    getStreamControlCapabilities: builder.query<
+      SensorControlCapabilities,
+      { mxid: string; streamName: string }
+    >({
+      query: ({ mxid, streamName }) => ({
+        url: `/cameras/${mxid}/streams/${streamName}/control/capabilities`,
+        method: HttpMethod.GET,
+      }),
+      providesTags: (_result, _error, { mxid, streamName }) => [
+        {
+          type: CameraApiTagType.StreamControlCapabilities,
+          id: `${mxid}-${streamName}`,
+        },
+      ],
+    }),
+
+    // Update stream control (partial)
     updateStreamControl: builder.mutation<
       SensorControl,
-      { mxid: string; streamName: string; control: SensorControl }
+      { mxid: string; streamName: string; control: SensorControlUpdate }
     >({
       query: ({ mxid, streamName, control }) => ({
         url: `/cameras/${mxid}/streams/${streamName}/control`,
         method: HttpMethod.POST,
         body: control,
+      }),
+      invalidatesTags: (_result, _error, { mxid, streamName }) => [
+        { type: CameraApiTagType.StreamControl, id: `${mxid}-${streamName}` },
+      ],
+    }),
+
+    // Reset stream control to defaults
+    resetStreamControl: builder.mutation<
+      SensorControl,
+      { mxid: string; streamName: string }
+    >({
+      query: ({ mxid, streamName }) => ({
+        url: `/cameras/${mxid}/streams/${streamName}/control/reset`,
+        method: HttpMethod.POST,
       }),
       invalidatesTags: (_result, _error, { mxid, streamName }) => [
         { type: CameraApiTagType.StreamControl, id: `${mxid}-${streamName}` },
@@ -298,7 +335,9 @@ export const {
   useDeactivateStreamMutation,
   useBatchUpdateStreamsMutation,
   useGetStreamControlQuery,
+  useGetStreamControlCapabilitiesQuery,
   useUpdateStreamControlMutation,
+  useResetStreamControlMutation,
 
   // NN hooks
   useGetNNQuery,
