@@ -1,6 +1,7 @@
 import { ModelStatusEnum, ProjectTypeEnum } from "@repo/schema";
 import * as p from "drizzle-orm/pg-core";
 import { id, timestamps } from "../helpers";
+import { datasetVersionTable } from "./dataset-version";
 import { modelOutputTypeEnum } from "./model-output";
 import { projectTable } from "./project";
 
@@ -37,5 +38,8 @@ export const modelTable = p.pgTable("model", {
     .integer("project_id")
     .references(() => projectTable.id, { onDelete: "cascade" })
     .notNull(),
+  datasetVersionId: p
+    .integer("dataset_version_id")
+    .references(() => datasetVersionTable.id, { onDelete: "set null" }),
   ...timestamps,
 });

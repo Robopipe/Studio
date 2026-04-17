@@ -21,6 +21,7 @@ import {
 import { ModelLayout } from "../ModelLayout/ModelLayout";
 import { ModelTypeSettings } from "../ModelTypeSettings";
 import { SourceImagesSettings } from "../SourceImagesSettings";
+import { TaskSelectionDialog } from "../TaskSelectionDialog";
 
 export interface DuplicateModelState {
   duplicateFrom: {
@@ -34,6 +35,8 @@ export interface DuplicateModelState {
     augmentations: AppliedAugmentation[];
     preprocessings: AppliedAugmentation[];
     customHyperparams: string;
+    taskIds?: number[];
+    taskPreviews?: { id: number; thumbnailUrl: string }[];
   };
 }
 
@@ -44,6 +47,7 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
   const location = useLocation();
   const duplicateState = (location.state as DuplicateModelState | null)
     ?.duplicateFrom;
+
   const [activeProject] = useActiveProject();
   const [createModel] = useCreateModelMutation();
   const { data: existingModels } = useGetModelsQuery(
@@ -79,6 +83,15 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
   const [epochsError, setEpochsError] = useState<string | null>(null);
   const didPrefillName = useRef(Boolean(duplicateState?.name));
 
+  // Task selection state — modal-controlled
+  const [selectionDialogOpen, setSelectionDialogOpen] = useState(false);
+  const [selectedTaskIds, setSelectedTaskIds] = useState<number[]>(
+    duplicateState?.taskIds ?? [],
+  );
+  const [selectedTaskPreviews, setSelectedTaskPreviews] = useState<
+    { id: number; thumbnailUrl: string }[]
+  >(duplicateState?.taskPreviews ?? []);
+
   // Clear location state after reading to prevent re-prefill on refresh
   useEffect(() => {
     if (location.state?.duplicateFrom) {
@@ -105,15 +118,6 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
         setHyperparamsError("Must be a JSON object");
         return undefined;
       }
-      // Schema validation intentionally bypassed — any JSON object is accepted
-      // const result = hyperparamsConfigSchema.safeParse(parsed);
-      // if (!result.success) {
-      //   const messages = result.error.issues
-      //     .map((i) => `${i.path.join(".")}: ${i.message}`)
-      //     .join("; ");
-      //   setHyperparamsError(messages);
-      //   return undefined;
-      // }
       setHyperparamsError(null);
       return parsed;
     } catch {
@@ -156,6 +160,7 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
     const newModel = await createModel({
       epochs,
       labelIds: activeLabels?.map((label) => label.id) || [],
+      taskIds: selectedTaskIds,
       name,
       projectId: activeProject?.id!,
       splitTest: datasetSplit.test,
@@ -235,6 +240,9 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
         <SourceImagesSettings
           setActiveLabels={setActiveLabels}
           activeLabels={activeLabels}
+          selectedTaskIds={selectedTaskIds}
+          selectedTaskPreviews={selectedTaskPreviews}
+          onEditSelection={() => setSelectionDialogOpen(true)}
         />
         <DatasetSplitSettings split={datasetSplit} onChange={setDatasetSplit} />
         <AdvancedSettings
@@ -251,6 +259,16 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
           <Button onClick={() => saveModel(true)}>Save &amp; Train</Button>
         </div>
       </div>
+
+      <TaskSelectionDialog
+        open={selectionDialogOpen}
+        onOpenChange={setSelectionDialogOpen}
+        initialSelectedIds={selectedTaskIds}
+        onSave={({ taskIds, previews }) => {
+          setSelectedTaskIds(taskIds);
+          setSelectedTaskPreviews(previews);
+        }}
+      />
     </ModelLayout>
   );
 };

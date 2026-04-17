@@ -15,6 +15,10 @@ export const relationBase = defineRelations(schema, (r) => ({
       from: r.projectTable.id,
       to: r.projectLabelTable.projectId,
     }),
+    datasets: r.many.datasetTable({
+      from: r.projectTable.id,
+      to: r.datasetTable.projectId,
+    }),
     dashboardConfigurations: r.many.dashboardConfigurationTable({
       from: r.projectTable.id,
       to: r.dashboardConfigurationTable.projectId,
@@ -47,6 +51,10 @@ export const relationBase = defineRelations(schema, (r) => ({
       from: r.modelTable.projectId,
       to: r.projectTable.id,
     }),
+    datasetVersion: r.one.datasetVersionTable({
+      from: r.modelTable.datasetVersionId,
+      to: r.datasetVersionTable.id,
+    }),
     labels: r.many.projectLabelTable({
       from: r.modelTable.id.through(r.modelLabelTable.modelId),
       to: r.projectLabelTable.id.through(r.modelLabelTable.labelId),
@@ -72,6 +80,36 @@ export const relationBase = defineRelations(schema, (r) => ({
     label: r.one.projectLabelTable({
       from: r.modelLabelTable.labelId,
       to: r.projectLabelTable.id,
+    }),
+  },
+  datasetTable: {
+    project: r.one.projectTable({
+      from: r.datasetTable.projectId,
+      to: r.projectTable.id,
+    }),
+    versions: r.many.datasetVersionTable({
+      from: r.datasetTable.id,
+      to: r.datasetVersionTable.datasetId,
+    }),
+  },
+  datasetVersionTable: {
+    dataset: r.one.datasetTable({
+      from: r.datasetVersionTable.datasetId,
+      to: r.datasetTable.id,
+    }),
+    tasks: r.many.taskTable({
+      from: r.datasetVersionTable.id.through(r.datasetVersionTaskTable.datasetVersionId),
+      to: r.taskTable.id.through(r.datasetVersionTaskTable.taskId),
+    }),
+  },
+  datasetVersionTaskTable: {
+    datasetVersion: r.one.datasetVersionTable({
+      from: r.datasetVersionTaskTable.datasetVersionId,
+      to: r.datasetVersionTable.id,
+    }),
+    task: r.one.taskTable({
+      from: r.datasetVersionTaskTable.taskId,
+      to: r.taskTable.id,
     }),
   },
   projectLabelTable: {

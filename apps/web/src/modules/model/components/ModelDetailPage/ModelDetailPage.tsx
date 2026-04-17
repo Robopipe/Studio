@@ -109,6 +109,7 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
           model.customHyperparams && Object.keys(model.customHyperparams).length > 0
             ? JSON.stringify(model.customHyperparams, null, 2)
             : "",
+        taskIds: model.taskIds ?? [],
       },
     };
 
