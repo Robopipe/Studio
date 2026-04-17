@@ -4,7 +4,7 @@ import { DB_CONNECTION } from "src/core/database/database.constant";
 import type { DbConnection } from "src/core/database/types/database.types";
 import { TaskDetailEntity, TaskEntity } from "../../modules/task/entity/task.entity";
 import { TaskInsert } from "../types/task";
-import { and, asc, count, desc, eq, isNotNull, isNull, max, sql, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNotNull, isNull, max, sql, type SQL } from "drizzle-orm";
 import { TaskStatusEnum } from "@repo/schema";
 
 @Injectable()
@@ -145,6 +145,7 @@ export class TaskRepository {
     annotated?: boolean,
     order: "asc" | "desc" = "asc",
     labelIds?: number[],
+    ids?: number[],
   ): Promise<{ data: TaskEntity[]; total: number }> {
     const offset = (page - 1) * limit;
 
@@ -174,12 +175,18 @@ export class TaskRepository {
       ? this.buildLabelExistsCondition(labelIds)
       : undefined;
 
+    // Build id filter: restrict to the explicit set of task IDs
+    const idsCondition: SQL | undefined = ids?.length
+      ? inArray(taskTable.id, ids)
+      : undefined;
+
     const [tasks, totalResult] = await Promise.all([
       this.db.query.taskTable.findMany({
         where: {
           projectId,
           ...(deletedAtFilter && { deletedAt: deletedAtFilter }),
           ...(statusValue && { status: statusValue }),
+          ...(ids?.length && { id: { in: ids } }),
           ...(buildLabelCondition && { RAW: (table: typeof taskTable) => buildLabelCondition(table.id) }),
         },
         orderBy: (t) => (order === "desc" ? desc(t.createdAt) : asc(t.createdAt)),
@@ -188,7 +195,7 @@ export class TaskRepository {
       }),
       this.db.select({ count: count() })
         .from(taskTable)
-        .where(and(eq(taskTable.projectId, projectId), deletedAtCondition, statusCondition, buildLabelCondition?.(taskTable.id))),
+        .where(and(eq(taskTable.projectId, projectId), deletedAtCondition, statusCondition, idsCondition, buildLabelCondition?.(taskTable.id))),
     ]);
 
     return {

@@ -25,6 +25,8 @@ export class ModelEntity {
   readonly finalAccuracy: number | null;
   readonly finalLoss: number | null;
   readonly labels: ProjectLabelEntity[];
+  readonly taskIds: number[];
+  readonly datasetVersionId: number | null;
   readonly augmentations: ModelAugmentationSelect[];
   readonly preprocessings: ModelPreprocessingSelect[];
   readonly createdAt: Date;
@@ -54,6 +56,8 @@ export class ModelEntity {
     this.finalAccuracy = data.finalAccuracy;
     this.finalLoss = data.finalLoss;
     this.labels = data.labels.map((label) => new ProjectLabelEntity(label));
+    this.taskIds = data.taskIds ?? [];
+    this.datasetVersionId = data.datasetVersionId ?? null;
     this.augmentations = data.augmentations;
     this.preprocessings = data.preprocessings;
   }
@@ -64,6 +68,8 @@ export class ModelEntity {
       name: this.name,
       epochs: this.epochs,
       labels: this.labels.map((label) => label.toResponse()),
+      taskIds: this.taskIds,
+      datasetVersionId: this.datasetVersionId,
       status: this.status,
       outputTypes: this.outputTypes,
       trainingType: this.trainingType,
