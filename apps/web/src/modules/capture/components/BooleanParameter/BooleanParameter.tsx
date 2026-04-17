@@ -5,12 +5,14 @@ import { useEffect, useState } from "react";
 export interface BooleanParameterProps {
   value: boolean | null;
   label: string;
+  disabled?: boolean;
   onValueChange: (value: boolean) => void;
 }
 
 export const BooleanParameter = ({
   value,
   label,
+  disabled,
   onValueChange,
 }: BooleanParameterProps) => {
   const [internalValue, setInternalValue] = useState(() => value);
@@ -29,6 +31,7 @@ export const BooleanParameter = ({
       <span className="flex-1 truncate text-foreground/90">{label}</span>
       <Switch
         checked={internalValue}
+        disabled={disabled}
         onCheckedChange={(value) => {
           setInternalValue(value);
           onValueChange(value);

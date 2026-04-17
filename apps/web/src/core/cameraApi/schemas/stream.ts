@@ -21,68 +21,118 @@ export type CameraConfigProperties = z.infer<
   typeof cameraConfigPropertiesSchema
 >;
 
+export const autoFocusModeSchema = z.enum([
+  "OFF",
+  "AUTO",
+  "MACRO",
+  "CONTINUOUS_VIDEO",
+  "CONTINUOUS_PICTURE",
+  "EDOF",
+]);
+export type AutoFocusMode = z.infer<typeof autoFocusModeSchema>;
+
+export const autoWhitebalanceModeSchema = z.enum([
+  "OFF",
+  "AUTO",
+  "INCANDESCENT",
+  "FLUORESCENT",
+  "WARM_FLUORESCENT",
+  "DAYLIGHT",
+  "CLOUDY_DAYLIGHT",
+  "TWILIGHT",
+  "SHADE",
+]);
+export type AutoWhitebalanceMode = z.infer<typeof autoWhitebalanceModeSchema>;
+
+export const antiBandingModeSchema = z.enum([
+  "OFF",
+  "MAINS_50_HZ",
+  "MAINS_60_HZ",
+  "AUTO",
+]);
+export type AntiBandingMode = z.infer<typeof antiBandingModeSchema>;
+
 // Sensor Focus Schema
 export const sensorFocusSchema = z.object({
-  auto_focus_mode: z
-    .enum([
-      "OFF",
-      "AUTO",
-      "MACRO",
-      "CONTINUOUS_VIDEO",
-      "CONTINUOUS_PICTURE",
-      "EDOF",
-    ])
-    .optional(),
-  auto_focus_trigger: z.boolean().optional(),
-  lens_position: z.number().min(0).max(1).optional(),
+  auto_focus_mode: autoFocusModeSchema,
+  auto_focus_trigger: z.boolean(),
+  lens_position: z.number().min(0).max(1),
 });
 
 export type SensorFocus = z.infer<typeof sensorFocusSchema>;
 
-// Sensor Control Schema
+// Sensor Control Schema — must stay in sync with backend
+// robopipe_api/camera/sensor/sensor_control.py::SensorControl
 export const sensorControlSchema = z.object({
-  exposure_time: z
-    .number()
-    .int()
-    .min(1)
-    .max(33_000)
-    .optional()
-    .describe("Exposure time in microseconds"),
-  sensitivity_iso: z.number().int().min(100).max(5_000).optional(),
-  auto_exposure_enable: z.boolean().optional(),
-  auto_exposure_compensation: z.number().int().min(-9).max(9).optional(),
-  auto_exposure_limit: z
-    .number()
-    .int()
-    .min(-1_000_000)
-    .max(1_000_000)
-    .optional()
-    .describe("Maximum exposure time limit for auto-exposure in microseconds"),
-  auto_exposure_lock: z.boolean().optional(),
-  contrast: z.number().int().min(-10).max(10).optional(),
-  brightness: z.number().int().min(-10).max(10).optional(),
-  saturation: z.number().int().min(-10).max(10).optional(),
-  chroma_denoise: z.number().int().min(0).max(4).optional(),
-  luma_denoise: z.number().int().min(0).max(4).optional(),
-  auto_whitebalance_lock: z.boolean().optional(),
-  auto_whitebalance_mode: z
-    .enum([
-      "AUTO",
-      "CLOUDY_DAYLIGHT",
-      "DAYLIGHT",
-      "FLUORESCENT",
-      "INCANDESCENT",
-      "OFF",
-      "SHADE",
-      "TWILIGHT",
-      "WARM_FLUORESCENT",
-    ])
-    .optional(),
-  manual_whitebalance: z.number().int().min(1000).max(12000).optional(),
-  focus: z.union([sensorFocusSchema, z.null()]).optional(),
+  // Exposure
+  auto_exposure_enable: z.boolean(),
+  exposure_time: z.number().int().min(1).max(33_000_000),
+  sensitivity_iso: z.number().int().min(100).max(1_600),
+  auto_exposure_compensation: z.number().int().min(-9).max(9),
+  auto_exposure_limit: z.number().int().min(1).max(33_000_000),
+  auto_exposure_lock: z.boolean(),
+
+  // ISP
+  brightness: z.number().int().min(-10).max(10),
+  contrast: z.number().int().min(-10).max(10),
+  saturation: z.number().int().min(-10).max(10),
+  sharpness: z.number().int().min(0).max(4),
+  luma_denoise: z.number().int().min(0).max(4),
+  chroma_denoise: z.number().int().min(0).max(4),
+
+  // White balance
+  auto_whitebalance_mode: autoWhitebalanceModeSchema,
+  auto_whitebalance_lock: z.boolean(),
+  manual_whitebalance: z.number().int().min(1000).max(12000),
+
+  // Focus
+  focus: z.union([sensorFocusSchema, z.null()]),
+
+  // Misc
+  anti_banding_mode: antiBandingModeSchema,
 });
 
 export type SensorControl = z.infer<typeof sensorControlSchema>;
+export type SensorControlUpdate = Partial<SensorControl>;
+
+// Sensor Control Capabilities
+export const controlRangeSchema = z.object({
+  min: z.number(),
+  max: z.number(),
+  default: z.number(),
+  step: z.number().nullable().optional(),
+});
+export type ControlRange = z.infer<typeof controlRangeSchema>;
+
+export const sensorTypeSchema = z.enum(["COLOR", "MONO", "THERMAL", "TOF"]);
+export type SensorType = z.infer<typeof sensorTypeSchema>;
+
+export const sensorControlCapabilitiesSchema = z.object({
+  sensor_type: sensorTypeSchema,
+  has_autofocus: z.boolean(),
+  has_color_controls: z.boolean(),
+
+  brightness: controlRangeSchema,
+  contrast: controlRangeSchema,
+  sharpness: controlRangeSchema,
+  luma_denoise: controlRangeSchema,
+  exposure_time: controlRangeSchema,
+  sensitivity_iso: controlRangeSchema,
+  auto_exposure_compensation: controlRangeSchema,
+  auto_exposure_limit: controlRangeSchema,
+
+  saturation: controlRangeSchema.nullable().optional(),
+  chroma_denoise: controlRangeSchema.nullable().optional(),
+  manual_whitebalance: controlRangeSchema.nullable().optional(),
+  lens_position: controlRangeSchema.nullable().optional(),
+
+  auto_focus_modes: z.array(z.string()),
+  auto_whitebalance_modes: z.array(z.string()).nullable().optional(),
+  anti_banding_modes: z.array(z.string()),
+});
+export type SensorControlCapabilities = z.infer<
+  typeof sensorControlCapabilitiesSchema
+>;
 
 // Capture Still Image Query Params
 export const captureStillQuerySchema = z.object({
