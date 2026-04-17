@@ -1,50 +1,102 @@
 import {
   SensorControl,
-  sensorControlSchema,
-  sensorFocusSchema,
+  SensorControlUpdate,
+  SensorFocus,
+  useGetStreamControlCapabilitiesQuery,
   useGetStreamControlQuery,
+  useResetStreamControlMutation,
   useUpdateStreamControlMutation,
 } from "@/core/cameraApi";
-import { cloneDeep, set } from "lodash";
-import type { Path } from "react-hook-form";
+import { Button } from "@/modules/shadcn/ui/button";
+import { Skeleton } from "@/modules/shadcn/ui/skeleton";
+import { ChevronDown, RotateCcw, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { useDebounceCallback } from "usehooks-ts";
 
 import { BooleanParameter } from "../BooleanParameter";
 import { NumericParameter } from "../NumericParameter";
+import { SelectParameter } from "../SelectParameter";
 
 export interface ImageProfileProps {
   selectedCamera: string;
   selectedStream: string;
 }
 
+type FocusField = keyof SensorFocus;
+
+const DEBOUNCE_MS = 300;
+
 export const ImageProfile = ({
   selectedCamera,
   selectedStream,
 }: ImageProfileProps) => {
-  const { data: streamControl } = useGetStreamControlQuery({
-    mxid: selectedCamera,
-    streamName: selectedStream,
-  });
+  const streamKey = { mxid: selectedCamera, streamName: selectedStream };
+  const { data: control, isLoading: isControlLoading } =
+    useGetStreamControlQuery(streamKey);
+  const { data: capabilities, isLoading: isCapsLoading } =
+    useGetStreamControlCapabilitiesQuery(streamKey);
 
   const [updateStreamControl] = useUpdateStreamControlMutation();
+  const [resetStreamControl, { isLoading: isResetting }] =
+    useResetStreamControlMutation();
 
-  const debouncedUpdateStreamControl = useDebounceCallback(
-    updateStreamControl,
-    250,
-  );
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
-  const onChange = (key: Path<SensorControl>, value: number | boolean) => {
-    if (!streamControl) return;
+  const pendingRef = useRef<SensorControlUpdate>({});
+  const controlRef = useRef<SensorControl | undefined>(control);
+  useEffect(() => {
+    controlRef.current = control;
+  }, [control]);
 
-    const newControl = cloneDeep(streamControl);
-    set(newControl, key, value);
-
-    debouncedUpdateStreamControl({
+  const flush = useDebounceCallback(() => {
+    const body = pendingRef.current;
+    pendingRef.current = {};
+    if (Object.keys(body).length === 0) return;
+    updateStreamControl({
       mxid: selectedCamera,
       streamName: selectedStream,
-      control: newControl,
+      control: body,
+    });
+  }, DEBOUNCE_MS);
+
+  useEffect(() => {
+    return () => {
+      flush.flush();
+    };
+  }, [selectedCamera, selectedStream, flush]);
+
+  const onChange = <K extends keyof SensorControl>(
+    key: K,
+    value: SensorControl[K],
+  ) => {
+    pendingRef.current = { ...pendingRef.current, [key]: value };
+    if (key === "exposure_time" || key === "sensitivity_iso") {
+      pendingRef.current.auto_exposure_enable = false;
+    }
+    flush();
+  };
+
+  const onFocusChange = <K extends FocusField>(
+    key: K,
+    value: SensorFocus[K],
+  ) => {
+    const base: SensorFocus | null =
+      pendingRef.current.focus ?? controlRef.current?.focus ?? null;
+    if (!base) return;
+    pendingRef.current.focus = { ...base, [key]: value };
+    flush();
+  };
+
+  const onReset = () => {
+    pendingRef.current = {};
+    flush.cancel();
+    resetStreamControl({
+      mxid: selectedCamera,
+      streamName: selectedStream,
     });
   };
+
+  const isLoading = isControlLoading || isCapsLoading;
 
   return (
     <div className="flex flex-col gap-3">
@@ -52,170 +104,222 @@ export const ImageProfile = ({
         Image Profile
       </p>
 
-      <div className="flex flex-col gap-4 rounded-2xl border border-black/10 bg-white p-5">
-        <p className="text-base font-bold leading-6 text-foreground">
-          Profile setup
-        </p>
-
-        <div className="grid grid-cols-1 gap-x-8 gap-y-2 lg:grid-cols-2">
-          <div className="flex flex-col gap-2">
-          <NumericParameter
-            value={streamControl?.exposure_time ?? null}
-            schema={sensorControlSchema.shape.exposure_time}
-            step={500}
-            label="Exposure Time"
-            onValueChange={(value) => {
-              onChange("exposure_time", value);
-            }}
-          />
-
-          <NumericParameter
-            value={streamControl?.sensitivity_iso ?? null}
-            schema={sensorControlSchema.shape.sensitivity_iso}
-            step={100}
-            label="ISO Sensitivity"
-            onValueChange={(value) => {
-              onChange("sensitivity_iso", value);
-            }}
-          />
-
-          <NumericParameter
-            value={streamControl?.brightness ?? null}
-            schema={sensorControlSchema.shape.brightness}
-            step={1}
-            label="Brightness"
-            onValueChange={(value) => {
-              onChange("brightness", value);
-            }}
-          />
-
-          <NumericParameter
-            value={streamControl?.contrast ?? null}
-            schema={sensorControlSchema.shape.contrast}
-            step={1}
-            label="Contrast"
-            onValueChange={(value) => {
-              onChange("contrast", value);
-            }}
-          />
-
-          <NumericParameter
-            value={streamControl?.saturation ?? null}
-            schema={sensorControlSchema.shape.saturation}
-            step={1}
-            label="Saturation"
-            onValueChange={(value) => {
-              onChange("saturation", value);
-            }}
-          />
-
-          <NumericParameter
-            value={streamControl?.chroma_denoise ?? null}
-            schema={sensorControlSchema.shape.chroma_denoise}
-            step={1}
-            label="Chroma Denoise"
-            onValueChange={(value) => {
-              onChange("chroma_denoise", value);
-            }}
-          />
-
-          <NumericParameter
-            value={streamControl?.luma_denoise ?? null}
-            schema={sensorControlSchema.shape.luma_denoise}
-            step={1}
-            label="Luma Denoise"
-            onValueChange={(value) => {
-              onChange("luma_denoise", value);
-            }}
-          />
-        </div>
-          <div className="flex flex-col gap-2">
-            <BooleanParameter
-            value={streamControl?.auto_exposure_enable ?? false}
-            label="Auto Exposure Enable"
-            onValueChange={(value) => {
-              onChange("auto_exposure_enable", value);
-            }}
-          />
-          {streamControl?.auto_exposure_enable && (
-            <>
-              <NumericParameter
-                value={streamControl?.auto_exposure_compensation ?? null}
-                schema={sensorControlSchema.shape.auto_exposure_compensation}
-                step={1}
-                label="Auto Exposure Compensation"
-                onValueChange={(value) => {
-                  onChange("auto_exposure_compensation", value);
-                }}
-              />
-
-              <NumericParameter
-                value={streamControl?.auto_exposure_limit ?? null}
-                schema={sensorControlSchema.shape.auto_exposure_limit}
-                step={1000}
-                label="Auto Exposure Limit"
-                onValueChange={(value) => {
-                  onChange("auto_exposure_limit", value);
-                }}
-              />
-
-              <BooleanParameter
-                value={streamControl?.auto_exposure_lock ?? false}
-                label="Auto Exposure Lock"
-                onValueChange={(value) => {
-                  onChange("auto_exposure_lock", value);
-                }}
-              />
-            </>
-          )}
-
-          <BooleanParameter
-            value={streamControl?.auto_whitebalance_lock ?? false}
-            label="Auto Whitebalance Lock"
-            onValueChange={(value) => {
-              onChange("auto_whitebalance_lock", value);
-            }}
-          />
-          {streamControl?.auto_whitebalance_lock ? (
-            <>
-              {/* TODO: Auto whitebalance mode enum, consistent between cameras ? */}
-            </>
-          ) : (
-            <>
-              <NumericParameter
-                value={streamControl?.manual_whitebalance ?? null}
-                schema={sensorControlSchema.shape.manual_whitebalance}
-                step={100}
-                label="Manual Whitebalance"
-                onValueChange={(value) => {
-                  onChange("manual_whitebalance", value);
-                }}
-              />
-            </>
-          )}
-
-          {/* TODO: Auto focus mode enum, consistent between cameras ? */}
-
-          <BooleanParameter
-            value={streamControl?.focus?.auto_focus_trigger ?? false}
-            label="Auto Focus Trigger"
-            onValueChange={(value) => {
-              onChange("focus.auto_focus_trigger", value);
-            }}
-          />
-
-          <NumericParameter
-            value={streamControl?.focus?.lens_position ?? null}
-            schema={sensorFocusSchema.shape.lens_position}
-            step={0.01}
-            label="Lens position"
-            onValueChange={(value) => {
-              onChange("focus.lens_position", value);
-            }}
-          />
+      <div className="flex flex-col gap-3 rounded-xl border border-black/5 bg-black/3 px-5 py-4">
+        <div className="flex items-center justify-between">
+          <p className="text-base font-medium leading-6 text-foreground">
+            Profile setup
+          </p>
+          <div className="flex items-center gap-1">
+            {!isCollapsed && (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Reset to defaults"
+                disabled={isResetting}
+                onClick={onReset}
+              >
+                <RotateCcw className="size-4" />
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={isCollapsed ? "Expand profile" : "Collapse profile"}
+              onClick={() => setIsCollapsed((v) => !v)}
+            >
+              {isCollapsed ? (
+                <ChevronDown className="size-4" />
+              ) : (
+                <X className="size-4" />
+              )}
+            </Button>
           </div>
         </div>
+
+        {!isCollapsed && (
+          <>
+            {isLoading || !control || !capabilities ? (
+              <ImageProfileSkeleton />
+            ) : (
+              <>
+                <div className="grid grid-cols-1 gap-x-6 gap-y-2 lg:grid-cols-2">
+                  <div className="flex flex-col gap-2">
+                    <NumericParameter
+                      label="Exposure time"
+                      value={control.exposure_time}
+                      min={capabilities.exposure_time.min}
+                      max={capabilities.exposure_time.max}
+                      step={capabilities.exposure_time.step ?? undefined}
+                      scale="log"
+                      onValueChange={(v) => onChange("exposure_time", v)}
+                    />
+                    <NumericParameter
+                      label="ISO sensitivity"
+                      value={control.sensitivity_iso}
+                      min={capabilities.sensitivity_iso.min}
+                      max={capabilities.sensitivity_iso.max}
+                      step={capabilities.sensitivity_iso.step ?? undefined}
+                      onValueChange={(v) => onChange("sensitivity_iso", v)}
+                    />
+                    <NumericParameter
+                      label="Brightness"
+                      value={control.brightness}
+                      min={capabilities.brightness.min}
+                      max={capabilities.brightness.max}
+                      step={capabilities.brightness.step ?? undefined}
+                      onValueChange={(v) => onChange("brightness", v)}
+                    />
+                    <NumericParameter
+                      label="Contrast"
+                      value={control.contrast}
+                      min={capabilities.contrast.min}
+                      max={capabilities.contrast.max}
+                      step={capabilities.contrast.step ?? undefined}
+                      onValueChange={(v) => onChange("contrast", v)}
+                    />
+                    {capabilities.saturation && (
+                      <NumericParameter
+                        label="Saturation"
+                        value={control.saturation}
+                        min={capabilities.saturation.min}
+                        max={capabilities.saturation.max}
+                        step={capabilities.saturation.step ?? undefined}
+                        onValueChange={(v) => onChange("saturation", v)}
+                      />
+                    )}
+                    <NumericParameter
+                      label="Sharpness"
+                      value={control.sharpness}
+                      min={capabilities.sharpness.min}
+                      max={capabilities.sharpness.max}
+                      step={capabilities.sharpness.step ?? undefined}
+                      onValueChange={(v) => onChange("sharpness", v)}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <NumericParameter
+                      label="Luma denoise"
+                      value={control.luma_denoise}
+                      min={capabilities.luma_denoise.min}
+                      max={capabilities.luma_denoise.max}
+                      step={capabilities.luma_denoise.step ?? undefined}
+                      onValueChange={(v) => onChange("luma_denoise", v)}
+                    />
+                    {capabilities.chroma_denoise && (
+                      <NumericParameter
+                        label="Chroma denoise"
+                        value={control.chroma_denoise}
+                        min={capabilities.chroma_denoise.min}
+                        max={capabilities.chroma_denoise.max}
+                        step={capabilities.chroma_denoise.step ?? undefined}
+                        onValueChange={(v) => onChange("chroma_denoise", v)}
+                      />
+                    )}
+                    {capabilities.has_autofocus && control.focus && (
+                      <>
+                        <SelectParameter
+                          label="Auto focus mode"
+                          value={control.focus.auto_focus_mode}
+                          options={capabilities.auto_focus_modes}
+                          onValueChange={(v) =>
+                            onFocusChange(
+                              "auto_focus_mode",
+                              v as SensorFocus["auto_focus_mode"],
+                            )
+                          }
+                        />
+                        {capabilities.lens_position && (
+                          <NumericParameter
+                            label="Lens position"
+                            value={control.focus.lens_position}
+                            min={capabilities.lens_position.min}
+                            max={capabilities.lens_position.max}
+                            step={capabilities.lens_position.step ?? undefined}
+                            disabled={control.focus.auto_focus_mode !== "OFF"}
+                            onValueChange={(v) =>
+                              onFocusChange("lens_position", v)
+                            }
+                          />
+                        )}
+                      </>
+                    )}
+
+                    {capabilities.has_color_controls &&
+                      capabilities.auto_whitebalance_modes && (
+                        <>
+                          <SelectParameter
+                            label="Auto WB mode"
+                            value={control.auto_whitebalance_mode}
+                            options={capabilities.auto_whitebalance_modes}
+                            onValueChange={(v) =>
+                              onChange(
+                                "auto_whitebalance_mode",
+                                v as SensorControl["auto_whitebalance_mode"],
+                              )
+                            }
+                          />
+                          {capabilities.manual_whitebalance &&
+                            control.auto_whitebalance_mode === "OFF" && (
+                              <NumericParameter
+                                label="Manual WB"
+                                value={control.manual_whitebalance}
+                                min={capabilities.manual_whitebalance.min}
+                                max={capabilities.manual_whitebalance.max}
+                                step={
+                                  capabilities.manual_whitebalance.step ??
+                                  undefined
+                                }
+                                onValueChange={(v) =>
+                                  onChange("manual_whitebalance", v)
+                                }
+                              />
+                            )}
+                          {control.auto_whitebalance_mode !== "OFF" && (
+                            <BooleanParameter
+                              label="Auto WB lock"
+                              value={control.auto_whitebalance_lock}
+                              onValueChange={(v) =>
+                                onChange("auto_whitebalance_lock", v)
+                              }
+                            />
+                          )}
+                        </>
+                      )}
+
+                    <SelectParameter
+                      label="Anti-banding"
+                      value={control.anti_banding_mode}
+                      options={capabilities.anti_banding_modes}
+                      onValueChange={(v) =>
+                        onChange(
+                          "anti_banding_mode",
+                          v as SensorControl["anti_banding_mode"],
+                        )
+                      }
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
 };
+
+const ImageProfileSkeleton = () => (
+  <div className="grid grid-cols-1 gap-x-6 gap-y-2 lg:grid-cols-2">
+    <div className="flex flex-col gap-2">
+      {Array.from({ length: 7 }).map((_, i) => (
+        <Skeleton key={i} className="h-5 w-full" />
+      ))}
+    </div>
+    <div className="flex flex-col gap-2">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <Skeleton key={i} className="h-5 w-full" />
+      ))}
+    </div>
+  </div>
+);
