@@ -1,6 +1,5 @@
 import { Button } from "@/modules/shadcn/ui/button";
-import { TabsList, TabsTrigger } from "@/modules/shadcn/ui/tabs";
-import { Tabs as TabsPrimitive } from "@base-ui/react/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/modules/shadcn/ui/tabs";
 import { Play, Square } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -34,22 +33,22 @@ export const RunSubheader = ({
   configSelector,
 }: RunSubheaderProps) => {
   return (
-    <div className="flex h-12 flex-shrink-0 items-center justify-between border-b border-border bg-gray-100 pr-6">
-      <TabsPrimitive.Root
+    <div className="flex h-12 flex-shrink-0 items-end justify-between border-b border-border bg-gray-100 pr-6">
+      <Tabs
         value={activeTab}
         onValueChange={(v) => v && onTabChange(v as RunTab)}
-        className="group/tabs flex h-full flex-col justify-end"
+        className="gap-0"
       >
-        <TabsList variant="line" className="h-full border-b-0 px-6">
+        <TabsList variant="line" className="border-b-0! px-6">
           {TABS.map((tab) => (
             <TabsTrigger key={tab.key} value={tab.key}>
               {tab.label}
             </TabsTrigger>
           ))}
         </TabsList>
-      </TabsPrimitive.Root>
+      </Tabs>
 
-      <div className="flex items-center gap-2">
+      <div className="flex h-full items-center gap-2">
         {configSelector}
         <div className="h-4 w-px bg-border" />
         <Button
