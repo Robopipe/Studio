@@ -417,9 +417,10 @@ export const useRunDeploy = ({
           name: config.name,
           projectId: pid,
           projectName,
-          lineDirection: config.lineDirection,
-          linePosition: config.linePosition,
-          lineFlow: config.lineFlow,
+          zoneDirection: config.zoneDirection,
+          zoneCenter: config.zoneCenter,
+          zoneThickness: config.zoneThickness,
+          optimistic: config.optimistic,
           testCases: assembledTestCases,
           thresholds: evalThresholds.master.map((t) => ({
             id: t.id,

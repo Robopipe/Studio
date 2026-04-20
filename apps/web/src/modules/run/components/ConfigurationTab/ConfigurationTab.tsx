@@ -4,7 +4,7 @@ import { Save } from "lucide-react";
 import { useImperativeHandle, type Ref } from "react";
 import { CameraConfigPanel } from "./CameraConfigPanel";
 import { CameraPreview } from "./CameraPreview";
-import { LinePositionPanel } from "./LinePositionPanel";
+import { ZonePositionPanel } from "./ZonePositionPanel";
 import { SahiConfigPanel } from "./SahiConfigPanel";
 import { useConfigurationState } from "./useConfigurationState";
 
@@ -75,8 +75,8 @@ const ConfigurationTabContent = ({
     setSelectedModelId,
     selectedVideoId,
     setSelectedVideoId,
-    lineConfig,
-    setLineConfig,
+    zoneConfig,
+    setZoneConfig,
     hasChanges,
     handleSave,
     isSaving,
@@ -99,9 +99,9 @@ const ConfigurationTabContent = ({
 
         <div className="flex flex-col gap-2 rounded-xl lg:flex-row lg:items-stretch">
           <div className="flex min-w-0 flex-1 rounded-xl bg-card lg:flex-3/5">
-            <LinePositionPanel value={lineConfig} onChange={setLineConfig} />
+            <ZonePositionPanel value={zoneConfig} onChange={setZoneConfig} />
 
-            <CameraPreview imageUrl={previewImageUrl} lineConfig={lineConfig} />
+            <CameraPreview imageUrl={previewImageUrl} zoneConfig={zoneConfig} />
           </div>
 
           <CameraConfigPanel
