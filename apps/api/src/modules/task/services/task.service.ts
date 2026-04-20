@@ -127,6 +127,10 @@ export class TaskService {
     return this.taskRepository.getAllByProjectIdPaginated(projectId, page, limit, deleted, annotated, order, labelIds, ids)
   }
 
+  public async getTaskIds(projectId: number, annotated?: boolean, labelIds?: number[], order: "asc" | "desc" = "asc"): Promise<number[]> {
+    return this.taskRepository.getAllIdsByProjectId(projectId, annotated, labelIds, order);
+  }
+
   public async updateTask(id: number, projectId: number, data: TaskUpdateRequest): Promise<TaskDetailEntity>{
     const task = await this.taskRepository.getByIdAndProjectIdOrThrow(id, projectId);
 

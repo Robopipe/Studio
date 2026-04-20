@@ -6,7 +6,7 @@ import { Camera } from "lucide-react";
 export interface TaskFileRowProps {
   task: Task;
   selected: boolean;
-  onToggle: (taskId: number) => void;
+  onToggle: (taskId: number, shiftKey: boolean) => void;
 }
 
 export const TaskFileRow = ({
@@ -16,16 +16,20 @@ export const TaskFileRow = ({
 }: TaskFileRowProps) => (
   <button
     type="button"
-    onClick={() => onToggle(task.id)}
+    onClick={(e) => onToggle(task.id, e.shiftKey)}
     className={cn(
-      "flex w-full cursor-pointer items-center gap-4 border-b border-black/10 px-4 py-2 text-left transition-colors hover:bg-black/4",
+      "flex w-full cursor-pointer select-none items-center gap-4 border-b border-black/10 px-4 py-2 text-left transition-colors hover:bg-black/4",
       selected && "bg-emerald-500/15 hover:bg-emerald-500/15",
     )}
   >
-    <div onClick={(e) => e.stopPropagation()}>
+    <div
+      onClick={(e) => {
+        e.stopPropagation();
+        onToggle(task.id, e.shiftKey);
+      }}
+    >
       <Checkbox
         checked={selected}
-        onCheckedChange={() => onToggle(task.id)}
         className={cn(
           "size-5 shrink-0",
           selected && "border-emerald-600 bg-emerald-600 text-white",
