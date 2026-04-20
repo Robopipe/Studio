@@ -3,23 +3,23 @@ import {
   useGetCapturedVideosQuery,
   useGetTasksQuery,
 } from "@/modules/capture/services/captureApi";
-import { LineConfig } from "@/modules/dashboard/components/DashboardLineConfiguration";
+import { ZoneConfig } from "@/modules/dashboard/components/DashboardZoneConfiguration";
 import {
   useGetDashboardConfigQuery,
   useUpdateDashboardConfigMutation,
 } from "@/modules/dashboard/services/dashboardConfigApi";
 import { useGetModelsQuery } from "@/modules/model/services";
 import {
-  DashboardConfigurationLineDirectionEnum,
-  DashboardConfigurationLineFlowEnum,
+  DashboardConfigurationZoneDirectionEnum,
   ModelStatusEnum,
 } from "@repo/schema";
 import { useEffect, useState } from "react";
 
-const defaultLineConfig: LineConfig = {
-  lineDirection: DashboardConfigurationLineDirectionEnum.HORIZONTAL,
-  linePosition: 50,
-  lineFlow: DashboardConfigurationLineFlowEnum.POSITIVE,
+const defaultZoneConfig: ZoneConfig = {
+  zoneDirection: DashboardConfigurationZoneDirectionEnum.HORIZONTAL,
+  zoneCenter: 50,
+  zoneThickness: 20,
+  optimistic: true,
 };
 
 export const useConfigurationState = (
@@ -45,7 +45,7 @@ export const useConfigurationState = (
   const [selectedStream, setSelectedStream] = useState<string | null>(null);
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
   const [selectedVideoId, setSelectedVideoId] = useState<number | null>(null);
-  const [lineConfig, setLineConfig] = useState<LineConfig>(defaultLineConfig);
+  const [zoneConfig, setZoneConfig] = useState<ZoneConfig>(defaultZoneConfig);
 
   const { data: streams } = useListStreamsQuery(selectedCamera!, {
     skip: !selectedCamera,
@@ -59,10 +59,11 @@ export const useConfigurationState = (
         config.modelId != null ? String(config.modelId) : null,
       );
       setSelectedVideoId(config.capturedVideoId ?? null);
-      setLineConfig({
-        lineDirection: config.lineDirection,
-        linePosition: Math.round(config.linePosition * 100),
-        lineFlow: config.lineFlow,
+      setZoneConfig({
+        zoneDirection: config.zoneDirection,
+        zoneCenter: Math.round(config.zoneCenter * 100),
+        zoneThickness: Math.round(config.zoneThickness * 100),
+        optimistic: config.optimistic,
       });
     }
   }, [config]);
@@ -75,9 +76,10 @@ export const useConfigurationState = (
         ? config.modelId != null
         : Number(selectedModelId) !== config.modelId) ||
       selectedVideoId !== (config.capturedVideoId ?? null) ||
-      lineConfig.lineDirection !== config.lineDirection ||
-      lineConfig.linePosition !== Math.round(config.linePosition * 100) ||
-      lineConfig.lineFlow !== config.lineFlow);
+      zoneConfig.zoneDirection !== config.zoneDirection ||
+      zoneConfig.zoneCenter !== Math.round(config.zoneCenter * 100) ||
+      zoneConfig.zoneThickness !== Math.round(config.zoneThickness * 100) ||
+      zoneConfig.optimistic !== config.optimistic);
 
   const handleSave = async () => {
     await updateConfig({
@@ -87,9 +89,10 @@ export const useConfigurationState = (
       streamName: selectedStream,
       modelId: selectedModelId === null ? null : Number(selectedModelId),
       capturedVideoId: selectedVideoId,
-      lineDirection: lineConfig.lineDirection,
-      linePosition: lineConfig.linePosition / 100,
-      lineFlow: lineConfig.lineFlow,
+      zoneDirection: zoneConfig.zoneDirection,
+      zoneCenter: zoneConfig.zoneCenter / 100,
+      zoneThickness: zoneConfig.zoneThickness / 100,
+      optimistic: zoneConfig.optimistic,
     }).unwrap();
   };
 
@@ -107,8 +110,8 @@ export const useConfigurationState = (
     setSelectedModelId,
     selectedVideoId,
     setSelectedVideoId,
-    lineConfig,
-    setLineConfig,
+    zoneConfig,
+    setZoneConfig,
     hasChanges,
     handleSave,
     isSaving,
