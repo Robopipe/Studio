@@ -6,6 +6,8 @@ import {
   taskDetailSchema,
   taskExportQuerySchema,
   taskExportSchema,
+  taskIdsQuerySchema,
+  taskIdsResponseSchema,
   taskPaginationQuerySchema,
   taskSchema,
   taskUploadUrlSchema,
@@ -22,3 +24,5 @@ export class TaskUploadUrlResponse extends createZodDto(taskUploadUrlSchema){}
 export class ConfirmTaskUploadDto extends createZodDto(confirmTaskUploadSchema){}
 export class TaskExportQuery extends createZodDto(taskExportQuerySchema){}
 export class TaskExportResponse extends createZodDto(taskExportSchema){}
+export class TaskIdsQuery extends createZodDto(taskIdsQuerySchema){}
+export class TaskIdsResponseDto extends createZodDto(taskIdsResponseSchema){}

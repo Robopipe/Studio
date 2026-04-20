@@ -20,6 +20,8 @@ import {
   TaskDetailResponse,
   TaskExportQuery,
   TaskExportResponse,
+  TaskIdsQuery,
+  TaskIdsResponseDto,
   TaskPaginationQuery,
   TaskResponse,
   TaskUpdateRequest,
@@ -54,6 +56,15 @@ export class TaskController {
     @Query() query: TaskExportQuery,
   ): Promise<TaskExportResponse> {
     return this.taskService.exportTasks(projectId, query.annotated, query.labelIds);
+  }
+
+  @Get("ids")
+  public async listTaskIds(
+    @ProjectId() projectId: number,
+    @Query() query: TaskIdsQuery,
+  ): Promise<TaskIdsResponseDto> {
+    const ids = await this.taskService.getTaskIds(projectId, query.annotated, query.labelIds, query.order);
+    return { ids };
   }
 
   @Get()
