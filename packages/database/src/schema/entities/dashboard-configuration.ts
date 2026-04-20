@@ -1,26 +1,15 @@
-import {
-  DashboardConfigurationLineDirectionEnum,
-  DashboardConfigurationLineFlowEnum,
-} from "@repo/schema";
+import { DashboardConfigurationZoneDirectionEnum } from "@repo/schema";
 import * as p from "drizzle-orm/pg-core";
 import { createdAt, id, updatedAt } from "../helpers";
 import { capturedVideoTable } from "./captured-video";
 import { modelTable } from "./model";
 import { projectTable } from "./project";
 
-export const dashboardConfigurationLineDirectionEnum = p.pgEnum(
-  "dashboard_configuration_line_direction_enum",
+export const dashboardConfigurationZoneDirectionEnum = p.pgEnum(
+  "dashboard_configuration_zone_direction_enum",
   [
-    DashboardConfigurationLineDirectionEnum.HORIZONTAL,
-    DashboardConfigurationLineDirectionEnum.VERTICAL,
-  ],
-);
-
-export const dashboardConfigurationLineFlowEnum = p.pgEnum(
-  "dashboard_configuration_line_flow_enum",
-  [
-    DashboardConfigurationLineFlowEnum.POSITIVE,
-    DashboardConfigurationLineFlowEnum.NEGATIVE,
+    DashboardConfigurationZoneDirectionEnum.HORIZONTAL,
+    DashboardConfigurationZoneDirectionEnum.VERTICAL,
   ],
 );
 
@@ -33,14 +22,12 @@ export const dashboardConfigurationTable = p.pgTable(
       .integer("project_id")
       .references(() => projectTable.id, { onDelete: "cascade" })
       .notNull(),
-    lineDirection:
-      dashboardConfigurationLineDirectionEnum("line_direction").notNull().default(
-        DashboardConfigurationLineDirectionEnum.HORIZONTAL,
-      ),
-    linePosition: p.doublePrecision("line_position").notNull().default(0.5),
-    lineFlow: dashboardConfigurationLineFlowEnum("line_flow")
+    zoneDirection: dashboardConfigurationZoneDirectionEnum("zone_direction")
       .notNull()
-      .default(DashboardConfigurationLineFlowEnum.POSITIVE),
+      .default(DashboardConfigurationZoneDirectionEnum.HORIZONTAL),
+    zoneCenter: p.doublePrecision("zone_center").notNull().default(0.5),
+    zoneThickness: p.doublePrecision("zone_thickness").notNull().default(0.2),
+    optimistic: p.boolean("optimistic").notNull().default(true),
     modelId: p
       .integer("model_id")
       .references(() => modelTable.id, { onDelete: "set null" }),
