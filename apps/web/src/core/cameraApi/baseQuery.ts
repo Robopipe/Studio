@@ -6,6 +6,7 @@ import {
   FetchBaseQueryError,
   fetchBaseQuery,
 } from "@reduxjs/toolkit/query";
+import { notifyMixedContentBlocked } from "./mixedContentWarning";
 
 /**
  * Dynamic base query that resolves the camera API URL from the active project,
@@ -15,7 +16,7 @@ export const baseQuery: BaseQueryFn<
   string | FetchArgs,
   unknown,
   FetchBaseQueryError
-> = (args, api, extraOptions) => {
+> = async (args, api, extraOptions) => {
   const state = api.getState() as RootState;
   const projectId = state.project.activeProject?.id;
   const userId = state.auth.user?.id;
@@ -33,5 +34,15 @@ export const baseQuery: BaseQueryFn<
     },
   });
 
-  return dynamicBaseQuery(args, api, extraOptions);
+  const result = await dynamicBaseQuery(args, api, extraOptions);
+
+  if (
+    result.error?.status === "FETCH_ERROR" &&
+    window.location.protocol === "https:" &&
+    baseUrl.toLowerCase().startsWith("http:")
+  ) {
+    notifyMixedContentBlocked(baseUrl);
+  }
+
+  return result;
 };
