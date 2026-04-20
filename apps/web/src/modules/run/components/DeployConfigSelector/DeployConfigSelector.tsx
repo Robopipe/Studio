@@ -29,6 +29,12 @@ export const DeployConfigSelector = ({
 }: DeployConfigSelectorProps) => {
   const { data: projects = [] } = useGetProjectsQuery();
 
+  const orderedProjects = [...projects].sort((a, b) => {
+    if (a.id === activeProjectId) return -1;
+    if (b.id === activeProjectId) return 1;
+    return 0;
+  });
+
   const isSelected = (configId: number) =>
     selectedConfigs.some((s) => s.configId === configId);
 
@@ -54,7 +60,7 @@ export const DeployConfigSelector = ({
         render={
           <Button variant="outline" size="sm">
             <SlidersHorizontal className="size-4" />
-            Adjust deployed configurations
+            Other deployed configurations
           </Button>
         }
       />
@@ -65,15 +71,16 @@ export const DeployConfigSelector = ({
         <span className="text-sm">Configurations to deploy</span>
         <span className="text-xs text-gray-500">
           The active configuration is always included. Select additional
-          configurations to deploy alongside it.
+          configurations to deploy alongside it. You will then be able to switch between them in the dashboard.
         </span>
         <div className="flex flex-col gap-3 overflow-y-auto">
-          {projects.map((project) => (
+          {orderedProjects.map((project) => (
             <ProjectConfigGroup
               key={project.id}
               projectId={project.id}
               projectName={project.name}
               activeProjectId={activeProjectId}
+              activeConfigId={activeConfigId}
               isSelected={isSelected}
               isActiveConfig={isActiveConfig}
               onToggle={handleToggle}
@@ -89,6 +96,7 @@ const ProjectConfigGroup = ({
   projectId,
   projectName,
   activeProjectId,
+  activeConfigId,
   isSelected,
   isActiveConfig,
   onToggle,
@@ -96,12 +104,20 @@ const ProjectConfigGroup = ({
   projectId: number;
   projectName: string;
   activeProjectId: number;
+  activeConfigId: number | null;
   isSelected: (configId: number) => boolean;
   isActiveConfig: (configId: number) => boolean;
   onToggle: (configId: number, projectId: number, checked: boolean) => void;
 }) => {
   const { data: configs = [] } = useGetDashboardConfigsQuery({ projectId });
-  const deployableConfigs = configs.filter((c) => c.modelId != null);
+  const deployableConfigs = configs
+    .filter((c) => c.modelId != null)
+    .slice()
+    .sort((a, b) => {
+      if (a.id === activeConfigId) return -1;
+      if (b.id === activeConfigId) return 1;
+      return 0;
+    });
 
   if (deployableConfigs.length === 0) return null;
 
