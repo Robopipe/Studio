@@ -220,6 +220,14 @@ export const TaskSelectionDialog = ({
             >
               {showAll ? "Showing all" : "Annotated only"}
             </button>
+
+            <span className="text-xs text-foreground/50">
+              Tip: hold{" "}
+              <kbd className="rounded border border-black/15 bg-black/5 px-1 py-0.5 font-mono text-[10px] text-foreground/70">
+                Shift
+              </kbd>{" "}
+              and click to select a range
+            </span>
           </div>
 
           <div className="flex items-center gap-2">
