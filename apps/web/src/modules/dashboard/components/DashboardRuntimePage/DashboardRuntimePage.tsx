@@ -12,7 +12,8 @@ export const DashboardRuntimePage = ({
     return (
       <iframe
         src={dashboardUrl}
-        className="-m-6 h-[calc(100%+2rem)] w-[calc(100%+3rem)] border-none"
+        className="-m-4 h-[calc(100%+2rem)] w-[calc(100%+2rem)] border-none"
+        allow="screen-wake-lock"
       />
     );
   }
