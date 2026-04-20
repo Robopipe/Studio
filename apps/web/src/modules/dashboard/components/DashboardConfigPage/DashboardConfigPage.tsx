@@ -8,8 +8,7 @@ import {
 import { Button } from "@/modules/shadcn/ui/button";
 import { useGetModelsQuery } from "@/modules/model/services";
 import {
-  DashboardConfigurationLineDirectionEnum,
-  DashboardConfigurationLineFlowEnum,
+  DashboardConfigurationZoneDirectionEnum,
   ModelStatusEnum,
 } from "@repo/schema";
 import { Save } from "lucide-react";
@@ -19,19 +18,20 @@ import {
   useUpdateDashboardConfigMutation,
 } from "../../services/dashboardConfigApi";
 import {
-  DashboardLineConfiguration,
-  LineConfig,
-} from "../DashboardLineConfiguration";
+  DashboardZoneConfiguration,
+  ZoneConfig,
+} from "../DashboardZoneConfiguration";
 
 interface DashboardConfigPageProps {
   projectId: number;
   configId: number;
 }
 
-const defaultLineConfig: LineConfig = {
-  lineDirection: DashboardConfigurationLineDirectionEnum.HORIZONTAL,
-  linePosition: 50,
-  lineFlow: DashboardConfigurationLineFlowEnum.POSITIVE,
+const defaultZoneConfig: ZoneConfig = {
+  zoneDirection: DashboardConfigurationZoneDirectionEnum.HORIZONTAL,
+  zoneCenter: 50,
+  zoneThickness: 20,
+  optimistic: true,
 };
 
 export const DashboardConfigPage = ({
@@ -48,18 +48,19 @@ export const DashboardConfigPage = ({
   );
 
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
-  const [lineConfig, setLineConfig] = useState<LineConfig>(defaultLineConfig);
+  const [zoneConfig, setZoneConfig] = useState<ZoneConfig>(defaultZoneConfig);
 
   useEffect(() => {
     if (config) {
       setSelectedModelId(
         config.modelId != null ? String(config.modelId) : null,
       );
-      setLineConfig({
-        lineDirection: config.lineDirection,
+      setZoneConfig({
+        zoneDirection: config.zoneDirection,
         // DB stores 0-1, UI uses 0-100
-        linePosition: Math.round(config.linePosition * 100),
-        lineFlow: config.lineFlow,
+        zoneCenter: Math.round(config.zoneCenter * 100),
+        zoneThickness: Math.round(config.zoneThickness * 100),
+        optimistic: config.optimistic,
       });
     }
   }, [config]);
@@ -70,31 +71,33 @@ export const DashboardConfigPage = ({
       ? config.modelId != null
       : Number(selectedModelId) !== config.modelId);
 
-  const hasLineChanges =
+  const hasZoneChanges =
     config != null &&
-    (lineConfig.lineDirection !== config.lineDirection ||
-      lineConfig.linePosition !== Math.round(config.linePosition * 100) ||
-      lineConfig.lineFlow !== config.lineFlow);
+    (zoneConfig.zoneDirection !== config.zoneDirection ||
+      zoneConfig.zoneCenter !== Math.round(config.zoneCenter * 100) ||
+      zoneConfig.zoneThickness !== Math.round(config.zoneThickness * 100) ||
+      zoneConfig.optimistic !== config.optimistic);
 
-  const hasChanges = hasModelChanges || hasLineChanges;
+  const hasChanges = hasModelChanges || hasZoneChanges;
 
   const handleSave = async () => {
     await updateConfig({
       projectId,
       configId,
       modelId: selectedModelId === null ? null : Number(selectedModelId),
-      lineDirection: lineConfig.lineDirection,
-      linePosition: lineConfig.linePosition / 100,
-      lineFlow: lineConfig.lineFlow,
+      zoneDirection: zoneConfig.zoneDirection,
+      zoneCenter: zoneConfig.zoneCenter / 100,
+      zoneThickness: zoneConfig.zoneThickness / 100,
+      optimistic: zoneConfig.optimistic,
     }).unwrap();
   };
 
   return (
     <div className="flex w-full flex-col gap-6">
-      <DashboardLineConfiguration
+      <DashboardZoneConfiguration
         projectId={projectId}
-        value={lineConfig}
-        onChange={setLineConfig}
+        value={zoneConfig}
+        onChange={setZoneConfig}
       />
 
       <div className="flex flex-col gap-3">

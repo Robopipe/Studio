@@ -1,93 +1,40 @@
-import { LineConfig } from "@/modules/dashboard/components/DashboardLineConfiguration";
-import {
-  DashboardConfigurationLineDirectionEnum,
-  DashboardConfigurationLineFlowEnum,
-} from "@repo/schema";
+import { ZoneConfig } from "@/modules/dashboard/components/DashboardZoneConfiguration";
+import { DashboardConfigurationZoneDirectionEnum } from "@repo/schema";
 import React from "react";
-
-const FlowArrow = ({
-  isVertical,
-  isNegative,
-  linePosition,
-}: {
-  isVertical: boolean;
-  isNegative: boolean;
-  linePosition: number;
-}) => {
-  const rotate = isVertical ? (isNegative ? 90 : 270) : isNegative ? 180 : 0;
-
-  const style: React.CSSProperties = isVertical
-    ? {
-        top: "50%",
-        left: `${linePosition}%`,
-        transform: `translate(-50%, -50%) rotate(${rotate}deg)`,
-      }
-    : {
-        left: "50%",
-        top: `${linePosition}%`,
-        transform: `translate(-50%, -50%) rotate(${rotate}deg)`,
-      };
-
-  return (
-    <svg
-      width={20}
-      height={20}
-      viewBox="0 0 20 20"
-      style={{
-        position: "absolute",
-        pointerEvents: "none",
-        filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.4))",
-        ...style,
-      }}
-    >
-      <path
-        d="M4 7 L10 15 L16 7"
-        fill="none"
-        stroke="white"
-        strokeWidth="3.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M4 7 L10 15 L16 7"
-        fill="none"
-        stroke="#ef4444"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-};
 
 interface CameraPreviewProps {
   imageUrl: string | undefined;
-  lineConfig: LineConfig;
+  zoneConfig: ZoneConfig;
 }
 
-export const CameraPreview = ({ imageUrl, lineConfig }: CameraPreviewProps) => {
+export const CameraPreview = ({ imageUrl, zoneConfig }: CameraPreviewProps) => {
   const isVertical =
-    lineConfig.lineDirection ===
-    DashboardConfigurationLineDirectionEnum.VERTICAL;
+    zoneConfig.zoneDirection ===
+    DashboardConfigurationZoneDirectionEnum.VERTICAL;
 
-  const lineStyle: React.CSSProperties = isVertical
+  const centerPct = zoneConfig.zoneCenter;
+  const thicknessPct = zoneConfig.zoneThickness;
+
+  const zoneStyle: React.CSSProperties = isVertical
     ? {
         position: "absolute",
         top: 0,
-        left: `${lineConfig.linePosition}%`,
-        width: 2,
+        left: `${centerPct - thicknessPct / 2}%`,
+        width: `${thicknessPct}%`,
         height: "100%",
-        background: "#ef4444",
+        background: "rgba(239, 68, 68, 0.35)",
+        border: "1px solid #ef4444",
         boxShadow: "0 0 0 1px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.2)",
         pointerEvents: "none",
       }
     : {
         position: "absolute",
         left: 0,
-        top: `${lineConfig.linePosition}%`,
-        height: 2,
+        top: `${centerPct - thicknessPct / 2}%`,
+        height: `${thicknessPct}%`,
         width: "100%",
-        background: "#ef4444",
+        background: "rgba(239, 68, 68, 0.35)",
+        border: "1px solid #ef4444",
         boxShadow: "0 0 0 1px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.2)",
         pointerEvents: "none",
       };
@@ -99,14 +46,7 @@ export const CameraPreview = ({ imageUrl, lineConfig }: CameraPreviewProps) => {
         src={imageUrl}
         alt="Camera preview"
       />
-      <div style={lineStyle} />
-      <FlowArrow
-        isVertical={isVertical}
-        isNegative={
-          lineConfig.lineFlow === DashboardConfigurationLineFlowEnum.NEGATIVE
-        }
-        linePosition={lineConfig.linePosition}
-      />
+      <div style={zoneStyle} />
     </div>
   );
 };

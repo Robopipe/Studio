@@ -81,9 +81,10 @@ export type DeployDashboardConfig = {
   name: string;
   projectId: number;
   projectName: string;
-  lineDirection: string;
-  linePosition: number;
-  lineFlow: string;
+  zoneDirection: string;
+  zoneCenter: number;
+  zoneThickness: number;
+  optimistic: boolean;
   testCases: DeployEvalTestCase[];
   thresholds: DeployMasterThreshold[];
   labels: DeployLabel[];

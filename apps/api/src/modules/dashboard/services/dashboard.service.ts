@@ -74,9 +74,10 @@ export class DashboardService {
     const updateData: Record<string, unknown> = {};
     if (data.name !== undefined) updateData.name = data.name;
     if (data.modelId !== undefined) updateData.modelId = data.modelId;
-    if (data.lineDirection !== undefined) updateData.lineDirection = data.lineDirection;
-    if (data.linePosition !== undefined) updateData.linePosition = data.linePosition;
-    if (data.lineFlow !== undefined) updateData.lineFlow = data.lineFlow;
+    if (data.zoneDirection !== undefined) updateData.zoneDirection = data.zoneDirection;
+    if (data.zoneCenter !== undefined) updateData.zoneCenter = data.zoneCenter;
+    if (data.zoneThickness !== undefined) updateData.zoneThickness = data.zoneThickness;
+    if (data.optimistic !== undefined) updateData.optimistic = data.optimistic;
     if (data.cameraMxid !== undefined) updateData.cameraMxid = data.cameraMxid;
     if (data.streamName !== undefined) updateData.streamName = data.streamName;
     if (data.capturedVideoId !== undefined) updateData.capturedVideoId = data.capturedVideoId;
