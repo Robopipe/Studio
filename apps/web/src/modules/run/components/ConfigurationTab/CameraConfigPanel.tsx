@@ -1,3 +1,4 @@
+import { formatDuration } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -28,8 +29,7 @@ const formatVideoLabel = (video: CapturedVideo): string => {
     day: "numeric",
     year: "numeric",
   });
-  const seconds = Math.round(video?.durationMs / 1000);
-  return `${date} - ${seconds}s`;
+  return `#${video.id} - ${date} - ${formatDuration(video.durationMs)}`;
 };
 
 interface CameraConfigPanelProps {

@@ -125,17 +125,6 @@ const ConfigurationTabContent = ({
         </div>
 
         <SahiConfigPanel value={sahiConfig} onChange={onSahiConfigChange} />
-
-        <div className="flex">
-          <Button
-            size="sm"
-            onClick={handleSave}
-            disabled={!hasChanges || isSaving}
-          >
-            <Save className="size-4" />
-            {isSaving ? "Saving..." : "Save"}
-          </Button>
-        </div>
       </div>
     </div>
   );
