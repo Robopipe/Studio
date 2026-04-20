@@ -12,6 +12,7 @@ import {
   RequestVideoUploadUrls,
   Task,
   TaskExport,
+  TaskIdsResponse,
   TaskUploadUrl,
   VideoUploadUrlsResponse,
 } from "@repo/schema";
@@ -79,6 +80,23 @@ export const captureApi = captureApiBase.injectEndpoints({
         url: tasks.tasks(projectId),
         method: HttpMethod.GET,
         params: { page, limit, ...(annotated && { annotated }), ...(labelIds && { labelIds }), ...(ids && { ids }), ...(order && { order }) },
+      }),
+      providesTags: (_result, _error, { projectId }) => [
+        { type: CaptureApiTagType.Tasks, id: projectId },
+      ],
+    }),
+    getTaskIds: builder.query<
+      TaskIdsResponse,
+      { projectId: number; annotated?: string; labelIds?: string; order?: "asc" | "desc" }
+    >({
+      query: ({ projectId, annotated, labelIds, order }) => ({
+        url: tasks.ids(projectId),
+        method: HttpMethod.GET,
+        params: {
+          ...(annotated && { annotated }),
+          ...(labelIds && { labelIds }),
+          ...(order && { order }),
+        },
       }),
       providesTags: (_result, _error, { projectId }) => [
         { type: CaptureApiTagType.Tasks, id: projectId },
@@ -171,6 +189,8 @@ export const {
   useRequestTaskUploadUrlMutation,
   useConfirmTaskUploadMutation,
   useGetTasksQuery,
+  useLazyGetTasksQuery,
+  useGetTaskIdsQuery,
   useLazyExportTasksQuery,
   useDeleteTaskMutation,
   useRequestVideoUploadUrlsMutation,

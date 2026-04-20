@@ -204,6 +204,46 @@ export class TaskRepository {
     };
   }
 
+  /**
+   * Ordered list of non-deleted task IDs for a project, honoring the same
+   * `annotated` / `labelIds` / `order` filters as the list endpoint. Returns
+   * only the id column — used by the client for cross-page select-all and
+   * shift-click range selection without loading every task row.
+   */
+  public async getAllIdsByProjectId(
+    projectId: number,
+    annotated?: boolean,
+    labelIds?: number[],
+    order: "asc" | "desc" = "asc",
+  ): Promise<number[]> {
+    const statusValue = annotated === true ? TaskStatusEnum.DONE
+      : annotated === false ? TaskStatusEnum.TODO
+      : undefined;
+
+    const statusCondition: SQL | undefined = statusValue
+      ? eq(taskTable.status, statusValue)
+      : undefined;
+
+    const buildLabelCondition = labelIds?.length
+      ? this.buildLabelExistsCondition(labelIds)
+      : undefined;
+
+    const rows = await this.db
+      .select({ id: taskTable.id })
+      .from(taskTable)
+      .where(
+        and(
+          eq(taskTable.projectId, projectId),
+          isNull(taskTable.deletedAt),
+          statusCondition,
+          buildLabelCondition?.(taskTable.id),
+        ),
+      )
+      .orderBy(order === "desc" ? desc(taskTable.createdAt) : asc(taskTable.createdAt));
+
+    return rows.map((r) => r.id);
+  }
+
   private buildLabelExistsCondition(labelIds: number[]): (taskId: SQL | typeof taskTable.id) => SQL {
     const inList = sql.join(labelIds.map((id) => sql`${id}`), sql`, `);
     const labelCount = sql`${labelIds.length}`;

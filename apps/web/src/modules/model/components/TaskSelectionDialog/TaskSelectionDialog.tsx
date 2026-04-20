@@ -1,6 +1,10 @@
 import { CardViewIcon, TableViewIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
-import { useGetTasksQuery } from "@/modules/capture/services/captureApi";
+import {
+  useGetTaskIdsQuery,
+  useGetTasksQuery,
+  useLazyGetTasksQuery,
+} from "@/modules/capture/services/captureApi";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import { Button } from "@/modules/shadcn/ui/button";
 import { Checkbox } from "@/modules/shadcn/ui/checkbox";
@@ -34,15 +38,18 @@ export const TaskSelectionDialog = ({
   const [selectedIds, setSelectedIds] = useState<Set<number>>(
     () => new Set(initialSelectedIds),
   );
+  const [lastToggledId, setLastToggledId] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
   const [showAll, setShowAll] = useState(false);
   const [page, setPage] = useState(1);
+  const [saving, setSaving] = useState(false);
 
   // Re-sync local state when the dialog is (re)opened
   useEffect(() => {
     if (open) {
       setSelectedIds(new Set(initialSelectedIds));
+      setLastToggledId(null);
     }
   }, [open, initialSelectedIds]);
 
@@ -57,53 +64,109 @@ export const TaskSelectionDialog = ({
     { skip: !activeProject?.id || !open },
   );
 
+  const { data: idsData, isFetching: isIdsLoading } = useGetTaskIdsQuery(
+    {
+      projectId: activeProject?.id!,
+      order: sortOrder,
+      ...(!showAll && { annotated: "true" }),
+    },
+    { skip: !activeProject?.id || !open },
+  );
+
+  const [fetchTasksByIds] = useLazyGetTasksQuery();
+
   const tasks = tasksData?.data ?? [];
+  const orderedIds = useMemo(() => idsData?.ids ?? [], [idsData]);
   const totalPages = tasksData
     ? Math.ceil(tasksData.total / tasksData.limit)
     : 0;
 
-  const toggleTask = useCallback((taskId: number) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(taskId)) {
-        next.delete(taskId);
-      } else {
-        next.add(taskId);
+  const toggleTask = useCallback(
+    (taskId: number, shiftKey: boolean) => {
+      if (
+        shiftKey &&
+        lastToggledId != null &&
+        lastToggledId !== taskId &&
+        orderedIds.length > 0
+      ) {
+        const idxA = orderedIds.indexOf(lastToggledId);
+        const idxB = orderedIds.indexOf(taskId);
+        if (idxA !== -1 && idxB !== -1) {
+          const [lo, hi] = idxA < idxB ? [idxA, idxB] : [idxB, idxA];
+          setSelectedIds((prev) => {
+            const next = new Set(prev);
+            for (let i = lo; i <= hi; i++) next.add(orderedIds[i]);
+            return next;
+          });
+          // Anchor intentionally stays on the previous plain-click.
+          return;
+        }
       }
-      return next;
-    });
-  }, []);
-
-  const allPageSelected = useMemo(
-    () => tasks.length > 0 && tasks.every((t) => selectedIds.has(t.id)),
-    [tasks, selectedIds],
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(taskId)) next.delete(taskId);
+        else next.add(taskId);
+        return next;
+      });
+      setLastToggledId(taskId);
+    },
+    [lastToggledId, orderedIds],
   );
 
-  const somePageSelected = useMemo(
-    () => tasks.some((t) => selectedIds.has(t.id)),
-    [tasks, selectedIds],
+  const allSelected = useMemo(
+    () =>
+      orderedIds.length > 0 && orderedIds.every((id) => selectedIds.has(id)),
+    [orderedIds, selectedIds],
+  );
+
+  const someSelected = useMemo(
+    () => orderedIds.some((id) => selectedIds.has(id)) && !allSelected,
+    [orderedIds, selectedIds, allSelected],
   );
 
   const toggleSelectAll = useCallback(() => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (allPageSelected) {
-        tasks.forEach((t) => next.delete(t.id));
+      if (allSelected) {
+        orderedIds.forEach((id) => next.delete(id));
       } else {
-        tasks.forEach((t) => next.add(t.id));
+        orderedIds.forEach((id) => next.add(id));
       }
       return next;
     });
-  }, [allPageSelected, tasks]);
+  }, [allSelected, orderedIds]);
 
-  const handleSave = () => {
-    const selectedTasks = tasks.filter((t) => selectedIds.has(t.id));
-    const previews = selectedTasks.map((t) => ({
-      id: t.id,
-      thumbnailUrl: t.thumbnailUrl,
-    }));
-    onSave({ taskIds: Array.from(selectedIds), previews });
-    onOpenChange(false);
+  const handleSave = async () => {
+    const selectedArr = Array.from(selectedIds);
+    if (selectedArr.length === 0) {
+      onSave({ taskIds: [], previews: [] });
+      onOpenChange(false);
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const known = new Map<number, string>();
+      tasks.forEach((t) => {
+        if (selectedIds.has(t.id)) known.set(t.id, t.thumbnailUrl);
+      });
+      const missing = selectedArr.filter((id) => !known.has(id));
+      if (missing.length > 0) {
+        const result = await fetchTasksByIds({
+          projectId: activeProject?.id!,
+          limit: missing.length,
+          ids: missing.join(","),
+        }).unwrap();
+        result.data.forEach((t) => known.set(t.id, t.thumbnailUrl));
+      }
+      const previews = selectedArr
+        .filter((id) => known.has(id))
+        .map((id) => ({ id, thumbnailUrl: known.get(id)! }));
+      onSave({ taskIds: selectedArr, previews });
+      onOpenChange(false);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -124,7 +187,9 @@ export const TaskSelectionDialog = ({
               Create a version by selecting images you want to train
             </span>
           </div>
-          <Button onClick={handleSave}>Save images</Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? "Saving..." : "Save images"}
+          </Button>
         </div>
 
         {/* Toolbar */}
@@ -132,9 +197,10 @@ export const TaskSelectionDialog = ({
           <div className="flex items-center gap-5">
             <div className="flex items-center gap-2">
               <Checkbox
-                checked={allPageSelected}
-                indeterminate={somePageSelected && !allPageSelected}
+                checked={allSelected}
+                indeterminate={someSelected}
                 onCheckedChange={toggleSelectAll}
+                disabled={isIdsLoading && orderedIds.length === 0}
                 className="size-5"
               />
               <span className="text-sm text-foreground/90">
@@ -154,6 +220,14 @@ export const TaskSelectionDialog = ({
             >
               {showAll ? "Showing all" : "Annotated only"}
             </button>
+
+            <span className="text-xs text-foreground/50">
+              Tip: hold{" "}
+              <kbd className="rounded border border-black/15 bg-black/5 px-1 py-0.5 font-mono text-[10px] text-foreground/70">
+                Shift
+              </kbd>{" "}
+              and click to select a range
+            </span>
           </div>
 
           <div className="flex items-center gap-2">
