@@ -6,7 +6,7 @@ import { Check } from "lucide-react";
 export interface TaskImageCardProps {
   task: Task;
   selected: boolean;
-  onToggle: (taskId: number) => void;
+  onToggle: (taskId: number, shiftKey: boolean) => void;
 }
 
 export const TaskImageCard = ({
@@ -16,9 +16,9 @@ export const TaskImageCard = ({
 }: TaskImageCardProps) => (
   <button
     type="button"
-    onClick={() => onToggle(task.id)}
+    onClick={(e) => onToggle(task.id, e.shiftKey)}
     className={cn(
-      "group relative flex cursor-pointer flex-col gap-2 rounded-sm border p-2 transition-colors",
+      "group relative flex cursor-pointer flex-col gap-2 rounded-sm border p-2 transition-colors select-none",
       selected
         ? "border-emerald-500 bg-emerald-500/10"
         : "border-black/10 bg-black/2 hover:border-black/20",
@@ -26,10 +26,14 @@ export const TaskImageCard = ({
   >
     {/* Top row: checkbox (left) + annotation chip (right) */}
     <div className="relative flex h-5 items-center justify-between">
-      <div onClick={(e) => e.stopPropagation()}>
+      <div
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggle(task.id, e.shiftKey);
+        }}
+      >
         <Checkbox
           checked={selected}
-          onCheckedChange={() => onToggle(task.id)}
           className={cn(
             "size-5 rounded",
             selected && "border-emerald-600 bg-emerald-600 text-white",
