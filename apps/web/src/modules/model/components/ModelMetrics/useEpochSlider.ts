@@ -12,8 +12,8 @@ export interface EpochSliderState {
   lastEpoch: number;
   /** Max valid index — `max(logs.length - 1, 0)`. */
   max: number;
-  /** Slider change handler accepting base-ui's `number | number[]` shape. */
-  handleChange: (v: number | number[]) => void;
+  /** Slider change handler accepting base-ui's `number | readonly number[]` shape. */
+  handleChange: (v: number | readonly number[]) => void;
 }
 
 /**
@@ -36,9 +36,8 @@ export const useEpochSlider = (logs: ModelLog[]): EpochSliderState => {
   const safeIndex = Math.min(Math.max(index, 0), max);
   const selectedLog = logs[safeIndex];
 
-  const handleChange = (v: number | number[]) => {
-    const next =
-      typeof v === "number" ? v : Array.isArray(v) ? v[0] ?? 0 : 0;
+  const handleChange = (v: number | readonly number[]) => {
+    const next = typeof v === "number" ? v : v[0] ?? 0;
     setIndex(next);
     setStuckToLatest(next === logs.length - 1);
   };
