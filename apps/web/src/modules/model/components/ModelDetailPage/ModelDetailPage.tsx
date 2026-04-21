@@ -15,6 +15,7 @@ import {
 } from "../../services";
 import { ModelLayout } from "../ModelLayout";
 import { ModelLogs } from "../ModelLogs";
+import { ModelMetrics } from "../ModelMetrics";
 import { ModelParametersDialog } from "../ModelParametersDialog";
 import { TrainingChart } from "../TrainingChart";
 import { TrainingStartupScreen } from "../TrainingStartupScreen";
@@ -213,6 +214,7 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
           }
         />
       </div>
+      <ModelMetrics />
       <ModelLogs />
       {showDeleteDialog && (
         <DeleteLimitDialog

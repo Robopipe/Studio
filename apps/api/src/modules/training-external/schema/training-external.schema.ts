@@ -1,6 +1,8 @@
 import {
   ModelAugmentationTypeEnum,
+  modelLogConfusionMatrixSchema,
   modelLogMetricsSchema,
+  modelLogPerClassMetricsSchema,
   ModelOutputTypeEnum,
   ProjectTypeEnum,
 } from "@repo/schema";
@@ -24,6 +26,8 @@ export const trainingProgressErrorRequestSchema = z.object({
 export const trainingProgressLogRequestSchema = z.object({
   epoch: z.number(),
   metrics: modelLogMetricsSchema,
+  perClassMetrics: modelLogPerClassMetricsSchema.nullish(),
+  confusionMatrix: modelLogConfusionMatrixSchema.nullish(),
 });
 
 export const trainingProgressConvertingRequestSchema = z.object({});
@@ -95,6 +99,7 @@ export const trainingConfigSchema = z.object({
   dataset_config: z.object({
     dataset_split: z.tuple([z.number(), z.number(), z.number()]),
     labels: z.number().array(),
+    label_ids: z.number().array(),
     augmentations: z
       .object({
         type: z.enum(ModelAugmentationTypeEnum),

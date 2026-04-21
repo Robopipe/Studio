@@ -1,5 +1,9 @@
 import { ModelLogSelect } from "../../../repository/types/model-log";
-import { ModelLogMetrics } from "@repo/schema";
+import {
+  ModelLogConfusionMatrix,
+  ModelLogMetrics,
+  ModelLogPerClassMetrics,
+} from "@repo/schema";
 import { ModelLogResponse } from "../dto/model-log.dto";
 
 export class ModelLogEntity {
@@ -7,6 +11,8 @@ export class ModelLogEntity {
   readonly epoch: number;
   readonly modelId: number;
   readonly metrics: ModelLogMetrics;
+  readonly perClassMetrics: ModelLogPerClassMetrics | null;
+  readonly confusionMatrix: ModelLogConfusionMatrix | null;
   readonly created: Date;
 
   constructor(data: ModelLogSelect) {
@@ -14,6 +20,8 @@ export class ModelLogEntity {
     this.epoch = data.epoch;
     this.modelId = data.modelId;
     this.metrics = data.metrics;
+    this.perClassMetrics = data.perClassMetrics ?? null;
+    this.confusionMatrix = data.confusionMatrix ?? null;
     this.created = data.createdAt;
   }
 
@@ -22,6 +30,8 @@ export class ModelLogEntity {
       id: this.id,
       epoch: this.epoch,
       metrics: this.metrics,
+      perClassMetrics: this.perClassMetrics,
+      confusionMatrix: this.confusionMatrix,
       createdAt: this.created.toISOString()
     }
   }

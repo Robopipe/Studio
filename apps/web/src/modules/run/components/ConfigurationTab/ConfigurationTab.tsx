@@ -1,6 +1,4 @@
 import type { SahiConfig } from "@/core/cameraApi/schemas/nn";
-import { Button } from "@/modules/shadcn/ui/button";
-import { Save } from "lucide-react";
 import { useImperativeHandle, type Ref } from "react";
 import { CameraConfigPanel } from "./CameraConfigPanel";
 import { CameraPreview } from "./CameraPreview";
@@ -79,7 +77,6 @@ const ConfigurationTabContent = ({
     setZoneConfig,
     hasChanges,
     handleSave,
-    isSaving,
   } = useConfigurationState(projectId, configId);
 
   useImperativeHandle(
