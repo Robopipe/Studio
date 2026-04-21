@@ -17,3 +17,18 @@ export function notifyMixedContentBlocked(cameraUrl: string): void {
     },
   });
 }
+
+export function clearMixedContentWarning(): void {
+  toast.dismiss(TOAST_ID);
+}
+
+/**
+ * True if the current scenario is one where the browser *could* block the
+ * request as mixed content — HTTPS page talking to an HTTP upstream.
+ */
+export function isMixedContentScenario(baseUrl: string): boolean {
+  return (
+    window.location.protocol === "https:" &&
+    baseUrl.toLowerCase().startsWith("http:")
+  );
+}
