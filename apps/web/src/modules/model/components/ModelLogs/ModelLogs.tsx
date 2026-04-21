@@ -118,7 +118,7 @@ export const ModelLogs = ({}: ModelLogsProps) => {
   }, [logs]);
 
   return (
-    <div className="flex h-100 shrink-0 flex-col overflow-hidden">
+    <div className="mb-6 flex min-h-100 flex-1 flex-col overflow-hidden">
       <div className="flex shrink-0 flex-row items-center justify-between py-2">
         <span className="text-base font-bold">Logs</span>
         {logs && logs.length > 0 && (
