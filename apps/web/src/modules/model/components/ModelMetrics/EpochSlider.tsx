@@ -5,7 +5,7 @@ export interface EpochSliderProps {
   max: number;
   currentEpoch: number;
   lastEpoch: number;
-  onChange: (v: number | number[]) => void;
+  onChange: (v: number | readonly number[]) => void;
 }
 
 export const EpochSlider = ({
