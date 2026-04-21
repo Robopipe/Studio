@@ -12,8 +12,8 @@ variable "cloud_run_sa" {
   type        = string
 }
 
-variable "cloud_run_ml_sa" {
-  description = "Cloud Run ML service account email for IAM bindings"
+variable "ml_service_account" {
+  description = "ML service account email (used by Cloud Batch training VMs) for IAM bindings"
   type        = string
   default     = ""
 }

@@ -1,23 +1,19 @@
 import z from "zod";
 import { timestampsSchema } from "../helpers";
 
-export enum DashboardConfigurationLineDirectionEnum {
+export enum DashboardConfigurationZoneDirectionEnum {
   HORIZONTAL = "HORIZONTAL",
   VERTICAL = "VERTICAL",
-}
-
-export enum DashboardConfigurationLineFlowEnum {
-  POSITIVE = "POSITIVE",
-  NEGATIVE = "NEGATIVE",
 }
 
 export const dashboardConfigurationSchema = z.object({
   id: z.number(),
   name: z.string(),
   projectId: z.number(),
-  lineDirection: z.enum(DashboardConfigurationLineDirectionEnum),
-  linePosition: z.number(),
-  lineFlow: z.enum(DashboardConfigurationLineFlowEnum),
+  zoneDirection: z.enum(DashboardConfigurationZoneDirectionEnum),
+  zoneCenter: z.number(),
+  zoneThickness: z.number(),
+  optimistic: z.boolean(),
   modelId: z.number().nullable(),
   cameraMxid: z.string().nullable(),
   streamName: z.string().nullable(),
@@ -33,9 +29,10 @@ export const createDashboardConfigurationSchema = z.object({
 export const updateDashboardConfigurationSchema = z.object({
   name: z.string().min(1).max(256).optional(),
   modelId: z.number().nullable().optional(),
-  lineDirection: z.enum(DashboardConfigurationLineDirectionEnum).optional(),
-  linePosition: z.number().min(0).max(1).optional(),
-  lineFlow: z.enum(DashboardConfigurationLineFlowEnum).optional(),
+  zoneDirection: z.enum(DashboardConfigurationZoneDirectionEnum).optional(),
+  zoneCenter: z.number().min(0).max(1).optional(),
+  zoneThickness: z.number().min(0).max(1).optional(),
+  optimistic: z.boolean().optional(),
   cameraMxid: z.string().nullable().optional(),
   streamName: z.string().nullable().optional(),
   capturedVideoId: z.number().nullable().optional(),

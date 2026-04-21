@@ -58,13 +58,68 @@ resource "google_cloud_run_v2_service" "api" {
       }
 
       env {
-        name  = "ML_JOB_NAME"
-        value = var.ml_job_name
+        name  = "ML_REGION"
+        value = var.ml_region
       }
 
       env {
-        name  = "ML_REGION"
-        value = var.ml_region
+        name  = "ML_BATCH_IMAGE"
+        value = var.ml_batch_image
+      }
+
+      env {
+        name  = "ML_BATCH_SERVICE_ACCOUNT"
+        value = var.ml_batch_service_account
+      }
+
+      env {
+        name  = "ML_BATCH_MACHINE_TYPE"
+        value = var.ml_batch_machine_type
+      }
+
+      env {
+        name  = "ML_BATCH_GPU_TYPE"
+        value = var.ml_batch_gpu_type
+      }
+
+      env {
+        name  = "ML_BATCH_GPU_COUNT"
+        value = tostring(var.ml_batch_gpu_count)
+      }
+
+      env {
+        name  = "ML_BATCH_BOOT_DISK_GB"
+        value = tostring(var.ml_batch_boot_disk_gb)
+      }
+
+      env {
+        name  = "ML_BATCH_MAX_RUN_SECONDS"
+        value = tostring(var.ml_batch_max_run_seconds)
+      }
+
+      env {
+        name  = "ML_BATCH_TASK_CPU_MILLI"
+        value = tostring(var.ml_batch_task_cpu_milli)
+      }
+
+      env {
+        name  = "ML_BATCH_TASK_MEMORY_MIB"
+        value = tostring(var.ml_batch_task_memory_mib)
+      }
+
+      env {
+        name  = "ML_BATCH_SHM_SIZE"
+        value = var.ml_batch_shm_size
+      }
+
+      env {
+        name  = "ML_BATCH_API_KEY_SECRET"
+        value = var.ml_batch_api_key_secret
+      }
+
+      env {
+        name  = "ML_BATCH_HUBAI_API_KEY_SECRET"
+        value = var.ml_batch_hubai_api_key_secret
       }
 
       env {

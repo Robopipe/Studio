@@ -14,9 +14,9 @@ import {
   useTrainModelMutation,
 } from "../../services";
 import { ModelLayout } from "../ModelLayout";
-import { ModelLogs } from "../ModelLogs";
-import { ModelParametersDialog } from "../ModelParametersDialog";
-import { TrainingChart } from "../TrainingChart";
+import { ModelOverview } from "../ModelOverview";
+import { ModelParameters } from "../ModelParameters";
+import { ModelSubheader, type ModelTab } from "../ModelSubheader";
 import { TrainingStartupScreen } from "../TrainingStartupScreen";
 
 export interface ModelDetailPageProps {}
@@ -27,7 +27,7 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
   const [deleteModel, { isLoading: isDeleting }] = useDeleteModelMutation();
   const [trainModel] = useTrainModelMutation();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [showParamsDialog, setShowParamsDialog] = useState(false);
+  const [activeTab, setActiveTab] = useState<ModelTab>("overview");
 
   const {
     data: model,
@@ -109,6 +109,8 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
           model.customHyperparams && Object.keys(model.customHyperparams).length > 0
             ? JSON.stringify(model.customHyperparams, null, 2)
             : "",
+        taskIds: model.taskIds ?? [],
+        datasetVersionId: model.datasetVersionId ?? null,
       },
     };
 
@@ -144,74 +146,66 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
     );
   }
 
+  const subheaderActions = (
+    <>
+      {model && (
+        <Button variant="outline" size="sm" onClick={handleDuplicate}>
+          <Copy className="mr-1 size-4" />
+          Duplicate
+        </Button>
+      )}
+      {model?.status === ModelStatusEnum.DRAFT && (
+        <Button
+          size="sm"
+          onClick={async () => {
+            await trainModel({
+              projectId: Number(projectId),
+              modelId: Number(modelId),
+            }).unwrap();
+          }}
+        >
+          Train
+        </Button>
+      )}
+      <Button
+        variant="destructive"
+        size="sm"
+        className="p-2"
+        onClick={() => setShowDeleteDialog(true)}
+      >
+        <Trash2 className="size-4" />
+      </Button>
+    </>
+  );
+
   return (
     <ModelLayout>
-      <div className="flex flex-row items-center justify-between">
-        <p className="mb-8 text-xl font-bold">{model?.name}</p>
-        <div className="flex flex-row justify-end gap-2">
-          {model && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowParamsDialog(true)}
-            >
-              Show parameters
-            </Button>
-          )}
-          {model && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleDuplicate}
-            >
-              <Copy className="mr-1 size-4" />
-              Duplicate
-            </Button>
-          )}
-          {model?.status === ModelStatusEnum.DRAFT && (
-            <Button
-              size="sm"
-              onClick={async () => {
-                await trainModel({
-                  projectId: Number(projectId),
-                  modelId: Number(modelId),
-                }).unwrap();
-              }}
-            >
-              Train
-            </Button>
-          )}
-          <Button
-            variant="destructive"
-            size="sm"
-            className="p-2"
-            onClick={() => setShowDeleteDialog(true)}
-          >
-            <Trash2 className="size-4" />
-          </Button>
-        </div>
-      </div>
-      <div className="flex flex-row gap-4">
-        <TrainingChart
-          title="Accuracy"
-          data={
-            logs?.map((log) => ({
-              value: log.metrics.accuracy,
-              epoch: log.epoch,
-            })) ?? []
-          }
-        />
-        <TrainingChart
-          title="Loss"
-          data={
-            logs?.map((log) => ({
-              value: log.metrics.loss,
-              epoch: log.epoch,
-            })) ?? []
-          }
+      {/* Negate ModelLayout's p-6 on the top edge so the subheader is edge-to-edge. */}
+      <div className="-mx-6 -mt-6 mb-4">
+        <ModelSubheader
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          actions={subheaderActions}
         />
       </div>
-      <ModelLogs />
+
+      {/*
+        `flex-1 min-h-0` forms the bounded-height chain so ModelLogs can use
+        its own internal scroll. The bottom-gap at scroll-end is provided by
+        a margin-bottom on ModelLogs itself (see ModelLogs.tsx) — margins
+        extend the column's scrollHeight, so the gap appears after the
+        overflowing content instead of being pinned inside the fixed-height
+        wrapper.
+      */}
+      <div className="flex min-h-0 flex-1 flex-col">
+        {activeTab === "overview" && (
+          <ModelOverview modelName={model?.name} logs={logs} />
+        )}
+        {activeTab === "parameters" && model && (
+          <ModelParameters model={model} />
+        )}
+      </div>
+
       {showDeleteDialog && (
         <DeleteLimitDialog
           title="Delete this model version?"
@@ -226,13 +220,6 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
             }).unwrap();
             navigate(`/projects/${projectId}/models/new`);
           }}
-        />
-      )}
-      {model && (
-        <ModelParametersDialog
-          model={model}
-          open={showParamsDialog}
-          onClose={() => setShowParamsDialog(false)}
         />
       )}
     </ModelLayout>

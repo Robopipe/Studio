@@ -4,7 +4,7 @@ import { DB_CONNECTION } from "src/core/database/database.constant";
 import type { DbConnection } from "src/core/database/types/database.types";
 import { TaskDetailEntity, TaskEntity } from "../../modules/task/entity/task.entity";
 import { TaskInsert } from "../types/task";
-import { and, asc, count, desc, eq, isNotNull, isNull, max, sql, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNotNull, isNull, max, sql, type SQL } from "drizzle-orm";
 import { TaskStatusEnum } from "@repo/schema";
 
 @Injectable()
@@ -145,6 +145,7 @@ export class TaskRepository {
     annotated?: boolean,
     order: "asc" | "desc" = "asc",
     labelIds?: number[],
+    ids?: number[],
   ): Promise<{ data: TaskEntity[]; total: number }> {
     const offset = (page - 1) * limit;
 
@@ -174,12 +175,18 @@ export class TaskRepository {
       ? this.buildLabelExistsCondition(labelIds)
       : undefined;
 
+    // Build id filter: restrict to the explicit set of task IDs
+    const idsCondition: SQL | undefined = ids?.length
+      ? inArray(taskTable.id, ids)
+      : undefined;
+
     const [tasks, totalResult] = await Promise.all([
       this.db.query.taskTable.findMany({
         where: {
           projectId,
           ...(deletedAtFilter && { deletedAt: deletedAtFilter }),
           ...(statusValue && { status: statusValue }),
+          ...(ids?.length && { id: { in: ids } }),
           ...(buildLabelCondition && { RAW: (table: typeof taskTable) => buildLabelCondition(table.id) }),
         },
         orderBy: (t) => (order === "desc" ? desc(t.createdAt) : asc(t.createdAt)),
@@ -188,13 +195,53 @@ export class TaskRepository {
       }),
       this.db.select({ count: count() })
         .from(taskTable)
-        .where(and(eq(taskTable.projectId, projectId), deletedAtCondition, statusCondition, buildLabelCondition?.(taskTable.id))),
+        .where(and(eq(taskTable.projectId, projectId), deletedAtCondition, statusCondition, idsCondition, buildLabelCondition?.(taskTable.id))),
     ]);
 
     return {
       data: tasks.map((t) => new TaskEntity(t)),
       total: totalResult[0]?.count ?? 0,
     };
+  }
+
+  /**
+   * Ordered list of non-deleted task IDs for a project, honoring the same
+   * `annotated` / `labelIds` / `order` filters as the list endpoint. Returns
+   * only the id column — used by the client for cross-page select-all and
+   * shift-click range selection without loading every task row.
+   */
+  public async getAllIdsByProjectId(
+    projectId: number,
+    annotated?: boolean,
+    labelIds?: number[],
+    order: "asc" | "desc" = "asc",
+  ): Promise<number[]> {
+    const statusValue = annotated === true ? TaskStatusEnum.DONE
+      : annotated === false ? TaskStatusEnum.TODO
+      : undefined;
+
+    const statusCondition: SQL | undefined = statusValue
+      ? eq(taskTable.status, statusValue)
+      : undefined;
+
+    const buildLabelCondition = labelIds?.length
+      ? this.buildLabelExistsCondition(labelIds)
+      : undefined;
+
+    const rows = await this.db
+      .select({ id: taskTable.id })
+      .from(taskTable)
+      .where(
+        and(
+          eq(taskTable.projectId, projectId),
+          isNull(taskTable.deletedAt),
+          statusCondition,
+          buildLabelCondition?.(taskTable.id),
+        ),
+      )
+      .orderBy(order === "desc" ? desc(taskTable.createdAt) : asc(taskTable.createdAt));
+
+    return rows.map((r) => r.id);
   }
 
   private buildLabelExistsCondition(labelIds: number[]): (taskId: SQL | typeof taskTable.id) => SQL {

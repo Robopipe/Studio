@@ -1,4 +1,5 @@
 import { useListCamerasQuery } from "@/core/cameraApi";
+import type { SahiConfig } from "@/core/cameraApi/schemas/nn";
 import { useCameraApiUrl } from "@/hooks";
 import { DashboardPage } from "@/modules/dashboard";
 import {
@@ -18,10 +19,13 @@ import {
 } from "@/modules/shadcn/ui/dialog";
 import { NoCameraDetected, SearchingForCamera } from "@/modules/ui";
 import { Settings, TriangleAlert, Video } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ConfigSelection } from "../../hooks/useRunDeploy";
 import { useRunDeploy } from "../../hooks/useRunDeploy";
-import { ConfigurationTab } from "../ConfigurationTab";
+import {
+  ConfigurationTab,
+  type ConfigurationTabHandle,
+} from "../ConfigurationTab";
 import { DeployConfigSelector } from "../DeployConfigSelector/DeployConfigSelector";
 import { LiveInference } from "../LiveInference";
 import { RunSubheader, RunTab } from "../RunSubheader";
@@ -31,6 +35,8 @@ export const RunPage = () => {
   const [activeConfigId, setActiveConfigId] = useState<number | null>(null);
   const [selectedConfigs, setSelectedConfigs] = useState<ConfigSelection[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [sahiConfig, setSahiConfig] = useState<SahiConfig | null>(null);
+  const configTabRef = useRef<ConfigurationTabHandle>(null);
 
   const [activeProject] = useActiveProject();
   const projectId = activeProject?.id;
@@ -83,6 +89,10 @@ export const RunPage = () => {
     capturedVideoId: dashboardConfig?.capturedVideoId ?? null,
     cameraApiUrl,
     selectedConfigs,
+    sahiConfig,
+    beforeDeploy: async () => {
+      await configTabRef.current?.saveIfDirty();
+    },
   });
 
   const configSelector = projectId ? (
@@ -109,7 +119,13 @@ export const RunPage = () => {
   const renderTabContent = () => {
     if (activeTab === "configuration") {
       return projectId ? (
-        <ConfigurationTab projectId={projectId} configId={activeConfigId} />
+        <ConfigurationTab
+          ref={configTabRef}
+          projectId={projectId}
+          configId={activeConfigId}
+          sahiConfig={sahiConfig}
+          onSahiConfigChange={setSahiConfig}
+        />
       ) : null;
     }
 

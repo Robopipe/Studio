@@ -13,7 +13,7 @@ import { ModelStatusEnum } from "@repo/schema";
 import { ProjectLabelRepository } from "../../../repository/services/project-label-repository.service";
 import { DB_CONNECTION } from "../../../core/database/database.constant";
 import type { DbConnection } from "../../../core/database/types/database.types";
-import { modelAugmentationTable, modelLabelTable, modelPreprocessingTable } from "@repo/database";
+import { datasetTable, datasetVersionTable, datasetVersionTaskTable, modelAugmentationTable, modelLabelTable, modelPreprocessingTable } from "@repo/database";
 import { eq } from "drizzle-orm";
 import { ModelLogRepository } from "../../../repository/services/model-log-repository.service";
 import { ModelLogEntity } from "../entity/model-log.entity";
@@ -98,6 +98,16 @@ export class ModelService{
       labelId
     })))
 
+    if (data.taskIds && data.taskIds.length > 0) {
+      const versionId = await this.getOrCreateDatasetVersion(
+        projectId,
+        `Dataset for ${data.name}`,
+        data.taskIds,
+        data.sourceDatasetVersionId ?? null,
+      );
+      await this.modelRepository.update(createdModel.id, { datasetVersionId: versionId });
+    }
+
     if (data.augmentations.length > 0) {
       await this.db.insert(modelAugmentationTable).values(data.augmentations.map(aug => ({
         modelId: createdModel.id,
@@ -173,6 +183,19 @@ export class ModelService{
       })))
     })
 
+    if (data.taskIds && data.taskIds.length > 0) {
+      const rawModel = await this.db.query.modelTable.findFirst({ where: { id: model.id } });
+      const versionId = await this.getOrCreateDatasetVersion(
+        projectId,
+        `Dataset for ${data.name}`,
+        data.taskIds,
+        rawModel?.datasetVersionId ?? null,
+      );
+      if (versionId !== rawModel?.datasetVersionId) {
+        await this.modelRepository.update(model.id, { datasetVersionId: versionId });
+      }
+    }
+
     return this.getModelById(model.id, projectId)
   }
 
@@ -238,5 +261,72 @@ export class ModelService{
       labelIds.includes(label.id),
     );
     return filteredLabels.map((label) => label.id)
+  }
+
+  /**
+   * Get an existing dataset version whose task list matches, or append a new one.
+   * - If existing version's task list matches → reuse (no-op)
+   * - If existing version's task list differs → append new version under same dataset
+   * - If no existing version → create new dataset + v1
+   */
+  private async getOrCreateDatasetVersion(
+    projectId: number,
+    fallbackDatasetName: string,
+    taskIds: number[],
+    existingDatasetVersionId: number | null,
+  ): Promise<number> {
+    if (existingDatasetVersionId) {
+      const current = await this.db.query.datasetVersionTable.findFirst({
+        where: { id: existingDatasetVersionId },
+        with: { dataset: true },
+      });
+      // Only reuse/extend a version if its dataset belongs to this project
+      if (current && current.dataset?.projectId === projectId) {
+        const currentTasks = await this.db.query.datasetVersionTaskTable.findMany({
+          where: { datasetVersionId: existingDatasetVersionId },
+        });
+        const currentSet = new Set(currentTasks.map((t) => t.taskId));
+        const newSet = new Set(taskIds);
+        const isSame =
+          currentSet.size === newSet.size &&
+          [...currentSet].every((id) => newSet.has(id));
+
+        if (isSame) return existingDatasetVersionId;
+
+        return this.appendDatasetVersion(current.datasetId, taskIds);
+      }
+    }
+
+    const [dataset] = await this.db
+      .insert(datasetTable)
+      .values({ name: fallbackDatasetName, projectId })
+      .returning();
+    return this.appendDatasetVersion(dataset.id, taskIds);
+  }
+
+  /**
+   * Append a new version to a dataset with the given task list.
+   * Version number is max(existing) + 1 (starting at 1).
+   */
+  private async appendDatasetVersion(
+    datasetId: number,
+    taskIds: number[],
+  ): Promise<number> {
+    const existing = await this.db.query.datasetVersionTable.findMany({
+      where: { datasetId },
+    });
+    const nextVersion =
+      existing.length > 0 ? Math.max(...existing.map((v) => v.version)) + 1 : 1;
+
+    const [version] = await this.db
+      .insert(datasetVersionTable)
+      .values({ datasetId, version: nextVersion })
+      .returning();
+
+    await this.db.insert(datasetVersionTaskTable).values(
+      taskIds.map((taskId) => ({ datasetVersionId: version.id, taskId })),
+    );
+
+    return version.id;
   }
 }

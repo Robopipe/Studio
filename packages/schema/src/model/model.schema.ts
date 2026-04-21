@@ -67,6 +67,8 @@ export const modelSchema = z.object({
   status: z.enum(ModelStatusEnum),
   epochs: z.number(),
   labels: labelSchema.array(),
+  taskIds: z.number().array(),
+  datasetVersionId: z.number().nullable(),
   outputTypes: z.enum(ModelOutputTypeEnum).array(),
   trainingType: z.enum(ProjectTypeEnum),
   annotationsUsed: z.enum(ProjectTypeEnum).array(),
@@ -90,10 +92,37 @@ export const modelLogMetricsSchema = z
   })
   .loose();
 
+/**
+ * Per-class metrics keyed by base metric path, with inner keys being DB
+ * label IDs (as strings — JSON objects don't preserve numeric keys).
+ * Example: { "val/metric/.../map_per_class": { "42": 0.7, "17": 0.8 } }
+ */
+export const modelLogPerClassMetricsSchema = z.record(
+  z.string(),
+  z.record(z.string(), z.number()),
+);
+
+/**
+ * Confusion matrices keyed by `<HeadName>/<matrixKey>`. Labels are DB label
+ * IDs as strings; `null` marks the "no match" / background bucket appended
+ * by luxonis-train for detection-style matrices. Rows = ground truth,
+ * columns = predictions. Matrix is a square 2D array of counts.
+ */
+export const modelLogConfusionMatrixEntrySchema = z.object({
+  labels: z.array(z.string().nullable()),
+  matrix: z.array(z.array(z.number())),
+});
+export const modelLogConfusionMatrixSchema = z.record(
+  z.string(),
+  modelLogConfusionMatrixEntrySchema,
+);
+
 export const modelLogSchema = z.object({
   id: z.number(),
   epoch: z.number(),
   metrics: modelLogMetricsSchema,
+  perClassMetrics: modelLogPerClassMetricsSchema.nullable(),
+  confusionMatrix: modelLogConfusionMatrixSchema.nullable(),
   createdAt: z.iso.datetime(),
 });
 
@@ -110,6 +139,13 @@ export const createModelSchema = modelSchema
   })
   .extend({
     labelIds: z.number().array(),
+    taskIds: z.number().array().default([]),
+    /**
+     * When duplicating a model: pass the source model's dataset version so the
+     * new model can reuse it directly (or append a new version under the same
+     * dataset if taskIds have been edited).
+     */
+    sourceDatasetVersionId: z.number().optional(),
     augmentations: z
       .object({
         type: z.enum(ModelAugmentationTypeEnum),

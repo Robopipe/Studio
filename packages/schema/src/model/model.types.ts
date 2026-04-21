@@ -3,7 +3,10 @@ import { hyperparamsConfigSchema } from "./hyperparams-config.schema";
 import {
   createModelSchema,
   modelAugmentationSchema,
+  modelLogConfusionMatrixEntrySchema,
+  modelLogConfusionMatrixSchema,
   modelLogMetricsSchema,
+  modelLogPerClassMetricsSchema,
   modelLogSchema,
   modelOutputSchema,
   modelSchema,
@@ -11,6 +14,15 @@ import {
 
 export type HyperparamsConfig = z.infer<typeof hyperparamsConfigSchema>;
 export type ModelLogMetrics = z.infer<typeof modelLogMetricsSchema>;
+export type ModelLogPerClassMetrics = z.infer<
+  typeof modelLogPerClassMetricsSchema
+>;
+export type ModelLogConfusionMatrix = z.infer<
+  typeof modelLogConfusionMatrixSchema
+>;
+export type ModelLogConfusionMatrixEntry = z.infer<
+  typeof modelLogConfusionMatrixEntrySchema
+>;
 export type ModelLog = z.infer<typeof modelLogSchema>;
 export type ModelAugmentation = z.infer<typeof modelAugmentationSchema>;
 export type Model = z.infer<typeof modelSchema>;

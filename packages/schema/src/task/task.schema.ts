@@ -118,6 +118,13 @@ export const taskPaginationQuerySchema = paginationQuerySchema.extend({
       if (!val) return undefined;
       return val.split(",").map(Number).filter((n) => !isNaN(n));
     }),
+  ids: z
+    .string()
+    .optional()
+    .transform((val): number[] | undefined => {
+      if (!val) return undefined;
+      return val.split(",").map(Number).filter((n) => !isNaN(n));
+    }),
   order: z
     .union([z.literal("asc"), z.literal("desc")])
     .optional()
@@ -219,6 +226,37 @@ export const taskExportQuerySchema = z.object({
       if (!val) return undefined;
       return val.split(",").map(Number).filter((n) => !isNaN(n));
     }),
+});
+
+/**
+ * Lightweight id-only listing — returns just the ordered list of task IDs
+ * matching the given filters. Used by the client to power cross-page
+ * "select all" and shift-click range selection without loading every task row.
+ */
+export const taskIdsQuerySchema = z.object({
+  annotated: z
+    .union([z.literal("true"), z.literal("false")])
+    .optional()
+    .transform((val): boolean | undefined => {
+      if (val === "true") return true;
+      if (val === "false") return false;
+      return undefined;
+    }),
+  labelIds: z
+    .string()
+    .optional()
+    .transform((val): number[] | undefined => {
+      if (!val) return undefined;
+      return val.split(",").map(Number).filter((n) => !isNaN(n));
+    }),
+  order: z
+    .union([z.literal("asc"), z.literal("desc")])
+    .optional()
+    .default("asc"),
+});
+
+export const taskIdsResponseSchema = z.object({
+  ids: z.number().array(),
 });
 
 

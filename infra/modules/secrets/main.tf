@@ -44,11 +44,12 @@ resource "google_secret_manager_secret_iam_member" "cloud_build_access" {
   member    = "serviceAccount:${var.cloud_build_sa}"
 }
 
-# IAM: allow Cloud Run ML SA to access ML-related secrets
+# IAM: allow the ML service account (used by Cloud Batch training VMs) to
+# access ML-related secrets via Batch's secret_variables.
 resource "google_secret_manager_secret_iam_member" "ml_access" {
-  for_each  = var.cloud_run_ml_sa != "" ? toset(["mlSecret", "hubaiApiKey"]) : toset([])
+  for_each  = var.ml_service_account != "" ? toset(["mlSecret", "hubaiApiKey"]) : toset([])
   project   = var.project_id
   secret_id = google_secret_manager_secret.secrets[each.key].secret_id
   role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:${var.cloud_run_ml_sa}"
+  member    = "serviceAccount:${var.ml_service_account}"
 }

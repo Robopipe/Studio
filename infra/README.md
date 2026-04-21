@@ -13,7 +13,7 @@ Terraform-managed GCP infrastructure for Robopipe Studio. Each environment lives
 - **Cloud SQL** -- PostgreSQL 16 instance + database + user
 - **Secrets** -- Secret Manager (DATABASE_URL, JWT, cookie, ML, SendGrid, HubAI)
 - **Cloud Run** -- API service with Cloud SQL connection and public access
-- **Cloud Run Job** -- ML training job with GPU (nvidia-rtx-pro-6000)
+- **Cloud Batch** -- ML training on Compute Engine VMs (default `a2-ultragpu-1g`: 12 vCPU, 170 GB RAM, 1× NVIDIA A100 80 GB). Jobs are created per training run by the API, not pre-declared.
 - **Storage** -- GCS buckets for web static files and assets
 - **Load Balancer** -- Global IP, CDN, managed SSL certificate
 - **Cloud Build** -- CI/CD triggers for API, Web, and ML
@@ -89,7 +89,7 @@ infra/
     artifact-registry/                 # Docker image registry
     cloud-sql/                         # PostgreSQL database
     cloud-run/                         # API service
-    cloud-run-ml/                      # ML training job (GPU)
+    cloud-batch-ml/                    # IAM for Cloud Batch training (GPU)
     secrets/                           # Secret Manager
     storage/                           # GCS buckets
     load-balancer/                     # Global LB + CDN + SSL

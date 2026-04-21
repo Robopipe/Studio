@@ -12,6 +12,8 @@ import {
   taskDetailSchema,
   taskExportQuerySchema,
   taskExportSchema,
+  taskIdsQuerySchema,
+  taskIdsResponseSchema,
   taskPaginationQuerySchema,
   taskSchema,
   taskUploadUrlSchema,
@@ -36,3 +38,5 @@ export type TaskUploadUrl = z.infer<typeof taskUploadUrlSchema>
 export type ConfirmTaskUpload = z.infer<typeof confirmTaskUploadSchema>
 export type TaskExport = z.infer<typeof taskExportSchema>
 export type TaskExportQuery = z.infer<typeof taskExportQuerySchema>
+export type TaskIdsQuery = z.infer<typeof taskIdsQuerySchema>
+export type TaskIdsResponse = z.infer<typeof taskIdsResponseSchema>

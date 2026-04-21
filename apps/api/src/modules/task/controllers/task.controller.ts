@@ -20,6 +20,8 @@ import {
   TaskDetailResponse,
   TaskExportQuery,
   TaskExportResponse,
+  TaskIdsQuery,
+  TaskIdsResponseDto,
   TaskPaginationQuery,
   TaskResponse,
   TaskUpdateRequest,
@@ -56,9 +58,18 @@ export class TaskController {
     return this.taskService.exportTasks(projectId, query.annotated, query.labelIds);
   }
 
+  @Get("ids")
+  public async listTaskIds(
+    @ProjectId() projectId: number,
+    @Query() query: TaskIdsQuery,
+  ): Promise<TaskIdsResponseDto> {
+    const ids = await this.taskService.getTaskIds(projectId, query.annotated, query.labelIds, query.order);
+    return { ids };
+  }
+
   @Get()
   public async listTasks(@ProjectId() projectId: number, @Query() query: TaskPaginationQuery): Promise<PaginatedTaskResponse>{
-    const { data, total } = await this.taskService.getTasks(projectId, query.page, query.limit, query.deleted, query.annotated, query.order, query.labelIds)
+    const { data, total } = await this.taskService.getTasks(projectId, query.page, query.limit, query.deleted, query.annotated, query.order, query.labelIds, query.ids)
     return {
       data: data.map((task) => task.toResponse()),
       total,
