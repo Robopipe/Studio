@@ -98,6 +98,18 @@ variable "ml_batch_max_run_seconds" {
   default     = 86400
 }
 
+variable "ml_batch_task_cpu_milli" {
+  description = "CPU millicores allocated to the training task on the Batch VM"
+  type        = number
+  default     = 11000
+}
+
+variable "ml_batch_task_memory_mib" {
+  description = "Memory (MiB) allocated to the training task on the Batch VM"
+  type        = number
+  default     = 163840
+}
+
 variable "ml_batch_api_key_secret" {
   description = "Secret Manager secret name injected as API_KEY into the training container"
   type        = string

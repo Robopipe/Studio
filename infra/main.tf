@@ -136,6 +136,8 @@ module "cloud_run" {
   ml_batch_gpu_count          = var.ml_gpu_count
   ml_batch_boot_disk_gb       = var.ml_batch_boot_disk_gb
   ml_batch_max_run_seconds    = var.ml_batch_max_run_seconds
+  ml_batch_task_cpu_milli     = var.ml_batch_task_cpu_milli
+  ml_batch_task_memory_mib    = var.ml_batch_task_memory_mib
   ml_batch_api_key_secret     = module.secrets.secret_ids["mlSecret"]
   ml_batch_hubai_api_key_secret = module.secrets.secret_ids["hubaiApiKey"]
 

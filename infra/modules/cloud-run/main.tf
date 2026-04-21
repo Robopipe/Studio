@@ -98,6 +98,16 @@ resource "google_cloud_run_v2_service" "api" {
       }
 
       env {
+        name  = "ML_BATCH_TASK_CPU_MILLI"
+        value = tostring(var.ml_batch_task_cpu_milli)
+      }
+
+      env {
+        name  = "ML_BATCH_TASK_MEMORY_MIB"
+        value = tostring(var.ml_batch_task_memory_mib)
+      }
+
+      env {
         name  = "ML_BATCH_API_KEY_SECRET"
         value = var.ml_batch_api_key_secret
       }

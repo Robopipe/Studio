@@ -107,6 +107,18 @@ variable "ml_batch_max_run_seconds" {
   default     = 86400
 }
 
+variable "ml_batch_task_cpu_milli" {
+  description = "CPU millicores allocated to the training task on the Batch VM. Batch starves tasks to ~2 vCPU if unset. Default 11000 = 11 vCPU, leaving ~1 vCPU for the agent on a2-ultragpu-1g."
+  type        = number
+  default     = 11000
+}
+
+variable "ml_batch_task_memory_mib" {
+  description = "Memory (MiB) allocated to the training task on the Batch VM. Default 163840 = 160 GiB, leaving ~10 GiB for the agent/OS on a2-ultragpu-1g (174080 MiB total)."
+  type        = number
+  default     = 163840
+}
+
 variable "ml_image" {
   description = "Docker image for the ML training container. Leave empty (default) to use Artifact Registry's :latest tag — each Cloud Batch submission then picks up the most recent Cloud Build output automatically. Set to a pinned :$${SHORT_SHA} URL for reproducible deploys (requires a redeploy of the API when bumping)."
   type        = string
