@@ -1,9 +1,17 @@
-import { useListCamerasQuery } from "@/core/cameraApi";
+import {
+  useGetNNQuery,
+  useListCamerasQuery,
+  useListStreamsQuery,
+} from "@/core/cameraApi";
 import { useCameraApiUrl } from "@/hooks";
 import { EditProjectModal } from "@/modules/project/components/EditProjectModal";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
-import { NoCameraDetected, SearchingForCamera } from "@/modules/ui";
-import { useCallback, useState } from "react";
+import {
+  ModelRunning,
+  NoCameraDetected,
+  SearchingForCamera,
+} from "@/modules/ui";
+import { useCallback, useEffect, useState } from "react";
 import {
   useVideoCapture,
   VideoCaptureProvider,
@@ -31,6 +39,32 @@ export const CapturePage = ({}: CapturePageProps) => {
   const [isStreaming, setIsStreaming] = useState(false);
   const [isSwitchingStream, setIsSwitchingStream] = useState(false);
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
+
+  const { data: streams } = useListStreamsQuery(selectedCamera!, {
+    skip: !selectedCamera,
+  });
+
+  useEffect(() => {
+    if (!cameras || cameras.length === 0) return;
+    if (!selectedCamera || !cameras.some((c) => c.mxid === selectedCamera)) {
+      setSelectedCamera(cameras[0].mxid);
+    }
+  }, [cameras, selectedCamera]);
+
+  useEffect(() => {
+    if (!selectedCamera || selectedStream) return;
+    if (!streams || streams.length === 0) return;
+    const active = streams.find((s) => s.active) ?? streams[0];
+    if (active) setSelectedStream(active.name);
+  }, [streams, selectedCamera, selectedStream]);
+
+  const { data: nnInfo } = useGetNNQuery(
+    { mxid: selectedCamera!, streamName: selectedStream! },
+    { skip: !selectedCamera || !selectedStream },
+  );
+  const isModelRunning = !!nnInfo?.model_id;
+  const isCheckingModelStatus =
+    !selectedCamera || !selectedStream || nnInfo === undefined;
 
   const handleSelectCamera = useCallback((camera: string | null) => {
     setSelectedCamera(camera);
@@ -63,12 +97,16 @@ export const CapturePage = ({}: CapturePageProps) => {
     return renderNoCamera();
   }
 
-  if (isLoading) {
+  if (isLoading || isCheckingModelStatus) {
     return <SearchingForCamera url={cameraApiUrl} isOverride={isOverride} />;
   }
 
   if (!hasCameras) {
     return renderNoCamera();
+  }
+
+  if (isModelRunning && activeProject) {
+    return <ModelRunning projectId={activeProject.id} />;
   }
 
   return (

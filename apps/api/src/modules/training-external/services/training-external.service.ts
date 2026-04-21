@@ -79,6 +79,8 @@ export class TrainingExternalService {
           modelId,
           epoch: progress.epoch,
           metrics: progress.metrics,
+          perClassMetrics: progress.perClassMetrics ?? null,
+          confusionMatrix: progress.confusionMatrix ?? null,
         });
         return;
     }
@@ -419,6 +421,7 @@ export class TrainingExternalService {
             model.splitTest,
           ],
           labels: model.labels.map((_, index) => index),
+          label_ids: model.labels.map((l) => l.id),
           augmentations,
           preprocessings: preprocessings.map(pp => ({
             type: pp.type,

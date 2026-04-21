@@ -18,7 +18,7 @@ function CollapsibleTrigger({
     <CollapsiblePrimitive.Trigger
       data-slot="collapsible-trigger"
       className={cn(
-        "flex w-full items-center justify-between py-2 text-sm font-medium transition-colors hover:text-foreground text-muted-foreground cursor-pointer [&[data-collapsible=open]>svg]:rotate-180",
+        "flex w-full items-center justify-between py-2 text-sm font-medium transition-colors hover:text-foreground text-muted-foreground cursor-pointer [&[data-panel-open]>svg]:rotate-180",
         className
       )}
       {...props}
