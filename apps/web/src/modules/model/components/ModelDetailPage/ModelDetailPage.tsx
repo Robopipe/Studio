@@ -181,7 +181,7 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
   return (
     <ModelLayout>
       {/* Negate ModelLayout's p-6 on the top edge so the subheader is edge-to-edge. */}
-      <div className="-mx-6 -mt-6 mb-6">
+      <div className="-mx-6 -mt-6 mb-4">
         <ModelSubheader
           activeTab={activeTab}
           onTabChange={setActiveTab}
@@ -190,12 +190,17 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
       </div>
 
       {/*
-        pb-6 is part of this scrollable content so it remains visible at
-        scroll-bottom; ModelLayout's inner p-6 sits at a fixed position and
-        is hidden once the user scrolls past it.
+        `flex-1 min-h-0` forms the bounded-height chain so ModelLogs can use
+        its own internal scroll. The bottom-gap at scroll-end is provided by
+        a margin-bottom on ModelLogs itself (see ModelLogs.tsx) — margins
+        extend the column's scrollHeight, so the gap appears after the
+        overflowing content instead of being pinned inside the fixed-height
+        wrapper.
       */}
-      <div className="flex flex-col pb-6">
-        {activeTab === "overview" && <ModelOverview logs={logs} />}
+      <div className="flex min-h-0 flex-1 flex-col">
+        {activeTab === "overview" && (
+          <ModelOverview modelName={model?.name} logs={logs} />
+        )}
         {activeTab === "parameters" && model && (
           <ModelParameters model={model} />
         )}
