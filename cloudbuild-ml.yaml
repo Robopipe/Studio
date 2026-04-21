@@ -27,14 +27,10 @@ steps:
       - |
         docker push --all-tags ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPO_NAME}/ml
 
-  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
-    entrypoint: "bash"
-    args:
-      - "-c"
-      - |
-        gcloud run jobs update ${_JOB_NAME} \
-          --image ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPO_NAME}/ml:${SHORT_SHA} \
-          --region ${_REGION}
+  # Cloud Batch jobs are created per training run by the API. Terraform points
+  # ML_BATCH_IMAGE at :latest by default, so each training submission pulls
+  # whatever this build just pushed — no Cloud Run API redeploy required.
+  # The :${SHORT_SHA} tag is pushed alongside for rollback / pinning.
 
 options:
   logging: CLOUD_LOGGING_ONLY

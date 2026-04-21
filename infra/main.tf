@@ -26,12 +26,21 @@ data "google_project" "current" {
 
 locals {
   name_prefix = "robopipe-${var.environment}"
+
+  # Default the ML training image to the :latest tag in Artifact Registry.
+  # Cloud Build's ml trigger always pushes both :${SHORT_SHA} and :latest, so
+  # each Cloud Batch job submission pulls whatever was last built — no Cloud
+  # Run API redeploy needed when the ML image changes. Override by setting
+  # var.ml_image to pin a specific SHA.
+  ml_default_image = "${var.ml_region}-docker.pkg.dev/${var.project_id}/${module.artifact_registry.repository_id}/ml:latest"
+  ml_image_effective = var.ml_image != "" ? var.ml_image : local.ml_default_image
 }
 
 # Enable required APIs
 resource "google_project_service" "apis" {
   for_each = toset([
     "run.googleapis.com",
+    "batch.googleapis.com",
     "sqladmin.googleapis.com",
     "secretmanager.googleapis.com",
     "compute.googleapis.com",
@@ -91,11 +100,11 @@ resource "google_service_account" "ml" {
 module "secrets" {
   source = "./modules/secrets"
 
-  project_id      = var.project_id
-  database_url    = module.cloud_sql.connection_string
-  cloud_run_sa    = google_service_account.api.email
-  cloud_run_ml_sa = google_service_account.ml.email
-  cloud_build_sa  = "${data.google_project.current.number}-compute@developer.gserviceaccount.com"
+  project_id         = var.project_id
+  database_url       = module.cloud_sql.connection_string
+  cloud_run_sa       = google_service_account.api.email
+  ml_service_account = google_service_account.ml.email
+  cloud_build_sa     = "${data.google_project.current.number}-compute@developer.gserviceaccount.com"
 
   depends_on = [google_project_service.apis]
 }
@@ -116,41 +125,32 @@ module "cloud_run" {
   bucket_name          = module.storage.assets_bucket_name
   web_host             = var.domain != "" ? "https://${var.domain}" : ""
   api_host             = var.api_domain != "" ? "https://${var.api_domain}" : ""
-  ml_job_name          = module.cloud_run_ml.job_name
   ml_region            = var.ml_region
   gcp_project          = var.project_id
   sendgrid_from_email  = var.sendgrid_from_email
 
-  depends_on = [google_project_service.apis, module.secrets]
-}
-
-module "cloud_run_ml" {
-  source = "./modules/cloud-run-ml"
-
-  project_id      = var.project_id
-  region          = var.ml_region
-  name_prefix     = local.name_prefix
-  service_account = google_service_account.ml.email
-  image           = var.ml_image != "" ? var.ml_image : "us-docker.pkg.dev/cloudrun/container/hello:latest"
-  environment     = var.environment
-  secret_ids      = module.secrets.secret_ids
-  api_host        = "https://${var.api_domain}"
-  gpu_type        = var.ml_gpu_type
-  gpu_count       = var.ml_gpu_count
-  memory          = var.ml_memory
-  cpu             = var.ml_cpu
-  timeout         = var.ml_timeout
+  ml_batch_image              = local.ml_image_effective
+  ml_batch_service_account    = google_service_account.ml.email
+  ml_batch_machine_type       = var.ml_batch_machine_type
+  ml_batch_gpu_type           = var.ml_gpu_type
+  ml_batch_gpu_count          = var.ml_gpu_count
+  ml_batch_boot_disk_gb       = var.ml_batch_boot_disk_gb
+  ml_batch_max_run_seconds    = var.ml_batch_max_run_seconds
+  ml_batch_api_key_secret     = module.secrets.secret_ids["mlSecret"]
+  ml_batch_hubai_api_key_secret = module.secrets.secret_ids["hubaiApiKey"]
 
   depends_on = [google_project_service.apis, module.secrets]
 }
 
-# Allow the API service account to trigger ML jobs
-resource "google_cloud_run_v2_job_iam_member" "api_can_run_ml_job" {
-  project  = var.project_id
-  name     = module.cloud_run_ml.job_name
-  location = var.ml_region
-  role     = "roles/run.invoker"
-  member   = "serviceAccount:${google_service_account.api.email}"
+module "cloud_batch_ml" {
+  source = "./modules/cloud-batch-ml"
+
+  project_id            = var.project_id
+  api_service_account   = google_service_account.api.email
+  ml_service_account    = google_service_account.ml.email
+  ml_service_account_id = google_service_account.ml.id
+
+  depends_on = [google_project_service.apis]
 }
 
 module "storage" {
@@ -275,6 +275,5 @@ resource "google_cloudbuild_trigger" "ml" {
     _REGION     = var.ml_region
     _PROJECT_ID = var.project_id
     _REPO_NAME  = module.artifact_registry.repository_id
-    _JOB_NAME   = module.cloud_run_ml.job_name
   }
 }

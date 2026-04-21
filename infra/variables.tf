@@ -78,37 +78,37 @@ variable "ml_region" {
 }
 
 variable "ml_gpu_type" {
-  description = "GPU type for ML service"
+  description = "GPU accelerator type for Cloud Batch training VMs (e.g. nvidia-l4, nvidia-tesla-a100). Must be compatible with the machine_type in the selected region."
   type        = string
-  default     = "nvidia-rtx-pro-6000"
+  default     = "nvidia-l4"
 }
 
 variable "ml_gpu_count" {
-  description = "Number of GPUs per ML instance"
+  description = "Number of GPUs attached to each Cloud Batch training VM"
   type        = number
   default     = 1
 }
 
-variable "ml_memory" {
-  description = "Memory for ML service (e.g., 16Gi, 32Gi)"
+variable "ml_batch_machine_type" {
+  description = "Compute Engine machine type for Cloud Batch training VMs (must match ml_gpu_type — e.g. g2-standard-8 pairs with nvidia-l4)"
   type        = string
-  default     = "80Gi"
+  default     = "g2-standard-8"
 }
 
-variable "ml_cpu" {
-  description = "CPU for ML service"
-  type        = string
-  default     = "20.0"
-}
-
-variable "ml_timeout" {
-  description = "ML request timeout in seconds (max 3600)"
+variable "ml_batch_boot_disk_gb" {
+  description = "Boot disk size in GB for Cloud Batch training VMs"
   type        = number
-  default     = 3600
+  default     = 100
+}
+
+variable "ml_batch_max_run_seconds" {
+  description = "Max runtime per Cloud Batch training task in seconds (Batch allows up to 7 days; default 24h)"
+  type        = number
+  default     = 86400
 }
 
 variable "ml_image" {
-  description = "Docker image for ML service. Leave empty to use a placeholder on first deploy."
+  description = "Docker image for the ML training container. Leave empty (default) to use Artifact Registry's :latest tag — each Cloud Batch submission then picks up the most recent Cloud Build output automatically. Set to a pinned :$${SHORT_SHA} URL for reproducible deploys (requires a redeploy of the API when bumping)."
   type        = string
   default     = ""
 }
