@@ -261,6 +261,11 @@ export class TrainingExternalService {
         secretVariables.HUBAI_API_KEY = `projects/${gcpProject}/secrets/${mlBatchHubaiApiKeySecret}/versions/latest`;
       }
 
+      // Accelerator-optimized VMs (A2/A3/G2) come with GPUs bundled — you set
+      // machineType and Batch attaches the right GPU automatically. Setting an
+      // explicit `accelerators` block with those families causes createJob to
+      // fail. Only attach accelerators when ML_BATCH_GPU_TYPE is set, which is
+      // the N1-style "custom attachment" path.
       const instancePolicy: protos.google.cloud.batch.v1.AllocationPolicy.IInstancePolicy = {
         machineType: mlBatchMachineType,
         bootDisk: { sizeGb: String(mlBatchBootDiskGb) },
@@ -310,7 +315,10 @@ export class TrainingExternalService {
           instances: [
             {
               policy: instancePolicy,
-              installGpuDrivers: Boolean(mlBatchGpuType && mlBatchGpuCount > 0),
+              // Always install drivers — training is always GPU-backed. For
+              // bundled-GPU VMs this is what turns the GPU on; for custom N1
+              // attachment this installs the CUDA driver stack.
+              installGpuDrivers: true,
             },
           ],
           ...(mlBatchServiceAccount
