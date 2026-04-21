@@ -30,6 +30,13 @@ export const appConfigSchema = z.object({
   mlBatchGpuCount: z.number().int().default(0),
   mlBatchBootDiskGb: z.number().int().default(100),
   mlBatchMaxRunSeconds: z.number().int().default(86400),
+  // Resources allocated to the single training task on the VM. Batch defaults
+  // to ~2 vCPU / ~2 GiB per task when these are unset, regardless of machine
+  // size, so you must set them explicitly to use the full VM. Defaults target
+  // a2-ultragpu-1g (12 vCPU / 170 GiB), leaving ~1 vCPU and ~10 GiB for the
+  // Batch agent + OS.
+  mlBatchTaskCpuMilli: z.number().int().default(11000),
+  mlBatchTaskMemoryMib: z.number().int().default(163840),
   mlBatchApiKeySecret: z.string().optional(),
   mlBatchHubaiApiKeySecret: z.string().optional(),
   mlBatchNetwork: z.string().optional(),
