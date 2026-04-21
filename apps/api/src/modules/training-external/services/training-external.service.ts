@@ -224,6 +224,7 @@ export class TrainingExternalService {
       mlBatchMaxRunSeconds,
       mlBatchTaskCpuMilli,
       mlBatchTaskMemoryMib,
+      mlBatchShmSize,
       mlBatchApiKeySecret,
       mlBatchHubaiApiKeySecret,
       mlBatchNetwork,
@@ -296,12 +297,25 @@ export class TrainingExternalService {
                 {
                   container: {
                     imageUri: mlBatchImage,
+                    // Bind-mount the host's NVIDIA driver libraries so the
+                    // containerized training process can talk to the GPU.
+                    // `installGpuDrivers: true` on the allocation policy puts
+                    // them on the VM; containers have to opt in explicitly.
+                    volumes: [
+                      "/var/lib/nvidia/lib64:/usr/local/nvidia/lib64",
+                      "/var/lib/nvidia/bin:/usr/local/nvidia/bin",
+                    ],
+                    // `options` is forwarded to `docker run`. --shm-size bumps
+                    // /dev/shm from Docker's 64 MiB default; PyTorch DataLoader
+                    // workers use shm for IPC and OOM the bus otherwise.
+                    options: `--shm-size=${mlBatchShmSize}`,
                   },
                   environment: {
                     variables: {
                       CONFIG_URL: signedUrl,
                       WEBHOOK_URL: `${apiHost}/v1/training-external`,
                       APP_ENV: this.config.env,
+                      LD_LIBRARY_PATH: "/usr/local/nvidia/lib64",
                     },
                     ...(Object.keys(secretVariables).length > 0
                       ? { secretVariables }

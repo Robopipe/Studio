@@ -119,6 +119,12 @@ variable "ml_batch_task_memory_mib" {
   default     = 163840
 }
 
+variable "ml_batch_shm_size" {
+  description = "Size of /dev/shm inside the training container (Docker --shm-size). Required >64 MiB for PyTorch DataLoader workers. Default 16g."
+  type        = string
+  default     = "16g"
+}
+
 variable "ml_image" {
   description = "Docker image for the ML training container. Leave empty (default) to use Artifact Registry's :latest tag — each Cloud Batch submission then picks up the most recent Cloud Build output automatically. Set to a pinned :$${SHORT_SHA} URL for reproducible deploys (requires a redeploy of the API when bumping)."
   type        = string

@@ -37,6 +37,10 @@ export const appConfigSchema = z.object({
   // Batch agent + OS.
   mlBatchTaskCpuMilli: z.number().int().default(11000),
   mlBatchTaskMemoryMib: z.number().int().default(163840),
+  // Shared memory for the training container (/dev/shm). Docker defaults to
+  // 64 MiB, which is far too small for PyTorch DataLoader with num_workers>0.
+  // Accepts docker-style suffix (e.g. "16g", "32g").
+  mlBatchShmSize: z.string().default("16g"),
   mlBatchApiKeySecret: z.string().optional(),
   mlBatchHubaiApiKeySecret: z.string().optional(),
   mlBatchNetwork: z.string().optional(),

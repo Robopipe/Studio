@@ -110,6 +110,12 @@ variable "ml_batch_task_memory_mib" {
   default     = 163840
 }
 
+variable "ml_batch_shm_size" {
+  description = "Size of /dev/shm inside the training container (Docker --shm-size syntax)"
+  type        = string
+  default     = "16g"
+}
+
 variable "ml_batch_api_key_secret" {
   description = "Secret Manager secret name injected as API_KEY into the training container"
   type        = string

@@ -108,6 +108,11 @@ resource "google_cloud_run_v2_service" "api" {
       }
 
       env {
+        name  = "ML_BATCH_SHM_SIZE"
+        value = var.ml_batch_shm_size
+      }
+
+      env {
         name  = "ML_BATCH_API_KEY_SECRET"
         value = var.ml_batch_api_key_secret
       }
