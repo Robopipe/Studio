@@ -48,6 +48,7 @@ export class ConfigLoader {
     const mlBatchTaskMemoryMib = process.env.ML_BATCH_TASK_MEMORY_MIB
       ? Number(process.env.ML_BATCH_TASK_MEMORY_MIB)
       : undefined;
+    const mlBatchShmSize = process.env.ML_BATCH_SHM_SIZE || undefined;
     const mlBatchApiKeySecret = process.env.ML_BATCH_API_KEY_SECRET || undefined;
     const mlBatchHubaiApiKeySecret = process.env.ML_BATCH_HUBAI_API_KEY_SECRET || undefined;
     const mlBatchNetwork = process.env.ML_BATCH_NETWORK || undefined;
@@ -78,6 +79,7 @@ export class ConfigLoader {
       mlBatchMaxRunSeconds,
       mlBatchTaskCpuMilli,
       mlBatchTaskMemoryMib,
+      mlBatchShmSize,
       mlBatchApiKeySecret,
       mlBatchHubaiApiKeySecret,
       mlBatchNetwork,
