@@ -23,17 +23,17 @@ import { ModelRepository } from "../../../repository/services/model-repository.s
 import { AssetsService } from "../../assets/services/assets.service";
 import { AppConfig } from "../../../core/configuration/app.config";
 import { Storage } from "@google-cloud/storage";
-import { JobsClient } from "@google-cloud/run";
+import { BatchServiceClient, protos } from "@google-cloud/batch";
 
-/** Signed-URL TTL for model-output uploads. Matches the 1h Cloud Run Job timeout with plenty of headroom. */
-const UPLOAD_URL_TTL_MS = 24 * 60 * 60 * 1000;
+/** Signed-URL TTL for model-output uploads. Covers Cloud Batch's multi-day ceiling with plenty of headroom. */
+const UPLOAD_URL_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 type OutputUpload = { type: ModelOutputTypeEnum; url: string; object_path: string };
 
 @Injectable()
 export class TrainingExternalService {
   private readonly logger = new Logger(TrainingExternalService.name);
-  private readonly jobsClient = new JobsClient()
+  private readonly batchClient = new BatchServiceClient();
 
   constructor(
     @Inject(DB_CONNECTION) private readonly db: DbConnection,
@@ -160,13 +160,13 @@ export class TrainingExternalService {
     const outputUploads = await this.generateOutputUploads(model);
     const trainingPayload = await this.getTrainingPayload(model, outputUploads);
 
-    this.logger.log(`Train config: mlJobName=${this.config.mlJobName}, mlHost=${this.config.mlHost}`);
-    if (this.config.mlJobName) {
-      await this.trainViaJob(trainingPayload);
+    this.logger.log(`Train config: mlBatchImage=${this.config.mlBatchImage}, mlHost=${this.config.mlHost}`);
+    if (this.config.mlBatchImage) {
+      await this.trainViaBatch(trainingPayload);
     } else if (this.config.mlHost) {
       await this.trainViaHttp(trainingPayload);
     } else {
-      throw new InternalServerErrorException("No ML training backend configured. Set either ML_HOST or ML_JOB_NAME.");
+      throw new InternalServerErrorException("No ML training backend configured. Set either ML_HOST or ML_BATCH_IMAGE.");
     }
   }
 
@@ -209,8 +209,30 @@ export class TrainingExternalService {
     }
   }
 
-  private async trainViaJob(trainingPayload: TrainingPayload): Promise<void> {
-    const { mlJobName, mlRegion, gcpProject, bucketName } = this.config;
+  private async trainViaBatch(trainingPayload: TrainingPayload): Promise<void> {
+    const {
+      mlRegion,
+      gcpProject,
+      bucketName,
+      apiHost,
+      mlBatchImage,
+      mlBatchServiceAccount,
+      mlBatchMachineType,
+      mlBatchGpuType,
+      mlBatchGpuCount,
+      mlBatchBootDiskGb,
+      mlBatchMaxRunSeconds,
+      mlBatchApiKeySecret,
+      mlBatchHubaiApiKeySecret,
+      mlBatchNetwork,
+      mlBatchSubnetwork,
+    } = this.config;
+
+    if (!mlRegion || !gcpProject || !mlBatchImage) {
+      throw new InternalServerErrorException(
+        "Cloud Batch training requires ML_REGION, GCP_PROJECT, and ML_BATCH_IMAGE to be set.",
+      );
+    }
 
     try {
       const storage = new Storage();
@@ -224,25 +246,90 @@ export class TrainingExternalService {
 
       const [signedUrl] = await file.getSignedUrl({
         action: "read",
-        expires: Date.now() + 2 * 60 * 60 * 1000, // 2 hours
+        expires: Date.now() + UPLOAD_URL_TTL_MS,
       });
 
-      const jobName = `projects/${gcpProject}/locations/${mlRegion}/jobs/${mlJobName}`;
+      const parent = `projects/${gcpProject}/locations/${mlRegion}`;
+      // Batch requires lowercase alphanum + dashes, ≤63 chars.
+      const jobId = `train-${trainingPayload.id}-${Date.now()}`.toLowerCase();
 
-      await this.jobsClient.runJob({
-        name: jobName,
-        overrides: {
-          containerOverrides: [
+      const secretVariables: Record<string, string> = {};
+      if (mlBatchApiKeySecret) {
+        secretVariables.API_KEY = `projects/${gcpProject}/secrets/${mlBatchApiKeySecret}/versions/latest`;
+      }
+      if (mlBatchHubaiApiKeySecret) {
+        secretVariables.HUBAI_API_KEY = `projects/${gcpProject}/secrets/${mlBatchHubaiApiKeySecret}/versions/latest`;
+      }
+
+      const instancePolicy: protos.google.cloud.batch.v1.AllocationPolicy.IInstancePolicy = {
+        machineType: mlBatchMachineType,
+        bootDisk: { sizeGb: String(mlBatchBootDiskGb) },
+      };
+      if (mlBatchGpuType && mlBatchGpuCount > 0) {
+        instancePolicy.accelerators = [
+          { type: mlBatchGpuType, count: String(mlBatchGpuCount) },
+        ];
+      }
+
+      const networkInterfaces = mlBatchNetwork
+        ? [{
+            network: mlBatchNetwork,
+            subnetwork: mlBatchSubnetwork,
+            noExternalIpAddress: false,
+          }]
+        : undefined;
+
+      const job: protos.google.cloud.batch.v1.IJob = {
+        taskGroups: [
+          {
+            taskCount: "1",
+            parallelism: "1",
+            taskSpec: {
+              runnables: [
+                {
+                  container: {
+                    imageUri: mlBatchImage,
+                  },
+                  environment: {
+                    variables: {
+                      CONFIG_URL: signedUrl,
+                      WEBHOOK_URL: `${apiHost}/v1/training-external`,
+                      APP_ENV: this.config.env,
+                    },
+                    ...(Object.keys(secretVariables).length > 0
+                      ? { secretVariables }
+                      : {}),
+                  },
+                },
+              ],
+              maxRunDuration: { seconds: String(mlBatchMaxRunSeconds) },
+            },
+          },
+        ],
+        allocationPolicy: {
+          instances: [
             {
-              env: [{ name: "CONFIG_URL", value: signedUrl }],
+              policy: instancePolicy,
+              installGpuDrivers: Boolean(mlBatchGpuType && mlBatchGpuCount > 0),
             },
           ],
+          ...(mlBatchServiceAccount
+            ? { serviceAccount: { email: mlBatchServiceAccount } }
+            : {}),
+          ...(networkInterfaces ? { network: { networkInterfaces } } : {}),
         },
-      });
+        logsPolicy: { destination: "CLOUD_LOGGING" },
+        labels: {
+          model_id: String(trainingPayload.id),
+          app_env: this.config.env,
+        },
+      };
 
-      this.logger.log(`Cloud Run Job triggered for model ${trainingPayload.id}`);
+      await this.batchClient.createJob({ parent, jobId, job });
+
+      this.logger.log(`Cloud Batch job ${jobId} submitted for model ${trainingPayload.id}`);
     } catch (e) {
-      this.logger.error(`Failed triggering Cloud Run Job for model ${trainingPayload.id}`, e);
+      this.logger.error(`Failed submitting Cloud Batch job for model ${trainingPayload.id}`, e);
       throw e;
     }
   }
