@@ -65,12 +65,31 @@ def get_image_size(model_config: ModelConfig) -> tuple[int, int]:
 
 
 def get_model_params(model_config: ModelConfig) -> tuple[dict, dict]:
+    # Returns (predefined_model_params, model_params) where predefined_model_params
+    # is the full `predefined_model:` block (name auto-filled by caller) and
+    # `params` within it is forwarded as **kwargs to the predefined model __init__.
     if model_config.type == ModelType.CLASSIFICATION:
-        return {"variant": "light"}, {}
+        # average=None propagates through TorchMetricWrapper to torchmetrics
+        # (F1Score / Accuracy / Recall) so they emit per-class tensors, which
+        # luxonis-train splits into `<MetricName>_<classname>` callback_metrics keys.
+        return {
+            "variant": "light",
+            "params": {"metrics_params": {"average": None}},
+        }, {}
     elif model_config.type == ModelType.DETECTION:
-        return {"variant": "light"}, {}
+        # per_class_metrics aliases to `class_metrics=True` on MeanAveragePrecision,
+        # which adds `map_per_class` / `mar_100_per_class` to the metric output.
+        return {
+            "variant": "light",
+            "params": {"per_class_metrics": True},
+        }, {}
     elif model_config.type == ModelType.SEGMENTATION:
-        return {"variant": "light"}, {}
+        # per_class_metrics aliases to `per_class=True` on MIoU (JaccardIndex).
+        # F1Score has no alias — aggregate-only for now.
+        return {
+            "variant": "light",
+            "params": {"per_class_metrics": True},
+        }, {}
 
 
 def generate_model_config(model_config: ModelConfig) -> dict:
@@ -137,6 +156,9 @@ def generate_trainer_config(model_config: ModelConfig) -> dict:
                     "url": f"{webhook_url}/progress/{model_config.id}",
                     "id": model_config.id,
                     "model_type": model_config.type.value,
+                    "label_ids": list(
+                        model_config.training_config.dataset_config.label_ids
+                    ),
                 },
             }
         )

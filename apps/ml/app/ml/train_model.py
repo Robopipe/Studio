@@ -85,7 +85,7 @@ def run_training(config: ModelConfig):
             print(luxonis_config)
             with open(config_path, "w") as f:
                 f.write(luxonis_config)
-            model = Model(config_path, debug_mode=True)
+            model = Model(config_path)
             model.train()
             output_dir = next(filter(lambda x: x.startswith("0-"), os.listdir(dir)))
 
