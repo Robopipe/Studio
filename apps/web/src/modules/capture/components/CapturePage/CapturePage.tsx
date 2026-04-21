@@ -58,13 +58,14 @@ export const CapturePage = ({}: CapturePageProps) => {
     if (active) setSelectedStream(active.name);
   }, [streams, selectedCamera, selectedStream]);
 
-  const { data: dashboardUrl } = useGetDashboardQuery(
-    { mxid: selectedCamera!, streamName: selectedStream! },
-    { skip: !selectedCamera || !selectedStream },
-  );
+  const { data: dashboardUrl, isLoading: isDashboardLoading } =
+    useGetDashboardQuery(
+      { mxid: selectedCamera!, streamName: selectedStream! },
+      { skip: !selectedCamera || !selectedStream },
+    );
   const isModelRunning = !!dashboardUrl;
   const isCheckingModelStatus =
-    !selectedCamera || !selectedStream || dashboardUrl === undefined;
+    !selectedCamera || !selectedStream || isDashboardLoading;
 
   const handleSelectCamera = useCallback((camera: string | null) => {
     setSelectedCamera(camera);
