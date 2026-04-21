@@ -78,21 +78,21 @@ variable "ml_region" {
 }
 
 variable "ml_gpu_type" {
-  description = "GPU accelerator type for Cloud Batch training VMs (e.g. nvidia-l4, nvidia-tesla-a100). Must be compatible with the machine_type in the selected region."
+  description = "Custom GPU accelerator type (N1-style attachment). Leave empty when using accelerator-optimized VMs (A2/A3/G2), which come with a bundled GPU that Batch attaches from the machine type."
   type        = string
-  default     = "nvidia-l4"
+  default     = ""
 }
 
 variable "ml_gpu_count" {
-  description = "Number of GPUs attached to each Cloud Batch training VM"
+  description = "Custom GPU count (N1-style attachment). Leave at 0 when using A2/A3/G2 machine types."
   type        = number
-  default     = 1
+  default     = 0
 }
 
 variable "ml_batch_machine_type" {
-  description = "Compute Engine machine type for Cloud Batch training VMs (must match ml_gpu_type — e.g. g2-standard-8 pairs with nvidia-l4)"
+  description = "Compute Engine machine type for Cloud Batch training VMs. Default a2-ultragpu-1g = 12 vCPU, 170 GB RAM, 1× NVIDIA A100 80 GB (GPU bundled, no explicit accelerator needed)."
   type        = string
-  default     = "g2-standard-8"
+  default     = "a2-ultragpu-1g"
 }
 
 variable "ml_batch_boot_disk_gb" {

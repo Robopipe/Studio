@@ -69,21 +69,21 @@ variable "ml_batch_service_account" {
 }
 
 variable "ml_batch_machine_type" {
-  description = "Compute Engine machine type for Cloud Batch training VMs"
+  description = "Compute Engine machine type for Cloud Batch training VMs. Default a2-ultragpu-1g bundles 1× A100 80 GB."
   type        = string
-  default     = "g2-standard-8"
+  default     = "a2-ultragpu-1g"
 }
 
 variable "ml_batch_gpu_type" {
-  description = "GPU accelerator type (e.g. nvidia-l4)"
+  description = "Custom GPU accelerator type (N1-style attachment only). Leave empty for A2/A3/G2 bundled GPUs."
   type        = string
-  default     = "nvidia-l4"
+  default     = ""
 }
 
 variable "ml_batch_gpu_count" {
-  description = "Number of GPUs per Cloud Batch training VM"
+  description = "Custom GPU count (N1-style attachment only). Leave at 0 for A2/A3/G2 bundled GPUs."
   type        = number
-  default     = 1
+  default     = 0
 }
 
 variable "ml_batch_boot_disk_gb" {

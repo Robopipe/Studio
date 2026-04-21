@@ -22,9 +22,12 @@ export const appConfigSchema = z.object({
   // set instead, training is POSTed to the FastAPI service for local dev.
   mlBatchImage: z.string().optional(),
   mlBatchServiceAccount: z.string().optional(),
-  mlBatchMachineType: z.string().default("g2-standard-8"),
-  mlBatchGpuType: z.string().default("nvidia-l4"),
-  mlBatchGpuCount: z.number().int().default(1),
+  mlBatchMachineType: z.string().default("a2-ultragpu-1g"),
+  // Empty mlBatchGpuType = use the GPU bundled with the machine type (A2/A3/G2).
+  // Set to something like "nvidia-tesla-t4" together with a non-zero count only
+  // for N1-style custom GPU attachment.
+  mlBatchGpuType: z.string().default(""),
+  mlBatchGpuCount: z.number().int().default(0),
   mlBatchBootDiskGb: z.number().int().default(100),
   mlBatchMaxRunSeconds: z.number().int().default(86400),
   mlBatchApiKeySecret: z.string().optional(),
