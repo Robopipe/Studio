@@ -1,5 +1,5 @@
 import {
-  useGetNNQuery,
+  useGetDashboardQuery,
   useListCamerasQuery,
   useListStreamsQuery,
 } from "@/core/cameraApi";
@@ -58,13 +58,13 @@ export const CapturePage = ({}: CapturePageProps) => {
     if (active) setSelectedStream(active.name);
   }, [streams, selectedCamera, selectedStream]);
 
-  const { data: nnInfo } = useGetNNQuery(
+  const { data: dashboardUrl } = useGetDashboardQuery(
     { mxid: selectedCamera!, streamName: selectedStream! },
     { skip: !selectedCamera || !selectedStream },
   );
-  const isModelRunning = !!nnInfo?.model_id;
+  const isModelRunning = !!dashboardUrl;
   const isCheckingModelStatus =
-    !selectedCamera || !selectedStream || nnInfo === undefined;
+    !selectedCamera || !selectedStream || dashboardUrl === undefined;
 
   const handleSelectCamera = useCallback((camera: string | null) => {
     setSelectedCamera(camera);
