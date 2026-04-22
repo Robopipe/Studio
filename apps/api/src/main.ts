@@ -22,6 +22,9 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, documentConfig);
   SwaggerModule.setup("doc", app, document);
 
+  app.useBodyParser("json", { limit: "10mb" });
+  app.useBodyParser("urlencoded", { limit: "10mb", extended: true });
+
   app.use(cookieParser(config.cookieSecret));
   app.enableCors({
     origin: [config.webHost, config.apiHost, 'http://localhost:5173'],
