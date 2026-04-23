@@ -129,6 +129,9 @@ def generate_trainer_config(model_config: ModelConfig) -> dict:
         "batch_size": model_config.training_config.batch_size,
         "epochs": model_config.training_config.epochs,
         "n_workers": 8,
+        # luxonis-train 0.4.4 only exposes "16-mixed" | "32" (no bf16). Override via custom_hyperparams if a model hits FP16 instability.
+        "precision": "16-mixed",
+        "matmul_precision": "high",
         "callbacks": [
             {"name": "ExportOnTrainEnd"},
             {"name": "ArchiveOnTrainEnd"},
