@@ -12,6 +12,7 @@ export enum ModelStatusEnum {
   CONVERTING = "CONVERTING",
   DONE = "DONE",
   ERROR = "ERROR",
+  CANCELLED = "CANCELLED",
 }
 export enum ModelOutputTypeEnum {
   RAW = "RAW",

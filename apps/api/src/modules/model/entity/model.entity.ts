@@ -21,6 +21,7 @@ export class ModelEntity {
   readonly splitValidate: number;
   readonly splitTest: number;
   readonly customHyperparams: Record<string, unknown>;
+  readonly batchJobName: string | null;
   readonly errorMessage: string | null;
   readonly finalAccuracy: number | null;
   readonly finalLoss: number | null;
@@ -52,6 +53,7 @@ export class ModelEntity {
     this.createdAt = data.createdAt;
     this.updatedAt = data.updatedAt;
     this.deletedAt = data.deletedAt;
+    this.batchJobName = data.batchJobName;
     this.errorMessage = data.errorMessage;
     this.finalAccuracy = data.finalAccuracy;
     this.finalLoss = data.finalLoss;

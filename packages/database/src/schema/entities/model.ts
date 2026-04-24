@@ -11,6 +11,7 @@ export const modelStatusEnum = p.pgEnum("model_status_enum", [
   ModelStatusEnum.CONVERTING,
   ModelStatusEnum.DONE,
   ModelStatusEnum.ERROR,
+  ModelStatusEnum.CANCELLED,
 ]);
 
 export const modelTrainingTypeEnum = p.pgEnum("model_training_type_enum", [
@@ -31,6 +32,7 @@ export const modelTable = p.pgTable("model", {
   splitTest: p.integer("split_test").notNull(),
   customHyperparams: p.jsonb("custom_hyperparams").notNull().default({}),
   status: modelStatusEnum("status").notNull(),
+  batchJobName: p.text("batch_job_name"),
   errorMessage: p.text("error_message"),
   finalAccuracy: p.real("final_accuracy"),
   finalLoss: p.real("final_loss"),

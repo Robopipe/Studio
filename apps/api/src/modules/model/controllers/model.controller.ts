@@ -59,6 +59,16 @@ export class ModelController {
   }
 
 
+  @Post(":modelId/cancel")
+  public async cancelModelTraining(
+    @ProjectId() projectId: number,
+    @Param("modelId", ParseIntPipe) modelId: number,
+  ): Promise<ModelResponse>{
+    const updatedModel = await this.modelService.cancelTraining(modelId, projectId)
+    return updatedModel.toResponse()
+  }
+
+
   @Put(":modelId")
   public async updateModel(
     @ProjectId() projectId: number,

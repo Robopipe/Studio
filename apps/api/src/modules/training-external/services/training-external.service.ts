@@ -58,6 +58,13 @@ export class TrainingExternalService {
       throw new NotFoundException("Model not found")
     }
 
+    // User cancelled — Cloud Batch shutdown is async, so late webhooks can
+    // still arrive while the container is being torn down. Drop them.
+    if (model.status === ModelStatusEnum.CANCELLED) {
+      this.logger.log(`Model ${modelId}: ignoring progress webhook after cancel`);
+      return;
+    }
+
     const { progress } = data;
 
     switch (progress.type) {
@@ -101,6 +108,11 @@ export class TrainingExternalService {
     const model = await this.modelRepository.getById(modelId);
     if (!model) {
       throw new NotFoundException("Model not found");
+    }
+
+    if (model.status === ModelStatusEnum.CANCELLED) {
+      this.logger.log(`Model ${modelId}: ignoring completion webhook after cancel`);
+      return;
     }
 
     const expectedTypes = new Set(model.outputTypes);
@@ -152,6 +164,23 @@ export class TrainingExternalService {
       finalAccuracy: data.finalAccuracy,
       finalLoss: data.finalLoss,
     });
+  }
+
+  /**
+   * Cancel a running training job by deleting its Cloud Batch job.
+   * Cloud Batch has no "cancel" verb — `deleteJob` is the termination path
+   * and takes effect asynchronously (the container is SIGKILLed after a
+   * grace period). Callers should set the model status immediately so late
+   * webhooks get ignored (see updateTrainingProgress / completeTraining).
+   */
+  public async cancelBatchJob(batchJobName: string): Promise<void> {
+    try {
+      await this.batchClient.deleteJob({ name: batchJobName });
+      this.logger.log(`Cloud Batch job ${batchJobName} deletion requested`);
+    } catch (e) {
+      this.logger.error(`Failed deleting Cloud Batch job ${batchJobName}`, e);
+      throw e;
+    }
   }
 
   /**
@@ -355,7 +384,13 @@ export class TrainingExternalService {
         },
       };
 
-      await this.batchClient.createJob({ parent, jobId, job });
+      const [createdJob] = await this.batchClient.createJob({ parent, jobId, job });
+
+      if (createdJob?.name) {
+        await this.modelRepository.update(trainingPayload.id, {
+          batchJobName: createdJob.name,
+        });
+      }
 
       this.logger.log(`Cloud Batch job ${jobId} submitted for model ${trainingPayload.id}`);
     } catch (e) {
