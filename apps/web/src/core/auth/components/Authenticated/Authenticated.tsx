@@ -1,4 +1,5 @@
 import { appConfig } from "@/config";
+import { CameraStreamProvider } from "@/modules/camera-stream";
 import { MainLayout } from "@/modules/layout";
 import { Spinner } from "@/modules/shadcn/ui/spinner";
 import { Navigate, Outlet } from "react-router";
@@ -23,8 +24,10 @@ export const Authenticated = ({}: AuthenticatedProps) => {
   }
 
   return (
-    <MainLayout>
-      <Outlet />
-    </MainLayout>
+    <CameraStreamProvider>
+      <MainLayout>
+        <Outlet />
+      </MainLayout>
+    </CameraStreamProvider>
   );
 };
