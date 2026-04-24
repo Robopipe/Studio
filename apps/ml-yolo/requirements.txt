@@ -19,8 +19,12 @@ onnxslim==0.1.91
 onnxruntime==1.25.0
 onnxscript==0.7.0
 
-# HubAI SDK for RVC2/3/4 conversion
-hubai-sdk==0.2.4
+# HubAI SDK for RVC2/3/4 conversion.
+# Keep pinned at 0.2.1 — newer releases bundle a `from luxonis_ml.typing
+# import Kwargs` that pip often resolves to an older luxonis-ml without
+# Kwargs, breaking import at startup. Revisit when hubai-sdk pins its
+# luxonis-ml dep properly.
+hubai-sdk==0.2.1
 
 # HTTP client for webhooks
 requests==2.33.1

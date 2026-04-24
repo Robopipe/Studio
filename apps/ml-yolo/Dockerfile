@@ -24,6 +24,9 @@ COPY app/ ./app/
 RUN mkdir -p /app/export /app/dataset
 
 ENV PYTHONUNBUFFERED=1
+# Cloud Batch containers don't always have a writable $HOME; pin Ultralytics'
+# settings dir to /tmp to avoid the "not writable" warning on every run.
+ENV YOLO_CONFIG_DIR=/tmp/Ultralytics
 
 # Default to Cloud Batch job mode. Docker-compose overrides CMD to run the
 # FastAPI server for local HTTP testing.
