@@ -72,9 +72,9 @@ variable "cloud_run_max_instances" {
 }
 
 variable "ml_region" {
-  description = "Region for ML service (must support GPUs: us-central1, europe-west4, asia-southeast1)"
+  description = "Region for Cloud Batch training jobs (must support the chosen GPU; us-central1 has the widest H100/A100 availability). Independent of var.region — AR, Cloud SQL, Cloud Run, and GCS stay in var.region, only Batch VMs run here."
   type        = string
-  default     = "europe-west4"
+  default     = "us-central1"
 }
 
 variable "ml_gpu_type" {

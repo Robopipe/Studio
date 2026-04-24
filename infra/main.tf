@@ -32,7 +32,11 @@ locals {
   # each Cloud Batch job submission pulls whatever was last built — no Cloud
   # Run API redeploy needed when the ML image changes. Override by setting
   # var.ml_image to pin a specific SHA.
-  ml_default_image = "${var.ml_region}-docker.pkg.dev/${var.project_id}/${module.artifact_registry.repository_id}/ml:latest"
+  #
+  # URL prefix uses var.region (where the AR repo actually lives), NOT
+  # var.ml_region (where Batch runs). When they differ, Batch pulls
+  # cross-region — slower first pull per new VM, negligible thereafter.
+  ml_default_image   = "${var.region}-docker.pkg.dev/${var.project_id}/${module.artifact_registry.repository_id}/ml:latest"
   ml_image_effective = var.ml_image != "" ? var.ml_image : local.ml_default_image
 }
 
@@ -274,8 +278,11 @@ resource "google_cloudbuild_trigger" "ml" {
 
   filename = "cloudbuild-ml.yaml"
 
+  # _REGION here refers to the AR location (where we push), not where Batch
+  # runs the image. Keep it aligned with var.region so pushes land in the
+  # actual AR repo.
   substitutions = {
-    _REGION     = var.ml_region
+    _REGION     = var.region
     _PROJECT_ID = var.project_id
     _REPO_NAME  = module.artifact_registry.repository_id
   }
