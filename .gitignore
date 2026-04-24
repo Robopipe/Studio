@@ -12,6 +12,9 @@ node_modules
 .env.test.local
 .env.production.local
 
+# Local ml-yolo training image cache (populated by scripts/cache-training-images.py)
+.training-cache/
+
 # Testing
 .nyc_output
 blob-report/

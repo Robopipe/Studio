@@ -10,8 +10,11 @@ pydantic==2.10.5
 pydantic-settings==2.7.1
 python-multipart==0.0.17
 
-# ML training (no luxonis-train — this is the Ultralytics-only service)
-ultralytics==8.3.104
+# ML training (no luxonis-train — this is the Ultralytics-only service).
+# 8.3.160 decouples the confusion matrix update from args.plots (so the CM
+# is populated even without plot files) and fixes the epoch-47 validation
+# plot broadcast crash. Still numpy-1.x compatible.
+ultralytics==8.3.160
 torch==2.9.0
 torchvision==0.24.0
 
