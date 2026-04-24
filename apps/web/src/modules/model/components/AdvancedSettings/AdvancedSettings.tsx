@@ -1,12 +1,19 @@
 import { cn } from "@/lib/utils";
-import { ModelOutputTypeEnum } from "@repo/schema";
+import { ModelBackendEnum, ModelOutputTypeEnum } from "@repo/schema";
 import { useState } from "react";
 import { SettingsCard } from "../SettingsCard";
 import { HyperparamsModal } from "./HyperparamsModal";
 
+const BACKEND_LABELS: Record<ModelBackendEnum, string> = {
+  [ModelBackendEnum.LUXONIS]: "Luxonis Train",
+  [ModelBackendEnum.ULTRALYTICS]: "Ultralytics YOLO",
+};
+
 export interface AdvancedSettingsProps {
   outputs: ModelOutputTypeEnum[];
   onOutputsChange: (outputs: ModelOutputTypeEnum[]) => void;
+  backend: ModelBackendEnum;
+  onBackendChange: (backend: ModelBackendEnum) => void;
   customHyperparams: string;
   onCustomHyperparamsChange: (value: string) => void;
   hyperparamsError: string | null;
@@ -16,6 +23,8 @@ export interface AdvancedSettingsProps {
 export const AdvancedSettings = ({
   outputs,
   onOutputsChange,
+  backend,
+  onBackendChange,
   customHyperparams,
   onCustomHyperparamsChange,
   hyperparamsError,
@@ -39,6 +48,36 @@ export const AdvancedSettings = ({
         title="Advanced Options"
       >
         <div className="flex flex-1 flex-col gap-4">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-sm font-medium leading-5 text-black/90">
+              Training Backend
+            </span>
+            <p className="text-sm leading-5 text-black/60">
+              Luxonis Train is the default YOLOv6-style framework. Ultralytics
+              YOLO uses YOLOv11 with a richer augmentation pipeline and stronger
+              small-data fine-tuning — custom hyperparameters are backend-specific.
+            </p>
+            <div className="flex flex-row gap-2 py-2">
+              {Object.values(ModelBackendEnum).map((value) => {
+                const selected = backend === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => onBackendChange(value)}
+                    className={cn(
+                      "cursor-pointer rounded-full border px-3 py-0.5 text-sm leading-5 transition-colors",
+                      selected
+                        ? "border-emerald-900 bg-emerald-50 text-emerald-700"
+                        : "border-transparent bg-white text-black/90 hover:bg-black/5",
+                    )}
+                  >
+                    {BACKEND_LABELS[value]}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           <div className="flex flex-col gap-0.5">
             <span className="text-sm font-medium leading-5 text-black/90">
               Output Formats

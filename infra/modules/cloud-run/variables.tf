@@ -57,7 +57,13 @@ variable "ml_region" {
 }
 
 variable "ml_batch_image" {
-  description = "Docker image used for Cloud Batch training jobs. If empty the API falls back to ML_HOST (FastAPI dev mode)."
+  description = "Docker image used for Cloud Batch training jobs (LUXONIS backend). If empty the API falls back to ML_HOST (FastAPI dev mode)."
+  type        = string
+  default     = ""
+}
+
+variable "ml_batch_image_yolo" {
+  description = "Docker image used for Cloud Batch training jobs (ULTRALYTICS backend). Selected per-model via the `backend` field."
   type        = string
   default     = ""
 }

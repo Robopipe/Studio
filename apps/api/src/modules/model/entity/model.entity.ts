@@ -1,5 +1,6 @@
 import {
   ModelAugmentationTypeEnum,
+  ModelBackendEnum,
   ModelOutputTypeEnum,
   ModelStatusEnum,
   ProjectTypeEnum,
@@ -15,6 +16,7 @@ export class ModelEntity {
   readonly epochs: number;
   readonly status: ModelStatusEnum;
   readonly outputTypes: ModelOutputTypeEnum[];
+  readonly backend: ModelBackendEnum;
   readonly trainingType: ProjectTypeEnum;
   readonly annotationsUsed: ProjectTypeEnum[];
   readonly splitTrain: number;
@@ -41,6 +43,7 @@ export class ModelEntity {
     this.projectId = data.projectId;
     this.status = data.status;
     this.outputTypes = data.outputTypes;
+    this.backend = data.backend;
     this.trainingType = data.trainingType;
     this.annotationsUsed = data.annotationsUsed;
     this.splitTrain = data.splitTrain;
@@ -74,6 +77,7 @@ export class ModelEntity {
       datasetVersionId: this.datasetVersionId,
       status: this.status,
       outputTypes: this.outputTypes,
+      backend: this.backend,
       trainingType: this.trainingType,
       annotationsUsed: this.annotationsUsed,
       splitTrain: this.splitTrain,

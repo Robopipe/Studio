@@ -20,6 +20,10 @@ export enum ModelOutputTypeEnum {
   RVC3 = "RVC3",
   RVC2 = "RVC2",
 }
+export enum ModelBackendEnum {
+  LUXONIS = "LUXONIS",
+  ULTRALYTICS = "ULTRALYTICS",
+}
 export enum ModelAugmentationTypeEnum {
   FLIP = "FLIP",
   ROTATE90 = "ROTATE90",
@@ -71,6 +75,7 @@ export const modelSchema = z.object({
   taskIds: z.number().array(),
   datasetVersionId: z.number().nullable(),
   outputTypes: z.enum(ModelOutputTypeEnum).array(),
+  backend: z.enum(ModelBackendEnum),
   trainingType: z.enum(ProjectTypeEnum),
   annotationsUsed: z.enum(ProjectTypeEnum).array(),
   // Train, validate and test should add to 1
@@ -132,6 +137,7 @@ export const createModelSchema = modelSchema
     name: true,
     epochs: true,
     outputTypes: true,
+    backend: true,
     trainingType: true,
     annotationsUsed: true,
     splitTrain: true,
@@ -139,6 +145,8 @@ export const createModelSchema = modelSchema
     splitTest: true,
   })
   .extend({
+    // Default to LUXONIS so existing clients that haven't been updated still work.
+    backend: z.enum(ModelBackendEnum).default(ModelBackendEnum.LUXONIS),
     labelIds: z.number().array(),
     taskIds: z.number().array().default([]),
     /**

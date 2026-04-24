@@ -1,0 +1,36 @@
+# Core web framework
+fastapi==0.136.1
+uvicorn==0.46.0
+pydantic==2.13.3
+pydantic-settings==2.14.0
+python-multipart==0.0.26
+
+# ML training (no luxonis-train — this is the Ultralytics-only service)
+ultralytics==8.4.41
+torch==2.11.0
+torchvision==0.26.0
+
+# Model conversion and export
+onnx==1.21.0
+# Ultralytics ONNX export pulls these at runtime via AutoUpdate, but that
+# only installs onnxslim + onnxruntime — onnxscript is missing and breaks
+# the torch.onnx.export() dynamo path. Pin all three up-front.
+onnxslim==0.1.91
+onnxruntime==1.25.0
+onnxscript==0.7.0
+
+# HubAI SDK for RVC2/3/4 conversion
+hubai-sdk==0.2.4
+
+# HTTP client for webhooks
+requests==2.33.1
+httpx==0.28.1
+
+# Config and utilities
+python-dotenv==1.2.2
+PyYAML==6.0.3
+
+# Image processing
+opencv-python==4.13.0.92
+pillow==12.2.0
+numpy==2.4.4

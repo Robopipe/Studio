@@ -131,6 +131,12 @@ variable "ml_image" {
   default     = ""
 }
 
+variable "ml_yolo_image" {
+  description = "Docker image for the Ultralytics-backed ML training container (apps/ml-yolo). Dispatched to when a model is created with backend=ULTRALYTICS. Leave empty to default to the :latest tag in AR."
+  type        = string
+  default     = ""
+}
+
 variable "sendgrid_from_email" {
   description = "SendGrid sender email address"
   type        = string
