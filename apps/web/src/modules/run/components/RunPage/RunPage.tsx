@@ -1,6 +1,7 @@
 import { useListCamerasQuery } from "@/core/cameraApi";
 import type { SahiConfig } from "@/core/cameraApi/schemas/nn";
 import { useCameraApiUrl } from "@/hooks";
+import { useSelectedCameraStream } from "@/modules/camera-selection";
 import { DashboardPage } from "@/modules/dashboard";
 import {
   useGetDashboardConfigQuery,
@@ -61,14 +62,16 @@ export const RunPage = () => {
     isFetching: camerasFetching,
   } = useListCamerasQuery();
 
-  // Read camera/stream from persisted dashboard config
+  // Unified selection across Capture and Run — see useSelectedCameraStream.
+  // Changing camera here immediately reflects on Capture and vice versa.
+  const { cameraMxid: selectedCamera, streamName: selectedStream } =
+    useSelectedCameraStream(cameras);
+
   const { data: dashboardConfig } = useGetDashboardConfigQuery(
     { projectId: projectId!, configId: activeConfigId! },
     { skip: !projectId || !activeConfigId },
   );
 
-  const selectedCamera = dashboardConfig?.cameraMxid ?? null;
-  const selectedStream = dashboardConfig?.streamName ?? null;
   const selectedCameraInfo = cameras?.find((c) => c.mxid === selectedCamera);
 
   const {
