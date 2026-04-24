@@ -236,6 +236,36 @@ export class ModelService{
 
 
   /**
+   * Cancel a running training job.
+   * Flips the model to CANCELLED first so any late webhooks from the
+   * (still-shutting-down) Batch job are ignored, then asks Cloud Batch to
+   * delete the job. Per-epoch logs already persisted are left intact.
+   */
+  public async cancelTraining(id: number, projectId: number): Promise<ModelEntity> {
+    const model = await this.getModelById(id, projectId)
+
+    if (
+      model.status !== ModelStatusEnum.TRAINING &&
+      model.status !== ModelStatusEnum.CONVERTING
+    ) {
+      throw new BadRequestException("Model is not currently training")
+    }
+
+    if (!model.batchJobName) {
+      throw new BadRequestException("Model has no associated batch job to cancel")
+    }
+
+    await this.modelRepository.update(id, { status: ModelStatusEnum.CANCELLED })
+    // Best-effort: status is already CANCELLED locally, so late webhooks
+    // from a still-running container will be dropped. A NOT_FOUND here
+    // (job already finished) is effectively the outcome we wanted.
+    await this.trainingExternalService.cancelBatchJob(model.batchJobName).catch(() => undefined)
+
+    return this.getModelById(id, projectId)
+  }
+
+
+  /**
    * Check model access
    * @param id
    * @param projectId
