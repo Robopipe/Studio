@@ -65,7 +65,28 @@ services:
     depends_on:
       - api
 
+  ml-yolo:
+    build:
+      context: ./apps/ml-yolo
+      dockerfile: Dockerfile
+    command: ["python", "-m", "app"]
+    ports:
+      - "8001:8001"
+    environment:
+      HOST: 0.0.0.0
+      PORT: 8001
+      WEBHOOK_URL: http://api:3000/models/
+    env_file:
+      - ./apps/ml-yolo/.env
+    volumes:
+      - ml-yolo-export:/app/export
+      - ml-yolo-dataset:/app/dataset
+    depends_on:
+      - api
+
 volumes:
   pgdata:
   ml-export:
   ml-dataset:
+  ml-yolo-export:
+  ml-yolo-dataset:

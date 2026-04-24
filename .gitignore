@@ -19,7 +19,8 @@ coverage
 test-results/
 playwright/.cache/
 playwright-report/
-
+training-configs/
+.claude/
 
 # Turbo
 .turbo

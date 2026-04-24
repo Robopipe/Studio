@@ -101,6 +101,7 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
         annotationsUsed: model.annotationsUsed,
         labels: model.labels,
         outputs: model.outputTypes,
+        backend: model.backend,
         datasetSplit: {
           train: model.splitTrain,
           validation: model.splitValidate,

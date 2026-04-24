@@ -7,6 +7,7 @@ import {
   // hyperparamsConfigSchema import kept for reference — validation intentionally bypassed
   // hyperparamsConfigSchema,
   Label as ProjectLabel,
+  ModelBackendEnum,
   ModelOutputTypeEnum,
   ProjectTypeEnum,
 } from "@repo/schema";
@@ -32,6 +33,7 @@ export interface DuplicateModelState {
     annotationsUsed: ProjectTypeEnum[];
     labels: ProjectLabel[];
     outputs: ModelOutputTypeEnum[];
+    backend: ModelBackendEnum;
     datasetSplit: DatasetSplit;
     augmentations: AppliedAugmentation[];
     preprocessings: AppliedAugmentation[];
@@ -61,6 +63,9 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
   const [epochs, setEpochs] = useState(duplicateState?.epochs ?? 100);
   const [outputs, setOutputs] = useState<ModelOutputTypeEnum[]>(
     duplicateState?.outputs ?? [ModelOutputTypeEnum.RAW, ModelOutputTypeEnum.RVC4],
+  );
+  const [backend, setBackend] = useState<ModelBackendEnum>(
+    duplicateState?.backend ?? ModelBackendEnum.LUXONIS,
   );
   const [activeLabels, setActiveLabels] = useState<ProjectLabel[]>(
     duplicateState?.labels ?? [],
@@ -198,6 +203,7 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
       splitTrain: datasetSplit.train,
       splitValidate: datasetSplit.validation,
       outputTypes: outputs,
+      backend,
       trainingType,
       annotationsUsed,
       augmentations: normalAugs.map((a) => ({
@@ -283,6 +289,8 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
         <AdvancedSettings
           outputs={outputs}
           onOutputsChange={setOutputs}
+          backend={backend}
+          onBackendChange={setBackend}
           customHyperparams={customHyperparams}
           onCustomHyperparamsChange={setCustomHyperparams}
           hyperparamsError={hyperparamsError}

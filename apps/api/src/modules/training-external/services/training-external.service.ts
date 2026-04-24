@@ -15,6 +15,7 @@ import {
   ModelOutputTypeEnum,
   TaskFileTypeEnum,
   ModelStatusEnum,
+  ModelBackendEnum,
 } from "@repo/schema";
 import { HttpService } from "@nestjs/axios";
 import { ModelLogRepository } from "../../../repository/services/model-log-repository.service";
@@ -186,18 +187,31 @@ export class TrainingExternalService {
   /**
    * Train
    * @param model - Model entity
+   *
+   * Dispatches to the ML service matching `model.backend`. Each backend has
+   * its own Cloud Batch image (Cloud) and FastAPI host (local dev) because
+   * luxonis-train and ultralytics can't share a Python environment cleanly.
    */
   public async train(model: ModelEntity): Promise<void> {
     const outputUploads = await this.generateOutputUploads(model);
     const trainingPayload = await this.getTrainingPayload(model, outputUploads);
 
-    this.logger.log(`Train config: mlBatchImage=${this.config.mlBatchImage}, mlHost=${this.config.mlHost}`);
-    if (this.config.mlBatchImage) {
-      await this.trainViaBatch(trainingPayload);
-    } else if (this.config.mlHost) {
-      await this.trainViaHttp(trainingPayload);
+    const isYolo = model.backend === ModelBackendEnum.ULTRALYTICS;
+    const batchImage = isYolo ? this.config.mlBatchImageYolo : this.config.mlBatchImage;
+    const httpHost = isYolo ? this.config.mlHostYolo : this.config.mlHost;
+
+    this.logger.log(
+      `Train dispatch: backend=${model.backend} batchImage=${batchImage ?? "-"} httpHost=${httpHost ?? "-"}`,
+    );
+
+    if (batchImage) {
+      await this.trainViaBatch(trainingPayload, batchImage);
+    } else if (httpHost) {
+      await this.trainViaHttp(trainingPayload, httpHost);
     } else {
-      throw new InternalServerErrorException("No ML training backend configured. Set either ML_HOST or ML_BATCH_IMAGE.");
+      throw new InternalServerErrorException(
+        `No ML training backend configured for ${model.backend}. Set either ML_HOST${isYolo ? "_YOLO" : ""} or ML_BATCH_IMAGE${isYolo ? "_YOLO" : ""}.`,
+      );
     }
   }
 
@@ -228,9 +242,12 @@ export class TrainingExternalService {
     });
   }
 
-  private async trainViaHttp(trainingPayload: TrainingPayload): Promise<void> {
+  private async trainViaHttp(trainingPayload: TrainingPayload, httpHost: string): Promise<void> {
     try {
-      await this.http.axiosRef.post("/train/", trainingPayload);
+      // Use an absolute URL so axios ignores the module-level baseURL (which
+      // points at the luxonis host). Still inherits the Authorization header
+      // from HttpModule.registerAsync — both ML services share ML_SECRET.
+      await this.http.axiosRef.post(`${httpHost.replace(/\/$/, "")}/train/`, trainingPayload);
     } catch (e) {
       this.logger.error(
         `Failed starting training on machine learning service`,
@@ -240,13 +257,12 @@ export class TrainingExternalService {
     }
   }
 
-  private async trainViaBatch(trainingPayload: TrainingPayload): Promise<void> {
+  private async trainViaBatch(trainingPayload: TrainingPayload, mlBatchImage: string): Promise<void> {
     const {
       mlRegion,
       gcpProject,
       bucketName,
       apiHost,
-      mlBatchImage,
       mlBatchServiceAccount,
       mlBatchMachineType,
       mlBatchGpuType,
