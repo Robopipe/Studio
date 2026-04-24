@@ -45,12 +45,16 @@ export const CapturePage = ({}: CapturePageProps) => {
   const [isSwitchingStream, setIsSwitchingStream] = useState(false);
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
 
-  const { data: dashboardUrl, isLoading: isDashboardLoading } =
+  // isSuccess (not !!data) — RTK Query preserves the last successful body
+  // across an error refetch, so checking `data` would keep the banner up
+  // after Stop while the server now returns 404. isSuccess correctly
+  // flips to false on a rejected refetch, matching useRunDeploy.
+  const { isSuccess: isDashboardRunning, isLoading: isDashboardLoading } =
     useGetDashboardQuery(
       { mxid: selectedCamera!, streamName: selectedStream! },
       { skip: !selectedCamera || !selectedStream },
     );
-  const isModelRunning = !!dashboardUrl;
+  const isModelRunning = isDashboardRunning;
   const isCheckingModelStatus =
     !selectedCamera || !selectedStream || isDashboardLoading;
 
