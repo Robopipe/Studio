@@ -23,7 +23,11 @@ torchvision==0.24.0
 # up front so the torch.onnx.export() dynamo path works.
 onnx==1.20.1
 onnxsim==0.4.36
-onnxslim==0.1.70
+# 0.1.80+ replaced the broken `onnx.helper.float32_to_bfloat16` reference (a
+# symbol that never existed in onnx) with a local ml_dtypes-backed converter.
+# Without this bump, hubai-sdk RVC4 conversion crashes after every training run
+# at import time when onnxslim's module-level _NUMPY_ARRAY_CONVERTERS evaluates.
+onnxslim==0.1.91
 onnxruntime==1.23.0
 onnxscript==0.7.0
 
