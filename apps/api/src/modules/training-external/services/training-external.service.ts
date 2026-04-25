@@ -16,6 +16,7 @@ import {
   TaskFileTypeEnum,
   ModelStatusEnum,
   ModelBackendEnum,
+  ModelRegionEnum,
 } from "@repo/schema";
 import { HttpService } from "@nestjs/axios";
 import { ModelLogRepository } from "../../../repository/services/model-log-repository.service";
@@ -205,7 +206,7 @@ export class TrainingExternalService {
     );
 
     if (batchImage) {
-      await this.trainViaBatch(trainingPayload, batchImage);
+      await this.trainViaBatch(trainingPayload, batchImage, model.region);
     } else if (httpHost) {
       await this.trainViaHttp(trainingPayload, httpHost);
     } else {
@@ -257,9 +258,12 @@ export class TrainingExternalService {
     }
   }
 
-  private async trainViaBatch(trainingPayload: TrainingPayload, mlBatchImage: string): Promise<void> {
+  private async trainViaBatch(
+    trainingPayload: TrainingPayload,
+    mlBatchImage: string,
+    region: ModelRegionEnum,
+  ): Promise<void> {
     const {
-      mlRegion,
       gcpProject,
       bucketName,
       apiHost,
@@ -278,9 +282,9 @@ export class TrainingExternalService {
       mlBatchSubnetwork,
     } = this.config;
 
-    if (!mlRegion || !gcpProject || !mlBatchImage) {
+    if (!gcpProject || !mlBatchImage) {
       throw new InternalServerErrorException(
-        "Cloud Batch training requires ML_REGION, GCP_PROJECT, and ML_BATCH_IMAGE to be set.",
+        "Cloud Batch training requires GCP_PROJECT and ML_BATCH_IMAGE to be set.",
       );
     }
 
@@ -299,7 +303,7 @@ export class TrainingExternalService {
         expires: Date.now() + UPLOAD_URL_TTL_MS,
       });
 
-      const parent = `projects/${gcpProject}/locations/${mlRegion}`;
+      const parent = `projects/${gcpProject}/locations/${region}`;
       // Batch requires lowercase alphanum + dashes, ≤63 chars.
       const jobId = `train-${trainingPayload.id}-${Date.now()}`.toLowerCase();
 

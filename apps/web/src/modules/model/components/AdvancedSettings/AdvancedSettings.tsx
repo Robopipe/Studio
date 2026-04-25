@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { ModelBackendEnum, ModelOutputTypeEnum } from "@repo/schema";
+import { ModelBackendEnum, ModelOutputTypeEnum, ModelRegionEnum } from "@repo/schema";
 import { useState } from "react";
 import { SettingsCard } from "../SettingsCard";
 import { HyperparamsModal } from "./HyperparamsModal";
@@ -9,11 +9,18 @@ const BACKEND_LABELS: Record<ModelBackendEnum, string> = {
   [ModelBackendEnum.ULTRALYTICS]: "Ultralytics YOLO",
 };
 
+const REGION_LABELS: Record<ModelRegionEnum, string> = {
+  [ModelRegionEnum.EUROPE_WEST4]: "europe-west4",
+  [ModelRegionEnum.US_CENTRAL1]: "us-central1",
+};
+
 export interface AdvancedSettingsProps {
   outputs: ModelOutputTypeEnum[];
   onOutputsChange: (outputs: ModelOutputTypeEnum[]) => void;
   backend: ModelBackendEnum;
   onBackendChange: (backend: ModelBackendEnum) => void;
+  region: ModelRegionEnum;
+  onRegionChange: (region: ModelRegionEnum) => void;
   customHyperparams: string;
   onCustomHyperparamsChange: (value: string) => void;
   hyperparamsError: string | null;
@@ -25,6 +32,8 @@ export const AdvancedSettings = ({
   onOutputsChange,
   backend,
   onBackendChange,
+  region,
+  onRegionChange,
   customHyperparams,
   onCustomHyperparamsChange,
   hyperparamsError,
@@ -73,6 +82,38 @@ export const AdvancedSettings = ({
                     )}
                   >
                     {BACKEND_LABELS[value]}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-sm font-medium leading-5 text-black/90">
+              Training Region
+            </span>
+            <p className="text-sm leading-5 text-black/60">
+              europe-west4 keeps the training VM in the same region as your
+              dataset and container images, so the job starts quickly. us-central1
+              has better A100 availability and may queue less when GPUs are tight,
+              but the first run pulls the dataset and container image cross-region
+              and adds a few minutes of startup overhead.
+            </p>
+            <div className="flex flex-row gap-2 py-2">
+              {Object.values(ModelRegionEnum).map((value) => {
+                const selected = region === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => onRegionChange(value)}
+                    className={cn(
+                      "cursor-pointer rounded-full border px-3 py-0.5 text-sm leading-5 transition-colors",
+                      selected
+                        ? "border-emerald-900 bg-emerald-50 text-emerald-700"
+                        : "border-transparent bg-white text-black/90 hover:bg-black/5",
+                    )}
+                  >
+                    {REGION_LABELS[value]}
                   </button>
                 );
               })}

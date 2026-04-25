@@ -6,7 +6,7 @@ import { Copy, Square, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import type { AppliedAugmentation } from "../AugmentationSettings/augmentationTypes";
-import type { DuplicateModelState } from "../ModelNewPage/ModelNewPage";
+import type { DuplicateModelState } from "@/modules/model/components";
 import {
   useCancelTrainingMutation,
   useDeleteModelMutation,
@@ -102,6 +102,7 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
         labels: model.labels,
         outputs: model.outputTypes,
         backend: model.backend,
+        region: model.region,
         datasetSplit: {
           train: model.splitTrain,
           validation: model.splitValidate,

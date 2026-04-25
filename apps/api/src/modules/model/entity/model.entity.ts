@@ -2,6 +2,7 @@ import {
   ModelAugmentationTypeEnum,
   ModelBackendEnum,
   ModelOutputTypeEnum,
+  ModelRegionEnum,
   ModelStatusEnum,
   ProjectTypeEnum,
 } from "@repo/schema";
@@ -17,6 +18,7 @@ export class ModelEntity {
   readonly status: ModelStatusEnum;
   readonly outputTypes: ModelOutputTypeEnum[];
   readonly backend: ModelBackendEnum;
+  readonly region: ModelRegionEnum;
   readonly trainingType: ProjectTypeEnum;
   readonly annotationsUsed: ProjectTypeEnum[];
   readonly splitTrain: number;
@@ -44,6 +46,7 @@ export class ModelEntity {
     this.status = data.status;
     this.outputTypes = data.outputTypes;
     this.backend = data.backend;
+    this.region = data.region;
     this.trainingType = data.trainingType;
     this.annotationsUsed = data.annotationsUsed;
     this.splitTrain = data.splitTrain;
@@ -78,6 +81,7 @@ export class ModelEntity {
       status: this.status,
       outputTypes: this.outputTypes,
       backend: this.backend,
+      region: this.region,
       trainingType: this.trainingType,
       annotationsUsed: this.annotationsUsed,
       splitTrain: this.splitTrain,
