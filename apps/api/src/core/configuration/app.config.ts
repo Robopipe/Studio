@@ -15,12 +15,18 @@ export const appConfigSchema = z.object({
   webHost: z.string(),
   apiHost: z.string(),
   mlHost: z.string().optional(),
+  // Ultralytics-backed ML service (luxonis-train and ultralytics run in separate
+  // containers to avoid pip dependency conflicts). Picked per-training-run based
+  // on the `backend` field on the model (LUXONIS → mlHost / mlBatchImage,
+  // ULTRALYTICS → mlHostYolo / mlBatchImageYolo).
+  mlHostYolo: z.string().optional(),
   mlRegion: z.string().optional(),
   gcpProject: z.string().optional(),
   // Cloud Batch: when `mlBatchImage` is set, training jobs are dispatched as
   // Cloud Batch jobs that boot a VM with the configured GPU. When `mlHost` is
   // set instead, training is POSTed to the FastAPI service for local dev.
   mlBatchImage: z.string().optional(),
+  mlBatchImageYolo: z.string().optional(),
   mlBatchServiceAccount: z.string().optional(),
   mlBatchMachineType: z.string().default("a2-ultragpu-1g"),
   // Empty mlBatchGpuType = use the GPU bundled with the machine type (A2/A3/G2).

@@ -19,6 +19,7 @@ export class ConfigLoader {
     const databaseUrl = process.env.DATABASE_URL || "postgres://postgres:postgres@postgres:5432/robopipe";
     const webHost = process.env.WEB_HOST || "http://localhost:5173";
     const mlHost = process.env.ML_HOST || undefined;
+    const mlHostYolo = process.env.ML_HOST_YOLO || undefined;
     const mlRegion = process.env.ML_REGION || undefined;
     const gcpProject = process.env.GCP_PROJECT || undefined;
     const apiHost = process.env.API_HOST || "http://localhost:3000";
@@ -30,6 +31,7 @@ export class ConfigLoader {
     const sendgridFromEmail = process.env.SENDGRID_FROM_EMAIL || undefined;
 
     const mlBatchImage = process.env.ML_BATCH_IMAGE || undefined;
+    const mlBatchImageYolo = process.env.ML_BATCH_IMAGE_YOLO || undefined;
     const mlBatchServiceAccount = process.env.ML_BATCH_SERVICE_ACCOUNT || undefined;
     const mlBatchMachineType = process.env.ML_BATCH_MACHINE_TYPE || undefined;
     const mlBatchGpuType = process.env.ML_BATCH_GPU_TYPE || undefined;
@@ -59,6 +61,7 @@ export class ConfigLoader {
       databaseUrl,
       webHost,
       mlHost,
+      mlHostYolo,
       mlRegion,
       gcpProject,
       apiHost,
@@ -71,6 +74,7 @@ export class ConfigLoader {
       sendgridApiKey,
       sendgridFromEmail,
       mlBatchImage,
+      mlBatchImageYolo,
       mlBatchServiceAccount,
       mlBatchMachineType,
       mlBatchGpuType,

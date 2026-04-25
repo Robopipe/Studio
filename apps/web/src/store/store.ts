@@ -3,6 +3,8 @@ import { authApi, authSlice } from "@/core/auth/services";
 import { clearCredentials } from "@/core/auth/services/authActions";
 import { cameraApi } from "@/core/cameraApi";
 import { organizationApi } from "@/modules/account/services";
+import { cameraSelectionSlice } from "@/modules/camera-selection/services/cameraSelectionSlice";
+import { cameraPipelineGenerationSlice } from "@/modules/camera-stream/services/cameraPipelineGenerationSlice";
 import { captureApi } from "@/modules/capture/services/captureApi";
 import { pendingCapturesSlice } from "@/modules/capture/services/pendingCapturesSlice";
 import { pendingVideoCapturesSlice } from "@/modules/capture/services/pendingVideoCapturesSlice";
@@ -17,6 +19,8 @@ const slices = {
   [projectSlice.name]: projectSlice.reducer,
   [pendingCapturesSlice.name]: pendingCapturesSlice.reducer,
   [pendingVideoCapturesSlice.name]: pendingVideoCapturesSlice.reducer,
+  [cameraSelectionSlice.name]: cameraSelectionSlice.reducer,
+  [cameraPipelineGenerationSlice.name]: cameraPipelineGenerationSlice.reducer,
 };
 const apis = {
   [api.reducerPath]: api.reducer,

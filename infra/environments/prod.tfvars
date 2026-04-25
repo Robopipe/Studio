@@ -1,5 +1,6 @@
 project_id              = "io-robopipe"
 region                  = "europe-west4"
+ml_region               = "us-central1"
 environment             = "prod"
 cloud_sql_tier          = "db-custom-2-4096"
 cloud_run_min_instances = 1

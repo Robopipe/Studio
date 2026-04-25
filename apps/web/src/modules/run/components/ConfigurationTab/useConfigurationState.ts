@@ -1,4 +1,5 @@
 import { useListCamerasQuery, useListStreamsQuery } from "@/core/cameraApi";
+import { useSelectedCameraStream } from "@/modules/camera-selection";
 import {
   useGetCapturedVideosQuery,
   useGetTasksQuery,
@@ -41,8 +42,17 @@ export const useConfigurationState = (
 
   const trainedModels = models.filter((m) => m.status === ModelStatusEnum.DONE);
 
-  const [selectedCamera, setSelectedCamera] = useState<string | null>(null);
-  const [selectedStream, setSelectedStream] = useState<string | null>(null);
+  // Camera + stream come from the project-wide selection slice so changes
+  // here propagate to Capture and vice versa (per client spec). Model and
+  // replay video stay local — they're per-config, not per-project.
+  const {
+    cameraMxid: selectedCamera,
+    streamName: selectedStream,
+    setCamera: setSelectedCamera,
+    setStream: setSelectedStream,
+    setSelection: setCameraStreamSelection,
+  } = useSelectedCameraStream(cameras);
+
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
   const [selectedVideoId, setSelectedVideoId] = useState<number | null>(null);
   const [zoneConfig, setZoneConfig] = useState<ZoneConfig>(defaultZoneConfig);
@@ -51,10 +61,14 @@ export const useConfigurationState = (
     skip: !selectedCamera,
   });
 
+  // When a config opens, seed the slice from the config's persisted camera /
+  // stream — that's the user's mental model: "the config I'm looking at is
+  // the current view". Model/video are local (per-config).
   useEffect(() => {
     if (config) {
-      setSelectedCamera(config.cameraMxid);
-      setSelectedStream(config.streamName);
+      if (config.cameraMxid && config.streamName) {
+        setCameraStreamSelection(config.cameraMxid, config.streamName);
+      }
       setSelectedModelId(
         config.modelId != null ? String(config.modelId) : null,
       );
@@ -66,7 +80,7 @@ export const useConfigurationState = (
         optimistic: config.optimistic,
       });
     }
-  }, [config]);
+  }, [config, setCameraStreamSelection]);
 
   const hasChanges =
     config != null &&

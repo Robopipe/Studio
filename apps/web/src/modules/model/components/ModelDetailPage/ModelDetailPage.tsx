@@ -2,12 +2,13 @@ import { DeleteLimitDialog } from "@/modules/dashboard/components/DeleteLimitDia
 import { Button } from "@/modules/shadcn/ui/button";
 import { Skeleton } from "@/modules/shadcn/ui/skeleton";
 import { ModelStatusEnum } from "@repo/schema";
-import { Copy, Trash2 } from "lucide-react";
+import { Copy, Square, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import type { AppliedAugmentation } from "../AugmentationSettings/augmentationTypes";
-import type { DuplicateModelState } from "../ModelNewPage/ModelNewPage";
+import type { DuplicateModelState } from "@/modules/model/components";
 import {
+  useCancelTrainingMutation,
   useDeleteModelMutation,
   useGetModelLogsQuery,
   useGetModelQuery,
@@ -26,7 +27,9 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
   const { projectId, modelId } = useParams();
   const [deleteModel, { isLoading: isDeleting }] = useDeleteModelMutation();
   const [trainModel] = useTrainModelMutation();
+  const [cancelTraining, { isLoading: isCancelling }] = useCancelTrainingMutation();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [activeTab, setActiveTab] = useState<ModelTab>("overview");
 
   const {
@@ -98,6 +101,8 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
         annotationsUsed: model.annotationsUsed,
         labels: model.labels,
         outputs: model.outputTypes,
+        backend: model.backend,
+        region: model.region,
         datasetSplit: {
           train: model.splitTrain,
           validation: model.splitValidate,
@@ -167,6 +172,16 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
           Train
         </Button>
       )}
+      {isActive && (
+        <Button
+          variant="destructive"
+          size="sm"
+          onClick={() => setShowCancelDialog(true)}
+        >
+          <Square className="mr-1 size-4" />
+          Stop training
+        </Button>
+      )}
       <Button
         variant="destructive"
         size="sm"
@@ -219,6 +234,23 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
               modelId: Number(modelId),
             }).unwrap();
             navigate(`/projects/${projectId}/models/new`);
+          }}
+        />
+      )}
+
+      {showCancelDialog && (
+        <DeleteLimitDialog
+          title="Stop training this model?"
+          description="Training will be terminated. Epoch logs already recorded will be kept, but no model files will be produced."
+          confirmLabel="Stop training"
+          isLoading={isCancelling}
+          onCancel={() => setShowCancelDialog(false)}
+          onConfirm={async () => {
+            await cancelTraining({
+              projectId: Number(projectId),
+              modelId: Number(modelId),
+            }).unwrap();
+            setShowCancelDialog(false);
           }}
         />
       )}

@@ -1,9 +1,9 @@
 import {
   useGetDashboardQuery,
   useListCamerasQuery,
-  useListStreamsQuery,
 } from "@/core/cameraApi";
 import { useCameraApiUrl } from "@/hooks";
+import { useSelectedCameraStream } from "@/modules/camera-selection";
 import { EditProjectModal } from "@/modules/project/components/EditProjectModal";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import {
@@ -11,7 +11,7 @@ import {
   NoCameraDetected,
   SearchingForCamera,
 } from "@/modules/ui";
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import {
   useVideoCapture,
   VideoCaptureProvider,
@@ -34,43 +34,29 @@ export const CapturePage = ({}: CapturePageProps) => {
     isFetching,
   } = useListCamerasQuery(undefined, { skip: !cameraApiUrl });
 
-  const [selectedCamera, setSelectedCamera] = useState<string | null>(null);
-  const [selectedStream, setSelectedStream] = useState<string | null>(null);
+  const {
+    cameraMxid: selectedCamera,
+    streamName: selectedStream,
+    setCamera: handleSelectCamera,
+    setStream: setSelectedStream,
+  } = useSelectedCameraStream(cameras);
+
   const [isStreaming, setIsStreaming] = useState(false);
   const [isSwitchingStream, setIsSwitchingStream] = useState(false);
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
 
-  const { data: streams } = useListStreamsQuery(selectedCamera!, {
-    skip: !selectedCamera,
-  });
-
-  useEffect(() => {
-    if (!cameras || cameras.length === 0) return;
-    if (!selectedCamera || !cameras.some((c) => c.mxid === selectedCamera)) {
-      setSelectedCamera(cameras[0].mxid);
-    }
-  }, [cameras, selectedCamera]);
-
-  useEffect(() => {
-    if (!selectedCamera || selectedStream) return;
-    if (!streams || streams.length === 0) return;
-    const active = streams.find((s) => s.active) ?? streams[0];
-    if (active) setSelectedStream(active.name);
-  }, [streams, selectedCamera, selectedStream]);
-
-  const { data: dashboardUrl, isLoading: isDashboardLoading } =
+  // isSuccess (not !!data) — RTK Query preserves the last successful body
+  // across an error refetch, so checking `data` would keep the banner up
+  // after Stop while the server now returns 404. isSuccess correctly
+  // flips to false on a rejected refetch, matching useRunDeploy.
+  const { isSuccess: isDashboardRunning, isLoading: isDashboardLoading } =
     useGetDashboardQuery(
       { mxid: selectedCamera!, streamName: selectedStream! },
       { skip: !selectedCamera || !selectedStream },
     );
-  const isModelRunning = !!dashboardUrl;
+  const isModelRunning = isDashboardRunning;
   const isCheckingModelStatus =
     !selectedCamera || !selectedStream || isDashboardLoading;
-
-  const handleSelectCamera = useCallback((camera: string | null) => {
-    setSelectedCamera(camera);
-    setSelectedStream(null);
-  }, []);
 
   const hasCameras = cameras && cameras.length > 0;
 

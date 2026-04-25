@@ -181,11 +181,16 @@ export const CameraConfigPanel = ({
             >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="None selected">
-                  {selectedVideoId != null
-                    ? formatVideoLabel(
-                        capturedVideos.find((v) => v.id === selectedVideoId)!,
-                      )
-                    : undefined}
+                  {(() => {
+                    if (selectedVideoId == null) return undefined;
+                    const video = capturedVideos.find(
+                      (v) => v.id === selectedVideoId,
+                    );
+                    // Transient: saved config references a video that isn't
+                    // in the list yet (still loading, or since deleted). Show
+                    // a neutral label instead of crashing on a missing row.
+                    return video ? formatVideoLabel(video) : `#${selectedVideoId}`;
+                  })()}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>

@@ -1,0 +1,38 @@
+steps:
+  - name: "gcr.io/cloud-builders/docker"
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - |
+        docker pull ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPO_NAME}/ml-yolo:latest || true
+
+  - name: "gcr.io/cloud-builders/docker"
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - |
+        docker build \
+          --build-arg BUILDKIT_INLINE_CACHE=1 \
+          --cache-from ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPO_NAME}/ml-yolo:latest \
+          -t ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPO_NAME}/ml-yolo:${SHORT_SHA} \
+          -t ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPO_NAME}/ml-yolo:latest \
+          -f apps/ml-yolo/Dockerfile apps/ml-yolo
+    env:
+      - "DOCKER_BUILDKIT=1"
+
+  - name: "gcr.io/cloud-builders/docker"
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - |
+        docker push --all-tags ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPO_NAME}/ml-yolo
+
+  # Cloud Batch jobs for ULTRALYTICS-backend models are created per training
+  # run by the API. Terraform points ML_BATCH_IMAGE_YOLO at :latest by default,
+  # so each training submission pulls whatever this build just pushed — no
+  # Cloud Run API redeploy required. The :${SHORT_SHA} tag is pushed alongside
+  # for rollback / pinning.
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: E2_HIGHCPU_8

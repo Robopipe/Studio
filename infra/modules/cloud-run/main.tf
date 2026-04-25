@@ -68,6 +68,11 @@ resource "google_cloud_run_v2_service" "api" {
       }
 
       env {
+        name  = "ML_BATCH_IMAGE_YOLO"
+        value = var.ml_batch_image_yolo
+      }
+
+      env {
         name  = "ML_BATCH_SERVICE_ACCOUNT"
         value = var.ml_batch_service_account
       }

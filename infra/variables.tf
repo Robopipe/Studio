@@ -72,9 +72,9 @@ variable "cloud_run_max_instances" {
 }
 
 variable "ml_region" {
-  description = "Region for ML service (must support GPUs: us-central1, europe-west4, asia-southeast1)"
+  description = "Region for Cloud Batch training jobs (must support the chosen GPU; us-central1 has the widest H100/A100 availability). Independent of var.region — AR, Cloud SQL, Cloud Run, and GCS stay in var.region, only Batch VMs run here."
   type        = string
-  default     = "europe-west4"
+  default     = "us-central1"
 }
 
 variable "ml_gpu_type" {
@@ -127,6 +127,12 @@ variable "ml_batch_shm_size" {
 
 variable "ml_image" {
   description = "Docker image for the ML training container. Leave empty (default) to use Artifact Registry's :latest tag — each Cloud Batch submission then picks up the most recent Cloud Build output automatically. Set to a pinned :$${SHORT_SHA} URL for reproducible deploys (requires a redeploy of the API when bumping)."
+  type        = string
+  default     = ""
+}
+
+variable "ml_yolo_image" {
+  description = "Docker image for the Ultralytics-backed ML training container (apps/ml-yolo). Dispatched to when a model is created with backend=ULTRALYTICS. Leave empty to default to the :latest tag in AR."
   type        = string
   default     = ""
 }

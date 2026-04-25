@@ -78,24 +78,20 @@ export const useRunDeploy = ({
   sahiConfig,
   beforeDeploy,
 }: UseRunDeployParams) => {
-  const [dashboardUrl, setDashboardUrl] = useState<string | null>(null);
   const [showDeployConfirm, setShowDeployConfirm] = useState(false);
   const [isDeployInProgress, setIsDeployInProgress] = useState(false);
 
-  // Check if a dashboard is already deployed on the camera (survives refresh).
-  // The GET endpoint returns the dashboard HTML (200) or 404 if none is running.
+  // Single source of truth: the camera itself. The GET endpoint returns the
+  // dashboard HTML (200) or 404 if none is running. No local mirror — that's
+  // what caused the "can't stop after refresh" and stale-banner bugs.
   const { isSuccess: isRemoteDashboardDeployed } = useGetDashboardQuery(
     { mxid: selectedCamera!, streamName: selectedStream! },
     { skip: !selectedCamera || !selectedStream },
   );
 
-  // The dashboard URL is the GET endpoint itself (it serves the HTML directly).
-  // Local state (set after deploy) takes precedence over the query-derived URL.
-  const remoteDashboardUrl = isRemoteDashboardDeployed
+  const effectiveDashboardUrl = isRemoteDashboardDeployed
     ? `${cameraApiUrl}/cameras/${selectedCamera}/streams/${selectedStream}/dashboard`
     : null;
-
-  const effectiveDashboardUrl = dashboardUrl ?? remoteDashboardUrl;
   const isDeployed = !!effectiveDashboardUrl;
 
   // Lazy triggers for multi-config deploy
@@ -295,15 +291,14 @@ export const useRunDeploy = ({
         return;
       }
 
-      const { dashboard_url } = await deployDashboardMut({
+      await deployDashboardMut({
         mxid: selectedCamera,
         streamName: selectedStream,
         configs: assembled.map((a) => a.deployConfig),
         models: assembled.map((a) => a.modelFile),
       }).unwrap();
-
-      // Set URL immediately so the dashboard tab works right away
-      setDashboardUrl(`${cameraApiUrl}${dashboard_url}`);
+      // Dashboard tab picks up the URL via useGetDashboardQuery — the deploy
+      // mutation invalidates the Dashboard tag, which triggers refetch.
     } finally {
       setIsDeployInProgress(false);
     }
@@ -455,8 +450,8 @@ export const useRunDeploy = ({
         .unwrap()
         .catch(() => {}),
     ]);
-
-    setDashboardUrl(null);
+    // Tag invalidation in the mutations drops dashboardUrl to null via the
+    // query refetch — no local state to reset.
   };
 
   const handleConfirmDeploy = () => {

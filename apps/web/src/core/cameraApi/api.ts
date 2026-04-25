@@ -266,8 +266,12 @@ export const cameraApi = cameraApiBase.injectEndpoints({
         url: `/cameras/${mxid}/streams/${streamName}/dashboard`,
         method: HttpMethod.DELETE,
       }),
+      // Tearing down the dashboard also tears down the NN that backs it, so
+      // any UI reading useGetNNQuery (e.g. Capture's "Model is running!"
+      // banner) needs to refetch.
       invalidatesTags: (_result, _error, { mxid, streamName }) => [
         { type: CameraApiTagType.Dashboard, id: `${mxid}-${streamName}` },
+        { type: CameraApiTagType.NN, id: `${mxid}-${streamName}` },
       ],
     }),
 

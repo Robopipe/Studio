@@ -71,6 +71,18 @@ export const modelApi = modelApiBase.injectEndpoints({
         { type: ModelApiTagType.Model, id: projectId },
       ],
     }),
+    cancelTraining: builder.mutation<
+      Model,
+      { projectId: number; modelId: number }
+    >({
+      query: ({ projectId, modelId }) => ({
+        url: `${projects.models.models(projectId)}/${modelId}/cancel`,
+        method: HttpMethod.POST,
+      }),
+      invalidatesTags: (_result, _error, { projectId }) => [
+        { type: ModelApiTagType.Model, id: projectId },
+      ],
+    }),
     getModelLogs: builder.query<
       ModelLog[],
       { projectId: number; modelId: number }
@@ -96,6 +108,7 @@ export const modelApi = modelApiBase.injectEndpoints({
 export const {
   useCreateModelMutation,
   useTrainModelMutation,
+  useCancelTrainingMutation,
   useGetModelsQuery,
   useGetModelQuery,
   useDeleteModelMutation,

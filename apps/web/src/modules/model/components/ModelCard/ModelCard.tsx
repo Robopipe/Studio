@@ -38,6 +38,10 @@ const STATUS_STYLES: Record<
     label: "Error",
     className: "bg-red-100 text-red-600",
   },
+  [ModelStatusEnum.CANCELLED]: {
+    label: "Error",
+    className: "bg-red-100 text-red-600",
+  },
 };
 
 export const ModelCard = ({ model, order }: ModelCardProps) => {

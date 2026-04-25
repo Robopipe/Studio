@@ -1,6 +1,8 @@
 import {
   ModelAugmentationTypeEnum,
+  ModelBackendEnum,
   ModelOutputTypeEnum,
+  ModelRegionEnum,
   ModelStatusEnum,
   ProjectTypeEnum,
 } from "@repo/schema";
@@ -15,12 +17,15 @@ export class ModelEntity {
   readonly epochs: number;
   readonly status: ModelStatusEnum;
   readonly outputTypes: ModelOutputTypeEnum[];
+  readonly backend: ModelBackendEnum;
+  readonly region: ModelRegionEnum;
   readonly trainingType: ProjectTypeEnum;
   readonly annotationsUsed: ProjectTypeEnum[];
   readonly splitTrain: number;
   readonly splitValidate: number;
   readonly splitTest: number;
   readonly customHyperparams: Record<string, unknown>;
+  readonly batchJobName: string | null;
   readonly errorMessage: string | null;
   readonly finalAccuracy: number | null;
   readonly finalLoss: number | null;
@@ -40,6 +45,8 @@ export class ModelEntity {
     this.projectId = data.projectId;
     this.status = data.status;
     this.outputTypes = data.outputTypes;
+    this.backend = data.backend;
+    this.region = data.region;
     this.trainingType = data.trainingType;
     this.annotationsUsed = data.annotationsUsed;
     this.splitTrain = data.splitTrain;
@@ -52,6 +59,7 @@ export class ModelEntity {
     this.createdAt = data.createdAt;
     this.updatedAt = data.updatedAt;
     this.deletedAt = data.deletedAt;
+    this.batchJobName = data.batchJobName;
     this.errorMessage = data.errorMessage;
     this.finalAccuracy = data.finalAccuracy;
     this.finalLoss = data.finalLoss;
@@ -72,6 +80,8 @@ export class ModelEntity {
       datasetVersionId: this.datasetVersionId,
       status: this.status,
       outputTypes: this.outputTypes,
+      backend: this.backend,
+      region: this.region,
       trainingType: this.trainingType,
       annotationsUsed: this.annotationsUsed,
       splitTrain: this.splitTrain,

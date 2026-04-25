@@ -1,0 +1,52 @@
+# Pin set mirrors the Mac-local install that trained the M4 smoke run
+# successfully. Auto-bumpers: hubai-sdk pulls an old luxonis-ml that can't
+# tolerate numpy 2.x, so the whole stack is anchored to the numpy-1.x line.
+# Revisit only when luxonis-ml ships a numpy-2-compatible release.
+
+# Core web framework
+fastapi==0.115.5
+uvicorn==0.32.1
+pydantic==2.10.5
+pydantic-settings==2.7.1
+python-multipart==0.0.17
+
+# ML training (no luxonis-train — this is the Ultralytics-only service).
+# 8.3.160 decouples the confusion matrix update from args.plots (so the CM
+# is populated even without plot files) and fixes the epoch-47 validation
+# plot broadcast crash. Still numpy-1.x compatible.
+ultralytics==8.3.160
+torch==2.9.0
+torchvision==0.24.0
+
+# Model conversion and export. Ultralytics ONNX export auto-installs
+# onnxslim + onnxruntime at runtime but NOT onnxscript — pin all three
+# up front so the torch.onnx.export() dynamo path works.
+onnx==1.20.1
+onnxsim==0.4.36
+# 0.1.80+ replaced the broken `onnx.helper.float32_to_bfloat16` reference (a
+# symbol that never existed in onnx) with a local ml_dtypes-backed converter.
+# Without this bump, hubai-sdk RVC4 conversion crashes after every training run
+# at import time when onnxslim's module-level _NUMPY_ARRAY_CONVERTERS evaluates.
+onnxslim==0.1.91
+onnxruntime==1.23.0
+onnxscript==0.7.0
+
+# HubAI SDK for RVC2/3/4 conversion.
+# hubai-sdk imports `Kwargs` from luxonis_ml.typing. That symbol only
+# exists in luxonis-ml >= 0.8.0 — pin the floor so Docker's resolver
+# doesn't drop back to 0.6.x.
+hubai-sdk==0.2.1
+luxonis-ml>=0.8.0
+
+# HTTP client for webhooks
+requests==2.32.3
+httpx==0.28.1
+
+# Config and utilities
+python-dotenv==1.0.1
+PyYAML==6.0.2
+
+# Image processing — pinned to a version that supports numpy 1.x.
+opencv-python==4.11.0.86
+pillow==12.0.0
+numpy==1.26.4

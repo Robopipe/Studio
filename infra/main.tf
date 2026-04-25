@@ -32,8 +32,18 @@ locals {
   # each Cloud Batch job submission pulls whatever was last built — no Cloud
   # Run API redeploy needed when the ML image changes. Override by setting
   # var.ml_image to pin a specific SHA.
-  ml_default_image = "${var.ml_region}-docker.pkg.dev/${var.project_id}/${module.artifact_registry.repository_id}/ml:latest"
+  #
+  # URL prefix uses var.region (where the AR repo actually lives), NOT
+  # var.ml_region (where Batch runs). When they differ, Batch pulls
+  # cross-region — slower first pull per new VM, negligible thereafter.
+  ml_default_image   = "${var.region}-docker.pkg.dev/${var.project_id}/${module.artifact_registry.repository_id}/ml:latest"
   ml_image_effective = var.ml_image != "" ? var.ml_image : local.ml_default_image
+
+  # Ultralytics-backed ML service (apps/ml-yolo). Same :latest pattern so
+  # each Cloud Batch submission picks up the latest build without a Cloud
+  # Run API redeploy.
+  ml_yolo_default_image   = "${var.region}-docker.pkg.dev/${var.project_id}/${module.artifact_registry.repository_id}/ml-yolo:latest"
+  ml_yolo_image_effective = var.ml_yolo_image != "" ? var.ml_yolo_image : local.ml_yolo_default_image
 }
 
 # Enable required APIs
@@ -129,17 +139,18 @@ module "cloud_run" {
   gcp_project          = var.project_id
   sendgrid_from_email  = var.sendgrid_from_email
 
-  ml_batch_image              = local.ml_image_effective
-  ml_batch_service_account    = google_service_account.ml.email
-  ml_batch_machine_type       = var.ml_batch_machine_type
-  ml_batch_gpu_type           = var.ml_gpu_type
-  ml_batch_gpu_count          = var.ml_gpu_count
-  ml_batch_boot_disk_gb       = var.ml_batch_boot_disk_gb
-  ml_batch_max_run_seconds    = var.ml_batch_max_run_seconds
-  ml_batch_task_cpu_milli     = var.ml_batch_task_cpu_milli
-  ml_batch_task_memory_mib    = var.ml_batch_task_memory_mib
-  ml_batch_shm_size           = var.ml_batch_shm_size
-  ml_batch_api_key_secret     = module.secrets.secret_ids["mlSecret"]
+  ml_batch_image                = local.ml_image_effective
+  ml_batch_image_yolo           = local.ml_yolo_image_effective
+  ml_batch_service_account      = google_service_account.ml.email
+  ml_batch_machine_type         = var.ml_batch_machine_type
+  ml_batch_gpu_type             = var.ml_gpu_type
+  ml_batch_gpu_count            = var.ml_gpu_count
+  ml_batch_boot_disk_gb         = var.ml_batch_boot_disk_gb
+  ml_batch_max_run_seconds      = var.ml_batch_max_run_seconds
+  ml_batch_task_cpu_milli       = var.ml_batch_task_cpu_milli
+  ml_batch_task_memory_mib      = var.ml_batch_task_memory_mib
+  ml_batch_shm_size             = var.ml_batch_shm_size
+  ml_batch_api_key_secret       = module.secrets.secret_ids["mlSecret"]
   ml_batch_hubai_api_key_secret = module.secrets.secret_ids["hubaiApiKey"]
 
   depends_on = [google_project_service.apis, module.secrets]
@@ -274,8 +285,44 @@ resource "google_cloudbuild_trigger" "ml" {
 
   filename = "cloudbuild-ml.yaml"
 
+  # _REGION here refers to the AR location (where we push), not where Batch
+  # runs the image. Keep it aligned with var.region so pushes land in the
+  # actual AR repo.
   substitutions = {
-    _REGION     = var.ml_region
+    _REGION     = var.region
+    _PROJECT_ID = var.project_id
+    _REPO_NAME  = module.artifact_registry.repository_id
+  }
+}
+
+resource "google_cloudbuild_trigger" "ml_yolo" {
+  project  = var.project_id
+  name     = "${local.name_prefix}-ml-yolo-build"
+  location = "global"
+
+  service_account = "projects/${var.project_id}/serviceAccounts/${data.google_project.current.number}-compute@developer.gserviceaccount.com"
+
+  github {
+    owner = "Robopipe"
+    name  = "Studio"
+
+    push {
+      branch = var.environment == "prod" ? "^release$" : "^dev$"
+    }
+  }
+
+  include_build_logs = "INCLUDE_BUILD_LOGS_WITH_STATUS"
+
+  included_files = [
+    "apps/ml-yolo/**",
+  ]
+
+  filename = "cloudbuild-ml-yolo.yaml"
+
+  # Same _REGION convention as the luxonis trigger — AR location (var.region),
+  # not where Cloud Batch runs the training VM (var.ml_region).
+  substitutions = {
+    _REGION     = var.region
     _PROJECT_ID = var.project_id
     _REPO_NAME  = module.artifact_registry.repository_id
   }

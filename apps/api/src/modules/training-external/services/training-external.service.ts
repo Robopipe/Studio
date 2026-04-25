@@ -15,6 +15,8 @@ import {
   ModelOutputTypeEnum,
   TaskFileTypeEnum,
   ModelStatusEnum,
+  ModelBackendEnum,
+  ModelRegionEnum,
 } from "@repo/schema";
 import { HttpService } from "@nestjs/axios";
 import { ModelLogRepository } from "../../../repository/services/model-log-repository.service";
@@ -56,6 +58,13 @@ export class TrainingExternalService {
     const model = await this.modelRepository.getById(modelId);
     if(!model){
       throw new NotFoundException("Model not found")
+    }
+
+    // User cancelled — Cloud Batch shutdown is async, so late webhooks can
+    // still arrive while the container is being torn down. Drop them.
+    if (model.status === ModelStatusEnum.CANCELLED) {
+      this.logger.log(`Model ${modelId}: ignoring progress webhook after cancel`);
+      return;
     }
 
     const { progress } = data;
@@ -101,6 +110,11 @@ export class TrainingExternalService {
     const model = await this.modelRepository.getById(modelId);
     if (!model) {
       throw new NotFoundException("Model not found");
+    }
+
+    if (model.status === ModelStatusEnum.CANCELLED) {
+      this.logger.log(`Model ${modelId}: ignoring completion webhook after cancel`);
+      return;
     }
 
     const expectedTypes = new Set(model.outputTypes);
@@ -155,20 +169,50 @@ export class TrainingExternalService {
   }
 
   /**
+   * Cancel a running training job by deleting its Cloud Batch job.
+   * Cloud Batch has no "cancel" verb — `deleteJob` is the termination path
+   * and takes effect asynchronously (the container is SIGKILLed after a
+   * grace period). Callers should set the model status immediately so late
+   * webhooks get ignored (see updateTrainingProgress / completeTraining).
+   */
+  public async cancelBatchJob(batchJobName: string): Promise<void> {
+    try {
+      await this.batchClient.deleteJob({ name: batchJobName });
+      this.logger.log(`Cloud Batch job ${batchJobName} deletion requested`);
+    } catch (e) {
+      this.logger.error(`Failed deleting Cloud Batch job ${batchJobName}`, e);
+      throw e;
+    }
+  }
+
+  /**
    * Train
    * @param model - Model entity
+   *
+   * Dispatches to the ML service matching `model.backend`. Each backend has
+   * its own Cloud Batch image (Cloud) and FastAPI host (local dev) because
+   * luxonis-train and ultralytics can't share a Python environment cleanly.
    */
   public async train(model: ModelEntity): Promise<void> {
     const outputUploads = await this.generateOutputUploads(model);
     const trainingPayload = await this.getTrainingPayload(model, outputUploads);
 
-    this.logger.log(`Train config: mlBatchImage=${this.config.mlBatchImage}, mlHost=${this.config.mlHost}`);
-    if (this.config.mlBatchImage) {
-      await this.trainViaBatch(trainingPayload);
-    } else if (this.config.mlHost) {
-      await this.trainViaHttp(trainingPayload);
+    const isYolo = model.backend === ModelBackendEnum.ULTRALYTICS;
+    const batchImage = isYolo ? this.config.mlBatchImageYolo : this.config.mlBatchImage;
+    const httpHost = isYolo ? this.config.mlHostYolo : this.config.mlHost;
+
+    this.logger.log(
+      `Train dispatch: backend=${model.backend} batchImage=${batchImage ?? "-"} httpHost=${httpHost ?? "-"}`,
+    );
+
+    if (batchImage) {
+      await this.trainViaBatch(trainingPayload, batchImage, model.region);
+    } else if (httpHost) {
+      await this.trainViaHttp(trainingPayload, httpHost);
     } else {
-      throw new InternalServerErrorException("No ML training backend configured. Set either ML_HOST or ML_BATCH_IMAGE.");
+      throw new InternalServerErrorException(
+        `No ML training backend configured for ${model.backend}. Set either ML_HOST${isYolo ? "_YOLO" : ""} or ML_BATCH_IMAGE${isYolo ? "_YOLO" : ""}.`,
+      );
     }
   }
 
@@ -199,9 +243,12 @@ export class TrainingExternalService {
     });
   }
 
-  private async trainViaHttp(trainingPayload: TrainingPayload): Promise<void> {
+  private async trainViaHttp(trainingPayload: TrainingPayload, httpHost: string): Promise<void> {
     try {
-      await this.http.axiosRef.post("/train/", trainingPayload);
+      // Use an absolute URL so axios ignores the module-level baseURL (which
+      // points at the luxonis host). Still inherits the Authorization header
+      // from HttpModule.registerAsync — both ML services share ML_SECRET.
+      await this.http.axiosRef.post(`${httpHost.replace(/\/$/, "")}/train/`, trainingPayload);
     } catch (e) {
       this.logger.error(
         `Failed starting training on machine learning service`,
@@ -211,13 +258,15 @@ export class TrainingExternalService {
     }
   }
 
-  private async trainViaBatch(trainingPayload: TrainingPayload): Promise<void> {
+  private async trainViaBatch(
+    trainingPayload: TrainingPayload,
+    mlBatchImage: string,
+    region: ModelRegionEnum,
+  ): Promise<void> {
     const {
-      mlRegion,
       gcpProject,
       bucketName,
       apiHost,
-      mlBatchImage,
       mlBatchServiceAccount,
       mlBatchMachineType,
       mlBatchGpuType,
@@ -233,9 +282,9 @@ export class TrainingExternalService {
       mlBatchSubnetwork,
     } = this.config;
 
-    if (!mlRegion || !gcpProject || !mlBatchImage) {
+    if (!gcpProject || !mlBatchImage) {
       throw new InternalServerErrorException(
-        "Cloud Batch training requires ML_REGION, GCP_PROJECT, and ML_BATCH_IMAGE to be set.",
+        "Cloud Batch training requires GCP_PROJECT and ML_BATCH_IMAGE to be set.",
       );
     }
 
@@ -254,7 +303,7 @@ export class TrainingExternalService {
         expires: Date.now() + UPLOAD_URL_TTL_MS,
       });
 
-      const parent = `projects/${gcpProject}/locations/${mlRegion}`;
+      const parent = `projects/${gcpProject}/locations/${region}`;
       // Batch requires lowercase alphanum + dashes, ≤63 chars.
       const jobId = `train-${trainingPayload.id}-${Date.now()}`.toLowerCase();
 
@@ -355,7 +404,13 @@ export class TrainingExternalService {
         },
       };
 
-      await this.batchClient.createJob({ parent, jobId, job });
+      const [createdJob] = await this.batchClient.createJob({ parent, jobId, job });
+
+      if (createdJob?.name) {
+        await this.modelRepository.update(trainingPayload.id, {
+          batchJobName: createdJob.name,
+        });
+      }
 
       this.logger.log(`Cloud Batch job ${jobId} submitted for model ${trainingPayload.id}`);
     } catch (e) {

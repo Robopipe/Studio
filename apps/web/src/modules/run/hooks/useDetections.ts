@@ -1,10 +1,14 @@
-import { useGetNNQuery } from "@/core/cameraApi";
-import { useCameraApiUrl } from "@/hooks";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCameraStream } from "@/modules/camera-stream";
+import { useEffect, useRef } from "react";
 import { NNDetections } from "../types/detections";
 
 export interface UseDetectionsOptions {
+  /**
+   * @deprecated No longer used — detections come from the project-wide
+   * camera selection slice. Kept to avoid breaking existing call sites.
+   */
   selectedMxid: string;
+  /** @deprecated See selectedMxid. */
   selectedSensorName: string;
   onDetections?: (detections: NNDetections) => void;
   enabled?: boolean;
@@ -16,119 +20,37 @@ export interface UseDetectionsReturn {
   error: string | null;
 }
 
-const RECONNECT_DELAY_MS = 3000;
-const MAX_RECONNECT_ATTEMPTS = 10;
-
+/**
+ * Thin consumer of the shared detections WebSocket. Consumers that want to
+ * react per-message (e.g. canvas renderers) pass `onDetections` and avoid
+ * the extra render; consumers that just want the latest state read
+ * `detections` directly.
+ */
 export const useDetections = ({
-  selectedMxid,
-  selectedSensorName,
   onDetections,
   enabled = true,
 }: UseDetectionsOptions): UseDetectionsReturn => {
-  const { url: apiHost } = useCameraApiUrl();
-  const { data: nnInfo } = useGetNNQuery(
-    { mxid: selectedMxid, streamName: selectedSensorName },
-    { skip: !selectedMxid || !selectedSensorName },
-  );
-  const [detections, setDetections] = useState<NNDetections>({
-    detections: [],
-  });
-  const [isConnected, setIsConnected] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    detections,
+    isDetectionsConnected,
+    detectionsError,
+    subscribeDetections,
+  } = useCameraStream();
 
-  const wsRef = useRef<WebSocket | null>(null);
-  const reconnectAttemptsRef = useRef(0);
-  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
   const onDetectionsRef = useRef(onDetections);
   onDetectionsRef.current = onDetections;
 
-  const cleanup = useCallback(() => {
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = null;
-    }
-    if (wsRef.current) {
-      wsRef.current.close();
-      wsRef.current = null;
-    }
-    setIsConnected(false);
-    setDetections({ detections: [] });
-  }, []);
-
   useEffect(() => {
-    if (
-      !enabled ||
-      !selectedMxid ||
-      !selectedSensorName ||
-      !apiHost ||
-      !nnInfo
-    ) {
-      cleanup();
-      setError(null);
-      return;
-    }
+    if (!enabled || !onDetectionsRef.current) return;
+    const unsubscribe = subscribeDetections((d) => {
+      onDetectionsRef.current?.(d);
+    });
+    return unsubscribe;
+  }, [enabled, subscribeDetections]);
 
-    const connect = () => {
-      // Convert http(s) to ws(s)
-      const wsUrl = apiHost
-        .replace(/^https:\/\//, "wss://")
-        .replace(/^http:\/\//, "ws://");
-
-      const endpoint = `${wsUrl}/cameras/${selectedMxid}/streams/${selectedSensorName}/nn`;
-
-      try {
-        const ws = new WebSocket(endpoint);
-        wsRef.current = ws;
-
-        ws.onopen = () => {
-          setIsConnected(true);
-          setError(null);
-          reconnectAttemptsRef.current = 0;
-        };
-
-        ws.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            const parsed: NNDetections = Array.isArray(data)
-              ? { detections: data }
-              : data;
-            setDetections(parsed);
-            onDetectionsRef.current?.(parsed);
-          } catch {}
-        };
-
-        ws.onerror = () => {
-          setError("WebSocket connection error");
-        };
-
-        ws.onclose = () => {
-          setIsConnected(false);
-          wsRef.current = null;
-
-          // Auto-reconnect with backoff
-          if (reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS) {
-            reconnectAttemptsRef.current += 1;
-            reconnectTimeoutRef.current = setTimeout(
-              connect,
-              RECONNECT_DELAY_MS,
-            );
-          } else {
-            setError("Connection lost. Max reconnect attempts reached.");
-          }
-        };
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to connect to NN stream",
-        );
-      }
-    };
-
-    connect();
-
-    return cleanup;
-  }, [enabled, selectedMxid, selectedSensorName, apiHost, nnInfo, cleanup]);
-
-  return { detections, isConnected, error };
+  return {
+    detections,
+    isConnected: isDetectionsConnected,
+    error: detectionsError,
+  };
 };
