@@ -15,7 +15,7 @@ export interface TrainingChartProps {
 
 export const TrainingChart = ({ data, title }: TrainingChartProps) => {
   return (
-    <div className="w-1/2">
+    <div className="w-full">
       <p className="text-sm font-bold">{title}</p>
       <ResponsiveContainer width="100%" height={250}>
         <AreaChart

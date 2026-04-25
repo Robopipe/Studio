@@ -1,4 +1,4 @@
-import { ModelBackendEnum, ModelStatusEnum, ProjectTypeEnum } from "@repo/schema";
+import { ModelBackendEnum, ModelRegionEnum, ModelStatusEnum, ProjectTypeEnum } from "@repo/schema";
 import * as p from "drizzle-orm/pg-core";
 import { id, timestamps } from "../helpers";
 import { datasetVersionTable } from "./dataset-version";
@@ -25,12 +25,18 @@ export const modelBackendEnum = p.pgEnum("model_backend_enum", [
   ModelBackendEnum.ULTRALYTICS,
 ]);
 
+export const modelRegionEnum = p.pgEnum("model_region_enum", [
+  ModelRegionEnum.EUROPE_WEST4,
+  ModelRegionEnum.US_CENTRAL1,
+]);
+
 export const modelTable = p.pgTable("model", {
   id,
   name: p.varchar("name", { length: 256 }).notNull(),
   epochs: p.integer("epochs").notNull(),
   outputTypes: modelOutputTypeEnum("output_types").array().notNull(),
   backend: modelBackendEnum("backend").notNull().default(ModelBackendEnum.LUXONIS),
+  region: modelRegionEnum("region").notNull().default(ModelRegionEnum.EUROPE_WEST4),
   trainingType: modelTrainingTypeEnum("training_type").notNull(),
   annotationsUsed: modelTrainingTypeEnum("annotations_used").array().notNull(),
   splitTrain: p.integer("split_train").notNull(),
