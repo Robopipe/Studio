@@ -1,35 +1,36 @@
 #!/usr/bin/env python3
-"""Rotate 2000x1500 task images 90 degrees CCW and center-crop to 1500x1500.
+"""Rotate 2000xH task images 90 degrees CCW and center-crop to Hx1500.
 
 Workflow:
-  1. Read a JSON file with task IDs (`[1, 2, 3, ...]`) — typically the ids of
-     the ~1500 tasks in the project that came from the misoriented camera.
+  1. Resolve the task list from --project-id + --max-iid (numeric `task.iid` filter).
   2. For each task:
      a. Load row from `task` (width/height/filePath/thumbnailUrl)
      b. Download original image from GCS via the public URL
-     c. Verify actual dimensions are 2000x1500 — skip if already 1500x1500
+     c. Verify long axis is 2000 — skip if already rotated
      d. Backup the original JPEG to `--backup-dir`
-     e. Rotate 90 deg counter-clockwise -> 1500x2000
-     f. Center-crop the 2000-tall axis to 1500 -> 1500x1500
+     e. Rotate 90 deg counter-clockwise -> H x 2000
+     f. Center-crop the 2000-tall axis to 1500 -> H x 1500
      g. Overwrite the original GCS object with the rotated JPEG
      h. Regenerate the 400px webp thumbnail in place
      i. In one DB transaction:
-          - UPDATE task SET width=1500, height=1500
-          - UPDATE rectangle_annotation:  (x, y, w, h) -> (y, 1750-x-w, h, w),
-            clamped to [0, 1500] x [0, 1500]; rows that clip to empty are deleted
-          - UPDATE polygon_annotation:  each point (x, y) -> (y, 1750 - x),
-            then intersected with box(0,0,1500,1500); rows whose intersection
-            is empty / <3 vertices are deleted
-          - classification_annotation rows are untouched
+          - UPDATE task SET width=H, height=1500
+          - UPDATE polygon_annotation: each point (x_pct, y_pct) ->
+            (y_pct, (1750*100 - 2000*x_pct) / 1500), then intersected
+            with box(0, 0, 100, 100). Rows whose intersection is empty
+            are deleted (or skipped with --no-delete).
+          - rectangle_annotation and classification_annotation rows are untouched.
 
-Geometry derivation (origin top-left, y down):
-  - Rotation 90 CCW takes (x, y) in a (W, H) image to (y, W - x) in the rotated
-    (H, W) image. For our case W=2000, H=1500 -> rotated is 1500x2000.
-  - Center-crop the 2000-tall axis: keep rows [250, 1750). Annotation y' becomes
-    y_rotated - 250 = (W - x) - 250 = (2000 - x) - 250 = 1750 - x.
-  - Combined point map: (x, y) -> (y, 1750 - x).
-  - Combined rect map: top-left (x, y) -> (y, 1750 - x - w); the rect's new
-    width/height are (h, w) since the longer axis swaps.
+Geometry (origin top-left, y down, percent space):
+  Annotation values are stored as percentages in [0, 100], with x relative to
+  image width and y relative to image height. The transform is constant
+  because input width is always 2000:
+
+      new_x_pct = old_y_pct
+      new_y_pct = (1750 * 100 - 2000 * old_x_pct) / 1500
+                = 116.6667 - 1.3333 * old_x_pct
+
+  Output image dims are (input_height, 1500). The transform doesn't depend on
+  input_height because percentages already absorb that axis.
 
 Dependencies (install once):
     pip install Pillow google-cloud-storage 'psycopg[binary]' shapely
@@ -39,10 +40,11 @@ Auth: relies on Application Default Credentials for GCS. Run
 
 Usage:
     DATABASE_URL=postgres://... \\
-    python scripts/rotate-and-crop-tasks.py task_ids.json \\
+    python scripts/rotate-and-crop-tasks.py \\
+        --project-id 5 --max-iid 1760 \\
         --bucket robopipe-staging-assets \\
         --backup-dir .rotation-backup \\
-        [--dry-run] [--limit N] [--no-thumbnails]
+        [--dry-run] [--limit N] [--no-thumbnails] [--no-delete]
 """
 
 from __future__ import annotations
@@ -59,7 +61,7 @@ from typing import Iterable
 from urllib.parse import unquote, urlparse
 
 # Matches each "(x,y)" element inside a Postgres point[] text literal like
-# `{"(1.5,2.5)","(3,4)"}`. Captures negative numbers + decimals + scientific notation.
+# `{"(1.5,2.5)","(3,4)"}`. Captures negatives + decimals + scientific notation.
 _POINT_RE = re.compile(r"\(\s*([-+0-9.eE]+)\s*,\s*([-+0-9.eE]+)\s*\)")
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -67,39 +69,23 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 EXPECTED_INPUT_W = 2000
 TARGET_SIZE = 1500
 CROP_Y_OFFSET = (EXPECTED_INPUT_W - TARGET_SIZE) // 2  # 250 — long axis cropped to 1500
-# Annotation point map after rotate+crop is (x, y) -> (y, EXPECTED_INPUT_W - CROP_Y_OFFSET - x) = (y, 1750 - x).
-# Output width equals the input height (1499 or 1500 in practice); output height is always TARGET_SIZE.
+PCT_MAX = 100.0
 
 
-def transform_point(x: float, y: float) -> tuple[float, float]:
-    """Map a point from the original 2000xH image to the rotated+cropped Hx1500 image.
+def transform_point(x_pct: float, y_pct: float) -> tuple[float, float]:
+    """Map a percent-space point through the 90 CCW + crop transform.
 
-    The map only depends on the long axis (always 2000), so it's the same for H=1499 or H=1500."""
-    return (y, 1750.0 - x)
-
-
-def transform_rect(
-    x: float, y: float, w: float, h: float, output_w: int
-) -> tuple[float, float, float, float] | None:
-    """Map a rectangle and clip it to the output_w x TARGET_SIZE box. Returns None if empty."""
-    new_x = y
-    new_y = 1750.0 - x - w
-    new_w = h
-    new_h = w
-
-    x1 = max(0.0, new_x)
-    y1 = max(0.0, new_y)
-    x2 = min(float(output_w), new_x + new_w)
-    y2 = min(float(TARGET_SIZE), new_y + new_h)
-    if x2 <= x1 or y2 <= y1:
-        return None
-    return (x1, y1, x2 - x1, y2 - y1)
+    Constant because input width is always EXPECTED_INPUT_W (2000); height
+    cancels out in percent space."""
+    new_x = y_pct
+    new_y = ((EXPECTED_INPUT_W - CROP_Y_OFFSET) * PCT_MAX - EXPECTED_INPUT_W * x_pct) / TARGET_SIZE
+    return (new_x, new_y)
 
 
 def transform_polygon(
-    points: list[tuple[float, float]], output_w: int
+    points: list[tuple[float, float]],
 ) -> list[tuple[float, float]] | None:
-    """Map polygon vertices, clip to the output_w x TARGET_SIZE box, return None if degenerate."""
+    """Map polygon vertices in percent space, clip to [0, 100] x [0, 100]. Returns None if degenerate."""
     from shapely.geometry import Polygon, box  # local import keeps cli help fast
 
     mapped = [transform_point(x, y) for x, y in points]
@@ -108,12 +94,17 @@ def transform_polygon(
     poly = Polygon(mapped)
     if not poly.is_valid:
         poly = poly.buffer(0)  # repair self-intersections
-    clipped = poly.intersection(box(0, 0, output_w, TARGET_SIZE))
+    clipped = poly.intersection(box(0.0, 0.0, PCT_MAX, PCT_MAX))
     if clipped.is_empty:
         return None
     if clipped.geom_type == "MultiPolygon":
         # keep the largest piece — annotations rarely fragment in practice
         clipped = max(clipped.geoms, key=lambda g: g.area)
+    if clipped.geom_type == "GeometryCollection":
+        polys = [g for g in clipped.geoms if g.geom_type == "Polygon" and g.area > 0]
+        if not polys:
+            return None
+        clipped = max(polys, key=lambda g: g.area)
     if clipped.geom_type != "Polygon" or clipped.area <= 0:
         return None
     coords = list(clipped.exterior.coords)
@@ -143,15 +134,6 @@ def parse_object_path(public_url: str, bucket: str) -> str:
     if path.startswith(f"{bucket}/"):
         return path[len(bucket) + 1 :]
     return path
-
-
-def load_task_ids(path: Path) -> list[int]:
-    raw = json.loads(path.read_text())
-    if isinstance(raw, dict) and "taskIds" in raw:
-        raw = raw["taskIds"]
-    if not isinstance(raw, list) or not all(isinstance(x, int) for x in raw):
-        raise ValueError(f"{path}: expected a JSON array of integers (task ids)")
-    return raw
 
 
 def query_task_ids_by_iid(conn, project_id: int, max_iid: int) -> list[int]:
@@ -198,30 +180,16 @@ def parse_point_array_literal(literal: str) -> list[tuple[float, float]]:
     return [(float(x), float(y)) for x, y in _POINT_RE.findall(literal or "")]
 
 
-def update_annotations(conn, task_id: int, output_w: int) -> tuple[int, int, int, int]:
-    """Transform every annotation row attached to `task_id`, clipping to the actual
-    (output_w, TARGET_SIZE) image bounds. Returns counts:
-    (rects_kept, rects_dropped, polys_kept, polys_dropped)."""
-    rects_kept = rects_dropped = polys_kept = polys_dropped = 0
-    with conn.cursor() as cur:
-        cur.execute(
-            "SELECT id, x, y, width, height FROM rectangle_annotation WHERE task_id = %s",
-            (task_id,),
-        )
-        rect_rows = cur.fetchall()
-        for rid, x, y, w, h in rect_rows:
-            transformed = transform_rect(float(x), float(y), float(w), float(h), output_w)
-            if transformed is None:
-                cur.execute("DELETE FROM rectangle_annotation WHERE id = %s", (rid,))
-                rects_dropped += 1
-                continue
-            nx, ny, nw, nh = transformed
-            cur.execute(
-                "UPDATE rectangle_annotation SET x=%s, y=%s, width=%s, height=%s WHERE id=%s",
-                (nx, ny, nw, nh, rid),
-            )
-            rects_kept += 1
+def update_annotations(
+    conn, task_id: int, output_w: int, no_delete: bool
+) -> tuple[int, int]:
+    """Transform every polygon row attached to `task_id` in percent space.
 
+    Returns (polys_kept, polys_dropped). With --no-delete, "dropped" rows are
+    left untouched in the DB instead of being deleted; the count still tracks
+    them so you can spot tasks where the math clipped everything away."""
+    polys_kept = polys_dropped = 0
+    with conn.cursor() as cur:
         # Cast to text because psycopg3 has no built-in `point` loader; it'd otherwise
         # return the column as a raw array literal string we'd misinterpret.
         cur.execute(
@@ -231,9 +199,10 @@ def update_annotations(conn, task_id: int, output_w: int) -> tuple[int, int, int
         poly_rows = cur.fetchall()
         for pid, value_text in poly_rows:
             points = parse_point_array_literal(value_text)
-            transformed = transform_polygon(points, output_w)
+            transformed = transform_polygon(points)
             if transformed is None:
-                cur.execute("DELETE FROM polygon_annotation WHERE id = %s", (pid,))
+                if not no_delete:
+                    cur.execute("DELETE FROM polygon_annotation WHERE id = %s", (pid,))
                 polys_dropped += 1
                 continue
             cur.execute(
@@ -242,18 +211,22 @@ def update_annotations(conn, task_id: int, output_w: int) -> tuple[int, int, int
             )
             polys_kept += 1
 
-        # task.annotation_count = surviving rects + polys + untouched classifications
+        # task.annotation_count = surviving rects + polys + classifications.
+        # Rects/classifications are untouched here, so just recount.
         cur.execute(
-            "SELECT COUNT(*) FROM classification_annotation WHERE task_id = %s",
-            (task_id,),
+            "SELECT "
+            "  (SELECT COUNT(*) FROM rectangle_annotation WHERE task_id = %s) "
+            "+ (SELECT COUNT(*) FROM polygon_annotation WHERE task_id = %s) "
+            "+ (SELECT COUNT(*) FROM classification_annotation WHERE task_id = %s)",
+            (task_id, task_id, task_id),
         )
-        class_count = cur.fetchone()[0]
+        total = cur.fetchone()[0]
         cur.execute(
             "UPDATE task SET annotation_count = %s, width = %s, height = %s WHERE id = %s",
-            (rects_kept + polys_kept + class_count, output_w, TARGET_SIZE, task_id),
+            (total, output_w, TARGET_SIZE, task_id),
         )
 
-    return rects_kept, rects_dropped, polys_kept, polys_dropped
+    return polys_kept, polys_dropped
 
 
 def rotate_and_crop_jpeg(buffer: bytes) -> tuple[bytes, int]:
@@ -298,6 +271,7 @@ def process_task(
     backup_dir: Path,
     skip_thumbnails: bool,
     dry_run: bool,
+    no_delete: bool,
 ) -> dict:
     """Process a single task. Returns a result dict for the summary log."""
     asset_path = parse_object_path(task.file_path, bucket.name)
@@ -336,16 +310,14 @@ def process_task(
                 "image_dims": [in_w, in_h],
                 "db_dims": [task.width, task.height],
             }
-        counts = update_annotations(conn, task.id, in_w)
+        polys_kept, polys_dropped = update_annotations(conn, task.id, in_w, no_delete)
         conn.commit()
         return {
             "task_id": task.id,
             "status": "recovered",
             "output_dims": [in_w, in_h],
-            "rects_kept": counts[0],
-            "rects_dropped": counts[1],
-            "polys_kept": counts[2],
-            "polys_dropped": counts[3],
+            "polys_kept": polys_kept,
+            "polys_dropped": polys_dropped,
         }
 
     if not dry_run:
@@ -375,32 +347,26 @@ def process_task(
         thumb_blob.upload_from_string(thumb_bytes, content_type="image/webp")
         thumb_blob.make_public()
 
-    counts = update_annotations(conn, task.id, output_w)
+    polys_kept, polys_dropped = update_annotations(conn, task.id, output_w, no_delete)
     conn.commit()
 
     return {
         "task_id": task.id,
         "status": "ok",
         "output_dims": [output_w, TARGET_SIZE],
-        "rects_kept": counts[0],
-        "rects_dropped": counts[1],
-        "polys_kept": counts[2],
-        "polys_dropped": counts[3],
+        "polys_kept": polys_kept,
+        "polys_dropped": polys_dropped,
     }
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument(
-        "task_ids",
-        nargs="?",
-        help="JSON file with an array of integer task ids. Omit when using --project-id/--max-iid.",
-    )
-    parser.add_argument("--project-id", type=int, help="Filter by project id (use with --max-iid).")
+    parser.add_argument("--project-id", type=int, required=True, help="Project id to filter on.")
     parser.add_argument(
         "--max-iid",
         type=int,
-        help="Include tasks whose numeric iid is <= this value (use with --project-id).",
+        required=True,
+        help="Include tasks whose numeric iid is <= this value.",
     )
     parser.add_argument("--bucket", default=os.environ.get("BUCKET_NAME", "robopipe-staging-assets"))
     parser.add_argument("--database-url", default=os.environ.get("DATABASE_URL"))
@@ -408,6 +374,12 @@ def main() -> int:
     parser.add_argument("--limit", type=int, default=None, help="Only process the first N ids (for testing)")
     parser.add_argument("--dry-run", action="store_true", help="Skip GCS writes and DB writes")
     parser.add_argument("--no-thumbnails", action="store_true", help="Skip regenerating thumbnails")
+    parser.add_argument(
+        "--no-delete",
+        action="store_true",
+        help="Don't DELETE polygon rows whose transform clips to empty — leave them in place. "
+        "Useful for a safety-first first pass; counts still report which rows would have been dropped.",
+    )
     parser.add_argument(
         "--failures-log",
         default=str(REPO_ROOT / "rotation_failures.json"),
@@ -432,17 +404,6 @@ def main() -> int:
     import psycopg
     from google.cloud import storage
 
-    using_iid_filter = args.project_id is not None or args.max_iid is not None
-    if using_iid_filter and (args.project_id is None or args.max_iid is None):
-        print("--project-id and --max-iid must be used together.", file=sys.stderr)
-        return 2
-    if using_iid_filter and args.task_ids:
-        print("Pass either a task_ids JSON file OR --project-id/--max-iid, not both.", file=sys.stderr)
-        return 2
-    if not using_iid_filter and not args.task_ids:
-        print("Provide either a task_ids JSON file or --project-id and --max-iid.", file=sys.stderr)
-        return 2
-
     backup_dir = Path(args.backup_dir).resolve()
     backup_dir.mkdir(parents=True, exist_ok=True)
 
@@ -450,6 +411,8 @@ def main() -> int:
     print(f"Backup dir: {backup_dir}")
     if args.dry_run:
         print("DRY RUN — no GCS or DB writes.")
+    if args.no_delete:
+        print("NO-DELETE mode — polygons that clip to empty will be left in place.")
 
     storage_client = storage.Client()
     bucket = storage_client.bucket(args.bucket)
@@ -457,11 +420,8 @@ def main() -> int:
     # autocommit=False; we commit per task at the end of process_task
     conn = psycopg.connect(args.database_url, autocommit=False)
     try:
-        if using_iid_filter:
-            ids = query_task_ids_by_iid(conn, args.project_id, args.max_iid)
-            print(f"Found {len(ids)} tasks in project {args.project_id} with iid <= {args.max_iid}")
-        else:
-            ids = load_task_ids(Path(args.task_ids))
+        ids = query_task_ids_by_iid(conn, args.project_id, args.max_iid)
+        print(f"Found {len(ids)} tasks in project {args.project_id} with iid <= {args.max_iid}")
         if args.limit:
             ids = ids[: args.limit]
         if not ids:
@@ -494,6 +454,7 @@ def main() -> int:
                     backup_dir=backup_dir,
                     skip_thumbnails=args.no_thumbnails,
                     dry_run=args.dry_run,
+                    no_delete=args.no_delete,
                 )
             except Exception as e:
                 conn.rollback()
