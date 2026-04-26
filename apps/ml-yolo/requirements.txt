@@ -18,9 +18,7 @@ ultralytics==8.3.160
 torch==2.9.0
 torchvision==0.24.0
 
-# Model conversion and export. Ultralytics ONNX export auto-installs
-# onnxslim + onnxruntime at runtime but NOT onnxscript — pin all three
-# up front so the torch.onnx.export() dynamo path works.
+# Model conversion and export.
 #
 # onnx is pinned to 1.16.2 — the LAST version where `onnx.helper` still
 # exposes the float-conversion helpers `float32_to_bfloat16`,
@@ -33,14 +31,20 @@ torchvision==0.24.0
 # source. We don't use any onnx 1.17+ feature in this pipeline (ONNX is
 # just the intermediate format we hand to hubai-sdk for RVC4 conversion).
 #
-# onnxscript is held back to 0.5.4 — its 0.6+ releases require onnx>=1.17.
-# 0.5.4 still satisfies the torch.onnx dynamo-export path and accepts
-# onnx>=1.16, so it's the newest version compatible with the onnx pin.
+# onnxscript is INTENTIONALLY OMITTED. Ultralytics calls
+# `torch.onnx.export(dynamo=False)` which is supposed to use the legacy
+# TorchScript exporter, but in torch 2.9 the export pipeline still runs
+# onnxscript's optimization passes IF onnxscript is installed — including
+# `_ConvertVersionPassRequiresInline`, which crashes on YOLO graphs with
+# the inlined NMS/DFL head. Removing onnxscript forces the truly-legacy
+# path, which doesn't need it. Verified: nothing else in our requirements
+# (torch, ultralytics, onnxruntime, onnxslim, onnxsim, hubai-sdk,
+# luxonis-ml) declares onnxscript as a dependency. onnx_ir is transitive
+# from onnxscript and disappears with it.
 onnx==1.16.2
 onnxsim==0.4.36
 onnxslim==0.1.91
 onnxruntime==1.23.0
-onnxscript==0.5.4
 
 # HubAI SDK for RVC2/3/4 conversion.
 # hubai-sdk imports `Kwargs` from luxonis_ml.typing. That symbol only
