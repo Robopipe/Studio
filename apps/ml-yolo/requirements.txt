@@ -14,9 +14,18 @@ python-multipart==0.0.17
 # 8.3.160 decouples the confusion matrix update from args.plots (so the CM
 # is populated even without plot files) and fixes the epoch-47 validation
 # plot broadcast crash. Still numpy-1.x compatible.
+#
+# torch is PINNED to 2.8.0 (not 2.9). In torch 2.9, `torch.onnx.export`
+# hard-imports `onnxscript` even on the legacy `dynamo=False` path, and
+# then runs onnxscript's optimization pipeline including
+# `_ConvertVersionPassRequiresInline`, which crashes on YOLO graphs with
+# the inlined NMS/DFL head. Removing onnxscript breaks the import; keeping
+# it triggers the crash. torch 2.8's legacy exporter is pure TorchScript
+# with zero onnxscript involvement, sidestepping the trap entirely. Bump
+# only when ultralytics or torch fix the upstream interaction.
 ultralytics==8.3.160
-torch==2.9.0
-torchvision==0.24.0
+torch==2.8.0
+torchvision==0.23.0
 
 # Model conversion and export.
 #
@@ -31,16 +40,11 @@ torchvision==0.24.0
 # source. We don't use any onnx 1.17+ feature in this pipeline (ONNX is
 # just the intermediate format we hand to hubai-sdk for RVC4 conversion).
 #
-# onnxscript is INTENTIONALLY OMITTED. Ultralytics calls
-# `torch.onnx.export(dynamo=False)` which is supposed to use the legacy
-# TorchScript exporter, but in torch 2.9 the export pipeline still runs
-# onnxscript's optimization passes IF onnxscript is installed — including
-# `_ConvertVersionPassRequiresInline`, which crashes on YOLO graphs with
-# the inlined NMS/DFL head. Removing onnxscript forces the truly-legacy
-# path, which doesn't need it. Verified: nothing else in our requirements
-# (torch, ultralytics, onnxruntime, onnxslim, onnxsim, hubai-sdk,
-# luxonis-ml) declares onnxscript as a dependency. onnx_ir is transitive
-# from onnxscript and disappears with it.
+# onnxscript is INTENTIONALLY OMITTED. With torch pinned to 2.8 (see the
+# torch comment above), the `dynamo=False` legacy exporter is pure
+# TorchScript and never imports onnxscript. Installing it would only
+# bring back the `_ConvertVersionPassRequiresInline` crash on YOLO
+# graphs. onnx_ir is transitive from onnxscript and disappears with it.
 onnx==1.16.2
 onnxsim==0.4.36
 onnxslim==0.1.91
