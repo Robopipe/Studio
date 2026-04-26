@@ -187,6 +187,15 @@ export const evalLimitCreateOrUpdateSchema = evalLimitSchema
       .array(),
   });
 
+export const evalTestCaseFullCreateOrUpdateSchema = evalTestCaseDetailSchema.pick({
+  name: true,
+  type: true,
+  severity: true,
+}).extend({
+  logicNodes: evalLogicNodeSchema.array().optional(),
+  limits: evalLimitCreateOrUpdateSchema.extend({id: z.uuidv7().nullish()}).array().optional()
+})
+
 export const evalThresholdCreateOrUpdateSchema = evalThresholdSchema.pick({
   name: true,
   color: true,
