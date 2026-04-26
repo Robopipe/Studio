@@ -130,11 +130,20 @@ def run_training(config: ModelConfig) -> None:
             model.train(**train_kwargs)
 
             # 6) Export best weights → ONNX (decode in-graph, compatible with HubAI RVC4).
+            #
+            # `simplify=False` is intentional: with simplify=True, ultralytics'
+            # exporter calls check_requirements(["onnxslim>=0.1.71",
+            # "onnxruntime-gpu"]) at runtime. On Cloud Batch (GPU detected) it
+            # then pip-installs onnxruntime-gpu, whose resolver bumps a
+            # transitive package that imports `float32_to_float8e4m3` from
+            # `onnx.helper` — a symbol removed in onnx 1.17. The export then
+            # crashes 15s in. hubai-sdk's RVC4 converter does its own graph
+            # cleanup, so the slimming step here is redundant for our path.
             save_dir = Path(model.trainer.save_dir)
             best_pt = save_dir / "weights" / "best.pt"
             print(f"[ml-yolo] Exporting ONNX from {best_pt}")
             best = YOLO(str(best_pt))
-            onnx_path = str(best.export(format="onnx", simplify=True, opset=12, dynamic=False))
+            onnx_path = str(best.export(format="onnx", simplify=False, opset=12, dynamic=False))
             print(f"[ml-yolo] ONNX written to {onnx_path}")
 
             if webhook_url is None:
