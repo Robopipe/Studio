@@ -17,6 +17,7 @@ from ..config import get_config
 from ..models.model_config import ModelConfig
 from ..models.model_type import ModelOutputType
 from ..models.training_config import OutputUpload
+from .archive_patch import patch_nn_archive_heads
 from .dataset import prepare_dataset
 from .model_conversion import convert_model
 from .preprocess import preprocess_dataset
@@ -186,6 +187,14 @@ def run_training(config: ModelConfig) -> None:
                     path=onnx_path,
                     output_dir=os.path.join(workdir, "converted", output_type.value),
                     target_format=output_type,
+                )
+                # HubAI's RVC4 archive lacks a `heads` block for plain
+                # Ultralytics ONNX inputs; the camera-side parser then
+                # crashes on deploy. Patch in-place before upload.
+                patch_nn_archive_heads(
+                    res.downloaded_path,
+                    config.type,
+                    config.training_config.dataset_config.label_ids,
                 )
                 conv_upload = upload_for(output_type)
                 _upload_to_signed_url(conv_upload, res.downloaded_path)
