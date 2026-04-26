@@ -73,3 +73,6 @@ infra/terraform.tfstate.backup
 infra/.terraform
 
 .claude/settings.local.json
+.rotation-backup
+restore_failures.json
+rotation_failures.json
