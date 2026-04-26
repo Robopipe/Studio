@@ -139,11 +139,19 @@ def run_training(config: ModelConfig) -> None:
             # `onnx.helper` — a symbol removed in onnx 1.17. The export then
             # crashes 15s in. hubai-sdk's RVC4 converter does its own graph
             # cleanup, so the slimming step here is redundant for our path.
+            #
+            # `opset=18` because torch 2.9's ONNX exporter generates at opset
+            # 18 natively. Asking for opset <18 (we used to pin 12) triggers
+            # onnxscript's version_converter to downconvert, and the
+            # `_ConvertVersionPassRequiresInline` pass crashes on the YOLO
+            # graph. 18 is what the exporter would have produced anyway, just
+            # without the failing post-export downgrade. hubai-sdk's RVC4
+            # converter accepts modern opsets.
             save_dir = Path(model.trainer.save_dir)
             best_pt = save_dir / "weights" / "best.pt"
             print(f"[ml-yolo] Exporting ONNX from {best_pt}")
             best = YOLO(str(best_pt))
-            onnx_path = str(best.export(format="onnx", simplify=False, opset=12, dynamic=False))
+            onnx_path = str(best.export(format="onnx", simplify=False, opset=18, dynamic=False))
             print(f"[ml-yolo] ONNX written to {onnx_path}")
 
             if webhook_url is None:
