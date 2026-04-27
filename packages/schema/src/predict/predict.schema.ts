@@ -40,6 +40,7 @@ export const mlInferPredictRequestSchema = z.object({
   conf: z.number().min(0).max(1).optional(),
   iou: z.number().min(0).max(1).optional(),
   polyEpsilon: z.number().min(0).max(0.05).optional(),
+  maxDet: z.number().int().min(1).max(10000).optional(),
 });
 
 export const mlInferPredictedPolygonSchema = z.object({

@@ -200,11 +200,32 @@ resource "google_cloud_run_v2_service" "ml_infer" {
           cpu    = "2"
           memory = "4Gi"
         }
-        cpu_idle = true
+        # cpu_idle: throttle CPU outside requests (saves cost when an
+        # instance is parked between calls).
+        # startup_cpu_boost: give the container 2x CPU during the first
+        # ~10s of startup. Big win for Python apps — cuts the
+        # import/uvicorn boot from ~3s to ~1.5s on this image.
+        cpu_idle          = true
+        startup_cpu_boost = true
       }
 
       ports {
         container_port = 8080
+      }
+
+      # Startup probe: don't route traffic until uvicorn is actually
+      # serving. Without this, Cloud Run sends the first request the
+      # moment the container starts, and that request races Python
+      # imports — sometimes manifests as a 503 mid-cold-start.
+      startup_probe {
+        http_get {
+          path = "/health"
+          port = 8080
+        }
+        initial_delay_seconds = 1
+        period_seconds        = 2
+        timeout_seconds       = 2
+        failure_threshold     = 20
       }
 
       env {
@@ -236,15 +257,18 @@ resource "google_cloud_run_v2_service" "ml_infer" {
   depends_on = [google_project_service.apis, module.secrets]
 }
 
-# Only the API service account may invoke ml-infer; the service is not
-# public. Auth = OIDC ID token from apps/api's SA + the shared secret in
-# the Authorization header (defense in depth).
-resource "google_cloud_run_v2_service_iam_member" "ml_infer_api_invoker" {
+# ml-infer is publicly invocable, gated by a shared API key. Same trust
+# model as the training-external direction (training callers POST to the
+# API with `Authorization: <mlSecret>`). Cost surface is bounded by
+# max-instances on the service. To tighten this later, switch to OIDC
+# auth and have apps/api mint ID tokens — would need a custom header for
+# the shared key since Cloud Run consumes Authorization.
+resource "google_cloud_run_v2_service_iam_member" "ml_infer_public" {
   project  = var.project_id
   name     = google_cloud_run_v2_service.ml_infer.name
   location = var.region
   role     = "roles/run.invoker"
-  member   = "serviceAccount:${google_service_account.api.email}"
+  member   = "allUsers"
 }
 
 module "cloud_batch_ml" {

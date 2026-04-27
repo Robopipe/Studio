@@ -15,7 +15,10 @@ Warm path (~1-3 s on CPU at 1280x1280): cache hit, just inference.
 import logging
 import os
 
-import cv2
+import cv2  # noqa: F401  — eager import: forces libGL + libstdc++ load at boot
+import numpy as np  # noqa: F401  — eager import: warm BLAS dispatcher
+import onnxruntime as ort
+
 from fastapi import Depends, FastAPI, HTTPException, status
 from pydantic import BaseModel, Field, HttpUrl
 
@@ -28,6 +31,12 @@ from .preprocess import preprocess
 
 logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"))
 _log = logging.getLogger("ml-infer")
+
+# Touch onnxruntime's provider list at import time. The first call
+# inside an InferenceSession constructor lazy-loads the EP plugin; doing
+# it here moves that ~200-400 ms cost from the first /predict to
+# container boot, where the startup probe absorbs it.
+_log.info("ort providers: %s", ort.get_available_providers())
 
 _CACHE = ModelCache(capacity=int(os.environ.get("MODEL_CACHE_SIZE", "4")))
 

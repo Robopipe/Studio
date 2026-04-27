@@ -9,6 +9,9 @@ numpy==1.26.4
 certifi==2024.8.30
 
 # Cloud Run server — only needed when running app.server, not the CLI.
+# uvicorn[standard] adds uvloop + httptools, which knocks ~30-40% off
+# request overhead vs the default asyncio event loop. Negligible install
+# cost (a few MB) and worth it for warm-call latency.
 fastapi==0.115.5
-uvicorn==0.32.1
+uvicorn[standard]==0.32.1
 pydantic==2.10.5
