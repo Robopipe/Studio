@@ -54,6 +54,10 @@ export const appConfigSchema = z.object({
   cookieSecret: z.string(),
   sendgridApiKey: z.string().optional(),
   sendgridFromEmail: z.string().optional(),
+  // ml-infer Cloud Run service for on-demand pre-annotation. mlInferUrl
+  // empty disables the predict endpoint (local dev without the service).
+  mlInferUrl: z.string().optional(),
+  mlInferApiKey: z.string(),
 });
 
 export class AppConfig extends createZodDto(appConfigSchema) {}

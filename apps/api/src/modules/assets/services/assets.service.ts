@@ -102,6 +102,41 @@ export class AssetsService {
   }
 
   /**
+   * Generate a short-lived signed read URL. Used to hand the ml-infer
+   * Cloud Run service a fetch token for an image or model archive
+   * without granting it persistent IAM on the bucket.
+   * @param assetName - GCS object path or full GCS URL
+   * @param expiresInMs - URL expiration (default 5 minutes)
+   */
+  public async generateSignedDownloadUrl(
+    assetName: string,
+    expiresInMs: number = 5 * 60 * 1000,
+  ): Promise<string> {
+    const objectPath = this.toObjectPath(assetName);
+    const file = this.bucket.file(objectPath);
+    const [signedUrl] = await file.getSignedUrl({
+      version: "v4",
+      action: "read",
+      expires: Date.now() + expiresInMs,
+    });
+    return signedUrl;
+  }
+
+  private toObjectPath(input: string): string {
+    if (!input.startsWith("http")) return input;
+    try {
+      const url = new URL(input);
+      const prefix = `/${this.bucket.name}/`;
+      if (url.pathname.startsWith(prefix)) {
+        return decodeURIComponent(url.pathname.slice(prefix.length));
+      }
+      return decodeURIComponent(url.pathname.replace(/^\//, ""));
+    } catch {
+      return input;
+    }
+  }
+
+  /**
    * Make an existing GCS file public and return its public URL
    * @param assetName - GCS object path
    */

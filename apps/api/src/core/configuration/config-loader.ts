@@ -56,6 +56,13 @@ export class ConfigLoader {
     const mlBatchNetwork = process.env.ML_BATCH_NETWORK || undefined;
     const mlBatchSubnetwork = process.env.ML_BATCH_SUBNETWORK || undefined;
 
+    // ml-infer Cloud Run service — on-demand pre-annotation. Optional in
+    // local dev (the prototype CLI works without it); required in deployed
+    // environments. mlInferApiKey defaults to the placeholder so an
+    // unconfigured deploy still boots and the auth check fails closed.
+    const mlInferUrl = process.env.ML_INFER_URL || undefined;
+    const mlInferApiKey = process.env.ML_INFER_API_KEY || "supersecret";
+
     const config:Record<string, string|number|undefined> = {
       env,
       databaseUrl,
@@ -88,6 +95,8 @@ export class ConfigLoader {
       mlBatchHubaiApiKeySecret,
       mlBatchNetwork,
       mlBatchSubnetwork,
+      mlInferUrl,
+      mlInferApiKey,
     }
 
     return config;

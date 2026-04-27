@@ -17,7 +17,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --timeout=120 --retries=5 -r requirements.txt
 
 # luxonis/tools — used at export time to convert Ultralytics .pt to a
 # multi-output ONNX + NN archive with proper `heads` metadata. Lives in
@@ -32,12 +32,23 @@ RUN pip install --no-cache-dir -r requirements.txt
 # that exporter output names still match what depthai_nodes' YOLO
 # parsers filter on by substring (`_yolo`, `_masks`, etc.) — that
 # convention is the entire reason we use tools.
+#
+# Pre-install torch CPU-only BEFORE letting tools resolve its deps.
+# Otherwise pip's resolver pulls the default torch wheel for the build
+# platform, which on linux/aarch64 (and amd64 for newer torch versions)
+# transitively brings nvidia_cublas / cusolver / cudnn — ~1 GB of CUDA
+# wheels we never use, since the export step is CPU-only. tools'
+# `torch>=2.0.0` constraint is satisfied by the pre-installed 2.8.0+cpu
+# wheel, so the subsequent `pip install .` skips torch reinstallation.
 RUN python3 -m venv /opt/tools-venv && \
+    /opt/tools-venv/bin/pip install --no-cache-dir --timeout=120 --retries=5 \
+        --index-url https://download.pytorch.org/whl/cpu \
+        torch==2.8.0+cpu torchvision==0.23.0+cpu && \
     git clone https://github.com/luxonis/tools.git /tmp/luxonis-tools && \
     cd /tmp/luxonis-tools && \
     git checkout edbe7da1a7f75833a71d65caf1028036faa81061 && \
     git submodule update --init --recursive && \
-    PIP_CONSTRAINT=constraints.txt /opt/tools-venv/bin/pip install --no-cache-dir . && \
+    PIP_CONSTRAINT=constraints.txt /opt/tools-venv/bin/pip install --no-cache-dir --timeout=120 --retries=5 . && \
     rm -rf /tmp/luxonis-tools
 
 ENV ROBOPIPE_TOOLS_BIN=/opt/tools-venv/bin/tools

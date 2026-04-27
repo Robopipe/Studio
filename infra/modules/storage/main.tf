@@ -38,8 +38,8 @@ resource "google_storage_bucket" "assets" {
 
   lifecycle_rule {
     condition {
-      age                = 7
-      matches_prefix     = ["training-configs/"]
+      age            = 7
+      matches_prefix = ["training-configs/"]
     }
     action {
       type = "Delete"

@@ -23,3 +23,9 @@ variable "cloud_build_sa" {
   type        = string
   default     = ""
 }
+
+variable "ml_infer_service_account" {
+  description = "ml-infer Cloud Run SA email; granted access to mlInferApiKey"
+  type        = string
+  default     = ""
+}

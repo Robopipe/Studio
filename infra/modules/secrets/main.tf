@@ -1,11 +1,12 @@
 locals {
   secrets = {
-    databaseUrl      = var.database_url
-    jwtSecret        = null # manually set after creation
-    cookieSecret     = null # manually set after creation
-    mlSecret         = null # manually set after creation
-    hubaiApiKey      = null # manually set after creation (for ML service)
-    sendgridApiKey   = null # manually set after creation
+    databaseUrl       = var.database_url
+    jwtSecret         = null # manually set after creation
+    cookieSecret      = null # manually set after creation
+    mlSecret          = null # manually set after creation
+    mlInferApiKey     = null # manually set after creation (apps/api ↔ apps/ml-infer)
+    hubaiApiKey       = null # manually set after creation (for ML service)
+    sendgridApiKey    = null # manually set after creation
     sentry-auth-token = null # manually set after creation
   }
 }
@@ -52,4 +53,13 @@ resource "google_secret_manager_secret_iam_member" "ml_access" {
   secret_id = google_secret_manager_secret.secrets[each.key].secret_id
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${var.ml_service_account}"
+}
+
+# IAM: allow the ml-infer Cloud Run SA to read its own shared-secret env.
+resource "google_secret_manager_secret_iam_member" "ml_infer_access" {
+  for_each  = var.ml_infer_service_account != "" ? toset(["mlInferApiKey"]) : toset([])
+  project   = var.project_id
+  secret_id = google_secret_manager_secret.secrets[each.key].secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${var.ml_infer_service_account}"
 }
