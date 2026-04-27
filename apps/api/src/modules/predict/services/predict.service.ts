@@ -97,6 +97,18 @@ export class PredictService {
       this.assetsService.generateSignedDownloadUrl(rawOutput.filePath),
     ]);
 
+    // model.labels is ordered by labelId ASC (see ModelRepository
+    // getByIdAndProjectId); index = classIndex from the ONNX head.
+    const labelIds = model.labels.map((l) => l.id);
+
+    // The user picks fill-concavity labels by labelId in the dialog;
+    // ml-infer needs the matching ONNX class indices. Drop labelIds the
+    // model doesn't predict — silently, since the dialog already filters
+    // to model labels and a stale id just means "skip".
+    const fillConcavityClasses = body.fillConcavityLabelIds
+      ?.map((id) => labelIds.indexOf(id))
+      .filter((idx) => idx >= 0);
+
     const payload: MlInferPredictRequest = {
       imageUrl,
       modelUrl,
@@ -112,8 +124,8 @@ export class PredictService {
       ...(body.minAreaPx !== undefined
         ? { minAreaPx: body.minAreaPx }
         : {}),
-      ...(body.fillConcavities !== undefined
-        ? { fillConcavities: body.fillConcavities }
+      ...(fillConcavityClasses && fillConcavityClasses.length > 0
+        ? { fillConcavityClasses }
         : {}),
     };
 
@@ -127,10 +139,6 @@ export class PredictService {
         },
       ),
     );
-
-    // model.labels is ordered by labelId ASC (see ModelRepository
-    // getByIdAndProjectId); index = classIndex from the ONNX head.
-    const labelIds = model.labels.map((l) => l.id);
 
     // ml-infer returns polygon vertices in original-image pixel coords.
     // The web canvas (and the rest of the labelling flow) stores polygons

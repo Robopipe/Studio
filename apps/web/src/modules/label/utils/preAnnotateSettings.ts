@@ -7,7 +7,7 @@ export type PreAnnotateSettings = {
   polyEpsilon: number;
   maskThreshold: number;
   minAreaPx: number;
-  fillConcavities: boolean;
+  fillConcavityLabelIds: number[];
 };
 
 export const DEFAULT_PRE_ANNOTATE_SETTINGS: PreAnnotateSettings = {
@@ -17,7 +17,7 @@ export const DEFAULT_PRE_ANNOTATE_SETTINGS: PreAnnotateSettings = {
   polyEpsilon: 0.005,
   maskThreshold: 0.5,
   minAreaPx: 4,
-  fillConcavities: false,
+  fillConcavityLabelIds: [],
 };
 
 export const getPreAnnotateSettingsKey = (
