@@ -14,22 +14,41 @@ python-multipart==0.0.17
 # 8.3.160 decouples the confusion matrix update from args.plots (so the CM
 # is populated even without plot files) and fixes the epoch-47 validation
 # plot broadcast crash. Still numpy-1.x compatible.
+#
+# torch is PINNED to 2.8.0 (not 2.9). In torch 2.9, `torch.onnx.export`
+# hard-imports `onnxscript` even on the legacy `dynamo=False` path, and
+# then runs onnxscript's optimization pipeline including
+# `_ConvertVersionPassRequiresInline`, which crashes on YOLO graphs with
+# the inlined NMS/DFL head. Removing onnxscript breaks the import; keeping
+# it triggers the crash. torch 2.8's legacy exporter is pure TorchScript
+# with zero onnxscript involvement, sidestepping the trap entirely. Bump
+# only when ultralytics or torch fix the upstream interaction.
 ultralytics==8.3.160
-torch==2.9.0
-torchvision==0.24.0
+torch==2.8.0
+torchvision==0.23.0
 
-# Model conversion and export. Ultralytics ONNX export auto-installs
-# onnxslim + onnxruntime at runtime but NOT onnxscript — pin all three
-# up front so the torch.onnx.export() dynamo path works.
-onnx==1.20.1
+# Model conversion and export.
+#
+# onnx is pinned to 1.16.2 — the LAST version where `onnx.helper` still
+# exposes the float-conversion helpers `float32_to_bfloat16`,
+# `float32_to_float8e4m3`, `float32_to_float8e5m2`. ONNX 1.17 removed
+# them in favour of `ml_dtypes`, but several transitive packages
+# (onnx_graphsurgeon and others pulled in if Ultralytics' runtime
+# `check_requirements` ever fires) still import the old symbols and crash
+# at import time. Pinning to 1.16.2 makes the symbols available no matter
+# which library tries to import them, killing the failure mode at the
+# source. We don't use any onnx 1.17+ feature in this pipeline (ONNX is
+# just the intermediate format we hand to hubai-sdk for RVC4 conversion).
+#
+# onnxscript is INTENTIONALLY OMITTED. With torch pinned to 2.8 (see the
+# torch comment above), the `dynamo=False` legacy exporter is pure
+# TorchScript and never imports onnxscript. Installing it would only
+# bring back the `_ConvertVersionPassRequiresInline` crash on YOLO
+# graphs. onnx_ir is transitive from onnxscript and disappears with it.
+onnx==1.16.2
 onnxsim==0.4.36
-# 0.1.80+ replaced the broken `onnx.helper.float32_to_bfloat16` reference (a
-# symbol that never existed in onnx) with a local ml_dtypes-backed converter.
-# Without this bump, hubai-sdk RVC4 conversion crashes after every training run
-# at import time when onnxslim's module-level _NUMPY_ARRAY_CONVERTERS evaluates.
 onnxslim==0.1.91
 onnxruntime==1.23.0
-onnxscript==0.7.0
 
 # HubAI SDK for RVC2/3/4 conversion.
 # hubai-sdk imports `Kwargs` from luxonis_ml.typing. That symbol only

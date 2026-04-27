@@ -6,6 +6,7 @@ of the service (api/train.py, job.py, config) stays identical.
 
 from multiprocessing import Process
 import os
+import subprocess
 import tempfile
 from pathlib import Path
 from typing import Optional
@@ -17,6 +18,7 @@ from ..config import get_config
 from ..models.model_config import ModelConfig
 from ..models.model_type import ModelOutputType
 from ..models.training_config import OutputUpload
+from .archive_patch import patch_nn_archive_heads
 from .dataset import prepare_dataset
 from .model_conversion import convert_model
 from .preprocess import preprocess_dataset
@@ -80,6 +82,97 @@ def _resolve_imgsz(config: ModelConfig) -> tuple[int, int]:
     return (640, 640)
 
 
+def _export_via_tools(
+    best_pt: Path,
+    imgsz: tuple[int, int],
+    workdir: str,
+) -> tuple[str, str]:
+    """Run luxonis/tools as a subprocess to convert a trained .pt into a
+    multi-output ONNX + NN archive whose layer names and `heads` metadata
+    match what `depthai_nodes`' parsers expect on the camera.
+
+    Returns (onnx_path, archive_path). Both are absolute paths into
+    `workdir`'s tools subtree and live until `workdir` is cleaned up.
+
+    Rationale for invoking via subprocess instead of `from tools import ...`:
+      - License isolation. tools is AGPL-3.0; importing into our process
+        would arguably link AGPL code into ml-yolo. The CLI invocation
+        keeps the boundary clean.
+      - Dep isolation. tools pins onnx==1.21.0 and pulls mmcv 1.x, both
+        of which conflict with ml-yolo's pinned stack (see the onnx pin
+        rationale below in run_training).
+
+    The tool path is taken from `ROBOPIPE_TOOLS_BIN` (set by Dockerfile
+    to /opt/tools-venv/bin/tools) so a developer can override it for
+    local testing.
+    """
+    tools_bin = os.environ.get("ROBOPIPE_TOOLS_BIN", "/opt/tools-venv/bin/tools")
+    tools_run_dir = Path(workdir) / "tools_run"
+    tools_run_dir.mkdir(parents=True, exist_ok=True)
+
+    cmd = [
+        tools_bin,
+        str(best_pt),
+        # `--no-use-rvc2` is the right setting for RVC3/RVC4 targets
+        # (the user's OAK4 hardware). Despite the flag's name, it
+        # selects a graph variant — RVC2 needs an extra `conf = max(cls)`
+        # reduction baked in; RVC3/RVC4 don't. HubAI's RVC4 compiler
+        # consumes the `--no-use-rvc2` ONNX cleanly.
+        "--no-use-rvc2",
+        "--imgsz",
+        f"{imgsz[0]} {imgsz[1]}",
+    ]
+    print(f"[ml-yolo] luxonis/tools cmd: {' '.join(cmd)} (cwd={tools_run_dir})")
+
+    result = subprocess.run(
+        cmd,
+        cwd=str(tools_run_dir),
+        capture_output=True,
+        text=True,
+    )
+    # Always surface tool output so failures and version mismatches are
+    # debuggable from the training job logs. tools logs to stderr via
+    # loguru; stdout is mostly the typer help/banner.
+    if result.stdout:
+        print(f"[ml-yolo] tools stdout:\n{result.stdout}")
+    if result.stderr:
+        print(f"[ml-yolo] tools stderr:\n{result.stderr}")
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"luxonis/tools export failed (exit {result.returncode})"
+        )
+
+    # tools writes to <cwd>/shared_with_container/outputs/<modelname>_<ts>/.
+    # We give it a fresh tools_run_dir per training job, so there should
+    # be exactly one timestamped subdir to find.
+    outputs_root = tools_run_dir / "shared_with_container" / "outputs"
+    if not outputs_root.exists():
+        raise RuntimeError(
+            f"luxonis/tools produced no outputs directory at {outputs_root}"
+        )
+    candidates = [p for p in outputs_root.iterdir() if p.is_dir()]
+    if not candidates:
+        raise RuntimeError(
+            f"luxonis/tools produced no output subdir in {outputs_root}"
+        )
+    if len(candidates) > 1:
+        # Shouldn't happen given fresh tools_run_dir, but be explicit.
+        candidates.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+    out_dir = candidates[0]
+
+    onnx = out_dir / f"{best_pt.stem}.onnx"
+    archive = out_dir / f"{best_pt.stem}.tar.xz"
+    if not onnx.exists() or not archive.exists():
+        produced = sorted(p.name for p in out_dir.iterdir())
+        raise RuntimeError(
+            f"luxonis/tools did not produce expected files in {out_dir}. "
+            f"Found: {produced}"
+        )
+
+    print(f"[ml-yolo] tools produced {onnx.name} and {archive.name} in {out_dir}")
+    return str(onnx), str(archive)
+
+
 def run_training(config: ModelConfig) -> None:
     cfg = get_config()
     webhook_url = cfg.webhook_url
@@ -129,13 +222,26 @@ def run_training(config: ModelConfig) -> None:
             print(f"[ml-yolo] train kwargs: {train_kwargs}")
             model.train(**train_kwargs)
 
-            # 6) Export best weights → ONNX (decode in-graph, compatible with HubAI RVC4).
+            # 6) Export best weights via luxonis/tools (subprocess, separate
+            # venv) → ONNX with multi-output naming the camera-side parsers
+            # expect, plus an NN archive with proper `heads` metadata. We
+            # feed the *archive* (not raw ONNX) to HubAI below so the heads
+            # block survives RVC4 compilation; tools' graph surgery is what
+            # makes detection, segmentation, pose, and OBB all work without
+            # us reimplementing the head layout per task type.
+            #
+            # The previous path (`best.export(format="onnx", simplify=False,
+            # opset=18, dynamic=False)`) produced a single-output Ultralytics
+            # ONNX (`output0`, shape `(1, 4+nc, num_anchors)`), which HubAI
+            # would compile but emit an archive without heads — segmentation
+            # then crashed on the camera with "No heads defined in the NN
+            # Archive." tools-produced archives carry the heads through.
             save_dir = Path(model.trainer.save_dir)
             best_pt = save_dir / "weights" / "best.pt"
-            print(f"[ml-yolo] Exporting ONNX from {best_pt}")
-            best = YOLO(str(best_pt))
-            onnx_path = str(best.export(format="onnx", simplify=True, opset=12, dynamic=False))
-            print(f"[ml-yolo] ONNX written to {onnx_path}")
+            print(f"[ml-yolo] Exporting via luxonis/tools from {best_pt}")
+            onnx_path, archive_path = _export_via_tools(
+                best_pt, _resolve_imgsz(config), workdir
+            )
 
             if webhook_url is None:
                 print("[ml-yolo] No webhook_url configured, skipping uploads")
@@ -167,10 +273,26 @@ def run_training(config: ModelConfig) -> None:
 
             for output_type in non_raw:
                 print(f"[ml-yolo] Converting to {output_type.value}")
+                # Feed HubAI the tools-produced NN archive (not raw ONNX)
+                # so the `heads` block tools generated rides through the
+                # platform-specific compile. HubAI's `is_nn_archive(path)`
+                # check picks the archive path automatically.
                 res = convert_model(
-                    path=onnx_path,
+                    path=archive_path,
                     output_dir=os.path.join(workdir, "converted", output_type.value),
                     target_format=output_type,
+                )
+                # Safety net for the case where HubAI strips heads through
+                # compilation. For tools-produced archives where heads
+                # survive, this is a no-op (idempotent on populated heads).
+                # Currently only fixes single-output Ultralytics-style
+                # detection archives; if HubAI is found to strip heads from
+                # tools-produced archives, this needs to be extended for
+                # multi-output detection AND segmentation.
+                patch_nn_archive_heads(
+                    res.downloaded_path,
+                    config.type,
+                    config.training_config.dataset_config.label_ids,
                 )
                 conv_upload = upload_for(output_type)
                 _upload_to_signed_url(conv_upload, res.downloaded_path)

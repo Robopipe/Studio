@@ -30,6 +30,28 @@ export class EvalLimitRepository {
   }
 
   /**
+   * Get all limits with their items by test case ID
+   * @param testCaseId
+   */
+  public async getAllDetailByTestCaseId(testCaseId: string): Promise<EvalLimitDetailEntity[]>{
+    const limits = await this.db.query.evalLimitTable.findMany({
+      where: {
+        testCaseId
+      },
+      with: {
+        targetLabel: true,
+        targetParentLabel: true,
+        limitItems: {
+          orderBy: (limitItem) => asc(limitItem.position)
+        }
+      },
+      orderBy: (limit) => asc(limit.createdAt)
+    })
+
+    return limits.map((limit) => new EvalLimitDetailEntity(limit as EvalLimitDetailSelect))
+  }
+
+  /**
    * Get by id and test case id
    * @param id
    * @param testCaseId
@@ -73,13 +95,15 @@ export class EvalLimitRepository {
    * Create limit
    * @param testCaseId
    * @param data - EvalLimitInsert
+   * @param idOverride - Override SQL default uuid
    * @throws InternalServerErrorException - Failed creating limit
    * @throws NotFoundException - Limit not found
    * @returns EvalLimitDetailEntity
    */
-  public async create(testCaseId: string, data: EvalLimitInsert): Promise<EvalLimitDetailEntity> {
+  public async create(testCaseId: string, data: EvalLimitInsert, idOverride?: string): Promise<EvalLimitDetailEntity> {
     const [createdLimitId] = await this.db.insert(evalLimitTable).values({
       ...data,
+      id: idOverride,
       testCaseId,
     }).returning({id: evalLimitTable.id})
 
