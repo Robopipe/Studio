@@ -82,7 +82,7 @@ export const PreAnnotateSettingsDialog = ({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1.5">
           <Label>Model</Label>
           {trainedModels.length === 0 ? (
             <p className="rounded-md border border-dashed border-black/10 bg-black/[0.03] px-3 py-2 text-sm text-muted-foreground">
@@ -90,29 +90,44 @@ export const PreAnnotateSettingsDialog = ({
               first.
             </p>
           ) : (
-            <Select
-              value={modelId == null ? "" : String(modelId)}
-              onValueChange={(value) =>
-                setModelId(value ? Number(value) : null)
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select a model" />
-              </SelectTrigger>
-              <SelectContent>
-                {trainedModels.map((m) => (
-                  <SelectItem key={m.id} value={String(m.id)}>
-                    {m.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <>
+              <Select
+                value={modelId == null ? "" : String(modelId)}
+                onValueChange={(value) =>
+                  setModelId(value ? Number(value) : null)
+                }
+              >
+                <SelectTrigger>
+                  {/* Base UI's SelectValue renders the raw `value` unless
+                      we pass a render function. Map id → human name. */}
+                  <SelectValue placeholder="Select a model">
+                    {(value: string) => {
+                      const id = Number(value);
+                      const sel = trainedModels.find((m) => m.id === id);
+                      return sel ? sel.name : "Select a model";
+                    }}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {trainedModels.map((m) => (
+                    <SelectItem key={m.id} value={String(m.id)}>
+                      {m.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Pick any trained segmentation model from this project. Each
+                model is downloaded and cached on first use, so re-using the
+                same one across tasks is fastest.
+              </p>
+            </>
           )}
         </div>
 
         {selectedModel && (
-          <div className="flex flex-col gap-2">
-            <Label>Trained on labels</Label>
+          <div className="flex flex-col gap-1.5">
+            <Label>Predicted labels</Label>
             <div className="flex flex-wrap gap-1.5">
               {selectedModel.labels.length === 0 ? (
                 <span className="text-sm text-muted-foreground">
@@ -134,13 +149,17 @@ export const PreAnnotateSettingsDialog = ({
                 ))
               )}
             </div>
+            <p className="text-xs text-muted-foreground">
+              The labels this model was trained on. Predicted polygons are
+              attached to these labels in the same order.
+            </p>
           </div>
         )}
 
         <div className="flex flex-col gap-5">
           <SliderRow
             label="Confidence"
-            help="Minimum class score for a polygon to survive"
+            help="Drop predictions below this score. Lower captures more shapes but lets in more false positives."
             value={conf}
             min={0}
             max={1}
@@ -150,7 +169,7 @@ export const PreAnnotateSettingsDialog = ({
           />
           <SliderRow
             label="IoU"
-            help="Non-max suppression threshold"
+            help="Suppresses overlapping detections of the same object. Higher keeps more near-duplicates; lower is stricter."
             value={iou}
             min={0}
             max={1}
@@ -160,7 +179,7 @@ export const PreAnnotateSettingsDialog = ({
           />
           <SliderRow
             label="Polygon detail"
-            help="Lower = more vertices, follows curves more closely"
+            help="How tightly each polygon follows the model's mask. Lower = more vertices and smoother curves; higher = simpler shapes."
             value={polyEpsilon}
             min={0}
             max={0.02}
@@ -207,12 +226,9 @@ const SliderRow = ({
   display,
   onChange,
 }: SliderRowProps) => (
-  <div className="flex flex-col gap-2">
+  <div className="flex flex-col gap-1.5">
     <div className="flex items-baseline justify-between gap-3">
-      <div className="flex flex-col gap-0.5">
-        <Label>{label}</Label>
-        <span className="text-xs text-muted-foreground">{help}</span>
-      </div>
+      <Label>{label}</Label>
       <span className="font-mono text-sm tabular-nums">{display}</span>
     </div>
     <Slider
@@ -225,5 +241,6 @@ const SliderRow = ({
         if (typeof v === "number") onChange(v);
       }}
     />
+    <p className="text-xs text-muted-foreground">{help}</p>
   </div>
 );

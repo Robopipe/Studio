@@ -222,7 +222,7 @@ export const LabelPage = () => {
     handleSave({ reviewed: true });
   }, [handleSave]);
 
-  const handlePreAnnotate = useCallback(async () => {
+  const handlePreAnnotate = useCallback(() => {
     if (
       !projectId ||
       selectedTaskId === null ||
@@ -231,57 +231,67 @@ export const LabelPage = () => {
     ) {
       return;
     }
-    try {
-      const result = await predictAnnotations({
-        projectId,
-        taskId: selectedTaskId,
-        body: {
-          modelId: preAnnotateSettings.modelId,
-          conf: preAnnotateSettings.conf,
-          iou: preAnnotateSettings.iou,
-          polyEpsilon: preAnnotateSettings.polyEpsilon,
-        },
-      }).unwrap();
 
-      const labelById = new Map(labels.map((l) => [l.id, l]));
-      const stamp = Date.now();
-      const newAnnotations: Annotation[] = result.polygons.flatMap((p, idx) => {
-        const label = labelById.get(p.labelId);
-        if (!label) return [];
-        return [
-          {
-            id: `pred-${stamp}-${idx}`,
-            apiId: undefined,
-            labelId: String(label.id),
-            labelName: label.name,
-            color: label.color,
-            type: "polygon",
-            points: p.value,
-          },
-        ];
+    const labelById = new Map(labels.map((l) => [l.id, l]));
+    const stamp = Date.now();
+    const toastId = toast.loading("Pre-annotating...");
+
+    predictAnnotations({
+      projectId,
+      taskId: selectedTaskId,
+      body: {
+        modelId: preAnnotateSettings.modelId,
+        conf: preAnnotateSettings.conf,
+        iou: preAnnotateSettings.iou,
+        polyEpsilon: preAnnotateSettings.polyEpsilon,
+      },
+    })
+      .unwrap()
+      .then((result) => {
+        const newAnnotations: Annotation[] = result.polygons.flatMap((p, idx) => {
+          const label = labelById.get(p.labelId);
+          if (!label) return [];
+          return [
+            {
+              id: `pred-${stamp}-${idx}`,
+              apiId: undefined,
+              labelId: String(label.id),
+              labelName: label.name,
+              color: label.color,
+              type: "polygon",
+              points: p.value,
+            },
+          ];
+        });
+
+        // Pre-annotate is "load a starting state" rather than a per-action
+        // edit. Replace annotations wholesale, mark the task dirty so the
+        // Save button lights up, and reset history so Undo/Redo only
+        // tracks corrections the user makes from here.
+        setAnnotations(newAnnotations);
+        setIsDirty(true);
+        history.reset();
+        setSelectedAnnotationId(null);
+
+        if (newAnnotations.length === 0) {
+          toast.info("No predictions above the confidence threshold", {
+            id: toastId,
+            description:
+              "Try lowering Confidence in the pre-annotate settings.",
+          });
+        } else {
+          toast.success(
+            `Pre-annotated ${newAnnotations.length} polygon${newAnnotations.length === 1 ? "" : "s"}`,
+            { id: toastId },
+          );
+        }
+      })
+      .catch((err: unknown) => {
+        const message =
+          (err as { data?: { message?: string } })?.data?.message ??
+          "Pre-annotation failed";
+        toast.error(message, { id: toastId });
       });
-
-      // Pre-annotate is "load a starting state" rather than a per-action
-      // edit. Replace annotations wholesale, mark the task dirty so the
-      // Save button lights up, and reset the history so Undo/Redo only
-      // tracks corrections the user makes from here. The user can still
-      // delete individual predicted polygons one by one.
-      setAnnotations(newAnnotations);
-      setIsDirty(true);
-      history.reset();
-      setSelectedAnnotationId(null);
-
-      if (newAnnotations.length === 0) {
-        toast.info("No predictions above the confidence threshold");
-      } else {
-        toast.success(`Pre-annotated ${newAnnotations.length} polygons`);
-      }
-    } catch (err) {
-      const message =
-        (err as { data?: { message?: string } })?.data?.message ??
-        "Pre-annotation failed";
-      toast.error(message);
-    }
   }, [
     projectId,
     selectedTaskId,
