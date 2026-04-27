@@ -244,6 +244,9 @@ export const LabelPage = () => {
         conf: preAnnotateSettings.conf,
         iou: preAnnotateSettings.iou,
         polyEpsilon: preAnnotateSettings.polyEpsilon,
+        maskThreshold: preAnnotateSettings.maskThreshold,
+        minAreaPx: preAnnotateSettings.minAreaPx,
+        fillConcavities: preAnnotateSettings.fillConcavities,
       },
     })
       .unwrap()

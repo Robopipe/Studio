@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/modules/shadcn/ui/select";
 import { Slider } from "@/modules/shadcn/ui/slider";
+import { Switch } from "@/modules/shadcn/ui/switch";
 import { Model, ModelStatusEnum } from "@repo/schema";
 import { useEffect, useState } from "react";
 import {
@@ -50,6 +51,11 @@ export const PreAnnotateSettingsDialog = ({
   const [conf, setConf] = useState(settings.conf);
   const [iou, setIou] = useState(settings.iou);
   const [polyEpsilon, setPolyEpsilon] = useState(settings.polyEpsilon);
+  const [maskThreshold, setMaskThreshold] = useState(settings.maskThreshold);
+  const [minAreaPx, setMinAreaPx] = useState(settings.minAreaPx);
+  const [fillConcavities, setFillConcavities] = useState(
+    settings.fillConcavities,
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -57,12 +63,23 @@ export const PreAnnotateSettingsDialog = ({
     setConf(settings.conf);
     setIou(settings.iou);
     setPolyEpsilon(settings.polyEpsilon);
+    setMaskThreshold(settings.maskThreshold);
+    setMinAreaPx(settings.minAreaPx);
+    setFillConcavities(settings.fillConcavities);
   }, [open, settings]);
 
   const selectedModel = trainedModels.find((m) => m.id === modelId) ?? null;
 
   const handleSave = () => {
-    onApply({ modelId, conf, iou, polyEpsilon });
+    onApply({
+      modelId,
+      conf,
+      iou,
+      polyEpsilon,
+      maskThreshold,
+      minAreaPx,
+      fillConcavities,
+    });
     onOpenChange(false);
   };
 
@@ -71,6 +88,9 @@ export const PreAnnotateSettingsDialog = ({
     setConf(DEFAULT_PRE_ANNOTATE_SETTINGS.conf);
     setIou(DEFAULT_PRE_ANNOTATE_SETTINGS.iou);
     setPolyEpsilon(DEFAULT_PRE_ANNOTATE_SETTINGS.polyEpsilon);
+    setMaskThreshold(DEFAULT_PRE_ANNOTATE_SETTINGS.maskThreshold);
+    setMinAreaPx(DEFAULT_PRE_ANNOTATE_SETTINGS.minAreaPx);
+    setFillConcavities(DEFAULT_PRE_ANNOTATE_SETTINGS.fillConcavities);
   };
 
   return (
@@ -179,7 +199,7 @@ export const PreAnnotateSettingsDialog = ({
           />
           <SliderRow
             label="Polygon detail"
-            help="How tightly each polygon follows the model's mask. Lower = more vertices and smoother curves; higher = simpler shapes."
+            help="Vertex spacing as a fraction of the image diagonal. Lower = more vertices (large objects gain detail, small objects keep their jagged edges); higher = simpler shapes."
             value={polyEpsilon}
             min={0}
             max={0.02}
@@ -187,6 +207,42 @@ export const PreAnnotateSettingsDialog = ({
             display={formatNumber(polyEpsilon, 4)}
             onChange={setPolyEpsilon}
           />
+          <SliderRow
+            label="Mask threshold"
+            help="Probability cutoff used to turn the model's soft mask into a binary shape. Lower = polygons hug uncertain edges and grow slightly; higher = tighter, more conservative shapes."
+            value={maskThreshold}
+            min={0.05}
+            max={0.95}
+            step={0.05}
+            display={formatNumber(maskThreshold, 2)}
+            onChange={setMaskThreshold}
+          />
+          <SliderRow
+            label="Minimum polygon area"
+            help="Drop predicted polygons whose mask area (in original-image pixels²) is below this. Useful for filtering tiny noise blobs without affecting real objects."
+            value={minAreaPx}
+            min={0}
+            max={500}
+            step={5}
+            display={`${Math.round(minAreaPx)} px²`}
+            onChange={setMinAreaPx}
+          />
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between gap-3">
+              <Label htmlFor="fill-concavities">Fill concavities</Label>
+              <Switch
+                id="fill-concavities"
+                checked={fillConcavities}
+                onCheckedChange={setFillConcavities}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Wraps each polygon in its convex hull, bridging dips where the
+              mask cuts inward (e.g. a baguette's topping line). Use when you
+              label whole-object silhouettes; turn off for visible-pixels-only
+              masks.
+            </p>
+          </div>
         </div>
 
         <DialogFooter className="sm:justify-end">

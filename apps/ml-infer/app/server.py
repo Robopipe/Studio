@@ -50,6 +50,9 @@ class PredictRequest(BaseModel):
     conf: float = Field(default=0.25, ge=0.0, le=1.0)
     iou: float = Field(default=0.45, ge=0.0, le=1.0)
     polyEpsilon: float = Field(default=0.005, ge=0.0, le=0.05)
+    maskThreshold: float = Field(default=0.5, ge=0.0, le=1.0)
+    minAreaPx: float = Field(default=4.0, ge=0.0, le=10000.0)
+    fillConcavities: bool = Field(default=False)
     maxDet: int = Field(default=300, gt=0, le=10000)
 
 
@@ -122,7 +125,10 @@ def predict(req: PredictRequest) -> PredictResponse:
         conf_threshold=req.conf,
         iou_threshold=req.iou,
         max_det=req.maxDet,
+        mask_threshold=req.maskThreshold,
         poly_epsilon=req.polyEpsilon,
+        min_area_px=req.minAreaPx,
+        fill_concavities=req.fillConcavities,
     )
 
     return PredictResponse(
