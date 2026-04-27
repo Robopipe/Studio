@@ -1,4 +1,4 @@
-import { Badge } from "@/modules/shadcn/ui/badge";
+import { cn } from "@/lib/utils";
 import { Button } from "@/modules/shadcn/ui/button";
 import {
   Dialog,
@@ -16,7 +16,6 @@ import {
   SelectValue,
 } from "@/modules/shadcn/ui/select";
 import { Slider } from "@/modules/shadcn/ui/slider";
-import { Switch } from "@/modules/shadcn/ui/switch";
 import { Model, ModelStatusEnum } from "@repo/schema";
 import { useEffect, useState } from "react";
 import {
@@ -53,8 +52,8 @@ export const PreAnnotateSettingsDialog = ({
   const [polyEpsilon, setPolyEpsilon] = useState(settings.polyEpsilon);
   const [maskThreshold, setMaskThreshold] = useState(settings.maskThreshold);
   const [minAreaPx, setMinAreaPx] = useState(settings.minAreaPx);
-  const [fillConcavities, setFillConcavities] = useState(
-    settings.fillConcavities,
+  const [fillConcavityLabelIds, setFillConcavityLabelIds] = useState<number[]>(
+    settings.fillConcavityLabelIds,
   );
 
   useEffect(() => {
@@ -65,12 +64,25 @@ export const PreAnnotateSettingsDialog = ({
     setPolyEpsilon(settings.polyEpsilon);
     setMaskThreshold(settings.maskThreshold);
     setMinAreaPx(settings.minAreaPx);
-    setFillConcavities(settings.fillConcavities);
+    setFillConcavityLabelIds(settings.fillConcavityLabelIds);
   }, [open, settings]);
 
   const selectedModel = trainedModels.find((m) => m.id === modelId) ?? null;
 
+  const toggleFillConcavityLabel = (labelId: number) => {
+    setFillConcavityLabelIds((prev) =>
+      prev.includes(labelId)
+        ? prev.filter((id) => id !== labelId)
+        : [...prev, labelId],
+    );
+  };
+
   const handleSave = () => {
+    // Drop any label IDs that aren't in the currently selected model so we
+    // don't carry stale toggles forward when the user switches models.
+    const validIds = selectedModel
+      ? new Set(selectedModel.labels.map((l) => l.id))
+      : new Set<number>();
     onApply({
       modelId,
       conf,
@@ -78,7 +90,9 @@ export const PreAnnotateSettingsDialog = ({
       polyEpsilon,
       maskThreshold,
       minAreaPx,
-      fillConcavities,
+      fillConcavityLabelIds: fillConcavityLabelIds.filter((id) =>
+        validIds.has(id),
+      ),
     });
     onOpenChange(false);
   };
@@ -90,7 +104,9 @@ export const PreAnnotateSettingsDialog = ({
     setPolyEpsilon(DEFAULT_PRE_ANNOTATE_SETTINGS.polyEpsilon);
     setMaskThreshold(DEFAULT_PRE_ANNOTATE_SETTINGS.maskThreshold);
     setMinAreaPx(DEFAULT_PRE_ANNOTATE_SETTINGS.minAreaPx);
-    setFillConcavities(DEFAULT_PRE_ANNOTATE_SETTINGS.fillConcavities);
+    setFillConcavityLabelIds(
+      DEFAULT_PRE_ANNOTATE_SETTINGS.fillConcavityLabelIds,
+    );
   };
 
   return (
@@ -147,31 +163,43 @@ export const PreAnnotateSettingsDialog = ({
 
         {selectedModel && (
           <div className="flex flex-col gap-1.5">
-            <Label>Predicted labels</Label>
+            <Label>Predicted labels — click to fill concavities</Label>
             <div className="flex flex-wrap gap-1.5">
               {selectedModel.labels.length === 0 ? (
                 <span className="text-sm text-muted-foreground">
                   (none recorded)
                 </span>
               ) : (
-                selectedModel.labels.map((l) => (
-                  <Badge
-                    key={l.id}
-                    variant="outline"
-                    className="gap-1.5 px-2 py-0.5"
-                  >
-                    <span
-                      className="h-2 w-2 rounded-full"
-                      style={{ backgroundColor: l.color }}
-                    />
-                    {l.name}
-                  </Badge>
-                ))
+                selectedModel.labels.map((l) => {
+                  const active = fillConcavityLabelIds.includes(l.id);
+                  return (
+                    <button
+                      key={l.id}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => toggleFillConcavityLabel(l.id)}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-sm transition",
+                        active
+                          ? "border-primary bg-primary/10 text-foreground"
+                          : "border-border text-muted-foreground hover:bg-muted",
+                      )}
+                    >
+                      <span
+                        className="h-2 w-2 rounded-full"
+                        style={{ backgroundColor: l.color }}
+                      />
+                      {l.name}
+                    </button>
+                  );
+                })
               )}
             </div>
             <p className="text-xs text-muted-foreground">
-              The labels this model was trained on. Predicted polygons are
-              attached to these labels in the same order.
+              Selected labels get traced as their outer silhouette (convex
+              hull), bridging dips where the mask cuts inward — useful for
+              objects like a baguette where the toppings carve into the
+              mask. Unselected labels stay tight to the predicted mask.
             </p>
           </div>
         )}
@@ -227,22 +255,6 @@ export const PreAnnotateSettingsDialog = ({
             display={`${Math.round(minAreaPx)} px²`}
             onChange={setMinAreaPx}
           />
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between gap-3">
-              <Label htmlFor="fill-concavities">Fill concavities</Label>
-              <Switch
-                id="fill-concavities"
-                checked={fillConcavities}
-                onCheckedChange={setFillConcavities}
-              />
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Wraps each polygon in its convex hull, bridging dips where the
-              mask cuts inward (e.g. a baguette's topping line). Use when you
-              label whole-object silhouettes; turn off for visible-pixels-only
-              masks.
-            </p>
-          </div>
         </div>
 
         <DialogFooter className="sm:justify-end">

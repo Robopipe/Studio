@@ -52,7 +52,7 @@ class PredictRequest(BaseModel):
     polyEpsilon: float = Field(default=0.005, ge=0.0, le=0.05)
     maskThreshold: float = Field(default=0.5, ge=0.0, le=1.0)
     minAreaPx: float = Field(default=4.0, ge=0.0, le=10000.0)
-    fillConcavities: bool = Field(default=False)
+    fillConcavityClasses: list[int] = Field(default_factory=list)
     maxDet: int = Field(default=300, gt=0, le=10000)
 
 
@@ -128,7 +128,7 @@ def predict(req: PredictRequest) -> PredictResponse:
         mask_threshold=req.maskThreshold,
         poly_epsilon=req.polyEpsilon,
         min_area_px=req.minAreaPx,
-        fill_concavities=req.fillConcavities,
+        fill_concavity_classes=set(req.fillConcavityClasses),
     )
 
     return PredictResponse(
