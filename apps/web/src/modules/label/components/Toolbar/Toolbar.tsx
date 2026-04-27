@@ -4,8 +4,11 @@ import {
   Crosshair,
   Hand,
   Info,
+  Loader2,
   MousePointer2,
   Redo2,
+  Settings,
+  Sparkles,
   Trash2,
   Undo2,
   ZoomIn,
@@ -29,6 +32,11 @@ export interface ToolbarProps {
   hasLabels: boolean;
   showCrosshair: boolean;
   onToggleCrosshair: () => void;
+  onPreAnnotate: () => void;
+  onOpenPreAnnotateSettings: () => void;
+  preAnnotateDisabled: boolean;
+  preAnnotatePending: boolean;
+  preAnnotateDisabledReason?: string;
 }
 
 const toolButtonClass =
@@ -48,6 +56,11 @@ export const Toolbar = ({
   hasLabels,
   showCrosshair,
   onToggleCrosshair,
+  onPreAnnotate,
+  onOpenPreAnnotateSettings,
+  preAnnotateDisabled,
+  preAnnotatePending,
+  preAnnotateDisabledReason,
 }: ToolbarProps) => {
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
@@ -142,6 +155,27 @@ export const Toolbar = ({
           {tool.icon}
         </button>
       ))}
+      <div className="my-1 h-px bg-black/10" />
+      <button
+        type="button"
+        className={cn(
+          toolButtonClass,
+          preAnnotateDisabled && "cursor-not-allowed opacity-[0.35]",
+        )}
+        title={preAnnotateDisabledReason ?? "Pre-annotate with model"}
+        onClick={onPreAnnotate}
+        disabled={preAnnotateDisabled}
+      >
+        {preAnnotatePending ? <Loader2 className="animate-spin" /> : <Sparkles />}
+      </button>
+      <button
+        type="button"
+        className={toolButtonClass}
+        title="Pre-annotate settings"
+        onClick={onOpenPreAnnotateSettings}
+      >
+        <Settings />
+      </button>
       <button
         type="button"
         className={toolButtonClass}

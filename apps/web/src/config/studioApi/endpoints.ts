@@ -56,4 +56,8 @@ export const studioApiEndpoints = {
     uploadUrl: (projectId: number) => `captured-video/${projectId}/upload-url`,
     confirm: (projectId: number) => `captured-video/${projectId}/confirm`,
   },
+  predict: {
+    predict: (projectId: number, taskId: number) =>
+      `predict/${projectId}/${taskId}`,
+  },
 } as const;

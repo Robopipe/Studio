@@ -1,0 +1,14 @@
+# Pins match apps/ml-yolo so wheels resolve identically and we don't drag
+# numpy 2.x in via a transitive bump.
+onnxruntime==1.23.0
+opencv-python==4.11.0.86
+numpy==1.26.4
+
+# CA bundle for HTTPS downloads — Python.org macOS builds don't ship one,
+# so urllib SSL handshakes fail without this.
+certifi==2024.8.30
+
+# Cloud Run server — only needed when running app.server, not the CLI.
+fastapi==0.115.5
+uvicorn==0.32.1
+pydantic==2.10.5

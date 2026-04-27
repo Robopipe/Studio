@@ -12,6 +12,7 @@ import { EmailModule } from "./modules/email/email.module";
 import { EvalModule } from "./modules/eval/eval.module";
 import { ModelModule } from "./modules/model/model.module";
 import { OrganizationModule } from "./modules/organization/organization.module";
+import { PredictModule } from "./modules/predict/predict.module";
 import { ProjectModule } from "./modules/project/project.module";
 import { RepositoryModule } from "./repository/repository.module";
 import { TaskModule } from "./modules/task/task.module";
@@ -30,6 +31,7 @@ import { TrainingExternalModule } from "./modules/training-external/training-ext
     TaskModule,
     TrainingExternalModule,
     ModelModule,
+    PredictModule,
     DashboardModule,
     EmailModule,
     EvalModule,
