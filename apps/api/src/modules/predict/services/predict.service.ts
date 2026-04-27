@@ -122,10 +122,25 @@ export class PredictService {
     // model.labels is ordered by labelId ASC (see ModelRepository
     // getByIdAndProjectId); index = classIndex from the ONNX head.
     const labelIds = model.labels.map((l) => l.id);
+
+    // ml-infer returns polygon vertices in original-image pixel coords.
+    // The web canvas (and the rest of the labelling flow) stores polygons
+    // as percentages of width/height — see PolygonRegion's
+    // `(px / 100) * imageWidth` mapping. Convert here so predicted
+    // polygons render in the correct place and round-trip through Save.
+    const widthDivisor = task.width || 1;
+    const heightDivisor = task.height || 1;
     const polygons = response.data.polygons.flatMap((p) => {
       const labelId = labelIds[p.classIndex];
       if (labelId === undefined) return [];
-      return [{ labelId, score: p.score, value: p.value }];
+      const value = p.value.map(
+        ([x, y]) =>
+          [(x / widthDivisor) * 100, (y / heightDivisor) * 100] as [
+            number,
+            number,
+          ],
+      );
+      return [{ labelId, score: p.score, value }];
     });
 
     return { polygons };
