@@ -118,12 +118,13 @@ def decode_yolo_seg(
         if cv2.contourArea(contour) < min_area_px:
             continue
 
-        # Per-class convex hull: bridges concave dips for labels that the
-        # user wants traced as outer silhouettes (e.g. a baguette where the
-        # mask excludes the inner toppings) while leaving other labels
-        # tight to their predicted mask.
+        # Per-class concavity bridging: for labels where the user wants the
+        # outer silhouette (e.g. a baguette whose mask excludes the inner
+        # toppings), drop contour points lying inside *deep* inward dents
+        # while keeping shallow undulations. This preserves the natural
+        # curvature of the outer edge — full convex hull would flatten it.
         if fill_concavity_classes and int(class_ids[i]) in fill_concavity_classes:
-            contour = cv2.convexHull(contour)
+            contour = _bridge_deep_concavities(contour)
 
         # Image-diagonal-relative tolerance (was perimeter-relative). With
         # perimeter scaling, large and small objects ended up with similar
@@ -148,3 +149,66 @@ def decode_yolo_seg(
 
 def _sigmoid(x: np.ndarray) -> np.ndarray:
     return 1.0 / (1.0 + np.exp(-x))
+
+
+def _bridge_deep_concavities(
+    contour: np.ndarray,
+    depth_ratio: float = 0.05,
+    depth_floor_px: float = 5.0,
+) -> np.ndarray:
+    """Replace deep inward dents with a straight chord; keep shallow ones.
+
+    Uses cv2.convexityDefects to find each inward dent. A dent's "depth" is
+    the perpendicular distance from the farthest contour point to the chord
+    between the dent's hull endpoints. Dents below `max(depth_floor_px,
+    depth_ratio * bbox_diagonal)` are kept (they're noise or natural curve);
+    above that threshold the contour points strictly inside the dent are
+    dropped, leaving the two hull endpoints to form a straight bridge.
+
+    Falls back to the input contour on any OpenCV/topology corner case.
+    """
+    n = len(contour)
+    if n < 4:
+        return contour
+
+    try:
+        hull_indices = cv2.convexHull(contour, returnPoints=False)
+    except cv2.error:
+        return contour
+    if hull_indices is None or len(hull_indices) < 3:
+        return contour
+
+    try:
+        defects = cv2.convexityDefects(contour, hull_indices)
+    except cv2.error:
+        return contour
+    if defects is None:
+        return contour
+
+    _, _, w, h = cv2.boundingRect(contour)
+    bbox_diag = float((w * w + h * h) ** 0.5)
+    threshold = max(depth_floor_px, depth_ratio * bbox_diag)
+
+    keep = np.ones(n, dtype=bool)
+    for d in defects[:, 0, :]:
+        s_idx, e_idx, _far_idx, depth_q8 = (
+            int(d[0]),
+            int(d[1]),
+            int(d[2]),
+            int(d[3]),
+        )
+        if depth_q8 / 256.0 < threshold:
+            continue
+        # Drop interior contour points (s_idx, e_idx) exclusive — the hull
+        # endpoints stay and form the straight bridge across the dent.
+        i = (s_idx + 1) % n
+        while i != e_idx:
+            keep[i] = False
+            i = (i + 1) % n
+
+    if keep.all():
+        return contour
+    bridged = contour[keep]
+    if len(bridged) < 3:
+        return contour
+    return bridged
