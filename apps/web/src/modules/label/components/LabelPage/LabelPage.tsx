@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { Label } from "@repo/schema";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import { useGetTasksQuery } from "@/modules/capture/services/captureApi";
@@ -241,13 +242,15 @@ export const LabelPage = () => {
           polyEpsilon: preAnnotateSettings.polyEpsilon,
         },
       }).unwrap();
+
       const labelById = new Map(labels.map((l) => [l.id, l]));
+      const stamp = Date.now();
       const newAnnotations: Annotation[] = result.polygons.flatMap((p, idx) => {
         const label = labelById.get(p.labelId);
         if (!label) return [];
         return [
           {
-            id: `pred-${Date.now()}-${idx}`,
+            id: `pred-${stamp}-${idx}`,
             apiId: undefined,
             labelId: String(label.id),
             labelName: label.name,
@@ -257,9 +260,27 @@ export const LabelPage = () => {
           },
         ];
       });
-      newAnnotations.forEach((a) => history.addAnnotation(a));
+
+      // Pre-annotate is "load a starting state" rather than a per-action
+      // edit. Replace annotations wholesale, mark the task dirty so the
+      // Save button lights up, and reset the history so Undo/Redo only
+      // tracks corrections the user makes from here. The user can still
+      // delete individual predicted polygons one by one.
+      setAnnotations(newAnnotations);
+      setIsDirty(true);
+      history.reset();
+      setSelectedAnnotationId(null);
+
+      if (newAnnotations.length === 0) {
+        toast.info("No predictions above the confidence threshold");
+      } else {
+        toast.success(`Pre-annotated ${newAnnotations.length} polygons`);
+      }
     } catch (err) {
-      console.error("pre-annotate failed", err);
+      const message =
+        (err as { data?: { message?: string } })?.data?.message ??
+        "Pre-annotation failed";
+      toast.error(message);
     }
   }, [
     projectId,

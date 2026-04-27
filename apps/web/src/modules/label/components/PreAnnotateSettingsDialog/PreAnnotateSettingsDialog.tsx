@@ -1,3 +1,4 @@
+import { Badge } from "@/modules/shadcn/ui/badge";
 import { Button } from "@/modules/shadcn/ui/button";
 import {
   Dialog,
@@ -6,6 +7,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/modules/shadcn/ui/dialog";
+import { Label } from "@/modules/shadcn/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/modules/shadcn/ui/select";
+import { Slider } from "@/modules/shadcn/ui/slider";
 import { Model, ModelStatusEnum } from "@repo/schema";
 import { useEffect, useState } from "react";
 import {
@@ -21,8 +31,11 @@ export interface PreAnnotateSettingsDialogProps {
   onApply: (next: PreAnnotateSettings) => void;
 }
 
-const numberInputClass =
-  "w-full rounded-md border border-black/10 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none";
+const formatNumber = (value: number, digits: number) =>
+  value.toLocaleString("en-US", {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  });
 
 export const PreAnnotateSettingsDialog = ({
   open,
@@ -32,6 +45,7 @@ export const PreAnnotateSettingsDialog = ({
   onApply,
 }: PreAnnotateSettingsDialogProps) => {
   const trainedModels = models.filter((m) => m.status === ModelStatusEnum.DONE);
+
   const [modelId, setModelId] = useState<number | null>(settings.modelId);
   const [conf, setConf] = useState(settings.conf);
   const [iou, setIou] = useState(settings.iou);
@@ -69,104 +83,91 @@ export const PreAnnotateSettingsDialog = ({
         </DialogHeader>
 
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium">Model</label>
+          <Label>Model</Label>
           {trainedModels.length === 0 ? (
-            <div className="rounded-md border border-black/10 bg-black/[0.03] px-3 py-2 text-sm text-muted-foreground">
-              No trained models in this project yet. Train a segmentation
-              model first.
-            </div>
+            <p className="rounded-md border border-dashed border-black/10 bg-black/[0.03] px-3 py-2 text-sm text-muted-foreground">
+              No trained models in this project yet. Train a segmentation model
+              first.
+            </p>
           ) : (
-            <select
-              className={numberInputClass}
-              value={modelId ?? ""}
-              onChange={(e) =>
-                setModelId(e.target.value ? Number(e.target.value) : null)
+            <Select
+              value={modelId == null ? "" : String(modelId)}
+              onValueChange={(value) =>
+                setModelId(value ? Number(value) : null)
               }
             >
-              <option value="">— select a model —</option>
-              {trainedModels.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a model" />
+              </SelectTrigger>
+              <SelectContent>
+                {trainedModels.map((m) => (
+                  <SelectItem key={m.id} value={String(m.id)}>
+                    {m.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           )}
         </div>
 
         {selectedModel && (
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium">
-              Labels this model was trained on
-            </label>
-            <div className="flex flex-wrap gap-2">
+            <Label>Trained on labels</Label>
+            <div className="flex flex-wrap gap-1.5">
               {selectedModel.labels.length === 0 ? (
                 <span className="text-sm text-muted-foreground">
                   (none recorded)
                 </span>
               ) : (
                 selectedModel.labels.map((l) => (
-                  <span
+                  <Badge
                     key={l.id}
-                    className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-black/[0.03] px-3 py-1 text-xs"
+                    variant="outline"
+                    className="gap-1.5 px-2 py-0.5"
                   >
                     <span
-                      className="h-2.5 w-2.5 rounded-full"
+                      className="h-2 w-2 rounded-full"
                       style={{ backgroundColor: l.color }}
                     />
                     {l.name}
-                  </span>
+                  </Badge>
                 ))
               )}
             </div>
           </div>
         )}
 
-        <div className="grid grid-cols-3 gap-4">
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium" title="Confidence threshold (0-1)">
-              Confidence
-            </label>
-            <input
-              type="number"
-              min={0}
-              max={1}
-              step={0.05}
-              className={numberInputClass}
-              value={conf}
-              onChange={(e) => setConf(Number(e.target.value))}
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium" title="NMS IoU threshold (0-1)">
-              IoU
-            </label>
-            <input
-              type="number"
-              min={0}
-              max={1}
-              step={0.05}
-              className={numberInputClass}
-              value={iou}
-              onChange={(e) => setIou(Number(e.target.value))}
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <label
-              className="text-sm font-medium"
-              title="Polygon simplification — lower keeps more vertices"
-            >
-              Polygon ε
-            </label>
-            <input
-              type="number"
-              min={0}
-              max={0.05}
-              step={0.001}
-              className={numberInputClass}
-              value={polyEpsilon}
-              onChange={(e) => setPolyEpsilon(Number(e.target.value))}
-            />
-          </div>
+        <div className="flex flex-col gap-5">
+          <SliderRow
+            label="Confidence"
+            help="Minimum class score for a polygon to survive"
+            value={conf}
+            min={0}
+            max={1}
+            step={0.05}
+            display={formatNumber(conf, 2)}
+            onChange={setConf}
+          />
+          <SliderRow
+            label="IoU"
+            help="Non-max suppression threshold"
+            value={iou}
+            min={0}
+            max={1}
+            step={0.05}
+            display={formatNumber(iou, 2)}
+            onChange={setIou}
+          />
+          <SliderRow
+            label="Polygon detail"
+            help="Lower = more vertices, follows curves more closely"
+            value={polyEpsilon}
+            min={0}
+            max={0.02}
+            step={0.0005}
+            display={formatNumber(polyEpsilon, 4)}
+            onChange={setPolyEpsilon}
+          />
         </div>
 
         <DialogFooter className="sm:justify-end">
@@ -184,3 +185,45 @@ export const PreAnnotateSettingsDialog = ({
     </Dialog>
   );
 };
+
+interface SliderRowProps {
+  label: string;
+  help: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  display: string;
+  onChange: (next: number) => void;
+}
+
+const SliderRow = ({
+  label,
+  help,
+  value,
+  min,
+  max,
+  step,
+  display,
+  onChange,
+}: SliderRowProps) => (
+  <div className="flex flex-col gap-2">
+    <div className="flex items-baseline justify-between gap-3">
+      <div className="flex flex-col gap-0.5">
+        <Label>{label}</Label>
+        <span className="text-xs text-muted-foreground">{help}</span>
+      </div>
+      <span className="font-mono text-sm tabular-nums">{display}</span>
+    </div>
+    <Slider
+      value={[value]}
+      min={min}
+      max={max}
+      step={step}
+      onValueChange={(next) => {
+        const v = Array.isArray(next) ? next[0] : next;
+        if (typeof v === "number") onChange(v);
+      }}
+    />
+  </div>
+);
