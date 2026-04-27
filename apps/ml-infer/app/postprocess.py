@@ -17,6 +17,7 @@ def decode_yolo_seg(
     mask_threshold: float = 0.5,
     poly_epsilon: float = 0.005,
     min_area_px: float = 4.0,
+    fill_concavities: bool = False,
 ) -> list[dict]:
     """Decode Ultralytics YOLOv8/v11 segmentation outputs into image-space polygons.
 
@@ -117,7 +118,19 @@ def decode_yolo_seg(
         if cv2.contourArea(contour) < min_area_px:
             continue
 
-        epsilon = poly_epsilon * cv2.arcLength(contour, True)
+        # Bridge concave dips (e.g. baguette mask that excludes inner
+        # toppings) by wrapping the contour in its convex hull. The hull
+        # follows the outer silhouette and matches how users typically
+        # label "the whole object" rather than the visible-pixels-only mask.
+        if fill_concavities:
+            contour = cv2.convexHull(contour)
+
+        # Image-diagonal-relative tolerance (was perimeter-relative). With
+        # perimeter scaling, large and small objects ended up with similar
+        # vertex counts; diagonal scaling fixes the absolute tolerance per
+        # image, so vertex count grows with object size.
+        diagonal = float((orig_w * orig_w + orig_h * orig_h) ** 0.5)
+        epsilon = poly_epsilon * diagonal
         simplified = cv2.approxPolyDP(contour, epsilon, True).reshape(-1, 2)
         if len(simplified) < 3:
             continue

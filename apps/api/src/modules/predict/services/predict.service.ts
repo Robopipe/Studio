@@ -106,6 +106,15 @@ export class PredictService {
       ...(body.polyEpsilon !== undefined
         ? { polyEpsilon: body.polyEpsilon }
         : {}),
+      ...(body.maskThreshold !== undefined
+        ? { maskThreshold: body.maskThreshold }
+        : {}),
+      ...(body.minAreaPx !== undefined
+        ? { minAreaPx: body.minAreaPx }
+        : {}),
+      ...(body.fillConcavities !== undefined
+        ? { fillConcavities: body.fillConcavities }
+        : {}),
     };
 
     const response = await firstValueFrom(

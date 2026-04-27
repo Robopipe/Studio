@@ -10,6 +10,9 @@ export const predictRequestSchema = z.object({
   conf: z.number().min(0).max(1).optional(),
   iou: z.number().min(0).max(1).optional(),
   polyEpsilon: z.number().min(0).max(0.05).optional(),
+  maskThreshold: z.number().min(0).max(1).optional(),
+  minAreaPx: z.number().min(0).max(10000).optional(),
+  fillConcavities: z.boolean().optional(),
 });
 
 /**
@@ -40,6 +43,9 @@ export const mlInferPredictRequestSchema = z.object({
   conf: z.number().min(0).max(1).optional(),
   iou: z.number().min(0).max(1).optional(),
   polyEpsilon: z.number().min(0).max(0.05).optional(),
+  maskThreshold: z.number().min(0).max(1).optional(),
+  minAreaPx: z.number().min(0).max(10000).optional(),
+  fillConcavities: z.boolean().optional(),
   maxDet: z.number().int().min(1).max(10000).optional(),
 });
 
