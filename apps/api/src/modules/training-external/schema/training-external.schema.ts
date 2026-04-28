@@ -4,6 +4,7 @@ import {
   modelLogMetricsSchema,
   modelLogPerClassMetricsSchema,
   ModelOutputTypeEnum,
+  ModelQuantizationEnum,
   ProjectTypeEnum,
 } from "@repo/schema";
 import z from "zod";
@@ -96,6 +97,10 @@ export const trainingRectangleLabelSchema = z.object({
 export const trainingConfigSchema = z.object({
   output_types: z.enum(ModelOutputTypeEnum).array(),
   epochs: z.number(),
+  // Optional because the Luxonis ML service has Pydantic `extra="forbid"`
+  // and only ml-yolo consumes it. The API includes this key only for the
+  // Ultralytics dispatch (see training-external.service.ts).
+  quantization: z.enum(ModelQuantizationEnum).optional(),
   dataset_config: z.object({
     dataset_split: z.tuple([z.number(), z.number(), z.number()]),
     labels: z.number().array(),

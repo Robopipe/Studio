@@ -2,6 +2,7 @@ import {
   ModelAugmentationTypeEnum,
   ModelBackendEnum,
   ModelOutputTypeEnum,
+  ModelQuantizationEnum,
   ModelRegionEnum,
   ModelStatusEnum,
   ProjectTypeEnum,
@@ -19,6 +20,7 @@ export class ModelEntity {
   readonly outputTypes: ModelOutputTypeEnum[];
   readonly backend: ModelBackendEnum;
   readonly region: ModelRegionEnum;
+  readonly quantization: ModelQuantizationEnum;
   readonly trainingType: ProjectTypeEnum;
   readonly annotationsUsed: ProjectTypeEnum[];
   readonly splitTrain: number;
@@ -47,6 +49,7 @@ export class ModelEntity {
     this.outputTypes = data.outputTypes;
     this.backend = data.backend;
     this.region = data.region;
+    this.quantization = data.quantization;
     this.trainingType = data.trainingType;
     this.annotationsUsed = data.annotationsUsed;
     this.splitTrain = data.splitTrain;
@@ -82,6 +85,7 @@ export class ModelEntity {
       outputTypes: this.outputTypes,
       backend: this.backend,
       region: this.region,
+      quantization: this.quantization,
       trainingType: this.trainingType,
       annotationsUsed: this.annotationsUsed,
       splitTrain: this.splitTrain,

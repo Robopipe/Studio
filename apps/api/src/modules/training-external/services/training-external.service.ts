@@ -469,6 +469,12 @@ export class TrainingExternalService {
       training_config: {
         output_types: model.outputTypes,
         epochs: model.epochs,
+        // ml-yolo consumes this to flip HubAI's quantization_mode between
+        // FP16_STANDARD and INT8_STANDARD. Omit for Luxonis — its Pydantic
+        // model rejects unknown keys (extra="forbid").
+        ...(model.backend === ModelBackendEnum.ULTRALYTICS && {
+          quantization: model.quantization,
+        }),
         dataset_config: {
           dataset_split: [
             model.splitTrain,
