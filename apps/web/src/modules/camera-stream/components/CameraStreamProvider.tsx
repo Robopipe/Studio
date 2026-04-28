@@ -98,10 +98,22 @@ export const CameraStreamProvider = ({ children }: CameraStreamProviderProps) =>
     [],
   );
 
-  // Sorted-by-t ring buffer of (seq, mediaTime) pairs from the /video-meta WS,
+  // Read once per render — URL param doesn't change without a page reload,
+  // and we want the value available in non-effect code (e.g. the track event
+  // handler in the WebRTC setup) without re-parsing.
+  const seqSyncFlag =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("syncMode") === "seq";
+
+  // Holds the live RTCPeerConnection so a separate effect can apply
+  // playoutDelayHint without rebuilding the WebRTC pipe whenever the NN
+  // config's recommended video delay changes.
+  const peerRef = useRef<RTCPeerConnection | null>(null);
+
+  // Sorted-by-rtp ring buffer of (seq, rtp) pairs from the /video-meta WS,
   // and a parallel seq -> NNDetections cache from the /nn WS. Lookups happen
   // at video-frame paint time via requestVideoFrameCallback.
-  const seqBufferRef = useRef<{ t: number; seq: number }[]>([]);
+  const seqBufferRef = useRef<{ rtp: number; seq: number }[]>([]);
   const detectionsBySeqRef = useRef<Map<number, NNDetections>>(new Map());
   const detectionsSeqOrderRef = useRef<number[]>([]);
   const lastSeqRef = useRef<number>(-1);
@@ -109,6 +121,9 @@ export const CameraStreamProvider = ({ children }: CameraStreamProviderProps) =>
 
   const resetSyncBuffers = useCallback(() => {
     seqBufferRef.current = [];
+    for (const cached of detectionsBySeqRef.current.values()) {
+      cached.maskBitmap?.close?.();
+    }
     detectionsBySeqRef.current.clear();
     detectionsSeqOrderRef.current = [];
     lastSeqRef.current = -1;
@@ -117,16 +132,19 @@ export const CameraStreamProvider = ({ children }: CameraStreamProviderProps) =>
 
   const sync = useMemo<CameraStreamSyncApi>(
     () => ({
-      seqAtMediaTime: (mediaTime: number) => {
+      seqAtServerRtp: (serverRtp: number) => {
         const buf = seqBufferRef.current;
         if (buf.length === 0) return null;
-        // Binary search for the largest entry with t <= mediaTime.
+        // Binary search for the largest entry with rtp <= serverRtp. Falls
+        // back to the smallest rtp if every entry is in the future (which
+        // happens transiently if the offset anchor was taken slightly too
+        // early; sane non-null result while we wait for newer entries).
         let lo = 0;
         let hi = buf.length - 1;
         let best = -1;
         while (lo <= hi) {
           const mid = (lo + hi) >> 1;
-          if (buf[mid].t <= mediaTime) {
+          if (buf[mid].rtp <= serverRtp) {
             best = mid;
             lo = mid + 1;
           } else {
@@ -135,13 +153,14 @@ export const CameraStreamProvider = ({ children }: CameraStreamProviderProps) =>
         }
         return best >= 0 ? buf[best].seq : buf[0].seq;
       },
+      latestServerRtp: () => {
+        const buf = seqBufferRef.current;
+        return buf.length === 0 ? null : buf[buf.length - 1].rtp;
+      },
       detectionsForSeq: (seq: number) => {
         const cache = detectionsBySeqRef.current;
         const exact = cache.get(seq);
         if (exact) return exact;
-        // Fall back to the largest seq <= requested. The detection seq lags
-        // the video seq by at most one inference, so this picks the most
-        // recent inference that applies to or precedes the displayed frame.
         const order = detectionsSeqOrderRef.current;
         if (order.length === 0) return null;
         let lo = 0;
@@ -184,6 +203,7 @@ export const CameraStreamProvider = ({ children }: CameraStreamProviderProps) =>
           iceTransportPolicy: "all",
         });
         peer = pc;
+        peerRef.current = pc;
         pc.addTransceiver("video", { direction: "recvonly" });
 
         pc.addEventListener("track", (event) => {
@@ -277,10 +297,38 @@ export const CameraStreamProvider = ({ children }: CameraStreamProviderProps) =>
       if (peer) {
         peer.close();
       }
+      if (peerRef.current === peer) {
+        peerRef.current = null;
+      }
       setMediaStream(null);
       setIsStreaming(false);
     };
   }, [mxid, streamName, apiHost, pipelineGeneration]);
+
+  // Apply the server-recommended WebRTC playout delay so the seq-paired
+  // detection has time to arrive over WS before the matching video frame
+  // paints. Only when ?syncMode=seq is active and the NN config provides
+  // a hint — legacy mode keeps real-time video.
+  useEffect(() => {
+    if (!seqSyncFlag) return;
+    if (!mediaStream) return; // peer's video receiver isn't ready yet
+    const pc = peerRef.current;
+    if (!pc) return;
+    const delayMs = nnInfo?.video_delay_ms;
+    if (delayMs == null) return;
+    const delaySeconds = delayMs / 1000;
+    for (const receiver of pc.getReceivers()) {
+      if (receiver.track?.kind !== "video") continue;
+      try {
+        (
+          receiver as RTCRtpReceiver & { playoutDelayHint?: number }
+        ).playoutDelayHint = delaySeconds;
+      } catch {
+        // Some browsers gate playoutDelayHint behind a flag; failure here
+        // is non-fatal — overlays will just trail by the inference latency.
+      }
+    }
+  }, [seqSyncFlag, mediaStream, nnInfo?.video_delay_ms]);
 
   // Detections WebSocket — only when an NN is deployed on this stream.
   useEffect(() => {
@@ -313,13 +361,34 @@ export const CameraStreamProvider = ({ children }: CameraStreamProviderProps) =>
           reconnectAttempts = 0;
         };
 
-        ws.onmessage = (event) => {
+        ws.onmessage = async (event) => {
           if (cancelled) return;
           try {
             const data = JSON.parse(event.data);
             const parsed: NNDetections = Array.isArray(data)
               ? { detections: data }
               : data;
+            // Decode the compact PNG mask (if present) into an ImageBitmap
+            // before publishing, so the synchronous renderer can drawImage
+            // without blocking on async decode each paint. Single-channel
+            // uint8 PNG where pixel value 0 means background and N means
+            // detections[N - 1].
+            if (parsed.masks_png) {
+              try {
+                const raw = atob(parsed.masks_png);
+                const buf = new Uint8Array(raw.length);
+                for (let i = 0; i < raw.length; i++) buf[i] = raw.charCodeAt(i);
+                const blob = new Blob([buf], { type: "image/png" });
+                parsed.maskBitmap = await createImageBitmap(blob);
+              } catch {
+                // Decode failures fall through to the legacy masks array
+                // path on the renderer side, if the server sent one.
+              }
+              if (cancelled) {
+                parsed.maskBitmap?.close?.();
+                return;
+              }
+            }
             // Populate the seq -> detections cache so the renderer can pair
             // by seq at paint time. seq may be absent on legacy backends or
             // replay-from-file scenarios — those simply skip the cache and
@@ -331,10 +400,23 @@ export const CameraStreamProvider = ({ children }: CameraStreamProviderProps) =>
               order.push(parsed.seq);
               if (order.length > DETECTIONS_BUFFER_MAX) {
                 const evicted = order.shift();
-                if (evicted !== undefined) cache.delete(evicted);
+                if (evicted !== undefined) {
+                  const old = cache.get(evicted);
+                  old?.maskBitmap?.close?.();
+                  cache.delete(evicted);
+                }
               }
             }
-            setDetections(parsed);
+            setDetections((prev) => {
+              // Bitmaps stored in the seq cache are closed on eviction.
+              // Only close if the previous detection wasn't cached (no seq),
+              // so we don't yank the bitmap out from under a still-cached
+              // entry that the renderer might draw next paint.
+              if (typeof prev.seq !== "number") {
+                prev.maskBitmap?.close?.();
+              }
+              return parsed;
+            });
             subscribersRef.current.forEach((cb) => cb(parsed));
           } catch {
             // ignore malformed messages
@@ -417,7 +499,7 @@ export const CameraStreamProvider = ({ children }: CameraStreamProviderProps) =>
             const data = JSON.parse(event.data);
             if (
               typeof data?.seq !== "number" ||
-              typeof data?.t !== "number"
+              typeof data?.rtp !== "number"
             ) {
               return;
             }
@@ -426,11 +508,14 @@ export const CameraStreamProvider = ({ children }: CameraStreamProviderProps) =>
             // don't pair new video frames against old detections.
             if (data.seq + 1000 < lastSeqRef.current) {
               buf.length = 0;
+              for (const cached of detectionsBySeqRef.current.values()) {
+                cached.maskBitmap?.close?.();
+              }
               detectionsBySeqRef.current.clear();
               detectionsSeqOrderRef.current = [];
             }
             lastSeqRef.current = data.seq;
-            buf.push({ t: data.t, seq: data.seq });
+            buf.push({ rtp: data.rtp, seq: data.seq });
             if (buf.length > SEQ_BUFFER_MAX) {
               buf.splice(0, buf.length - SEQ_BUFFER_MAX);
             }

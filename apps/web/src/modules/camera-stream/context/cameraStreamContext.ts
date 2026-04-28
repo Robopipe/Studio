@@ -12,18 +12,23 @@ export interface CameraStreamSnapshot {
 
 /**
  * Lookup helpers for seq-based sync. Backed by:
- *  - a (mediaTime, seq) ring buffer fed by the /video-meta WS, and
+ *  - a (rtp, seq) ring buffer fed by the /video-meta WS, where rtp is the
+ *    server's raw 90 kHz pts. The browser sees rtp + a constant per-session
+ *    RFC 3550 random offset on its rtpTimestamp; the renderer anchors that
+ *    offset on first paint.
  *  - a (seq -> NNDetections) ring buffer fed by the /nn WS.
  * Returns null when the requested entry is unknown (pipeline restart, no
  * data yet, browser without requestVideoFrameCallback, etc.) so callers
  * fall back to the legacy "latest detection" path.
  */
 export interface CameraStreamSyncApi {
-  /** Largest known seq with t <= mediaTime. */
-  seqAtMediaTime: (mediaTime: number) => number | null;
-  /** Detections cached for an exact seq. */
+  /** Closest seq whose rtp <= the given (offset-corrected) server rtp. */
+  seqAtServerRtp: (serverRtp: number) => number | null;
+  /** The most recently published server rtp value, for offset anchoring. */
+  latestServerRtp: () => number | null;
+  /** Detections cached for an exact seq, with nearest-below fallback. */
   detectionsForSeq: (seq: number) => NNDetections | null;
-  /** True once at least one (seq, t) pair has arrived from /video-meta. */
+  /** True once at least one (seq, rtp) pair has arrived from /video-meta. */
   isReady: () => boolean;
 }
 

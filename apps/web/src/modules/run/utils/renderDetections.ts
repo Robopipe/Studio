@@ -69,56 +69,104 @@ export const renderClassificationDetection: DetectionRenderer = (
   ctx.fillText(text, 10, 20);
 };
 
+/**
+ * Recolor a label-index buffer in place: pixel value 0 = background (alpha 0),
+ * pixel value N = detections[N - 1]'s label color at ~53% alpha. The buffer
+ * comes from either a decoded PNG ImageBitmap (R channel) or the legacy
+ * nested int array, both unified here.
+ */
+const recolorMask = (
+  data: Uint8ClampedArray,
+  indexAt: (px: number) => number,
+  pixels: number,
+  labels: Label[],
+  detections: NNDetections,
+) => {
+  for (let p = 0; p < pixels; p++) {
+    const labelIdx = indexAt(p);
+    if (labelIdx < 0) continue; // background
+    const detLabel = detections.detections[labelIdx];
+    if (!detLabel) continue;
+    const label = labels[detLabel.label];
+    if (!label) continue;
+    const color = label.color;
+    const r = parseInt(color.slice(1, 3), 16);
+    const g = parseInt(color.slice(3, 5), 16);
+    const b = parseInt(color.slice(5, 7), 16);
+    const idx = p * 4;
+    data[idx] = r;
+    data[idx + 1] = g;
+    data[idx + 2] = b;
+    data[idx + 3] = 0x88;
+  }
+};
+
+const drawScaled = (
+  ctx: CanvasRenderingContext2D,
+  source: HTMLCanvasElement,
+) => {
+  const prevSmoothing = ctx.imageSmoothingEnabled;
+  const prevQuality = ctx.imageSmoothingQuality;
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(source, 0, 0, ctx.canvas.width, ctx.canvas.height);
+  ctx.imageSmoothingEnabled = prevSmoothing;
+  ctx.imageSmoothingQuality = prevQuality;
+};
+
 export const renderSegmentationMask = (
   ctx: CanvasRenderingContext2D,
   labels: Label[],
   detections: NNDetections,
 ) => {
+  // Preferred path: PNG-encoded mask decoded to an ImageBitmap by the WS
+  // handler. Pixel value 0 = background, N = detections[N - 1].
+  const bmp = detections.maskBitmap;
+  if (bmp) {
+    const w = bmp.width;
+    const h = bmp.height;
+    const offscreen = document.createElement("canvas");
+    offscreen.width = w;
+    offscreen.height = h;
+    const offCtx = offscreen.getContext("2d");
+    if (!offCtx) return;
+    offCtx.drawImage(bmp, 0, 0);
+    const imageData = offCtx.getImageData(0, 0, w, h);
+    const data = imageData.data;
+    // R channel holds the shifted index (0 = background, N = label idx + 1).
+    recolorMask(
+      data,
+      (p) => data[p * 4] - 1,
+      w * h,
+      labels,
+      detections,
+    );
+    offCtx.putImageData(imageData, 0, 0);
+    drawScaled(ctx, offscreen);
+    return;
+  }
+
+  // Legacy fallback for older API builds that still emit nested int arrays.
   const masks = detections.masks;
   if (!masks) return;
   const maskHeight = masks.length;
   const maskWidth = masks[0]?.length ?? 0;
   if (maskWidth === 0 || maskHeight === 0) return;
 
-  const { width: canvasWidth, height: canvasHeight } = ctx.canvas;
-
-  // Draw mask at native resolution using ImageData to avoid overlap artifacts
-  // from semi-transparent fillRect calls that cause visible grid lines
   const offscreen = document.createElement("canvas");
   offscreen.width = maskWidth;
   offscreen.height = maskHeight;
-  const offCtx = offscreen.getContext("2d")!;
+  const offCtx = offscreen.getContext("2d");
+  if (!offCtx) return;
   const imageData = offCtx.createImageData(maskWidth, maskHeight);
   const data = imageData.data;
-
-  for (let y = 0; y < maskHeight; y++) {
-    for (let x = 0; x < maskWidth; x++) {
-      const labelId = masks[y][x];
-      if (labelId === -1) continue; // background
-      const detLabel = detections.detections[labelId];
-      if (!detLabel) continue;
-      const label = labels[detLabel.label];
-      if (!label) continue;
-      const color = label.color;
-      const r = parseInt(color.slice(1, 3), 16);
-      const g = parseInt(color.slice(3, 5), 16);
-      const b = parseInt(color.slice(5, 7), 16);
-      const idx = (y * maskWidth + x) * 4;
-      data[idx] = r;
-      data[idx + 1] = g;
-      data[idx + 2] = b;
-      data[idx + 3] = 0x88; // ~53% alpha for transparency
-    }
-  }
-
+  recolorMask(
+    data,
+    (p) => masks[(p / maskWidth) | 0][p % maskWidth],
+    maskWidth * maskHeight,
+    labels,
+    detections,
+  );
   offCtx.putImageData(imageData, 0, 0);
-
-  // Scale up to canvas size with smooth edges
-  const prevSmoothing = ctx.imageSmoothingEnabled;
-  const prevQuality = ctx.imageSmoothingQuality;
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(offscreen, 0, 0, canvasWidth, canvasHeight);
-  ctx.imageSmoothingEnabled = prevSmoothing;
-  ctx.imageSmoothingQuality = prevQuality;
+  drawScaled(ctx, offscreen);
 };

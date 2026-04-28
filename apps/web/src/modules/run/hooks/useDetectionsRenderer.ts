@@ -41,6 +41,8 @@ const hasRVFC = (video: HTMLVideoElement): boolean =>
 
 interface RVFCMetadata {
   mediaTime: number;
+  rtpTimestamp?: number;
+  presentedFrames?: number;
 }
 
 type RVFCCallback = (now: number, metadata: RVFCMetadata) => void;
@@ -136,8 +138,11 @@ export const useDetectionsRenderer = ({
     [drawToCanvas, enabled, seqSync, videoRef],
   );
 
-  // Seq-sync rendering loop. On every painted video frame, look up the seq
-  // for that frame's mediaTime and draw the matching cached detection.
+  // Seq-sync rendering loop. On every painted video frame, map the frame's
+  // RTP timestamp back to a server seq and draw the matching cached
+  // detection. The browser sees rtp + a constant per-session RFC 3550 random
+  // offset, which we anchor once on the first paint that has a usable
+  // /video-meta entry to compare against.
   useEffect(() => {
     if (!seqSync || !enabled) return;
     const video = videoRef.current;
@@ -146,16 +151,33 @@ export const useDetectionsRenderer = ({
 
     let cancelled = false;
     let handle: number | null = null;
+    let rtpOffset: number | null = null;
 
     const tick: RVFCCallback = (_now, metadata) => {
       if (cancelled) return;
-      const frameSeq = sync.seqAtMediaTime(metadata.mediaTime);
-      if (frameSeq != null) {
-        const dets = sync.detectionsForSeq(frameSeq);
-        if (dets) {
-          drawToCanvas(dets);
+
+      const browserRtp = metadata.rtpTimestamp;
+      if (typeof browserRtp === "number") {
+        if (rtpOffset == null) {
+          // Anchor: assume the most recent /video-meta entry corresponds
+          // approximately to the frame currently being painted. Skew is
+          // bounded by the WebRTC jitter buffer (~1–2 frames at 30 FPS),
+          // so worst-case overlay alignment is one frame off.
+          const latest = sync.latestServerRtp();
+          if (latest != null) {
+            rtpOffset = browserRtp - latest;
+          }
+        }
+        if (rtpOffset != null) {
+          const serverRtp = browserRtp - rtpOffset;
+          const frameSeq = sync.seqAtServerRtp(serverRtp);
+          if (frameSeq != null) {
+            const dets = sync.detectionsForSeq(frameSeq);
+            if (dets) drawToCanvas(dets);
+          }
         }
       }
+
       handle = requestVFC(video, tick);
     };
 

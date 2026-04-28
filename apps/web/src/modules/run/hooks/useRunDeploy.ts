@@ -9,7 +9,11 @@ import {
 } from "@/core/cameraApi";
 import type { DeviceInfo } from "@/core/cameraApi/schemas";
 import type { DeployConfigEntry } from "@/core/cameraApi/schemas/dashboard";
-import type { SahiConfig } from "@/core/cameraApi/schemas/nn";
+import type {
+  NNRuntimeConfig,
+  SahiConfig,
+} from "@/core/cameraApi/schemas/nn";
+import { DEFAULT_NN_RUNTIME_CONFIG } from "@/core/cameraApi/schemas/nn";
 import { useLazyGetDashboardConfigsQuery } from "@/modules/dashboard/services/dashboardConfigApi";
 import {
   useLazyGetEvalLimitQuery,
@@ -57,6 +61,7 @@ interface UseRunDeployParams {
   cameraApiUrl: string | null;
   selectedConfigs?: ConfigSelection[];
   sahiConfig: SahiConfig | null;
+  runtimeConfig?: NNRuntimeConfig;
   beforeDeploy?: () => Promise<void>;
 }
 
@@ -76,6 +81,7 @@ export const useRunDeploy = ({
   cameraApiUrl,
   selectedConfigs,
   sahiConfig,
+  runtimeConfig = DEFAULT_NN_RUNTIME_CONFIG,
   beforeDeploy,
 }: UseRunDeployParams) => {
   const [showDeployConfirm, setShowDeployConfirm] = useState(false);
@@ -428,6 +434,8 @@ export const useRunDeploy = ({
         nn_config: {
           type: "Generic",
           model_id: config.modelId,
+          num_inference_threads: runtimeConfig.num_inference_threads,
+          throttle_hz: runtimeConfig.throttle_hz,
           nn_config: sahiConfig ? { sahi_config: sahiConfig } : {},
         },
       },
