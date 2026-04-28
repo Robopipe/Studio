@@ -130,18 +130,25 @@ export const renderSegmentationMask = (
     offscreen.height = h;
     const offCtx = offscreen.getContext("2d");
     if (!offCtx) return;
+
+    // Read mask indices from the bitmap. drawImage paints background pixels
+    // as opaque (R=G=B=0, A=255) — so we must NOT reuse this buffer as the
+    // output, or background regions cover the video with opaque black.
     offCtx.drawImage(bmp, 0, 0);
-    const imageData = offCtx.getImageData(0, 0, w, h);
-    const data = imageData.data;
-    // R channel holds the shifted index (0 = background, N = label idx + 1).
+    const indexData = offCtx.getImageData(0, 0, w, h).data;
+
+    // Write into a fresh, fully-transparent buffer. Background pixels stay
+    // at alpha 0 so the WebRTC video shows through; only labeled pixels
+    // get a translucent color.
+    const out = offCtx.createImageData(w, h);
     recolorMask(
-      data,
-      (p) => data[p * 4] - 1,
+      out.data,
+      (p) => indexData[p * 4] - 1,
       w * h,
       labels,
       detections,
     );
-    offCtx.putImageData(imageData, 0, 0);
+    offCtx.putImageData(out, 0, 0);
     drawScaled(ctx, offscreen);
     return;
   }
