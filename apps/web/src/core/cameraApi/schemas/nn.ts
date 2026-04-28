@@ -10,14 +10,6 @@ export const nnConfigSchema = z.object({
     nn_config: z.record(z.string(), z.unknown()),
     mask_max_dim: z.number().nullable().optional(),
     throttle_hz: z.number().nullable().optional(),
-    /**
-     * Server-recommended WebRTC playout delay in ms — applied as
-     * RTCRtpReceiver.playoutDelayHint when ?syncMode=seq is active so the
-     * video is held back enough that the matching seq-paired detection is
-     * in cache by the time the frame paints. Tuned higher for segmentation
-     * (heavier WS payload). Null/undefined = no hint.
-     */
-    video_delay_ms: z.number().nullable().optional(),
 });
 export type NNConfig = z.infer<typeof nnConfigSchema>;
 
