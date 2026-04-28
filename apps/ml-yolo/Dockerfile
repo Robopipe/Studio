@@ -53,6 +53,74 @@ RUN python3 -m venv /opt/tools-venv && \
 
 ENV ROBOPIPE_TOOLS_BIN=/opt/tools-venv/bin/tools
 
+# --- Luxonis modelconverter (offline ONNX/NN-archive → RVC4 .dlc) ---
+# Used for INT8 RVC4 builds because it accepts a local directory of
+# calibration images, unlike hubai-sdk's predefined-domain-only API.
+# Apache-2.0 wrapper around Qualcomm SNPE / QAIRT (the latter governed
+# by Qualcomm's AI Runtime Community license). The resulting image
+# embeds SNPE binaries — KEEP THIS IMAGE ON PRIVATE REGISTRIES ONLY.
+# Verify /opt/snpe/LICENSE.pdf before any redistribution decision.
+#
+# Apt deps mirror modelconverter's official rvc4 Dockerfile so SNPE's
+# x86_64 host binaries link cleanly. libncurses5/libtinfo5 don't exist
+# on bookworm; we use the t64 transitional packages where applicable.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    unzip \
+    perl \
+    libatomic1 \
+    libc++-dev \
+    ffmpeg \
+    libcurl4 \
+    libncurses6 \
+    libtinfo6 \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+# Pin to the SNPE version modelconverter v0.5.3 was tested against. The
+# download is anonymous HTTPS (no Qualcomm account needed) per
+# modelconverter/utils/docker_utils.py:224. Bumping requires re-checking
+# modelconverter compatibility.
+ARG SNPE_VERSION=2.32.6.250402
+RUN cd /tmp && \
+    wget --quiet --user-agent=modelconverter \
+        "https://softwarecenter.qualcomm.com/api/download/software/sdks/Qualcomm_AI_Runtime_Community/All/${SNPE_VERSION}/v${SNPE_VERSION}.zip" \
+        -O snpe.zip && \
+    unzip -q snpe.zip -d /opt && \
+    rm snpe.zip && \
+    # Archive unpacks to /opt/qairt/<version>/. Fold into /opt/snpe/ \
+    mv /opt/qairt/*/ /opt/snpe/ && \
+    rm -rf /opt/qairt && \
+    # Prune everything we don't need on x86_64 Linux host: docs, examples,
+    # Hexagon DSP libs, Android/Ubuntu/Windows runtimes. Reduces the image
+    # by ~700 MB.
+    rm -rf \
+        /opt/snpe/Uninstall \
+        /opt/snpe/docs \
+        /opt/snpe/share \
+        /opt/snpe/examples \
+        /opt/snpe/benchmarks && \
+    find /opt/snpe/lib -maxdepth 1 -type d \
+        \( -name 'hexagon-*' -o -name '*android*' -o -name '*ubuntu*' -o -name '*windows*' \) \
+        -exec rm -rf {} + && \
+    find /opt/snpe/bin -maxdepth 1 -type d \
+        \( -name '*windows*' -o -name '*android*' -o -name '*ubuntu*' \) \
+        -exec rm -rf {} +
+
+# modelconverter in its own venv — its pinned onnx==1.18.0 / luxonis-ml
+# stack would clash with ml-yolo's Ultralytics deps if installed in the
+# global env (same isolation rationale as luxonis/tools above).
+RUN python3 -m venv /opt/modelconverter-venv && \
+    /opt/modelconverter-venv/bin/pip install --no-cache-dir --timeout=120 --retries=5 \
+        modelconv==0.5.3
+
+# IN_DOCKER tells modelconverter's CLI to skip its outer-Docker shell-out
+# (modelconverter/__main__.py:627 — `if in_docker(): return command(...)`).
+# Without this it tries to docker-run a converter image, which is impossible
+# from inside this Cloud Batch container.
+ENV IN_DOCKER=1
+ENV ROBOPIPE_MODELCONVERTER_BIN=/opt/modelconverter-venv/bin/modelconverter
+ENV ROBOPIPE_SNPE_ROOT=/opt/snpe
+
 # Pre-download all yolo11 detection + segmentation pretrained weights into the
 # image. Ultralytics' YOLO(name) constructor calls safe_download() which has a
 # known silent-failure path: if a retry deletes a partial file and the loop
