@@ -35,15 +35,8 @@ export type NNDetections = {
   mask_height?: number;
   /**
    * Transient client-side cache of the decoded PNG. Not on the wire.
-   * Populated by the WS onmessage handler before the detection is stored
-   * in the seq cache or dispatched to subscribers.
+   * Populated by the WS onmessage handler before being dispatched to
+   * subscribers.
    */
   maskBitmap?: ImageBitmap;
-  /**
-   * DepthAI sequence number of the inference. Set by the API on the live
-   * detection WS for client-side seq-based pairing with the WebRTC video
-   * track. Optional because legacy clients / replay-from-file scenarios may
-   * surface detections without one.
-   */
-  seq?: number;
 };

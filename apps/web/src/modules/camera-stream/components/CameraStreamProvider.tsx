@@ -4,11 +4,10 @@ import { useAppSelector } from "@/hooks/redux";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import type { NNDetections } from "@/modules/run/types/detections";
 import type { RootState } from "@/store/types";
-import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import {
   CameraStreamContext,
   CameraStreamContextValue,
-  CameraStreamSyncApi,
 } from "../context/cameraStreamContext";
 
 const ICE_SERVERS: RTCIceServer[] = [
@@ -27,12 +26,6 @@ const ICE_SERVERS: RTCIceServer[] = [
 const ICE_GATHERING_TIMEOUT_MS = 5000;
 const DETECTIONS_RECONNECT_DELAY_MS = 3000;
 const DETECTIONS_MAX_RECONNECT_ATTEMPTS = 10;
-const VIDEO_META_RECONNECT_DELAY_MS = 3000;
-const VIDEO_META_MAX_RECONNECT_ATTEMPTS = 10;
-// Ring buffer caps. 256 entries × 30 FPS ≈ 8.5 s of slack — well past the
-// arrival jitter window between WebRTC video frames and the detection WS.
-const SEQ_BUFFER_MAX = 256;
-const DETECTIONS_BUFFER_MAX = 256;
 
 export interface CameraStreamProviderProps {
   children: ReactNode;
@@ -98,91 +91,6 @@ export const CameraStreamProvider = ({ children }: CameraStreamProviderProps) =>
     [],
   );
 
-  // Read once per render — URL param doesn't change without a page reload,
-  // and we want the value available in non-effect code (e.g. the track event
-  // handler in the WebRTC setup) without re-parsing.
-  const seqSyncFlag =
-    typeof window !== "undefined" &&
-    new URLSearchParams(window.location.search).get("syncMode") === "seq";
-
-  // Holds the live RTCPeerConnection so a separate effect can apply
-  // playoutDelayHint without rebuilding the WebRTC pipe whenever the NN
-  // config's recommended video delay changes.
-  const peerRef = useRef<RTCPeerConnection | null>(null);
-
-  // Sorted-by-rtp ring buffer of (seq, rtp) pairs from the /video-meta WS,
-  // and a parallel seq -> NNDetections cache from the /nn WS. Lookups happen
-  // at video-frame paint time via requestVideoFrameCallback.
-  const seqBufferRef = useRef<{ rtp: number; seq: number }[]>([]);
-  const detectionsBySeqRef = useRef<Map<number, NNDetections>>(new Map());
-  const detectionsSeqOrderRef = useRef<number[]>([]);
-  const lastSeqRef = useRef<number>(-1);
-  const seqReadyRef = useRef<boolean>(false);
-
-  const resetSyncBuffers = useCallback(() => {
-    seqBufferRef.current = [];
-    for (const cached of detectionsBySeqRef.current.values()) {
-      cached.maskBitmap?.close?.();
-    }
-    detectionsBySeqRef.current.clear();
-    detectionsSeqOrderRef.current = [];
-    lastSeqRef.current = -1;
-    seqReadyRef.current = false;
-  }, []);
-
-  const sync = useMemo<CameraStreamSyncApi>(
-    () => ({
-      seqAtServerRtp: (serverRtp: number) => {
-        const buf = seqBufferRef.current;
-        if (buf.length === 0) return null;
-        // Binary search for the largest entry with rtp <= serverRtp. Falls
-        // back to the smallest rtp if every entry is in the future (which
-        // happens transiently if the offset anchor was taken slightly too
-        // early; sane non-null result while we wait for newer entries).
-        let lo = 0;
-        let hi = buf.length - 1;
-        let best = -1;
-        while (lo <= hi) {
-          const mid = (lo + hi) >> 1;
-          if (buf[mid].rtp <= serverRtp) {
-            best = mid;
-            lo = mid + 1;
-          } else {
-            hi = mid - 1;
-          }
-        }
-        return best >= 0 ? buf[best].seq : buf[0].seq;
-      },
-      latestServerRtp: () => {
-        const buf = seqBufferRef.current;
-        return buf.length === 0 ? null : buf[buf.length - 1].rtp;
-      },
-      detectionsForSeq: (seq: number) => {
-        const cache = detectionsBySeqRef.current;
-        const exact = cache.get(seq);
-        if (exact) return exact;
-        const order = detectionsSeqOrderRef.current;
-        if (order.length === 0) return null;
-        let lo = 0;
-        let hi = order.length - 1;
-        let best = -1;
-        while (lo <= hi) {
-          const mid = (lo + hi) >> 1;
-          if (order[mid] <= seq) {
-            best = mid;
-            lo = mid + 1;
-          } else {
-            hi = mid - 1;
-          }
-        }
-        if (best < 0) return null;
-        return cache.get(order[best]) ?? null;
-      },
-      isReady: () => seqReadyRef.current,
-    }),
-    [],
-  );
-
   // WebRTC — one peer connection per (mxid, streamName, apiHost) tuple.
   useEffect(() => {
     if (!mxid || !streamName || !apiHost) {
@@ -203,7 +111,6 @@ export const CameraStreamProvider = ({ children }: CameraStreamProviderProps) =>
           iceTransportPolicy: "all",
         });
         peer = pc;
-        peerRef.current = pc;
         pc.addTransceiver("video", { direction: "recvonly" });
 
         pc.addEventListener("track", (event) => {
@@ -297,38 +204,10 @@ export const CameraStreamProvider = ({ children }: CameraStreamProviderProps) =>
       if (peer) {
         peer.close();
       }
-      if (peerRef.current === peer) {
-        peerRef.current = null;
-      }
       setMediaStream(null);
       setIsStreaming(false);
     };
   }, [mxid, streamName, apiHost, pipelineGeneration]);
-
-  // Apply the server-recommended WebRTC playout delay so the seq-paired
-  // detection has time to arrive over WS before the matching video frame
-  // paints. Only when ?syncMode=seq is active and the NN config provides
-  // a hint — legacy mode keeps real-time video.
-  useEffect(() => {
-    if (!seqSyncFlag) return;
-    if (!mediaStream) return; // peer's video receiver isn't ready yet
-    const pc = peerRef.current;
-    if (!pc) return;
-    const delayMs = nnInfo?.video_delay_ms;
-    if (delayMs == null) return;
-    const delaySeconds = delayMs / 1000;
-    for (const receiver of pc.getReceivers()) {
-      if (receiver.track?.kind !== "video") continue;
-      try {
-        (
-          receiver as RTCRtpReceiver & { playoutDelayHint?: number }
-        ).playoutDelayHint = delaySeconds;
-      } catch {
-        // Some browsers gate playoutDelayHint behind a flag; failure here
-        // is non-fatal — overlays will just trail by the inference latency.
-      }
-    }
-  }, [seqSyncFlag, mediaStream, nnInfo?.video_delay_ms]);
 
   // Detections WebSocket — only when an NN is deployed on this stream.
   useEffect(() => {
@@ -389,32 +268,8 @@ export const CameraStreamProvider = ({ children }: CameraStreamProviderProps) =>
                 return;
               }
             }
-            // Populate the seq -> detections cache so the renderer can pair
-            // by seq at paint time. seq may be absent on legacy backends or
-            // replay-from-file scenarios — those simply skip the cache and
-            // fall through to the legacy "latest detection" path.
-            if (typeof parsed.seq === "number") {
-              const cache = detectionsBySeqRef.current;
-              const order = detectionsSeqOrderRef.current;
-              cache.set(parsed.seq, parsed);
-              order.push(parsed.seq);
-              if (order.length > DETECTIONS_BUFFER_MAX) {
-                const evicted = order.shift();
-                if (evicted !== undefined) {
-                  const old = cache.get(evicted);
-                  old?.maskBitmap?.close?.();
-                  cache.delete(evicted);
-                }
-              }
-            }
             setDetections((prev) => {
-              // Bitmaps stored in the seq cache are closed on eviction.
-              // Only close if the previous detection wasn't cached (no seq),
-              // so we don't yank the bitmap out from under a still-cached
-              // entry that the renderer might draw next paint.
-              if (typeof prev.seq !== "number") {
-                prev.maskBitmap?.close?.();
-              }
+              prev.maskBitmap?.close?.();
               return parsed;
             });
             subscribersRef.current.forEach((cb) => cb(parsed));
@@ -464,103 +319,6 @@ export const CameraStreamProvider = ({ children }: CameraStreamProviderProps) =>
     };
   }, [mxid, streamName, apiHost, hasNN]);
 
-  // Video-meta WebSocket — feeds the (seq, mediaTime) ring buffer used for
-  // paint-time pairing. Independent of the detections WS so each channel
-  // stays decoupled from the other (no cross-blocking).
-  useEffect(() => {
-    if (!mxid || !streamName || !apiHost) {
-      resetSyncBuffers();
-      return;
-    }
-
-    let cancelled = false;
-    let ws: WebSocket | null = null;
-    let reconnectAttempts = 0;
-    let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
-
-    const connect = () => {
-      if (cancelled) return;
-      const wsUrl = apiHost
-        .replace(/^https:\/\//, "wss://")
-        .replace(/^http:\/\//, "ws://");
-      const endpoint = `${wsUrl}/cameras/${mxid}/streams/${streamName}/video-meta`;
-
-      try {
-        ws = new WebSocket(endpoint);
-
-        ws.onopen = () => {
-          if (cancelled) return;
-          reconnectAttempts = 0;
-        };
-
-        ws.onmessage = (event) => {
-          if (cancelled) return;
-          try {
-            const data = JSON.parse(event.data);
-            if (
-              typeof data?.seq !== "number" ||
-              typeof data?.rtp !== "number"
-            ) {
-              return;
-            }
-            const buf = seqBufferRef.current;
-            // Pipeline restart resets seq to 0; drop the stale buffer so we
-            // don't pair new video frames against old detections.
-            if (data.seq + 1000 < lastSeqRef.current) {
-              buf.length = 0;
-              for (const cached of detectionsBySeqRef.current.values()) {
-                cached.maskBitmap?.close?.();
-              }
-              detectionsBySeqRef.current.clear();
-              detectionsSeqOrderRef.current = [];
-            }
-            lastSeqRef.current = data.seq;
-            buf.push({ rtp: data.rtp, seq: data.seq });
-            if (buf.length > SEQ_BUFFER_MAX) {
-              buf.splice(0, buf.length - SEQ_BUFFER_MAX);
-            }
-            seqReadyRef.current = true;
-          } catch {
-            // ignore malformed messages
-          }
-        };
-
-        ws.onerror = () => {
-          // Mirror detections WS: don't surface the error to the UI here
-          // (it's a sync-mode-only channel; the legacy renderer keeps working
-          // without it).
-        };
-
-        ws.onclose = () => {
-          if (cancelled) return;
-          ws = null;
-          if (reconnectAttempts < VIDEO_META_MAX_RECONNECT_ATTEMPTS) {
-            reconnectAttempts += 1;
-            reconnectTimeout = setTimeout(
-              connect,
-              VIDEO_META_RECONNECT_DELAY_MS,
-            );
-          }
-        };
-      } catch {
-        // Failed to construct the WS — silently bail; legacy path still works.
-      }
-    };
-
-    connect();
-
-    return () => {
-      cancelled = true;
-      if (reconnectTimeout) {
-        clearTimeout(reconnectTimeout);
-      }
-      if (ws) {
-        ws.close();
-      }
-      resetSyncBuffers();
-    };
-  }, [mxid, streamName, apiHost, pipelineGeneration, resetSyncBuffers]);
-
   const value: CameraStreamContextValue = {
     mediaStream,
     isStreaming,
@@ -569,7 +327,6 @@ export const CameraStreamProvider = ({ children }: CameraStreamProviderProps) =>
     isDetectionsConnected,
     detectionsError,
     subscribeDetections,
-    sync,
   };
 
   return (
