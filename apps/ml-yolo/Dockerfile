@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.10-slim
 
 WORKDIR /app
 
@@ -90,7 +90,7 @@ RUN cd /tmp && \
     # Archive unpacks to /opt/qairt/<version>/. Fold into /opt/snpe/ \
     mv /opt/qairt/*/ /opt/snpe/ && \
     rm -rf /opt/qairt && \
-    # Prune everything we don't need on x86_64 Linux host: docs, examples,
+    # Prune everything we don't need on x86_64 Linux host: docs, examples
     # Hexagon DSP libs, Android/Ubuntu/Windows runtimes. Reduces the image
     # by ~700 MB.
     rm -rf \
