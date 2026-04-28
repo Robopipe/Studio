@@ -11,6 +11,7 @@ host binaries need its `envsetup.sh` to set up `LD_LIBRARY_PATH` / `PATH` /
 """
 
 import os
+import random
 import shutil
 import subprocess
 from pathlib import Path
@@ -125,14 +126,16 @@ def convert_rvc4_int8(
 def sample_calibration_images(
     train_image_dir: str,
     out_dir: str,
-    max_images: int = 200,
+    max_images: int = 400,
 ) -> int:
     """Copy up to `max_images` images from the training split into `out_dir`.
 
     Reuses the YOLO-format dataset that `prepare_dataset()` already laid out
     on disk, so the calibration distribution matches inference exactly. We
-    take the lexicographic head of the directory (deterministic / stable
-    across reruns of the same training job).
+    randomize the pick (mirroring how dataset.py shuffles for the train/val/
+    test split) so calibration sees a representative slice rather than e.g.
+    the first 200 images sorted by filename / capture time, which can be
+    distributionally narrow.
 
     Returns the number of images copied.
     """
@@ -146,7 +149,10 @@ def sample_calibration_images(
     images = []
     for ext in ("*.jpg", "*.jpeg", "*.png", "*.JPG", "*.JPEG", "*.PNG"):
         images.extend(src.rglob(ext))
+    # Sort first so the seeded shuffle is reproducible across runs that
+    # iterate the filesystem in a different order.
     images.sort()
+    random.shuffle(images)
     images = images[:max_images]
 
     for img in images:

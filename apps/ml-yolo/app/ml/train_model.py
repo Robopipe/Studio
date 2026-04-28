@@ -283,7 +283,20 @@ def run_training(config: ModelConfig) -> None:
             # too but HubAI is fine for those and we'd just be re-implementing
             # the OpenVINO chain locally for no win.
             is_int8 = config.training_config.quantization == "INT8"
-            quantization_mode = "INT8_STANDARD" if is_int8 else "FP16_STANDARD"
+            # Segmentation models route through INT8_INT16_MIXED — the proto
+            # × coefficient × sigmoid pipeline in YOLO's mask head is the most
+            # quant-sensitive part of the graph, and pure INT8 activations
+            # routinely produce fragmented masks (yolo11m-seg @ imgsz=960 was
+            # the reproducer). INT16 activations + INT8 weights costs ~30%
+            # FPS vs pure INT8 but recovers mask quality. Detection-only
+            # heads tolerate INT8_STANDARD fine.
+            is_seg = config.type == ModelType.SEGMENTATION
+            if is_int8:
+                quantization_mode = (
+                    "INT8_INT16_MIXED" if is_seg else "INT8_STANDARD"
+                )
+            else:
+                quantization_mode = "FP16_STANDARD"
             # HubAI fallback domain — used for RVC2/RVC3 INT8 only (where
             # modelconverter isn't on the path). RVC4+INT8 supplies its own
             # local calibration dir, so this value is ignored there.
