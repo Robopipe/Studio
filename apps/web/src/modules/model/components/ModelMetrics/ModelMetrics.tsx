@@ -1,4 +1,4 @@
-import type { Label } from "@repo/schema";
+import { type Label, ModelStatusEnum } from "@repo/schema";
 import { useMemo } from "react";
 import { useModelParams } from "../../hooks/useModelParams";
 import { useGetModelLogsQuery, useGetModelQuery } from "../../services";
@@ -30,41 +30,42 @@ export const ModelMetrics = ({}: ModelMetricsProps) => {
     return map;
   }, [model?.labels]);
 
-  const logsWithPerClass = useMemo(
-    () =>
-      (logs ?? []).filter(
-        (l) => l.perClassMetrics && Object.keys(l.perClassMetrics).length > 0,
-      ),
-    [logs],
-  );
+  const lastLogWithPerClass = useMemo(() => {
+    const filtered = (logs ?? []).filter(
+      (l) => l.perClassMetrics && Object.keys(l.perClassMetrics).length > 0,
+    );
+    return filtered[filtered.length - 1];
+  }, [logs]);
 
-  const logsWithCm = useMemo(
-    () =>
-      (logs ?? []).filter(
-        (l) => l.confusionMatrix && Object.keys(l.confusionMatrix).length > 0,
-      ),
-    [logs],
-  );
+  const lastLogWithCm = useMemo(() => {
+    const filtered = (logs ?? []).filter(
+      (l) => l.confusionMatrix && Object.keys(l.confusionMatrix).length > 0,
+    );
+    return filtered[filtered.length - 1];
+  }, [logs]);
 
-  const hasPerClass = logsWithPerClass.length > 0;
-  const hasCm = logsWithCm.length > 0;
+  // Per-class + confusion matrix are only meaningful at end-of-run, so we hide
+  // them while training is still in progress and surface only the final epoch.
+  const isTerminal =
+    model?.status === ModelStatusEnum.DONE ||
+    model?.status === ModelStatusEnum.CONVERTING ||
+    model?.status === ModelStatusEnum.ERROR ||
+    model?.status === ModelStatusEnum.CANCELLED;
 
-  if (!hasPerClass && !hasCm) return null;
+  if (!isTerminal) return null;
+  if (!lastLogWithPerClass && !lastLogWithCm) return null;
 
   return (
     <div className="flex flex-col gap-4">
-      {hasPerClass && (
+      {lastLogWithPerClass && (
         <PerClassCard
-          logsWithPerClass={logsWithPerClass}
+          log={lastLogWithPerClass}
           labelsById={labelsById}
           colorByLabelId={colorByLabelId}
         />
       )}
-      {hasCm && (
-        <ConfusionMatrixCard
-          logsWithCm={logsWithCm}
-          labelsById={labelsById}
-        />
+      {lastLogWithCm && (
+        <ConfusionMatrixCard log={lastLogWithCm} labelsById={labelsById} />
       )}
     </div>
   );

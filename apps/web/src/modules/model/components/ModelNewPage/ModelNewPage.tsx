@@ -1,4 +1,7 @@
-import { useGetTasksQuery } from "@/modules/capture/services/captureApi";
+import {
+  useGetTaskIdsQuery,
+  useGetTasksQuery,
+} from "@/modules/capture/services/captureApi";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import { Button } from "@/modules/shadcn/ui/button";
 import { Input } from "@/modules/shadcn/ui/input";
@@ -16,6 +19,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { useCreateModelMutation, useGetModelsQuery } from "../../services";
 import { AdvancedSettings } from "../AdvancedSettings";
+import { getHyperparamsPresets } from "../AdvancedSettings/presets";
 import { AppliedAugmentation } from "../AugmentationSettings/augmentationTypes";
 import {
   DatasetSplit,
@@ -28,7 +32,6 @@ import { TaskSelectionDialog } from "../TaskSelectionDialog";
 
 export interface DuplicateModelState {
   duplicateFrom: {
-    name: string;
     epochs: number;
     trainingType: ProjectTypeEnum;
     annotationsUsed: ProjectTypeEnum[];
@@ -61,7 +64,7 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
     { projectId: activeProject?.id! },
     { skip: !activeProject },
   );
-  const [name, setName] = useState(duplicateState?.name ?? "");
+  const [name, setName] = useState("");
   const [epochs, setEpochs] = useState(duplicateState?.epochs ?? 100);
   const [outputs, setOutputs] = useState<ModelOutputTypeEnum[]>(
     duplicateState?.outputs ?? [ModelOutputTypeEnum.RAW, ModelOutputTypeEnum.RVC4],
@@ -88,13 +91,22 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
   const [annotationsUsed, setAnnotationsUsed] = useState<ProjectTypeEnum[]>(
     duplicateState?.annotationsUsed ?? [ProjectTypeEnum.DETECTION],
   );
-  const [customHyperparams, setCustomHyperparams] = useState(
-    duplicateState?.customHyperparams ?? "",
-  );
+  const [customHyperparams, setCustomHyperparams] = useState(() => {
+    if (duplicateState?.customHyperparams !== undefined) {
+      return duplicateState.customHyperparams;
+    }
+    // Default to the High Accuracy preset for the initial backend.
+    const initialBackend =
+      duplicateState?.backend ?? ModelBackendEnum.LUXONIS;
+    const preset = getHyperparamsPresets(initialBackend).find(
+      (p) => p.id === "high-accuracy",
+    );
+    return preset ? JSON.stringify(preset.config, null, 2) : "";
+  });
   const [hyperparamsError, setHyperparamsError] = useState<string | null>(null);
   const [nameError, setNameError] = useState<string | null>(null);
   const [epochsError, setEpochsError] = useState<string | null>(null);
-  const didPrefillName = useRef(Boolean(duplicateState?.name));
+  const didPrefillName = useRef(false);
 
   // Task selection state — modal-controlled
   const [selectionDialogOpen, setSelectionDialogOpen] = useState(false);
@@ -131,6 +143,46 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
       })),
     );
   }, [needsPreviewFetch, previewTasksData]);
+
+  // First-load default: behave as if the user opened the dialog and clicked
+  // "select all". Pre-populate the explicit task list + a thumbnail row so the
+  // Source Images card renders previews + overflow instead of "All images".
+  // Skipped when duplicating (taskIds already provided) or after any user
+  // interaction with the dialog.
+  const userPickedTasks = useRef(Boolean(duplicateState));
+  const shouldPrefillTasks =
+    !userPickedTasks.current && selectedTaskIds.length === 0;
+  const { data: defaultTaskIdsData } = useGetTaskIdsQuery(
+    {
+      projectId: activeProject?.id!,
+      annotated: "true",
+      order: "desc",
+    },
+    { skip: !activeProject?.id || !shouldPrefillTasks },
+  );
+  const { data: defaultTasksData } = useGetTasksQuery(
+    {
+      projectId: activeProject?.id!,
+      page: 1,
+      limit: 15,
+      annotated: "true",
+      order: "desc",
+    },
+    { skip: !activeProject?.id || !shouldPrefillTasks },
+  );
+
+  useEffect(() => {
+    if (userPickedTasks.current) return;
+    if (!defaultTaskIdsData || !defaultTasksData) return;
+    userPickedTasks.current = true;
+    setSelectedTaskIds(defaultTaskIdsData.ids);
+    setSelectedTaskPreviews(
+      defaultTasksData.data.map((t) => ({
+        id: t.id,
+        thumbnailUrl: t.thumbnailUrl,
+      })),
+    );
+  }, [defaultTaskIdsData, defaultTasksData]);
 
   // Clear location state after reading to prevent re-prefill on refresh
   useEffect(() => {
@@ -316,6 +368,7 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
         onOpenChange={setSelectionDialogOpen}
         initialSelectedIds={selectedTaskIds}
         onSave={({ taskIds, previews }) => {
+          userPickedTasks.current = true;
           setSelectedTaskIds(taskIds);
           setSelectedTaskPreviews(previews);
         }}

@@ -7,27 +7,21 @@ import { Tabs, TabsList, TabsTrigger } from "@/modules/shadcn/ui/tabs";
 import type { Label, ModelLog } from "@repo/schema";
 import { useEffect, useMemo, useState } from "react";
 import { ConfusionMatrixTable } from "./ConfusionMatrixTable";
-import { EpochSlider } from "./EpochSlider";
-import { useEpochSlider } from "./useEpochSlider";
 import { toTabLabel } from "./utils";
 
 export interface ConfusionMatrixCardProps {
-  logsWithCm: ModelLog[];
+  log: ModelLog;
   labelsById: Map<number, Label>;
 }
 
 export const ConfusionMatrixCard = ({
-  logsWithCm,
+  log,
   labelsById,
 }: ConfusionMatrixCardProps) => {
   const matrixKeys = useMemo(() => {
-    const set = new Set<string>();
-    for (const log of logsWithCm) {
-      if (!log.confusionMatrix) continue;
-      for (const k of Object.keys(log.confusionMatrix)) set.add(k);
-    }
-    return Array.from(set).sort();
-  }, [logsWithCm]);
+    if (!log.confusionMatrix) return [];
+    return Object.keys(log.confusionMatrix).sort();
+  }, [log]);
 
   const [selectedKey, setSelectedKey] = useState<string>(matrixKeys[0] ?? "");
 
@@ -39,10 +33,7 @@ export const ConfusionMatrixCard = ({
     }
   }, [matrixKeys, selectedKey]);
 
-  const { safeIndex, selectedLog, selectedEpoch, lastEpoch, max, handleChange } =
-    useEpochSlider(logsWithCm);
-
-  const entry = selectedLog?.confusionMatrix?.[selectedKey];
+  const entry = log.confusionMatrix?.[selectedKey];
 
   if (matrixKeys.length === 0) return null;
 
@@ -77,16 +68,6 @@ export const ConfusionMatrixCard = ({
             </Tabs>
           )}
 
-          {logsWithCm.length > 1 && (
-            <EpochSlider
-              index={safeIndex}
-              max={max}
-              currentEpoch={selectedEpoch}
-              lastEpoch={lastEpoch}
-              onChange={handleChange}
-            />
-          )}
-
           {entry ? (
             <ConfusionMatrixTable
               matrixKey={selectedKey}
@@ -96,7 +77,7 @@ export const ConfusionMatrixCard = ({
             />
           ) : (
             <p className="py-2 text-sm text-muted-foreground">
-              No confusion-matrix data for this epoch.
+              No confusion-matrix data.
             </p>
           )}
         </CollapsiblePanel>

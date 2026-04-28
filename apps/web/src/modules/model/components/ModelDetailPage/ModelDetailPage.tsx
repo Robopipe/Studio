@@ -95,7 +95,6 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
 
     const state: DuplicateModelState = {
       duplicateFrom: {
-        name: `${model.name} (copy)`,
         epochs: model.epochs,
         trainingType: model.trainingType,
         annotationsUsed: model.annotationsUsed,
