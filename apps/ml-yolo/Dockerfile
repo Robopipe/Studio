@@ -16,6 +16,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     && rm -rf /var/lib/apt/lists/*
 
+# python:3.10-slim ships an older pip whose resolver bails on torch's
+# `typing-extensions>=4.10.0` constraint with "No matching distribution
+# found" even though 4.12.2+ is in the listed available versions. The
+# same requirements.txt worked under python:3.11-slim's newer pip.
+# Upgrade pip first in every env (global + both venvs below).
+RUN pip install --no-cache-dir --upgrade pip
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir --timeout=120 --retries=5 -r requirements.txt
 
@@ -41,6 +48,7 @@ RUN pip install --no-cache-dir --timeout=120 --retries=5 -r requirements.txt
 # `torch>=2.0.0` constraint is satisfied by the pre-installed 2.8.0+cpu
 # wheel, so the subsequent `pip install .` skips torch reinstallation.
 RUN python3 -m venv /opt/tools-venv && \
+    /opt/tools-venv/bin/pip install --no-cache-dir --upgrade pip && \
     /opt/tools-venv/bin/pip install --no-cache-dir --timeout=120 --retries=5 \
         --index-url https://download.pytorch.org/whl/cpu \
         torch==2.8.0+cpu torchvision==0.23.0+cpu && \
@@ -110,6 +118,7 @@ RUN cd /tmp && \
 # stack would clash with ml-yolo's Ultralytics deps if installed in the
 # global env (same isolation rationale as luxonis/tools above).
 RUN python3 -m venv /opt/modelconverter-venv && \
+    /opt/modelconverter-venv/bin/pip install --no-cache-dir --upgrade pip && \
     /opt/modelconverter-venv/bin/pip install --no-cache-dir --timeout=120 --retries=5 \
         modelconv==0.5.3
 
