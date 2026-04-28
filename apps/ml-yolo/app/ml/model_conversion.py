@@ -8,8 +8,23 @@ from ..models.model_type import ModelOutputType
 
 
 def convert_model(
-    path: str, output_dir: str, target_format: ModelOutputType
+    path: str,
+    output_dir: str,
+    target_format: ModelOutputType,
+    quantization_mode: str = "FP16_STANDARD",
+    quantization_data: str | None = None,
 ) -> ConvertResponse:
+    """Submit `path` to HubAI for the given RVC* target.
+
+    `quantization_mode` is forwarded as-is to hubai-sdk. Allowed values are
+    "FP16_STANDARD" and "INT8_STANDARD".
+
+    `quantization_data` selects the calibration set used for INT8 modes.
+    Either a predefined domain (GENERAL, INDOORS, WAREHOUSE, DRIVING, FOOD,
+    RANDOM) or a HubAI dataset id starting with "aid_". Ignored for FP16.
+    Defaults to None, which makes hubai-sdk fall back to RANDOM for INT8 —
+    callers that want INT8 should pass a domain explicitly.
+    """
     api_key = os.getenv("HUBAI_API_KEY")
     client = HubAIClient(api_key=api_key)
     conv_fn_map = {
@@ -22,12 +37,14 @@ def convert_model(
     # `best.onnx` → slug "best". On a second run the slug-fallback in
     # convert.py:217 resolves to a public/foreign `best` and the server
     # rejects the variant with "Invalid team ID provided."
-    conv_params = {
+    conv_params: dict = {
         "path": path,
         "output_dir": output_dir,
-        "quantization_mode": "FP16_STANDARD",
+        "quantization_mode": quantization_mode,
         "name": f"robopipe-yolo-{uuid.uuid4().hex[:12]}",
     }
+    if quantization_data is not None:
+        conv_params["quantization_data"] = quantization_data
     conv_fn = conv_fn_map.get(target_format)
 
     if conv_fn is None:

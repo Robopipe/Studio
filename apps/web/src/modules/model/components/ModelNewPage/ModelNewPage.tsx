@@ -12,6 +12,7 @@ import {
   Label as ProjectLabel,
   ModelBackendEnum,
   ModelOutputTypeEnum,
+  ModelQuantizationEnum,
   ModelRegionEnum,
   ProjectTypeEnum,
 } from "@repo/schema";
@@ -39,6 +40,7 @@ export interface DuplicateModelState {
     outputs: ModelOutputTypeEnum[];
     backend: ModelBackendEnum;
     region: ModelRegionEnum;
+    quantization: ModelQuantizationEnum;
     datasetSplit: DatasetSplit;
     augmentations: AppliedAugmentation[];
     preprocessings: AppliedAugmentation[];
@@ -74,6 +76,9 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
   );
   const [region, setRegion] = useState<ModelRegionEnum>(
     duplicateState?.region ?? ModelRegionEnum.EUROPE_WEST4,
+  );
+  const [quantization, setQuantization] = useState<ModelQuantizationEnum>(
+    duplicateState?.quantization ?? ModelQuantizationEnum.FP16,
   );
   const [activeLabels, setActiveLabels] = useState<ProjectLabel[]>(
     duplicateState?.labels ?? [],
@@ -262,6 +267,7 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
       outputTypes: outputs,
       backend,
       region,
+      quantization,
       trainingType,
       annotationsUsed,
       augmentations: normalAugs.map((a) => ({
@@ -351,6 +357,8 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
           onBackendChange={setBackend}
           region={region}
           onRegionChange={setRegion}
+          quantization={quantization}
+          onQuantizationChange={setQuantization}
           customHyperparams={customHyperparams}
           onCustomHyperparamsChange={setCustomHyperparams}
           hyperparamsError={hyperparamsError}

@@ -271,8 +271,23 @@ def run_training(config: ModelConfig) -> None:
                     webhook_url, api_key, config.id, {"progress": {"type": "converting"}}
                 )
 
+            # Map the wire-level "FP16"/"INT8" toggle to HubAI's mode names.
+            # For INT8 we steer hubai-sdk away from its RANDOM default and
+            # onto the GENERAL calibration domain — a curated mixed-imagery
+            # set that's a better fit for industrial inspection than RANDOM,
+            # and the only "your data"-ish path the SDK exposes today (it
+            # has no dataset upload API in 0.2.1; the alternative is a
+            # manually-uploaded `aid_*` ID, which we may add later).
+            is_int8 = config.training_config.quantization == "INT8"
+            quantization_mode = "INT8_STANDARD" if is_int8 else "FP16_STANDARD"
+            quantization_data = "GENERAL" if is_int8 else None
+
             for output_type in non_raw:
-                print(f"[ml-yolo] Converting to {output_type.value}")
+                print(
+                    f"[ml-yolo] Converting to {output_type.value} "
+                    f"(quantization_mode={quantization_mode}, "
+                    f"quantization_data={quantization_data})"
+                )
                 # Feed HubAI the tools-produced NN archive (not raw ONNX)
                 # so the `heads` block tools generated rides through the
                 # platform-specific compile. HubAI's `is_nn_archive(path)`
@@ -281,6 +296,8 @@ def run_training(config: ModelConfig) -> None:
                     path=archive_path,
                     output_dir=os.path.join(workdir, "converted", output_type.value),
                     target_format=output_type,
+                    quantization_mode=quantization_mode,
+                    quantization_data=quantization_data,
                 )
                 # Safety net for the case where HubAI strips heads through
                 # compilation. For tools-produced archives where heads
