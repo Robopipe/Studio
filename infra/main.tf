@@ -197,8 +197,8 @@ resource "google_cloud_run_v2_service" "ml_infer" {
 
       resources {
         limits = {
-          cpu    = "2"
-          memory = "4Gi"
+          cpu    = "4"
+          memory = "8Gi"
         }
         # cpu_idle: throttle CPU outside requests (saves cost when an
         # instance is parked between calls).

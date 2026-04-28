@@ -200,6 +200,7 @@ export const AdvancedSettings = ({
       {modalOpen && (
         <HyperparamsModal
           value={customHyperparams}
+          backend={backend}
           onApply={handleApply}
           onClose={() => setModalOpen(false)}
         />

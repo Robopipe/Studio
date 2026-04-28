@@ -119,7 +119,14 @@ class WebhookCallbacks:
         if metrics is None:
             return {}
 
-        maps = getattr(metrics, "maps", None)  # detection + segmentation: per-class mAP50-95
+        # Ultralytics' SegmentMetrics.maps returns box.maps + seg.maps (summed),
+        # so per-class values come out ~2x. Use seg.maps directly to mirror the
+        # headline accuracy key mAP50-95(M).
+        if self.model_type == ModelType.SEGMENTATION:
+            seg = getattr(metrics, "seg", None)
+            maps = getattr(seg, "maps", None) if seg is not None else None
+        else:
+            maps = getattr(metrics, "maps", None)
         if maps is None:
             return {}
 
