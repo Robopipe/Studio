@@ -203,6 +203,30 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
     setName(`Model V${String(next).padStart(2, "0")}`);
   }, [existingModels]);
 
+  // When switching backend, swap the hyperparams JSON to the new backend's
+  // matching preset *iff* the current text still matches a preset of the
+  // previous backend. That way users on defaults get the right defaults for
+  // the new backend (fast/high/low align by id), but anyone who hand-edited
+  // the JSON keeps their work — backend change isn't a license to wipe it.
+  const handleBackendChange = (next: ModelBackendEnum) => {
+    if (next === backend) return;
+    const previousPresets = getHyperparamsPresets(backend);
+    const matched = previousPresets.find(
+      (p) => JSON.stringify(p.config, null, 2) === customHyperparams,
+    );
+    if (matched) {
+      const newPresets = getHyperparamsPresets(next);
+      const swap =
+        newPresets.find((p) => p.id === matched.id) ??
+        newPresets.find((p) => p.id === "high-accuracy");
+      if (swap) {
+        setCustomHyperparams(JSON.stringify(swap.config, null, 2));
+        setHyperparamsError(null);
+      }
+    }
+    setBackend(next);
+  };
+
   const parseHyperparams = (): Record<string, unknown> | undefined => {
     if (!customHyperparams.trim()) return {};
     try {
@@ -354,7 +378,7 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
           outputs={outputs}
           onOutputsChange={setOutputs}
           backend={backend}
-          onBackendChange={setBackend}
+          onBackendChange={handleBackendChange}
           region={region}
           onRegionChange={setRegion}
           quantization={quantization}

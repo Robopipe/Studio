@@ -140,9 +140,11 @@ export const AdvancedSettings = ({
               </span>
               <p className="text-sm leading-5 text-black/60">
                 FP16 keeps full-precision weights — slower but most accurate.
-                INT8 quantizes weights and activations to 8 bits during export,
-                calibrated against HubAI's GENERAL domain set: typically 2–3×
-                faster on RVC4 with a small accuracy drop (≈0.5–2 mAP points).
+                INT8 quantizes weights and activations to 8 bits, calibrated
+                against a random 400-image sample of your training data:
+                typically 2–3× faster on RVC4 with a small accuracy drop
+                (≈0.5–2 mAP points). Segmentation models use mixed INT8/INT16
+                automatically to preserve mask quality.
               </p>
               <div className="flex flex-row gap-2 py-2">
                 {Object.values(ModelQuantizationEnum).map((value) => {
