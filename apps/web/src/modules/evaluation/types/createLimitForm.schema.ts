@@ -21,6 +21,7 @@ const limitItemFormSchema = z.object({
 export const createLimitFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   severity: z.enum(EvalSeverityEnum).nullable(),
+  enabled: z.boolean(),
   targetLabelId: z.number().min(1, "Label is required"),
   targetParentLabelId: z.number().nullable(),
   limitItems: z

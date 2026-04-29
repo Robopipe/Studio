@@ -17,6 +17,10 @@ export function GeneralSection() {
     <section className="flex flex-col gap-3">
       <h6 className="text-sm font-bold">General</h6>
       <form.AppField
+        name="enabled"
+        children={(field) => <field.Switch label="Enabled" />}
+      />
+      <form.AppField
         name="name"
         children={(field) => (
           <field.TextInput label="Limit name" placeholder="Limit name" />

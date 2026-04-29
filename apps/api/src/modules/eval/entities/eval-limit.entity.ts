@@ -9,6 +9,7 @@ export class EvalLimitEntity {
   readonly targetLabelId: number;
   readonly targetParentLabelId: number | null;
   readonly severity: EvalSeverityEnum | null;
+  readonly enabled: boolean;
   readonly targetLabel: ProjectLabelEntity;
   readonly targetParentLabel: ProjectLabelEntity | null;
   readonly testCaseId: string;
@@ -23,6 +24,7 @@ export class EvalLimitEntity {
     this.targetLabelId = data.targetLabelId;
     this.targetParentLabelId = data.targetParentLabelId;
     this.severity = data.severity ?? null;
+    this.enabled = data.enabled;
     this.targetLabel = new ProjectLabelEntity(data.targetLabel)
     this.targetParentLabel = data.targetParentLabel ? new ProjectLabelEntity(data.targetParentLabel) : null;
     this.testCaseId = data.testCaseId;
@@ -35,6 +37,7 @@ export class EvalLimitEntity {
       id: this.id,
       name: this.name,
       severity: this.severity,
+      enabled: this.enabled,
       targetLabel: this.targetLabel.toResponse(),
       targetParentLabel: this.targetParentLabel ? this.targetParentLabel.toResponse() : null,
       createdAt: this.createdAt.toISOString(),

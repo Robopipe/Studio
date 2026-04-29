@@ -384,6 +384,7 @@ export const useRunDeploy = ({
         id: limit.id,
         name: limit.name,
         severity: limit.severity,
+        enabled: limit.enabled,
         targetLabel: limit.targetLabel,
         targetParentLabel: limit.targetParentLabel,
         limitItems: limit.limitItems.map((item) => ({
