@@ -2,7 +2,7 @@ import { useGetNNQuery } from "@/core/cameraApi/api";
 import { useWebRTCStream } from "@/modules/capture/hooks/useWebRTCStream";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import { useDetections } from "../../hooks/useDetections";
-import { useDetectionsRenderer } from "../../hooks/useDetectionsRenderer";
+import { useSyncedRenderer } from "../../hooks/useSyncedRenderer";
 
 export interface LiveInferenceProps {
   selectedCamera: string | null;
@@ -21,12 +21,15 @@ export const LiveInference = ({
   const hasNN = !!nnInfo?.model_id;
 
   const [activeProject] = useActiveProject();
+  // Without an NN, we just play the raw WebRTC stream — no overlays to
+  // sync, no need for the matcher's bitmap pipeline.
   const { videoRef, isStreaming } = useWebRTCStream({
     selectedMxid: selectedCamera || "",
     selectedSensorName: selectedStream || "",
   });
-  const { canvasRef, renderDetections } = useDetectionsRenderer({
-    videoRef,
+  // With an NN, the displayed surface is the synced canvas: every painted
+  // frame carries the exact detections inferred on it.
+  const { canvasRef } = useSyncedRenderer({
     projectId: activeProject?.id || 0,
     modelId,
     enabled: hasNN,
@@ -34,7 +37,6 @@ export const LiveInference = ({
   const { isConnected } = useDetections({
     selectedMxid: selectedCamera || "",
     selectedSensorName: selectedStream || "",
-    onDetections: renderDetections,
     enabled: hasNN && !!nnInfo,
   });
 
@@ -60,28 +62,27 @@ export const LiveInference = ({
         )}
         {hasNN && isConnected && (
           <span className="absolute left-[5.5rem] top-4 z-10 bg-violet-300 px-2.5 py-1.5 text-base font-bold uppercase leading-[1.21] tracking-[0.125rem] text-white">
-            NN
+            SYNC
           </span>
         )}
 
-        <video
-          ref={videoRef}
-          autoPlay
-          muted
-          playsInline
-          className="h-full w-full"
-        />
+        {hasNN ? (
+          <canvas ref={canvasRef} className="h-full w-full" />
+        ) : (
+          <video
+            ref={videoRef}
+            autoPlay
+            muted
+            playsInline
+            className="h-full w-full"
+          />
+        )}
 
         {!isStreaming && (
           <div className="absolute inset-0 flex items-center justify-center text-sm text-[#666]">
             Connecting to camera...
           </div>
         )}
-
-        <canvas
-          ref={canvasRef}
-          className="absolute left-1/2 top-0 -translate-x-1/2"
-        />
       </div>
 
       {!hasNN && (

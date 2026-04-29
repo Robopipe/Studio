@@ -9,6 +9,11 @@ import {
   CameraStreamContext,
   CameraStreamContextValue,
 } from "../context/cameraStreamContext";
+import {
+  decodeTimestampBurnin,
+  stripDimensions,
+} from "../utils/decodeTimestampBurnin";
+import { FrameMatcher, type SyncedFrame } from "../utils/frameMatcher";
 
 const ICE_SERVERS: RTCIceServer[] = [
   { urls: ["stun:stun.l.google.com:19302"] },
@@ -80,12 +85,24 @@ export const CameraStreamProvider = ({ children }: CameraStreamProviderProps) =>
   const [detectionsError, setDetectionsError] = useState<string | null>(null);
 
   const subscribersRef = useRef<Set<(d: NNDetections) => void>>(new Set());
+  const syncedSubscribersRef = useRef<Set<(s: SyncedFrame) => void>>(new Set());
+  const matcherRef = useRef<FrameMatcher | null>(null);
 
   const subscribeDetections = useCallback(
     (cb: (d: NNDetections) => void) => {
       subscribersRef.current.add(cb);
       return () => {
         subscribersRef.current.delete(cb);
+      };
+    },
+    [],
+  );
+
+  const subscribeSyncedFrames = useCallback(
+    (cb: (s: SyncedFrame) => void) => {
+      syncedSubscribersRef.current.add(cb);
+      return () => {
+        syncedSubscribersRef.current.delete(cb);
       };
     },
     [],
@@ -209,6 +226,120 @@ export const CameraStreamProvider = ({ children }: CameraStreamProviderProps) =>
     };
   }, [mxid, streamName, apiHost, pipelineGeneration]);
 
+  // Matcher lifecycle. Resets whenever NN deploy state or pipeline topology
+  // changes, since pending frame/detection ts values from a previous
+  // session aren't meaningful anymore. The matcher's emit is fanned out to
+  // syncedSubscribersRef so subscribers survive matcher rebuilds.
+  useEffect(() => {
+    if (!hasNN) return;
+
+    const matcher = new FrameMatcher();
+    matcher.onMatch((synced) => {
+      if (syncedSubscribersRef.current.size === 0) {
+        // No live subscriber: matcher's emit transferred ownership to us
+        // and there's nobody to hand it off to — close to avoid leaks.
+        synced.bitmap.close();
+        return;
+      }
+      for (const cb of syncedSubscribersRef.current) {
+        try {
+          cb(synced);
+        } catch (e) {
+          console.error("Synced frame subscriber threw:", e);
+        }
+      }
+    });
+    matcherRef.current = matcher;
+
+    return () => {
+      matcherRef.current = null;
+      matcher.dispose();
+    };
+  }, [hasNN, mxid, streamName, pipelineGeneration]);
+
+  // Frame capture loop — drives the matcher's frame side. Only runs when
+  // both a media stream and NN are present; otherwise there's nothing to
+  // sync.
+  useEffect(() => {
+    if (!mediaStream || !hasNN) return;
+
+    const video = document.createElement("video");
+    video.muted = true;
+    video.playsInline = true;
+    video.autoplay = true;
+    video.srcObject = mediaStream;
+    void video.play().catch(() => {});
+
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return;
+
+    let cancelled = false;
+    let rvfcId: number | undefined;
+
+    const onFrame: VideoFrameRequestCallback = () => {
+      if (cancelled) return;
+      const w = video.videoWidth;
+      const h = video.videoHeight;
+      if (w === 0 || h === 0) {
+        rvfcId = video.requestVideoFrameCallback(onFrame);
+        return;
+      }
+
+      const { stripWidth, stripHeight } = stripDimensions(w);
+      if (stripWidth > w || stripHeight > h) {
+        rvfcId = video.requestVideoFrameCallback(onFrame);
+        return;
+      }
+
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+      }
+
+      ctx.drawImage(video, 0, 0);
+      const stripData = ctx.getImageData(0, 0, stripWidth, stripHeight);
+      const ts = decodeTimestampBurnin(stripData, w);
+      const capturedAt = performance.now();
+
+      // Snapshot the canvas before re-arming so the bitmap captures THIS
+      // frame even if the next callback overwrites the canvas before our
+      // promise resolves.
+      const bitmapPromise =
+        ts !== null && matcherRef.current
+          ? createImageBitmap(canvas)
+          : null;
+
+      rvfcId = video.requestVideoFrameCallback(onFrame);
+
+      if (bitmapPromise) {
+        bitmapPromise.then(
+          (bitmap) => {
+            if (cancelled || !matcherRef.current) {
+              bitmap.close();
+              return;
+            }
+            matcherRef.current.pushFrame(ts!, bitmap, capturedAt);
+          },
+          (err) => {
+            console.error("createImageBitmap failed:", err);
+          },
+        );
+      }
+    };
+
+    rvfcId = video.requestVideoFrameCallback(onFrame);
+
+    return () => {
+      cancelled = true;
+      if (rvfcId !== undefined) {
+        video.cancelVideoFrameCallback(rvfcId);
+      }
+      video.srcObject = null;
+      video.pause();
+    };
+  }, [mediaStream, hasNN]);
+
   // Detections WebSocket — only when an NN is deployed on this stream.
   useEffect(() => {
     if (!mxid || !streamName || !apiHost || !hasNN) {
@@ -273,6 +404,30 @@ export const CameraStreamProvider = ({ children }: CameraStreamProviderProps) =>
               return parsed;
             });
             subscribersRef.current.forEach((cb) => cb(parsed));
+            // Push to matcher for synced rendering. Clone the maskBitmap
+            // so the matcher owns its own copy independent of the legacy
+            // setDetections cleanup; otherwise either side closing it
+            // crashes the other.
+            if (parsed.ts_us !== undefined && matcherRef.current) {
+              const ts32 = parsed.ts_us % 0x100000000;
+              let detectionsForMatcher: NNDetections = parsed;
+              if (parsed.maskBitmap) {
+                try {
+                  const clonedMask = await createImageBitmap(parsed.maskBitmap);
+                  detectionsForMatcher = { ...parsed, maskBitmap: clonedMask };
+                } catch {
+                  // If cloning fails, fall through with no mask in the
+                  // matcher's copy rather than risking a double-close.
+                  const { maskBitmap: _drop, ...rest } = parsed;
+                  detectionsForMatcher = rest as NNDetections;
+                }
+              }
+              matcherRef.current.pushDetections(
+                ts32,
+                detectionsForMatcher,
+                performance.now(),
+              );
+            }
           } catch {
             // ignore malformed messages
           }
@@ -327,6 +482,7 @@ export const CameraStreamProvider = ({ children }: CameraStreamProviderProps) =>
     isDetectionsConnected,
     detectionsError,
     subscribeDetections,
+    subscribeSyncedFrames,
   };
 
   return (
