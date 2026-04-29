@@ -1,7 +1,9 @@
 import { Button } from "@/modules/shadcn/ui/button";
+import { Spinner } from "@/modules/shadcn/ui/spinner";
 import { Tabs, TabsList, TabsTrigger } from "@/modules/shadcn/ui/tabs";
 import { Play, Square } from "lucide-react";
 import type { ReactNode } from "react";
+import type { DeployPhase } from "../../hooks/useRunDeploy";
 
 export type RunTab = "inference" | "dashboard" | "configuration";
 
@@ -10,7 +12,7 @@ interface RunSubheaderProps {
   onTabChange: (tab: RunTab) => void;
   onDeploy: () => void;
   onStop: () => void;
-  isDeploying: boolean;
+  deployPhase: DeployPhase;
   canDeploy: boolean;
   isDeployed: boolean;
   configSelector?: ReactNode;
@@ -22,16 +24,26 @@ const TABS: { key: RunTab; label: string }[] = [
   { key: "configuration", label: "Configuration" },
 ];
 
+const PHASE_MESSAGES: Record<Exclude<DeployPhase, "idle">, string> = {
+  preparing: "Saving configuration…",
+  "loading-data": "Loading dashboard data…",
+  "downloading-model": "Downloading model…",
+  "uploading-video": "Uploading replay video…",
+  deploying: "Deploying to camera…",
+};
+
 export const RunSubheader = ({
   activeTab,
   onTabChange,
   onDeploy,
   onStop,
-  isDeploying,
+  deployPhase,
   canDeploy,
   isDeployed,
   configSelector,
 }: RunSubheaderProps) => {
+  const isDeploying = deployPhase !== "idle";
+
   return (
     <div className="flex h-12 flex-shrink-0 items-end justify-between border-b border-border bg-gray-100 pr-6">
       <Tabs
@@ -49,13 +61,26 @@ export const RunSubheader = ({
       </Tabs>
 
       <div className="flex h-full items-center gap-2">
+        {isDeploying && (
+          <>
+            <div
+              className="flex items-center gap-2 text-sm text-muted-foreground"
+              role="status"
+              aria-live="polite"
+            >
+              <Spinner className="size-4 text-emerald-500" />
+              <span>{PHASE_MESSAGES[deployPhase]}</span>
+            </div>
+            <div className="h-4 w-px bg-border" />
+          </>
+        )}
         {configSelector}
         <div className="h-4 w-px bg-border" />
         <Button
           size="sm"
           variant="outline"
           onClick={onStop}
-          disabled={!isDeployed}
+          disabled={!isDeployed || isDeploying}
         >
           <Square className="size-4" />
           Stop
@@ -66,7 +91,7 @@ export const RunSubheader = ({
           disabled={!canDeploy || isDeploying}
         >
           <Play className="size-4" />
-          {isDeploying ? "Deploying..." : "Deploy"}
+          Deploy
         </Button>
       </div>
     </div>
