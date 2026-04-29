@@ -1,7 +1,11 @@
-import type { SahiConfig } from "@/core/cameraApi/schemas/nn";
+import type {
+  NNRuntimeConfig,
+  SahiConfig,
+} from "@/core/cameraApi/schemas/nn";
 import { useImperativeHandle, type Ref } from "react";
 import { CameraConfigPanel } from "./CameraConfigPanel";
 import { CameraPreview } from "./CameraPreview";
+import { NNRuntimePanel } from "./NNRuntimePanel";
 import { ZonePositionPanel } from "./ZonePositionPanel";
 import { SahiConfigPanel } from "./SahiConfigPanel";
 import { useConfigurationState } from "./useConfigurationState";
@@ -15,6 +19,8 @@ interface ConfigurationTabProps {
   configId: number | null;
   sahiConfig: SahiConfig | null;
   onSahiConfigChange: (config: SahiConfig | null) => void;
+  runtimeConfig: NNRuntimeConfig;
+  onRuntimeConfigChange: (config: NNRuntimeConfig) => void;
   ref?: Ref<ConfigurationTabHandle>;
 }
 
@@ -23,6 +29,8 @@ export const ConfigurationTab = ({
   configId,
   sahiConfig,
   onSahiConfigChange,
+  runtimeConfig,
+  onRuntimeConfigChange,
   ref,
 }: ConfigurationTabProps) => {
   if (!configId) {
@@ -42,6 +50,8 @@ export const ConfigurationTab = ({
       configId={configId}
       sahiConfig={sahiConfig}
       onSahiConfigChange={onSahiConfigChange}
+      runtimeConfig={runtimeConfig}
+      onRuntimeConfigChange={onRuntimeConfigChange}
     />
   );
 };
@@ -51,12 +61,16 @@ const ConfigurationTabContent = ({
   configId,
   sahiConfig,
   onSahiConfigChange,
+  runtimeConfig,
+  onRuntimeConfigChange,
   ref,
 }: {
   projectId: number;
   configId: number;
   sahiConfig: SahiConfig | null;
   onSahiConfigChange: (config: SahiConfig | null) => void;
+  runtimeConfig: NNRuntimeConfig;
+  onRuntimeConfigChange: (config: NNRuntimeConfig) => void;
   ref?: Ref<ConfigurationTabHandle>;
 }) => {
   const {
@@ -120,6 +134,11 @@ const ConfigurationTabContent = ({
             onVideoChange={setSelectedVideoId}
           />
         </div>
+
+        <NNRuntimePanel
+          value={runtimeConfig}
+          onChange={onRuntimeConfigChange}
+        />
 
         <SahiConfigPanel value={sahiConfig} onChange={onSahiConfigChange} />
       </div>

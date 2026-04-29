@@ -18,9 +18,14 @@ from ..config import get_config
 from ..models.model_config import ModelConfig
 from ..models.model_type import ModelOutputType
 from ..models.training_config import OutputUpload
+from ..models.model_type import ModelType
 from .archive_patch import patch_nn_archive_heads
-from .dataset import prepare_dataset
+from .dataset import DATASET_DIR, IMAGE_DIR, TRAIN_DIR, prepare_dataset
 from .model_conversion import convert_model
+from .modelconverter_conversion import (
+    convert_rvc4_int8,
+    sample_calibration_images,
+)
 from .preprocess import preprocess_dataset
 from .ultralytics_callbacks import WebhookCallbacks
 from .ultralytics_config import (
@@ -271,31 +276,111 @@ def run_training(config: ModelConfig) -> None:
                     webhook_url, api_key, config.id, {"progress": {"type": "converting"}}
                 )
 
-            for output_type in non_raw:
-                print(f"[ml-yolo] Converting to {output_type.value}")
-                # Feed HubAI the tools-produced NN archive (not raw ONNX)
-                # so the `heads` block tools generated rides through the
-                # platform-specific compile. HubAI's `is_nn_archive(path)`
-                # check picks the archive path automatically.
-                res = convert_model(
-                    path=archive_path,
-                    output_dir=os.path.join(workdir, "converted", output_type.value),
-                    target_format=output_type,
+            # Routing: RVC4+INT8 goes through the offline luxonis/modelconverter
+            # path so we can feed it a real calibration set sampled from the
+            # training images. Everything else (FP16, RVC2/RVC3 of any
+            # precision) goes through HubAI — modelconverter could do RVC2/RVC3
+            # too but HubAI is fine for those and we'd just be re-implementing
+            # the OpenVINO chain locally for no win.
+            is_int8 = config.training_config.quantization == "INT8"
+            # Segmentation models route through INT8_INT16_MIXED — the proto
+            # × coefficient × sigmoid pipeline in YOLO's mask head is the most
+            # quant-sensitive part of the graph, and pure INT8 activations
+            # routinely produce fragmented masks (yolo11m-seg @ imgsz=960 was
+            # the reproducer). INT16 activations + INT8 weights costs ~30%
+            # FPS vs pure INT8 but recovers mask quality. Detection-only
+            # heads tolerate INT8_STANDARD fine.
+            is_seg = config.type == ModelType.SEGMENTATION
+            if is_int8:
+                quantization_mode = (
+                    "INT8_INT16_MIXED" if is_seg else "INT8_STANDARD"
                 )
-                # Safety net for the case where HubAI strips heads through
-                # compilation. For tools-produced archives where heads
+            else:
+                quantization_mode = "FP16_STANDARD"
+            # HubAI fallback domain — used for RVC2/RVC3 INT8 only (where
+            # modelconverter isn't on the path). RVC4+INT8 supplies its own
+            # local calibration dir, so this value is ignored there.
+            hubai_quantization_data = "GENERAL" if is_int8 else None
+
+            # Sample a calibration set up-front when we know we'll need it,
+            # so the cost is paid once even if multiple targets request it.
+            calib_dir: str | None = None
+            if is_int8 and ModelOutputType.RVC4 in non_raw:
+                calib_dir = os.path.join(workdir, "calib_images")
+                # Layouts differ by task type — see prepare_dataset:
+                #   classification:         <workdir>/dataset/train/<label>/*.jpg
+                #   detection/segmentation: <workdir>/dataset/images/train/*.jpg
+                if config.type == ModelType.CLASSIFICATION:
+                    train_image_dir = os.path.join(
+                        workdir, DATASET_DIR, TRAIN_DIR
+                    )
+                else:
+                    train_image_dir = os.path.join(
+                        workdir, DATASET_DIR, IMAGE_DIR, TRAIN_DIR
+                    )
+                n = sample_calibration_images(train_image_dir, calib_dir)
+                print(
+                    f"[ml-yolo] Sampled {n} calibration images "
+                    f"from {train_image_dir} into {calib_dir}"
+                )
+                if n == 0:
+                    raise RuntimeError(
+                        "INT8 RVC4 conversion requires at least one calibration "
+                        f"image; found none under {train_image_dir}"
+                    )
+
+            for output_type in non_raw:
+                use_modelconverter = (
+                    output_type == ModelOutputType.RVC4 and is_int8
+                )
+
+                if use_modelconverter:
+                    print(
+                        f"[ml-yolo] Converting to {output_type.value} via "
+                        f"modelconverter (quantization_mode={quantization_mode}, "
+                        f"calibration_dir={calib_dir})"
+                    )
+                    converted_path = convert_rvc4_int8(
+                        archive_path=archive_path,
+                        output_dir=os.path.join(
+                            workdir, "converted", output_type.value
+                        ),
+                        calibration_dir=calib_dir,  # type: ignore[arg-type]
+                        quantization_mode=quantization_mode,
+                    )
+                else:
+                    print(
+                        f"[ml-yolo] Converting to {output_type.value} via HubAI "
+                        f"(quantization_mode={quantization_mode}, "
+                        f"quantization_data={hubai_quantization_data})"
+                    )
+                    # Feed HubAI the tools-produced NN archive (not raw ONNX)
+                    # so the `heads` block tools generated rides through the
+                    # platform-specific compile. HubAI's `is_nn_archive(path)`
+                    # check picks the archive path automatically.
+                    res = convert_model(
+                        path=archive_path,
+                        output_dir=os.path.join(
+                            workdir, "converted", output_type.value
+                        ),
+                        target_format=output_type,
+                        quantization_mode=quantization_mode,
+                        quantization_data=hubai_quantization_data,
+                    )
+                    converted_path = res.downloaded_path
+
+                # Safety net for the case where the converter strips heads
+                # through compilation. For tools-produced archives where heads
                 # survive, this is a no-op (idempotent on populated heads).
                 # Currently only fixes single-output Ultralytics-style
-                # detection archives; if HubAI is found to strip heads from
-                # tools-produced archives, this needs to be extended for
-                # multi-output detection AND segmentation.
+                # detection archives.
                 patch_nn_archive_heads(
-                    res.downloaded_path,
+                    converted_path,
                     config.type,
                     config.training_config.dataset_config.label_ids,
                 )
                 conv_upload = upload_for(output_type)
-                _upload_to_signed_url(conv_upload, res.downloaded_path)
+                _upload_to_signed_url(conv_upload, converted_path)
                 completed.append(conv_upload)
 
             _post_complete(

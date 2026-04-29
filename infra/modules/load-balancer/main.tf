@@ -22,10 +22,10 @@ resource "google_compute_region_network_endpoint_group" "api" {
 }
 
 resource "google_compute_backend_service" "api" {
-  project               = var.project_id
-  name                  = "${var.name_prefix}-api-backend"
-  protocol              = "HTTPS"
-  timeout_sec           = 30
+  project     = var.project_id
+  name        = "${var.name_prefix}-api-backend"
+  protocol    = "HTTPS"
+  timeout_sec = 30
   # Required for default_custom_error_response_policy on the url_map.
   load_balancing_scheme = "EXTERNAL_MANAGED"
 

@@ -1,9 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { Label } from "@repo/schema";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import { useGetTasksQuery } from "@/modules/capture/services/captureApi";
 import { useGetProjectLabelsQuery } from "@/modules/project/services/projectApi";
-import { useGetTaskQuery, useUpdateTaskMutation } from "../../services/labelApi";
+import { useGetModelsQuery } from "@/modules/model/services/modelApi";
+import { useProfileQuery } from "@/core/auth/services";
+import {
+  useGetTaskQuery,
+  usePredictAnnotationsMutation,
+  useUpdateTaskMutation,
+} from "../../services/labelApi";
 import { useSelectedTask } from "../../hooks/useSelectedTask";
 import { useToolMode } from "../../hooks/useToolMode";
 import { useHistory } from "../../hooks/useHistory";
@@ -11,11 +18,18 @@ import { useCanvasState } from "../../hooks/useCanvasState";
 import { useLabelShortcuts } from "../../hooks/useLabelShortcuts";
 import { Annotation } from "../../types/annotations";
 import { taskDetailToAnnotations, annotationsToUpdatePayload } from "../../utils/mapAnnotations";
+import {
+  DEFAULT_PRE_ANNOTATE_SETTINGS,
+  PreAnnotateSettings,
+  readPreAnnotateSettings,
+  writePreAnnotateSettings,
+} from "../../utils/preAnnotateSettings";
 import { EditProjectModal } from "@/modules/project/components/EditProjectModal";
 import { AnnotationPanel } from "../AnnotationPanel";
 import { Canvas } from "../Canvas";
 import { ClassSelect } from "../ClassSelect";
 import { DataSourcePanel } from "../DataSourcePanel";
+import { PreAnnotateSettingsDialog } from "../PreAnnotateSettingsDialog";
 import { TaskFilterState } from "../TaskFilterDialog";
 import { Toolbar } from "../Toolbar";
 
@@ -66,6 +80,36 @@ export const LabelPage = () => {
   );
 
   const [updateTask] = useUpdateTaskMutation();
+  const [predictAnnotations, { isLoading: isPredicting }] =
+    usePredictAnnotationsMutation();
+  const { data: profile } = useProfileQuery();
+  const { data: models = [] } = useGetModelsQuery(
+    { projectId: projectId! },
+    { skip: !projectId },
+  );
+
+  const [preAnnotateOpen, setPreAnnotateOpen] = useState(false);
+  const [preAnnotateSettings, setPreAnnotateSettingsState] =
+    useState<PreAnnotateSettings>(DEFAULT_PRE_ANNOTATE_SETTINGS);
+
+  // Hydrate from localStorage as soon as we know which (user, project) we
+  // are; mirrors the cameraApiOverride pattern.
+  useEffect(() => {
+    if (!profile?.id || !projectId) return;
+    setPreAnnotateSettingsState(
+      readPreAnnotateSettings(profile.id, projectId),
+    );
+  }, [profile?.id, projectId]);
+
+  const updatePreAnnotateSettings = useCallback(
+    (next: PreAnnotateSettings) => {
+      setPreAnnotateSettingsState(next);
+      if (profile?.id && projectId) {
+        writePreAnnotateSettings(profile.id, projectId, next);
+      }
+    },
+    [profile?.id, projectId],
+  );
 
   const { toolMode, setToolMode } = useToolMode();
   const [showCrosshair, setShowCrosshair] = useState<boolean>(() => {
@@ -178,6 +222,98 @@ export const LabelPage = () => {
     handleSave({ reviewed: true });
   }, [handleSave]);
 
+  const handlePreAnnotate = useCallback(() => {
+    if (
+      !projectId ||
+      selectedTaskId === null ||
+      preAnnotateSettings.modelId === null ||
+      annotations.length > 0
+    ) {
+      return;
+    }
+
+    const labelById = new Map(labels.map((l) => [l.id, l]));
+    const stamp = Date.now();
+    const toastId = toast.loading("Pre-annotating...");
+
+    predictAnnotations({
+      projectId,
+      taskId: selectedTaskId,
+      body: {
+        modelId: preAnnotateSettings.modelId,
+        conf: preAnnotateSettings.conf,
+        iou: preAnnotateSettings.iou,
+        polyEpsilon: preAnnotateSettings.polyEpsilon,
+        maskThreshold: preAnnotateSettings.maskThreshold,
+        minAreaPx: preAnnotateSettings.minAreaPx,
+        fillConcavityLabelIds: preAnnotateSettings.fillConcavityLabelIds,
+      },
+    })
+      .unwrap()
+      .then((result) => {
+        const newAnnotations: Annotation[] = result.polygons.flatMap((p, idx) => {
+          const label = labelById.get(p.labelId);
+          if (!label) return [];
+          return [
+            {
+              id: `pred-${stamp}-${idx}`,
+              apiId: undefined,
+              labelId: String(label.id),
+              labelName: label.name,
+              color: label.color,
+              type: "polygon",
+              points: p.value,
+            },
+          ];
+        });
+
+        // Pre-annotate is "load a starting state" rather than a per-action
+        // edit. Replace annotations wholesale, mark the task dirty so the
+        // Save button lights up, and reset history so Undo/Redo only
+        // tracks corrections the user makes from here.
+        setAnnotations(newAnnotations);
+        setIsDirty(true);
+        history.reset();
+        setSelectedAnnotationId(null);
+
+        if (newAnnotations.length === 0) {
+          toast.info("No predictions above the confidence threshold", {
+            id: toastId,
+            description:
+              "Try lowering Confidence in the pre-annotate settings.",
+          });
+        } else {
+          toast.success(
+            `Pre-annotated ${newAnnotations.length} polygon${newAnnotations.length === 1 ? "" : "s"}`,
+            { id: toastId },
+          );
+        }
+      })
+      .catch((err: unknown) => {
+        const message =
+          (err as { data?: { message?: string } })?.data?.message ??
+          "Pre-annotation failed";
+        toast.error(message, { id: toastId });
+      });
+  }, [
+    projectId,
+    selectedTaskId,
+    preAnnotateSettings,
+    annotations.length,
+    predictAnnotations,
+    labels,
+    history,
+  ]);
+
+  const preAnnotateDisabledReason = useMemo(() => {
+    if (selectedTaskId === null) return "Select a task first";
+    if (annotations.length > 0)
+      return "Pre-annotate is only available on empty tasks";
+    if (preAnnotateSettings.modelId === null)
+      return "Choose a model in pre-annotate settings";
+    return undefined;
+  }, [selectedTaskId, annotations.length, preAnnotateSettings.modelId]);
+
   useLabelShortcuts({
     tasks,
     selectedTaskId,
@@ -287,6 +423,13 @@ export const LabelPage = () => {
               hasLabels={labels.length > 0 || isLoadingLabels}
               showCrosshair={showCrosshair}
               onToggleCrosshair={toggleCrosshair}
+              onPreAnnotate={handlePreAnnotate}
+              onOpenPreAnnotateSettings={() => setPreAnnotateOpen(true)}
+              preAnnotateDisabled={
+                preAnnotateDisabledReason !== undefined || isPredicting
+              }
+              preAnnotatePending={isPredicting}
+              preAnnotateDisabledReason={preAnnotateDisabledReason}
             />
           </div>
         </div>
@@ -309,6 +452,13 @@ export const LabelPage = () => {
           onClose={() => setSettingsOpen(false)}
         />
       )}
+      <PreAnnotateSettingsDialog
+        open={preAnnotateOpen}
+        onOpenChange={setPreAnnotateOpen}
+        models={models}
+        settings={preAnnotateSettings}
+        onApply={updatePreAnnotateSettings}
+      />
     </div>
   );
 };

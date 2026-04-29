@@ -28,6 +28,10 @@ export enum ModelRegionEnum {
   EUROPE_WEST4 = "europe-west4",
   US_CENTRAL1 = "us-central1",
 }
+export enum ModelQuantizationEnum {
+  FP16 = "FP16",
+  INT8 = "INT8",
+}
 export enum ModelAugmentationTypeEnum {
   FLIP = "FLIP",
   ROTATE90 = "ROTATE90",
@@ -81,6 +85,7 @@ export const modelSchema = z.object({
   outputTypes: z.enum(ModelOutputTypeEnum).array(),
   backend: z.enum(ModelBackendEnum),
   region: z.enum(ModelRegionEnum),
+  quantization: z.enum(ModelQuantizationEnum),
   trainingType: z.enum(ProjectTypeEnum),
   annotationsUsed: z.enum(ProjectTypeEnum).array(),
   // Train, validate and test should add to 1
@@ -144,6 +149,7 @@ export const createModelSchema = modelSchema
     outputTypes: true,
     backend: true,
     region: true,
+    quantization: true,
     trainingType: true,
     annotationsUsed: true,
     splitTrain: true,
@@ -154,6 +160,11 @@ export const createModelSchema = modelSchema
     // Default to LUXONIS so existing clients that haven't been updated still work.
     backend: z.enum(ModelBackendEnum).default(ModelBackendEnum.LUXONIS),
     region: z.enum(ModelRegionEnum).default(ModelRegionEnum.EUROPE_WEST4),
+    // FP16 default keeps existing flows / older clients unchanged. INT8 is
+    // an Ultralytics-only opt-in; the API ignores the value for Luxonis.
+    quantization: z
+      .enum(ModelQuantizationEnum)
+      .default(ModelQuantizationEnum.FP16),
     labelIds: z.number().array(),
     taskIds: z.number().array().default([]),
     /**

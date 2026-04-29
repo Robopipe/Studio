@@ -240,14 +240,38 @@ export const CameraStreamProvider = ({ children }: CameraStreamProviderProps) =>
           reconnectAttempts = 0;
         };
 
-        ws.onmessage = (event) => {
+        ws.onmessage = async (event) => {
           if (cancelled) return;
           try {
             const data = JSON.parse(event.data);
             const parsed: NNDetections = Array.isArray(data)
               ? { detections: data }
               : data;
-            setDetections(parsed);
+            // Decode the compact PNG mask (if present) into an ImageBitmap
+            // before publishing, so the synchronous renderer can drawImage
+            // without blocking on async decode each paint. Single-channel
+            // uint8 PNG where pixel value 0 means background and N means
+            // detections[N - 1].
+            if (parsed.masks_png) {
+              try {
+                const raw = atob(parsed.masks_png);
+                const buf = new Uint8Array(raw.length);
+                for (let i = 0; i < raw.length; i++) buf[i] = raw.charCodeAt(i);
+                const blob = new Blob([buf], { type: "image/png" });
+                parsed.maskBitmap = await createImageBitmap(blob);
+              } catch {
+                // Decode failures fall through to the legacy masks array
+                // path on the renderer side, if the server sent one.
+              }
+              if (cancelled) {
+                parsed.maskBitmap?.close?.();
+                return;
+              }
+            }
+            setDetections((prev) => {
+              prev.maskBitmap?.close?.();
+              return parsed;
+            });
             subscribersRef.current.forEach((cb) => cb(parsed));
           } catch {
             // ignore malformed messages

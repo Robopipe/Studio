@@ -1,5 +1,10 @@
 import { cn } from "@/lib/utils";
-import { ModelBackendEnum, ModelOutputTypeEnum, ModelRegionEnum } from "@repo/schema";
+import {
+  ModelBackendEnum,
+  ModelOutputTypeEnum,
+  ModelQuantizationEnum,
+  ModelRegionEnum,
+} from "@repo/schema";
 import { useState } from "react";
 import { SettingsCard } from "../SettingsCard";
 import { HyperparamsModal } from "./HyperparamsModal";
@@ -14,6 +19,11 @@ const REGION_LABELS: Record<ModelRegionEnum, string> = {
   [ModelRegionEnum.US_CENTRAL1]: "us-central1",
 };
 
+const QUANTIZATION_LABELS: Record<ModelQuantizationEnum, string> = {
+  [ModelQuantizationEnum.FP16]: "FP16 (default)",
+  [ModelQuantizationEnum.INT8]: "INT8",
+};
+
 export interface AdvancedSettingsProps {
   outputs: ModelOutputTypeEnum[];
   onOutputsChange: (outputs: ModelOutputTypeEnum[]) => void;
@@ -21,6 +31,8 @@ export interface AdvancedSettingsProps {
   onBackendChange: (backend: ModelBackendEnum) => void;
   region: ModelRegionEnum;
   onRegionChange: (region: ModelRegionEnum) => void;
+  quantization: ModelQuantizationEnum;
+  onQuantizationChange: (quantization: ModelQuantizationEnum) => void;
   customHyperparams: string;
   onCustomHyperparamsChange: (value: string) => void;
   hyperparamsError: string | null;
@@ -34,6 +46,8 @@ export const AdvancedSettings = ({
   onBackendChange,
   region,
   onRegionChange,
+  quantization,
+  onQuantizationChange,
   customHyperparams,
   onCustomHyperparamsChange,
   hyperparamsError,
@@ -119,6 +133,41 @@ export const AdvancedSettings = ({
               })}
             </div>
           </div>
+          {backend === ModelBackendEnum.ULTRALYTICS && (
+            <div className="flex flex-col gap-0.5">
+              <span className="text-sm font-medium leading-5 text-black/90">
+                Quantization
+              </span>
+              <p className="text-sm leading-5 text-black/60">
+                FP16 keeps full-precision weights — slower but most accurate.
+                INT8 quantizes weights and activations to 8 bits, calibrated
+                against a random 400-image sample of your training data:
+                typically 2–3× faster on RVC4 with a small accuracy drop
+                (≈0.5–2 mAP points). Segmentation models use mixed INT8/INT16
+                automatically to preserve mask quality.
+              </p>
+              <div className="flex flex-row gap-2 py-2">
+                {Object.values(ModelQuantizationEnum).map((value) => {
+                  const selected = quantization === value;
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => onQuantizationChange(value)}
+                      className={cn(
+                        "cursor-pointer rounded-full border px-3 py-0.5 text-sm leading-5 transition-colors",
+                        selected
+                          ? "border-emerald-900 bg-emerald-50 text-emerald-700"
+                          : "border-transparent bg-white text-black/90 hover:bg-black/5",
+                      )}
+                    >
+                      {QUANTIZATION_LABELS[value]}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           <div className="flex flex-col gap-0.5">
             <span className="text-sm font-medium leading-5 text-black/90">
               Output Formats
@@ -200,6 +249,7 @@ export const AdvancedSettings = ({
       {modalOpen && (
         <HyperparamsModal
           value={customHyperparams}
+          backend={backend}
           onApply={handleApply}
           onClose={() => setModalOpen(false)}
         />

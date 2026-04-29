@@ -192,6 +192,21 @@ resource "google_cloud_run_v2_service" "api" {
         value = var.sendgrid_from_email
       }
 
+      env {
+        name  = "ML_INFER_URL"
+        value = var.ml_infer_url
+      }
+
+      env {
+        name = "ML_INFER_API_KEY"
+        value_source {
+          secret_key_ref {
+            secret  = var.ml_infer_api_key_secret
+            version = "latest"
+          }
+        }
+      }
+
       volume_mounts {
         name       = "cloudsql"
         mount_path = "/cloudsql"

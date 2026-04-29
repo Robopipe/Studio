@@ -1,0 +1,44 @@
+steps:
+  - name: "gcr.io/cloud-builders/docker"
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - |
+        docker pull ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPO_NAME}/ml-infer:latest || true
+
+  - name: "gcr.io/cloud-builders/docker"
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - |
+        docker build \
+          --build-arg BUILDKIT_INLINE_CACHE=1 \
+          --cache-from ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPO_NAME}/ml-infer:latest \
+          -t ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPO_NAME}/ml-infer:${SHORT_SHA} \
+          -t ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPO_NAME}/ml-infer:latest \
+          -f apps/ml-infer/Dockerfile apps/ml-infer
+    env:
+      - "DOCKER_BUILDKIT=1"
+
+  - name: "gcr.io/cloud-builders/docker"
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - |
+        docker push --all-tags ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPO_NAME}/ml-infer
+
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - |
+        gcloud run deploy ${_SERVICE_NAME} \
+          --image ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPO_NAME}/ml-infer:${SHORT_SHA} \
+          --region ${_REGION} \
+          --platform managed
+
+images:
+  - "${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPO_NAME}/ml-infer"
+
+options:
+  logging: CLOUD_LOGGING_ONLY

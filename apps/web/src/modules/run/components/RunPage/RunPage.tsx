@@ -1,5 +1,9 @@
 import { useListCamerasQuery } from "@/core/cameraApi";
-import type { SahiConfig } from "@/core/cameraApi/schemas/nn";
+import type {
+  NNRuntimeConfig,
+  SahiConfig,
+} from "@/core/cameraApi/schemas/nn";
+import { DEFAULT_NN_RUNTIME_CONFIG } from "@/core/cameraApi/schemas/nn";
 import { useCameraApiUrl } from "@/hooks";
 import { useSelectedCameraStream } from "@/modules/camera-selection";
 import { DashboardPage } from "@/modules/dashboard";
@@ -26,10 +30,10 @@ import { useRunDeploy } from "../../hooks/useRunDeploy";
 import {
   ConfigurationTab,
   type ConfigurationTabHandle,
-} from "../ConfigurationTab";
+} from "@/modules/run";
 import { DeployConfigSelector } from "../DeployConfigSelector/DeployConfigSelector";
-import { LiveInference } from "../LiveInference";
-import { RunSubheader, RunTab } from "../RunSubheader";
+import { LiveInference } from "@/modules/run";
+import { RunSubheader, RunTab } from "@/modules/run";
 
 export const RunPage = () => {
   const [activeTab, setActiveTab] = useState<RunTab>("configuration");
@@ -37,6 +41,9 @@ export const RunPage = () => {
   const [selectedConfigs, setSelectedConfigs] = useState<ConfigSelection[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [sahiConfig, setSahiConfig] = useState<SahiConfig | null>(null);
+  const [runtimeConfig, setRuntimeConfig] = useState<NNRuntimeConfig>(
+    DEFAULT_NN_RUNTIME_CONFIG,
+  );
   const configTabRef = useRef<ConfigurationTabHandle>(null);
 
   const [activeProject] = useActiveProject();
@@ -93,6 +100,7 @@ export const RunPage = () => {
     cameraApiUrl,
     selectedConfigs,
     sahiConfig,
+    runtimeConfig,
     beforeDeploy: async () => {
       await configTabRef.current?.saveIfDirty();
     },
@@ -128,6 +136,8 @@ export const RunPage = () => {
           configId={activeConfigId}
           sahiConfig={sahiConfig}
           onSahiConfigChange={setSahiConfig}
+          runtimeConfig={runtimeConfig}
+          onRuntimeConfigChange={setRuntimeConfig}
         />
       ) : null;
     }

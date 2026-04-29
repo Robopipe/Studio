@@ -1,9 +1,9 @@
 import { appConfig } from "@/config";
 import { HttpMethod } from "@/types";
-import { TaskDetail, UpdateTask } from "@repo/schema";
+import { PredictRequest, PredictResponse, TaskDetail, UpdateTask } from "@repo/schema";
 import { captureApi, CaptureApiTagType } from "@/modules/capture/services/captureApi";
 
-const { tasks } = appConfig.studioApi.endpoints;
+const { tasks, predict } = appConfig.studioApi.endpoints;
 
 export const labelApi = captureApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -30,8 +30,22 @@ export const labelApi = captureApi.injectEndpoints({
         { type: CaptureApiTagType.Tasks, id: `detail-${taskId}` },
       ],
     }),
+    predictAnnotations: builder.mutation<
+      PredictResponse,
+      { projectId: number; taskId: number; body: PredictRequest }
+    >({
+      query: ({ projectId, taskId, body }) => ({
+        url: predict.predict(projectId, taskId),
+        method: HttpMethod.POST,
+        body,
+      }),
+    }),
   }),
   overrideExisting: false,
 });
 
-export const { useGetTaskQuery, useUpdateTaskMutation } = labelApi;
+export const {
+  useGetTaskQuery,
+  useUpdateTaskMutation,
+  usePredictAnnotationsMutation,
+} = labelApi;

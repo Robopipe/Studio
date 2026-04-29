@@ -6,30 +6,24 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/modules/shadcn/ui/tabs";
 import type { Label, ModelLog } from "@repo/schema";
 import { useEffect, useMemo, useState } from "react";
-import { EpochSlider } from "./EpochSlider";
 import { PerClassRow } from "./PerClassRow";
-import { useEpochSlider } from "./useEpochSlider";
 import { resolveLabelName, toTabLabel } from "./utils";
 
 export interface PerClassCardProps {
-  logsWithPerClass: ModelLog[];
+  log: ModelLog;
   labelsById: Map<number, Label>;
   colorByLabelId: Map<number, string>;
 }
 
 export const PerClassCard = ({
-  logsWithPerClass,
+  log,
   labelsById,
   colorByLabelId,
 }: PerClassCardProps) => {
   const baseKeys = useMemo(() => {
-    const set = new Set<string>();
-    for (const log of logsWithPerClass) {
-      if (!log.perClassMetrics) continue;
-      for (const k of Object.keys(log.perClassMetrics)) set.add(k);
-    }
-    return Array.from(set).sort();
-  }, [logsWithPerClass]);
+    if (!log.perClassMetrics) return [];
+    return Object.keys(log.perClassMetrics).sort();
+  }, [log]);
 
   const [selectedBaseKey, setSelectedBaseKey] = useState<string>(
     baseKeys[0] ?? "",
@@ -43,31 +37,22 @@ export const PerClassCard = ({
     }
   }, [baseKeys, selectedBaseKey]);
 
-  const { safeIndex, selectedLog, selectedEpoch, lastEpoch, max, handleChange } =
-    useEpochSlider(logsWithPerClass);
-
   const byLabelId = useMemo(
-    () => selectedLog?.perClassMetrics?.[selectedBaseKey] ?? {},
-    [selectedLog, selectedBaseKey],
+    () => log.perClassMetrics?.[selectedBaseKey] ?? {},
+    [log, selectedBaseKey],
   );
 
-  const rows = useMemo(() => {
-    // Row set is the union of labels that have ever appeared in this base key,
-    // so the table doesn't jitter as the user scrubs across epochs.
-    const labelIds = new Set<string>();
-    for (const log of logsWithPerClass) {
-      const bucket = log.perClassMetrics?.[selectedBaseKey];
-      if (!bucket) continue;
-      for (const id of Object.keys(bucket)) labelIds.add(id);
-    }
-    return Array.from(labelIds)
-      .map((id) => ({
-        labelId: id,
-        labelName: resolveLabelName(id, labelsById),
-        value: byLabelId[id],
-      }))
-      .sort((a, b) => a.labelName.localeCompare(b.labelName));
-  }, [logsWithPerClass, selectedBaseKey, byLabelId, labelsById]);
+  const rows = useMemo(
+    () =>
+      Object.keys(byLabelId)
+        .map((id) => ({
+          labelId: id,
+          labelName: resolveLabelName(id, labelsById),
+          value: byLabelId[id],
+        }))
+        .sort((a, b) => a.labelName.localeCompare(b.labelName)),
+    [byLabelId, labelsById],
+  );
 
   if (baseKeys.length === 0) return null;
 
@@ -81,8 +66,8 @@ export const PerClassCard = ({
         </CollapsibleTrigger>
         <CollapsiblePanel className="flex flex-col gap-4 px-5 pb-5">
           <p className="text-sm text-muted-foreground">
-            Per-label accuracy/precision/recall reported by the training run,
-            per epoch. Slide to inspect earlier epochs.
+            Per-label accuracy/precision/recall reported by the training run on
+            the final epoch.
           </p>
 
           <Tabs
@@ -98,20 +83,10 @@ export const PerClassCard = ({
             </TabsList>
           </Tabs>
 
-          {logsWithPerClass.length > 1 && (
-            <EpochSlider
-              index={safeIndex}
-              max={max}
-              currentEpoch={selectedEpoch}
-              lastEpoch={lastEpoch}
-              onChange={handleChange}
-            />
-          )}
-
           <div className="flex flex-col">
             {rows.length === 0 ? (
               <p className="py-2 text-sm text-muted-foreground">
-                No per-class data for this epoch.
+                No per-class data.
               </p>
             ) : (
               rows.map((row) => (
@@ -119,9 +94,7 @@ export const PerClassCard = ({
                   key={row.labelId}
                   labelName={row.labelName}
                   value={row.value}
-                  color={
-                    colorByLabelId.get(Number(row.labelId)) ?? "#10b981"
-                  }
+                  color={colorByLabelId.get(Number(row.labelId)) ?? "#10b981"}
                 />
               ))
             )}

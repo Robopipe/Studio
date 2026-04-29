@@ -149,3 +149,15 @@ variable "sendgrid_from_email" {
   type        = string
   default     = ""
 }
+
+variable "ml_infer_url" {
+  description = "Base URL of the apps/ml-infer Cloud Run service (no trailing slash)"
+  type        = string
+  default     = ""
+}
+
+variable "ml_infer_api_key_secret" {
+  description = "Secret Manager secret name for the apps/api ↔ apps/ml-infer shared key"
+  type        = string
+  default     = ""
+}

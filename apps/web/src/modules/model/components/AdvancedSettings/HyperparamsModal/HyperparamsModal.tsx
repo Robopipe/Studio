@@ -9,10 +9,11 @@ import {
 // hyperparamsConfigSchema and createZodLinter imports kept for reference — validation intentionally bypassed
 // import { hyperparamsConfigSchema } from "@repo/schema";
 // import { createZodLinter } from "./zodLinter";
+import { ModelBackendEnum } from "@repo/schema";
 import { X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 // import { toast } from "sonner";
-import { HYPERPARAMS_PRESETS } from "../presets";
+import { getHyperparamsPresets } from "../presets";
 // Reserved keys imports kept for reference — stripping intentionally bypassed
 // import {
 //   RESERVED_HYPERPARAMS_PATHS,
@@ -23,9 +24,17 @@ import { useCodeMirror } from "./useCodeMirror";
 
 export interface HyperparamsModalProps {
   value: string;
+  backend: ModelBackendEnum;
   onApply: (value: string) => void;
   onClose: () => void;
 }
+
+const DOCS_URL: Record<ModelBackendEnum, string> = {
+  [ModelBackendEnum.LUXONIS]:
+    "https://github.com/luxonis/luxonis-train/blob/main/configs/README.md",
+  [ModelBackendEnum.ULTRALYTICS]:
+    "https://docs.ultralytics.com/guides/hyperparameter-tuning/#default-search-space-description",
+};
 
 function validateJson(text: string): string[] {
   const trimmed = text.trim();
@@ -56,12 +65,14 @@ function validateJson(text: string): string[] {
 
 export const HyperparamsModal = ({
   value,
+  backend,
   onApply,
   onClose,
 }: HyperparamsModalProps) => {
   const [editorValue, setEditorValue] = useState(value.trim() || "{\n  \n}");
   const [errors, setErrors] = useState<string[]>([]);
   const [selectedPreset, setSelectedPreset] = useState("");
+  const presets = useMemo(() => getHyperparamsPresets(backend), [backend]);
   // Reserved paths UI hidden — reserved keys bypass intentionally disabled
   // const [showReservedPaths, setShowReservedPaths] = useState(false);
 
@@ -95,7 +106,7 @@ export const HyperparamsModal = ({
   const handlePresetChange = (presetId: string | null) => {
     if (!presetId) return;
 
-    const preset = HYPERPARAMS_PRESETS.find((p) => p.id === presetId);
+    const preset = presets.find((p) => p.id === presetId);
     if (!preset) return;
 
     const currentTrimmed = editorValue.trim();
@@ -163,7 +174,7 @@ export const HyperparamsModal = ({
     onApply(formatted);
   };
 
-  const selectedPresetDef = HYPERPARAMS_PRESETS.find(
+  const selectedPresetDef = presets.find(
     (p) => p.id === selectedPreset,
   );
 
@@ -192,7 +203,7 @@ export const HyperparamsModal = ({
                 <SelectValue placeholder="Select a preset..." />
               </SelectTrigger>
               <SelectContent>
-                {HYPERPARAMS_PRESETS.map((preset) => (
+                {presets.map((preset) => (
                   <SelectItem key={preset.id} value={preset.id}>
                     {preset.name}
                   </SelectItem>
@@ -223,7 +234,7 @@ export const HyperparamsModal = ({
             Override training config with a JSON object. Any valid JSON object
             is accepted and will be deep-merged with the generated config.{" "}
             <a
-              href="https://github.com/luxonis/luxonis-train/blob/main/configs/README.md"
+              href={DOCS_URL[backend]}
               target="_blank"
               rel="noopener noreferrer"
               className="whitespace-nowrap text-emerald-600 hover:underline"

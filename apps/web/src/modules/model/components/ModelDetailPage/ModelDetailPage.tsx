@@ -95,7 +95,6 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
 
     const state: DuplicateModelState = {
       duplicateFrom: {
-        name: `${model.name} (copy)`,
         epochs: model.epochs,
         trainingType: model.trainingType,
         annotationsUsed: model.annotationsUsed,
@@ -103,6 +102,7 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
         outputs: model.outputTypes,
         backend: model.backend,
         region: model.region,
+        quantization: model.quantization,
         datasetSplit: {
           train: model.splitTrain,
           validation: model.splitValidate,
