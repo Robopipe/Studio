@@ -33,6 +33,7 @@ function toFormValues(limit: EvalLimitDetail): CreateLimitFormSchema {
   return {
     name: limit.name,
     severity: limit.severity,
+    enabled: limit.enabled,
     targetLabelId: limit.targetLabel.id,
     targetParentLabelId: limit.targetParentLabel?.id ?? null,
     limitItems: limit.limitItems.map((item) => ({

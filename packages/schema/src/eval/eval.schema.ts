@@ -99,6 +99,7 @@ export const evalLimitSchema = z.object({
   id: z.uuidv7(),
   name: z.string(),
   severity: z.enum(EvalSeverityEnum).nullable(),
+  enabled: z.boolean(),
   targetLabel: labelSchema,
   targetParentLabel: labelSchema.nullable(),
   createdAt: timestampsSchema.createdAt,
@@ -167,6 +168,7 @@ export const evalLimitCreateOrUpdateSchema = evalLimitSchema
   .pick({
     name: true,
     severity: true,
+    enabled: true,
   })
   .extend({
     targetLabelId: z.number(),
