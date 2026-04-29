@@ -25,6 +25,8 @@ import {
 import { NoCameraDetected, SearchingForCamera } from "@/modules/ui";
 import { Settings, TriangleAlert, Video } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useBlocker } from "react-router";
+import { toast } from "sonner";
 import type { ConfigSelection } from "../../hooks/useRunDeploy";
 import { useRunDeploy } from "../../hooks/useRunDeploy";
 import {
@@ -85,6 +87,7 @@ export const RunPage = () => {
     handleDeploy,
     handleStop,
     isDeploying,
+    deployPhase,
     dashboardUrl,
     canDeploy,
     showDeployConfirm,
@@ -114,6 +117,32 @@ export const RunPage = () => {
       onSelectionChange={setSelectedConfigs}
     />
   ) : undefined;
+
+  // Block in-app navigation while a deploy is in flight; bouncing the user
+  // away mid-deploy can leave the camera in an inconsistent state.
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      isDeploying && currentLocation.pathname !== nextLocation.pathname,
+  );
+
+  useEffect(() => {
+    if (blocker.state === "blocked") {
+      toast.warning(
+        "Deployment in progress — please wait until it finishes.",
+      );
+      blocker.reset?.();
+    }
+  }, [blocker]);
+
+  useEffect(() => {
+    if (!isDeploying) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isDeploying]);
 
   const handleConfigChange = useCallback((configId: number | null) => {
     setActiveConfigId(configId);
@@ -196,7 +225,7 @@ export const RunPage = () => {
         onTabChange={setActiveTab}
         onDeploy={handleDeploy}
         onStop={handleStop}
-        isDeploying={isDeploying}
+        deployPhase={deployPhase}
         canDeploy={cameraReady && canDeploy}
         isDeployed={!!dashboardUrl}
         configSelector={configSelector}
