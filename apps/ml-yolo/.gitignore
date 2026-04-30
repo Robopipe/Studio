@@ -1,1 +1,93 @@
 .venv/
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment variables / secrets
+.env
+.env.local
+.env.* 
+!.env.example
+
+# C extensions
+*.so
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+pip-wheel-metadata/
+wheels/
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Pytest / coverage / cache
+.pytest_cache/
+.coverage
+.coverage.*
+nosetests.xml
+coverage.xml
+htmlcov/
+.cache
+.mypy_cache/
+.pyre/
+.ruff_cache/
+
+# Django / Flask / app data
+db.sqlite3
+*.sqlite3
+local_settings.py
+media/
+static_root/
+staticfiles/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# IDEs and editors
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# Misc
+node_modules/
+*.pem
+*.key
+*.crt
+*.envrc
+.coverage.*
+.coverage
+
+# Build artifacts
+*.pyc
+*.pyo
+*.pyd
+*.so
+*.dylib
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
