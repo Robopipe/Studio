@@ -137,6 +137,12 @@ export const LabelPage = () => {
       return next;
     });
   }, []);
+  const hideAllAnnotations = useCallback(() => {
+    setHiddenAnnotationIds(new Set(annotations.map((a) => a.id)));
+  }, [annotations]);
+  const showAllAnnotations = useCallback(() => {
+    setHiddenAnnotationIds(new Set());
+  }, []);
   const [activeLabel, setActiveLabel] = useState<Label | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const canvasState = useCanvasState();
@@ -376,6 +382,8 @@ export const LabelPage = () => {
         onReorderAnnotations={handleReorderAnnotations}
         hiddenAnnotationIds={hiddenAnnotationIds}
         onToggleAnnotationVisibility={toggleAnnotationVisibility}
+        onHideAllAnnotations={hideAllAnnotations}
+        onShowAllAnnotations={showAllAnnotations}
         historyEntries={history.entries}
         historyIndex={history.currentIndex}
         onJumpTo={history.jumpTo}
