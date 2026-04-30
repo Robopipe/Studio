@@ -50,7 +50,9 @@ def _upload_to_signed_url(upload: OutputUpload, file_path: str) -> None:
         raise
 
 
-def _post_progress(webhook_url: str, api_key: str, model_id: int, payload: dict) -> None:
+def _post_progress(
+    webhook_url: str, api_key: str, model_id: int, payload: dict
+) -> None:
     try:
         r = requests.post(
             f"{webhook_url}/progress/{model_id}",
@@ -62,7 +64,9 @@ def _post_progress(webhook_url: str, api_key: str, model_id: int, payload: dict)
         print(f"[ml-yolo] Failed to send progress webhook: {e}")
 
 
-def _post_complete(webhook_url: str, api_key: str, model_id: int, payload: dict) -> None:
+def _post_complete(
+    webhook_url: str, api_key: str, model_id: int, payload: dict
+) -> None:
     try:
         r = requests.post(
             f"{webhook_url}/complete/{model_id}",
@@ -111,7 +115,10 @@ def _export_via_tools(
     to /opt/tools-venv/bin/tools) so a developer can override it for
     local testing.
     """
-    tools_bin = os.environ.get("ROBOPIPE_TOOLS_BIN", "/opt/tools-venv/bin/tools")
+    tools_bin = os.environ.get(
+        "ROBOPIPE_TOOLS_BIN",
+        "/Users/adamberkes/Desktop/Work/KOALA42/robopipe/tools/.venv/bin/tools",
+    )
     tools_run_dir = Path(workdir) / "tools_run"
     tools_run_dir.mkdir(parents=True, exist_ok=True)
 
@@ -143,9 +150,7 @@ def _export_via_tools(
     if result.stderr:
         print(f"[ml-yolo] tools stderr:\n{result.stderr}")
     if result.returncode != 0:
-        raise RuntimeError(
-            f"luxonis/tools export failed (exit {result.returncode})"
-        )
+        raise RuntimeError(f"luxonis/tools export failed (exit {result.returncode})")
 
     # tools writes to <cwd>/shared_with_container/outputs/<modelname>_<ts>/.
     # We give it a fresh tools_run_dir per training job, so there should
@@ -157,9 +162,7 @@ def _export_via_tools(
         )
     candidates = [p for p in outputs_root.iterdir() if p.is_dir()]
     if not candidates:
-        raise RuntimeError(
-            f"luxonis/tools produced no output subdir in {outputs_root}"
-        )
+        raise RuntimeError(f"luxonis/tools produced no output subdir in {outputs_root}")
     if len(candidates) > 1:
         # Shouldn't happen given fresh tools_run_dir, but be explicit.
         candidates.sort(key=lambda p: p.stat().st_mtime, reverse=True)
@@ -261,7 +264,9 @@ def run_training(config: ModelConfig) -> None:
             def upload_for(t: ModelOutputType) -> OutputUpload:
                 upload = uploads_by_type.get(t)
                 if upload is None:
-                    raise RuntimeError(f"No signed upload URL for output type {t.value}")
+                    raise RuntimeError(
+                        f"No signed upload URL for output type {t.value}"
+                    )
                 return upload
 
             completed: list[OutputUpload] = []
@@ -273,7 +278,10 @@ def run_training(config: ModelConfig) -> None:
             non_raw = [t for t in output_types if t != ModelOutputType.RAW]
             if non_raw:
                 _post_progress(
-                    webhook_url, api_key, config.id, {"progress": {"type": "converting"}}
+                    webhook_url,
+                    api_key,
+                    config.id,
+                    {"progress": {"type": "converting"}},
                 )
 
             # Routing: RVC4+INT8 goes through the offline luxonis/modelconverter
@@ -292,9 +300,7 @@ def run_training(config: ModelConfig) -> None:
             # heads tolerate INT8_STANDARD fine.
             is_seg = config.type == ModelType.SEGMENTATION
             if is_int8:
-                quantization_mode = (
-                    "INT8_INT16_MIXED" if is_seg else "INT8_STANDARD"
-                )
+                quantization_mode = "INT8_INT16_MIXED" if is_seg else "INT8_STANDARD"
             else:
                 quantization_mode = "FP16_STANDARD"
             # HubAI fallback domain — used for RVC2/RVC3 INT8 only (where
@@ -311,9 +317,7 @@ def run_training(config: ModelConfig) -> None:
                 #   classification:         <workdir>/dataset/train/<label>/*.jpg
                 #   detection/segmentation: <workdir>/dataset/images/train/*.jpg
                 if config.type == ModelType.CLASSIFICATION:
-                    train_image_dir = os.path.join(
-                        workdir, DATASET_DIR, TRAIN_DIR
-                    )
+                    train_image_dir = os.path.join(workdir, DATASET_DIR, TRAIN_DIR)
                 else:
                     train_image_dir = os.path.join(
                         workdir, DATASET_DIR, IMAGE_DIR, TRAIN_DIR
@@ -330,9 +334,7 @@ def run_training(config: ModelConfig) -> None:
                     )
 
             for output_type in non_raw:
-                use_modelconverter = (
-                    output_type == ModelOutputType.RVC4 and is_int8
-                )
+                use_modelconverter = output_type == ModelOutputType.RVC4 and is_int8
 
                 if use_modelconverter:
                     print(
@@ -392,8 +394,12 @@ def run_training(config: ModelConfig) -> None:
                         {"type": u.type.value, "objectPath": u.object_path}
                         for u in completed
                     ],
-                    "finalAccuracy": callbacks.final_metrics.get("accuracy") if callbacks else None,
-                    "finalLoss": callbacks.final_metrics.get("loss") if callbacks else None,
+                    "finalAccuracy": (
+                        callbacks.final_metrics.get("accuracy") if callbacks else None
+                    ),
+                    "finalLoss": (
+                        callbacks.final_metrics.get("loss") if callbacks else None
+                    ),
                 },
             )
     except Exception as e:
