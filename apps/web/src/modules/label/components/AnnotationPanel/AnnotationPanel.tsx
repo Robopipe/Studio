@@ -26,6 +26,8 @@ export interface AnnotationPanelProps {
   onReorderAnnotations: (fromIndex: number, toIndex: number) => void;
   hiddenAnnotationIds: Set<string>;
   onToggleAnnotationVisibility: (id: string) => void;
+  onHideAllAnnotations: () => void;
+  onShowAllAnnotations: () => void;
   historyEntries: HistoryEntry[];
   historyIndex: number;
   onJumpTo: (index: number) => void;
@@ -42,6 +44,8 @@ export const AnnotationPanel = ({
   onReorderAnnotations,
   hiddenAnnotationIds,
   onToggleAnnotationVisibility,
+  onHideAllAnnotations,
+  onShowAllAnnotations,
   historyEntries,
   historyIndex,
   onJumpTo,
@@ -99,9 +103,31 @@ export const AnnotationPanel = ({
         </Collapsible>
 
         <section className="flex flex-col gap-2 p-4 pt-2">
-          <p className="text-[10px] font-bold uppercase tracking-[1px] text-foreground/90">
-            Regions
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-bold uppercase tracking-[1px] text-foreground/90">
+              Regions
+            </p>
+            {annotations.length > 0 && (
+              <div className="flex items-center gap-0.5">
+                <button
+                  type="button"
+                  title="Hide all"
+                  onClick={onHideAllAnnotations}
+                  className="flex shrink-0 cursor-pointer items-center justify-center rounded p-1 text-muted-foreground transition-colors hover:bg-black/5 hover:text-foreground [&_svg]:size-3.5"
+                >
+                  <EyeOff />
+                </button>
+                <button
+                  type="button"
+                  title="Show all"
+                  onClick={onShowAllAnnotations}
+                  className="flex shrink-0 cursor-pointer items-center justify-center rounded p-1 text-muted-foreground transition-colors hover:bg-black/5 hover:text-foreground [&_svg]:size-3.5"
+                >
+                  <Eye />
+                </button>
+              </div>
+            )}
+          </div>
           {labels.length === 0 && !isLoadingLabels && (
             <div className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
               <AlertTriangle className="size-4 shrink-0 text-amber-500" />
