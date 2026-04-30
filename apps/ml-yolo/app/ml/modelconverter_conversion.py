@@ -124,37 +124,55 @@ def convert_rvc4_int8(
 
 
 def sample_calibration_images(
-    train_image_dir: str,
+    source_dirs: list[str],
     out_dir: str,
     max_images: int = 400,
 ) -> int:
-    """Copy up to `max_images` images from the training split into `out_dir`.
+    """Copy up to `max_images` images into `out_dir`, drawing from `source_dirs`
+    in priority order.
 
-    Reuses the YOLO-format dataset that `prepare_dataset()` already laid out
-    on disk, so the calibration distribution matches inference exactly. We
-    randomize the pick (mirroring how dataset.py shuffles for the train/val/
-    test split) so calibration sees a representative slice rather than e.g.
-    the first 200 images sorted by filename / capture time, which can be
-    distributionally narrow.
+    Calibration accuracy improves the closer the calibration distribution is
+    to inference. The test split is held out from training, so it's the best
+    proxy for "real" inference data — callers should pass [test, val, train]
+    so we exhaust held-out data before falling back to data the model has
+    already seen. Within each split we shuffle so the slice is representative
+    rather than e.g. the first N filenames in capture order.
 
-    Returns the number of images copied.
+    Source paths that don't exist are skipped silently — lets the caller pass
+    all three splits without pre-checking layouts (classification vs detection
+    differ on disk and not every dataset has every split populated).
+
+    Recurses each source so this works for both layouts prepare_dataset()
+    creates:
+      detection/segmentation: <root>/<file>.jpg (flat)
+      classification:         <root>/<label_idx>/<file>.jpg (one level deep)
+
+    Returns the total number of images copied.
     """
-    src = Path(train_image_dir)
     dst = Path(out_dir)
     dst.mkdir(parents=True, exist_ok=True)
 
-    # Recurse so this works for both layouts that prepare_dataset() creates:
-    #   detection/segmentation: <root>/<file>.jpg (flat)
-    #   classification:         <root>/<label_idx>/<file>.jpg (one level deep)
-    images = []
-    for ext in ("*.jpg", "*.jpeg", "*.png", "*.JPG", "*.JPEG", "*.PNG"):
-        images.extend(src.rglob(ext))
-    # Sort first so the seeded shuffle is reproducible across runs that
-    # iterate the filesystem in a different order.
-    images.sort()
-    random.shuffle(images)
-    images = images[:max_images]
-
-    for img in images:
-        shutil.copy(img, dst / img.name)
-    return len(images)
+    copied = 0
+    for src_dir in source_dirs:
+        if copied >= max_images:
+            break
+        src = Path(src_dir)
+        if not src.exists():
+            continue
+        images = []
+        for ext in ("*.jpg", "*.jpeg", "*.png", "*.JPG", "*.JPEG", "*.PNG"):
+            images.extend(src.rglob(ext))
+        # Sort first so the shuffle is reproducible across runs whose
+        # filesystem iteration order differs.
+        images.sort()
+        random.shuffle(images)
+        budget = max_images - copied
+        taken = images[:budget]
+        for img in taken:
+            shutil.copy(img, dst / img.name)
+        copied += len(taken)
+        print(
+            f"[ml-yolo] calib: took {len(taken)} from {src} "
+            f"(running total {copied}/{max_images})"
+        )
+    return copied
