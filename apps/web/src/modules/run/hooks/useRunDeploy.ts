@@ -57,6 +57,7 @@ export type DeployPhase =
   | "loading-data"
   | "downloading-model"
   | "uploading-video"
+  | "removing-video"
   | "deploying";
 
 interface UseRunDeployParams {
@@ -269,7 +270,11 @@ export const useRunDeploy = ({
       });
 
       // Handle replay video before deploying
-      setDeployPhase("uploading-video");
+      setDeployPhase(
+        effectiveCapturedVideoId != null && activeProjectId != null
+          ? "uploading-video"
+          : "removing-video",
+      );
       try {
         if (effectiveCapturedVideoId != null && activeProjectId != null) {
           const video = await triggerGetCapturedVideo({
