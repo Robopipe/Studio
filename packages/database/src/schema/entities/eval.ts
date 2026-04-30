@@ -66,6 +66,7 @@ export const evalLimitTable = p.pgTable("eval_limit", {
   targetLabelId: p.integer("target_label_id").notNull().references(() => projectLabelTable.id, {onDelete: 'cascade'}),
   targetParentLabelId: p.integer("target_parent_label_id").references(() => projectLabelTable.id, {onDelete: 'cascade'}),
   severity: evalSeverityEnum("severity"),
+  enabled: p.boolean("enabled").notNull().default(true),
   testCaseId: p.varchar("test_case_id", {length: 128}).notNull().references(() => evalTestCaseTable.id, {onDelete: 'cascade'}),
   createdAt,
   updatedAt

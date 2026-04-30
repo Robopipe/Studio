@@ -51,6 +51,14 @@ export interface ConfigSelection {
   projectId: number;
 }
 
+export type DeployPhase =
+  | "idle"
+  | "preparing"
+  | "loading-data"
+  | "downloading-model"
+  | "uploading-video"
+  | "deploying";
+
 interface UseRunDeployParams {
   selectedCamera: string | null;
   selectedStream: string | null;
@@ -71,6 +79,16 @@ interface AssembledConfig {
   configId: number;
 }
 
+interface ConfigIntermediate {
+  pid: number;
+  projectName: string;
+  config: DashboardConfiguration;
+  compatibleOutputFilePath: string;
+  assembledTestCases: DeployConfigEntry["dashboard_config"]["testCases"];
+  masterThresholds: DeployConfigEntry["dashboard_config"]["thresholds"];
+  labels: DeployConfigEntry["dashboard_config"]["labels"];
+}
+
 export const useRunDeploy = ({
   selectedCamera,
   selectedStream,
@@ -85,7 +103,7 @@ export const useRunDeploy = ({
   beforeDeploy,
 }: UseRunDeployParams) => {
   const [showDeployConfirm, setShowDeployConfirm] = useState(false);
-  const [isDeployInProgress, setIsDeployInProgress] = useState(false);
+  const [deployPhase, setDeployPhase] = useState<DeployPhase>("idle");
 
   // Single source of truth: the camera itself. The GET endpoint returns the
   // dashboard HTML (200) or 404 if none is running. No local mirror — that's
@@ -137,9 +155,9 @@ export const useRunDeploy = ({
   const executeDeploy = async () => {
     if (!selectedCamera || !selectedStream || !selectedCameraInfo) return;
 
-    setIsDeployInProgress(true);
     try {
       if (beforeDeploy) {
+        setDeployPhase("preparing");
         try {
           await beforeDeploy();
         } catch (error) {
@@ -149,6 +167,8 @@ export const useRunDeploy = ({
           return;
         }
       }
+
+      setDeployPhase("loading-data");
 
       const requiredOutputType =
         PLATFORM_TO_OUTPUT_TYPE[selectedCameraInfo.platform];
@@ -185,22 +205,23 @@ export const useRunDeploy = ({
         return;
       }
 
-      // Assemble deploy payload for each config in parallel
-      const assembled: AssembledConfig[] = [];
+      // Pass 1: fetch eval/labels/outputs and build per-config intermediates.
+      // Phase stays "loading-data" here.
+      const intermediates: ConfigIntermediate[] = [];
       const skippedReasons: string[] = [];
 
       await Promise.all(
         allConfigEntries.map(
           async ({ projectId: pid, projectName, config }) => {
             try {
-              const result = await assembleConfigPayload(
+              const result = await fetchConfigData(
                 pid,
                 projectName,
                 config,
                 requiredOutputType,
               );
               if (result) {
-                assembled.push(result);
+                intermediates.push(result);
               } else {
                 skippedReasons.push(
                   `"${config.name}" (${projectName}): no compatible model output${requiredOutputType ? ` for ${requiredOutputType}` : ""}`,
@@ -221,10 +242,16 @@ export const useRunDeploy = ({
         );
       }
 
-      if (assembled.length === 0) {
+      if (intermediates.length === 0) {
         toast.error("No configurations could be assembled for deployment");
         return;
       }
+
+      // Pass 2: download the model file for each intermediate.
+      setDeployPhase("downloading-model");
+      const assembled: AssembledConfig[] = await Promise.all(
+        intermediates.map(downloadConfigModel),
+      );
 
       // Active config first (backend deploys first config immediately)
       assembled.sort((a, b) => {
@@ -234,6 +261,7 @@ export const useRunDeploy = ({
       });
 
       // Handle replay video before deploying
+      setDeployPhase("uploading-video");
       try {
         if (capturedVideoId != null && activeProjectId != null) {
           const video = await triggerGetCapturedVideo({
@@ -297,6 +325,7 @@ export const useRunDeploy = ({
         return;
       }
 
+      setDeployPhase("deploying");
       await deployDashboardMut({
         mxid: selectedCamera,
         streamName: selectedStream,
@@ -306,21 +335,21 @@ export const useRunDeploy = ({
       // Dashboard tab picks up the URL via useGetDashboardQuery — the deploy
       // mutation invalidates the Dashboard tag, which triggers refetch.
     } finally {
-      setIsDeployInProgress(false);
+      setDeployPhase("idle");
     }
   };
 
   /**
-   * Assembles a single config's deploy payload: fetches eval data, labels,
-   * finds a compatible model output, and downloads the model file.
-   * Returns null if no compatible model output exists.
+   * Fetches eval data, labels, and finds a compatible model output for a
+   * single config. Returns null if no compatible model output exists.
+   * Does NOT download the model file — that's the second pass.
    */
-  async function assembleConfigPayload(
+  async function fetchConfigData(
     pid: number,
     projectName: string,
     config: DashboardConfiguration,
     requiredOutputType: string | undefined,
-  ): Promise<AssembledConfig | null> {
+  ): Promise<ConfigIntermediate | null> {
     const [evalTestCases, evalThresholds, labels, modelOutputs] =
       await Promise.all([
         triggerGetEvalTestCases({
@@ -384,6 +413,7 @@ export const useRunDeploy = ({
         id: limit.id,
         name: limit.name,
         severity: limit.severity,
+        enabled: limit.enabled,
         targetLabel: limit.targetLabel,
         targetParentLabel: limit.targetParentLabel,
         limitItems: limit.limitItems.map((item) => ({
@@ -407,8 +437,30 @@ export const useRunDeploy = ({
       })),
     }));
 
-    const modelBuffer = await fetch(compatibleOutput.filePath).then((res) =>
-      res.arrayBuffer(),
+    return {
+      pid,
+      projectName,
+      config,
+      compatibleOutputFilePath: compatibleOutput.filePath,
+      assembledTestCases,
+      masterThresholds: evalThresholds.master.map((t) => ({
+        id: t.id,
+        name: t.name,
+        value: t.value,
+        color: t.color,
+      })),
+      labels,
+    };
+  }
+
+  /** Downloads the model file and assembles the final DeployConfigEntry. */
+  async function downloadConfigModel(
+    intermediate: ConfigIntermediate,
+  ): Promise<AssembledConfig> {
+    const { pid, projectName, config, assembledTestCases, masterThresholds, labels } =
+      intermediate;
+    const modelBuffer = await fetch(intermediate.compatibleOutputFilePath).then(
+      (res) => res.arrayBuffer(),
     );
 
     return {
@@ -423,13 +475,8 @@ export const useRunDeploy = ({
           zoneThickness: config.zoneThickness,
           optimistic: config.optimistic,
           testCases: assembledTestCases,
-          thresholds: evalThresholds.master.map((t) => ({
-            id: t.id,
-            name: t.name,
-            value: t.value,
-            color: t.color,
-          })),
-          labels: labels,
+          thresholds: masterThresholds,
+          labels,
         },
         nn_config: {
           type: "Generic",
@@ -474,7 +521,8 @@ export const useRunDeploy = ({
   return {
     handleDeploy,
     handleStop,
-    isDeploying: isDeployInProgress,
+    isDeploying: deployPhase !== "idle",
+    deployPhase,
     dashboardUrl: effectiveDashboardUrl,
     canDeploy,
     showDeployConfirm,

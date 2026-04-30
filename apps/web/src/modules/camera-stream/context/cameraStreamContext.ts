@@ -1,5 +1,6 @@
 import type { NNDetections } from "@/modules/run/types/detections";
 import { createContext } from "react";
+import type { SyncedFrame } from "../utils/frameMatcher";
 
 export interface CameraStreamSnapshot {
   mediaStream: MediaStream | null;
@@ -17,6 +18,13 @@ export interface CameraStreamContextValue extends CameraStreamSnapshot {
    * to re-render on every message.
    */
   subscribeDetections: (cb: (detections: NNDetections) => void) => () => void;
+  /**
+   * Register a callback invoked when a video frame and its matching
+   * inference detections have both arrived. Subscriber takes ownership of
+   * `synced.bitmap` and `synced.detections.maskBitmap` and must close them
+   * after rendering. Active only when an NN is deployed on the stream.
+   */
+  subscribeSyncedFrames: (cb: (synced: SyncedFrame) => void) => () => void;
 }
 
 export const CameraStreamContext = createContext<CameraStreamContextValue | null>(

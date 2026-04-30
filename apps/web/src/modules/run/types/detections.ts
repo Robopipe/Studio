@@ -34,6 +34,17 @@ export type NNDetections = {
   mask_width?: number;
   mask_height?: number;
   /**
+   * DepthAI sequence number of the source frame. Stable per session, but
+   * may be renumbered by parser nodes — prefer `ts_us` for matching.
+   */
+  seq?: number;
+  /**
+   * Source-frame device timestamp (microseconds since device boot).
+   * Used as the join key against the timestamp burned into the WebRTC
+   * video stream. Lower 32 bits match the burn-in payload.
+   */
+  ts_us?: number;
+  /**
    * Transient client-side cache of the decoded PNG. Not on the wire.
    * Populated by the WS onmessage handler before being dispatched to
    * subscribers.

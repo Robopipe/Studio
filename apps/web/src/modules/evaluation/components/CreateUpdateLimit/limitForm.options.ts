@@ -26,6 +26,7 @@ export const limitFormOptions = formOptions({
   defaultValues: {
     name: "",
     severity: null,
+    enabled: true,
     targetLabelId: 0,
     targetParentLabelId: null,
     limitItems: [{ ...emptyLimitItem }],

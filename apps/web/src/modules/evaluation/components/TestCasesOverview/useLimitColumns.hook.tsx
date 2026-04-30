@@ -2,6 +2,7 @@ import {
   createActionsColumn,
   createSelectColumn,
 } from "@/modules/ui/components/Table";
+import { Badge } from "@/modules/shadcn/ui/badge";
 import { EvalLimit } from "@repo/schema";
 import { type ColumnDef } from "@tanstack/react-table";
 import { PencilIcon, Trash2Icon } from "lucide-react";
@@ -22,6 +23,16 @@ export function useLimitColumns(
         accessorKey: "severity",
         header: "Severity",
         cell: ({ getValue }) => getValue() ?? "—",
+      },
+      {
+        accessorKey: "enabled",
+        header: "Status",
+        cell: ({ getValue }) =>
+          getValue() ? (
+            <Badge>Enabled</Badge>
+          ) : (
+            <Badge variant="secondary">Disabled</Badge>
+          ),
       },
       {
         id: "targetLabel",

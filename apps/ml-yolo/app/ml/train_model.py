@@ -20,7 +20,7 @@ from ..models.model_type import ModelOutputType
 from ..models.training_config import OutputUpload
 from ..models.model_type import ModelType
 from .archive_patch import patch_nn_archive_heads
-from .dataset import DATASET_DIR, IMAGE_DIR, TRAIN_DIR, prepare_dataset
+from .dataset import DATASET_DIR, IMAGE_DIR, TEST_DIR, TRAIN_DIR, VAL_DIR, prepare_dataset
 from .model_conversion import convert_model
 from .modelconverter_conversion import (
     convert_rvc4_int8,
@@ -283,18 +283,9 @@ def run_training(config: ModelConfig) -> None:
             # too but HubAI is fine for those and we'd just be re-implementing
             # the OpenVINO chain locally for no win.
             is_int8 = config.training_config.quantization == "INT8"
-            # Segmentation models route through INT8_INT16_MIXED — the proto
-            # × coefficient × sigmoid pipeline in YOLO's mask head is the most
-            # quant-sensitive part of the graph, and pure INT8 activations
-            # routinely produce fragmented masks (yolo11m-seg @ imgsz=960 was
-            # the reproducer). INT16 activations + INT8 weights costs ~30%
-            # FPS vs pure INT8 but recovers mask quality. Detection-only
-            # heads tolerate INT8_STANDARD fine.
-            is_seg = config.type == ModelType.SEGMENTATION
+
             if is_int8:
-                quantization_mode = (
-                    "INT8_INT16_MIXED" if is_seg else "INT8_STANDARD"
-                )
+                quantization_mode = "INT8_INT16_MIXED"
             else:
                 quantization_mode = "FP16_STANDARD"
             # HubAI fallback domain — used for RVC2/RVC3 INT8 only (where
@@ -304,29 +295,42 @@ def run_training(config: ModelConfig) -> None:
 
             # Sample a calibration set up-front when we know we'll need it,
             # so the cost is paid once even if multiple targets request it.
+            #
+            # Priority: test → val → train. The test split is held out from
+            # training, so it's the closest proxy to inference distribution
+            # and gives the quantizer the best signal for activation ranges.
+            # We fall back to val and then train only if test alone doesn't
+            # reach max_images (small datasets, or skewed splits).
             calib_dir: str | None = None
             if is_int8 and ModelOutputType.RVC4 in non_raw:
                 calib_dir = os.path.join(workdir, "calib_images")
                 # Layouts differ by task type — see prepare_dataset:
-                #   classification:         <workdir>/dataset/train/<label>/*.jpg
-                #   detection/segmentation: <workdir>/dataset/images/train/*.jpg
+                #   classification:         <workdir>/dataset/<split>/<label>/*.jpg
+                #   detection/segmentation: <workdir>/dataset/images/<split>/*.jpg
+                # Classification also renames the val split to "valid"
+                # (dataset.py mutates VAL_DIR globally). Mirror preprocess.py's
+                # resolution rather than reading the mutated global, which
+                # would be stale here had we imported it before the mutation.
                 if config.type == ModelType.CLASSIFICATION:
-                    train_image_dir = os.path.join(
-                        workdir, DATASET_DIR, TRAIN_DIR
-                    )
+                    base = os.path.join(workdir, DATASET_DIR)
+                    val_subdir = "valid"
                 else:
-                    train_image_dir = os.path.join(
-                        workdir, DATASET_DIR, IMAGE_DIR, TRAIN_DIR
-                    )
-                n = sample_calibration_images(train_image_dir, calib_dir)
+                    base = os.path.join(workdir, DATASET_DIR, IMAGE_DIR)
+                    val_subdir = VAL_DIR
+                calib_sources = [
+                    os.path.join(base, TEST_DIR),
+                    os.path.join(base, val_subdir),
+                    os.path.join(base, TRAIN_DIR),
+                ]
+                n = sample_calibration_images(calib_sources, calib_dir)
                 print(
                     f"[ml-yolo] Sampled {n} calibration images "
-                    f"from {train_image_dir} into {calib_dir}"
+                    f"(prefer test → val → train) into {calib_dir}"
                 )
                 if n == 0:
                     raise RuntimeError(
                         "INT8 RVC4 conversion requires at least one calibration "
-                        f"image; found none under {train_image_dir}"
+                        f"image; found none under any of {calib_sources}"
                     )
 
             for output_type in non_raw:
