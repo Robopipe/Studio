@@ -70,7 +70,10 @@ interface UseRunDeployParams {
   selectedConfigs?: ConfigSelection[];
   sahiConfig: SahiConfig | null;
   runtimeConfig?: NNRuntimeConfig;
-  beforeDeploy?: () => Promise<void>;
+  // Returns the freshly-saved deploy-time snapshot for fields that the form
+  // owns. We use this for replay video because the prop value comes from RTK
+  // Query and stays stale for one tick after saveIfDirty invalidates the tag.
+  beforeDeploy?: () => Promise<{ capturedVideoId: number | null } | undefined>;
 }
 
 interface AssembledConfig {
@@ -155,11 +158,16 @@ export const useRunDeploy = ({
   const executeDeploy = async () => {
     if (!selectedCamera || !selectedStream || !selectedCameraInfo) return;
 
+    let effectiveCapturedVideoId = capturedVideoId;
+
     try {
       if (beforeDeploy) {
         setDeployPhase("preparing");
         try {
-          await beforeDeploy();
+          const snapshot = await beforeDeploy();
+          if (snapshot) {
+            effectiveCapturedVideoId = snapshot.capturedVideoId;
+          }
         } catch (error) {
           toast.error(
             `Failed to save configuration changes: ${error instanceof Error ? error.message : "Unknown error"}`,
@@ -263,10 +271,10 @@ export const useRunDeploy = ({
       // Handle replay video before deploying
       setDeployPhase("uploading-video");
       try {
-        if (capturedVideoId != null && activeProjectId != null) {
+        if (effectiveCapturedVideoId != null && activeProjectId != null) {
           const video = await triggerGetCapturedVideo({
             projectId: activeProjectId,
-            videoId: capturedVideoId,
+            videoId: effectiveCapturedVideoId,
           }).unwrap();
 
           const uploadBuffered = async () => {
