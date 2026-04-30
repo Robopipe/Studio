@@ -2,16 +2,27 @@ import {
   createActionsColumn,
   createSelectColumn,
 } from "@/modules/ui/components/Table";
-import { Badge } from "@/modules/shadcn/ui/badge";
 import { EvalLimit } from "@repo/schema";
 import { type ColumnDef } from "@tanstack/react-table";
 import { PencilIcon, Trash2Icon } from "lucide-react";
 import { useMemo } from "react";
+import { LimitEnabledSwitch } from "./LimitEnabledSwitch";
 
-export function useLimitColumns(
-  onEdit: (limit: EvalLimit) => void,
-  onDelete: (limit: EvalLimit) => void,
-): ColumnDef<EvalLimit, unknown>[] {
+interface UseLimitColumnsArgs {
+  projectId: number;
+  configId: number;
+  testCaseId: string;
+  onEdit: (limit: EvalLimit) => void;
+  onDelete: (limit: EvalLimit) => void;
+}
+
+export function useLimitColumns({
+  projectId,
+  configId,
+  testCaseId,
+  onEdit,
+  onDelete,
+}: UseLimitColumnsArgs): ColumnDef<EvalLimit, unknown>[] {
   return useMemo(
     () => [
       createSelectColumn<EvalLimit>(),
@@ -27,12 +38,14 @@ export function useLimitColumns(
       {
         accessorKey: "enabled",
         header: "Status",
-        cell: ({ getValue }) =>
-          getValue() ? (
-            <Badge>Enabled</Badge>
-          ) : (
-            <Badge variant="secondary">Disabled</Badge>
-          ),
+        cell: ({ row }) => (
+          <LimitEnabledSwitch
+            limit={row.original}
+            projectId={projectId}
+            configId={configId}
+            testCaseId={testCaseId}
+          />
+        ),
       },
       {
         id: "targetLabel",
@@ -58,6 +71,6 @@ export function useLimitColumns(
         },
       ]),
     ],
-    [onEdit, onDelete],
+    [projectId, configId, testCaseId, onEdit, onDelete],
   );
 }

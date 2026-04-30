@@ -86,7 +86,13 @@ export function TestCaseSection({ testCase, projectId, configId }: TestCaseSecti
       });
   };
 
-  const columns = useLimitColumns(handleEditLimit, handleDeleteLimit);
+  const columns = useLimitColumns({
+    projectId,
+    configId,
+    testCaseId: testCase.id,
+    onEdit: handleEditLimit,
+    onDelete: handleDeleteLimit,
+  });
 
   return (
     <Card size="sm">
