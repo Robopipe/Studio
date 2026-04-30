@@ -32,6 +32,12 @@ _DEFAULT_IOU_THRESHOLD = 0.45
 _DEFAULT_CONF_THRESHOLD = 0.25
 _DEFAULT_MAX_DET = 300
 
+# Override we stamp onto HubAI-populated heads. HubAI bakes 0.25 in, which
+# silently drops detections before the dashboard's runtime confidence
+# slider can see them; pushing this near zero hands authority back to the
+# dashboard. We can't omit the field — luxonis-ml's schema requires it.
+_OVERRIDE_CONF_THRESHOLD = 0.01
+
 
 def patch_nn_archive_heads(
     archive_path: str | Path,
@@ -80,37 +86,48 @@ def patch_nn_archive_heads(
         model = config.setdefault("model", {})
 
         if model.get("heads"):
-            # Future-proof: HubAI may start populating heads itself.
-            return
-
-        outputs = model.get("outputs") or []
-        if not outputs:
-            print(
-                f"[ml-yolo] heads-patch: no model.outputs in {p.name}, skipping"
+            n_heads = len(model["heads"])
+            for head in model["heads"]:
+                head.setdefault("metadata", {})["conf_threshold"] = (
+                    _OVERRIDE_CONF_THRESHOLD
+                )
+            summary = (
+                f"overrode conf_threshold to {_OVERRIDE_CONF_THRESHOLD} "
+                f"in {n_heads} existing head(s)"
             )
-            return
-        output_names = [o["name"] for o in outputs]
+        else:
+            outputs = model.get("outputs") or []
+            if not outputs:
+                print(
+                    f"[ml-yolo] heads-patch: no model.outputs in {p.name}, skipping"
+                )
+                return
+            output_names = [o["name"] for o in outputs]
 
-        # Ultralytics v8/v11 detection ONNX produces a single concatenated
-        # output (typically `output0`, shape (1, 4+nc, num_anchors)) which
-        # HubAI preserves through RVC4 conversion. Passing every model
-        # output to the YOLO parser matches what `outputs=null` would have
-        # done, and stays correct if HubAI ever splits the tensor.
-        head = {
-            "parser": "YOLO",
-            "metadata": {
-                "classes": [str(lid) for lid in label_ids],
-                "n_classes": len(label_ids),
-                "iou_threshold": _DEFAULT_IOU_THRESHOLD,
-                "conf_threshold": _DEFAULT_CONF_THRESHOLD,
-                "max_det": _DEFAULT_MAX_DET,
-                "anchors": None,
-                "subtype": "yolov8",
-                "yolo_outputs": output_names,
-            },
-            "outputs": output_names,
-        }
-        model["heads"] = [head]
+            # Ultralytics v8/v11 detection ONNX produces a single concatenated
+            # output (typically `output0`, shape (1, 4+nc, num_anchors)) which
+            # HubAI preserves through RVC4 conversion. Passing every model
+            # output to the YOLO parser matches what `outputs=null` would have
+            # done, and stays correct if HubAI ever splits the tensor.
+            head = {
+                "parser": "YOLO",
+                "metadata": {
+                    "classes": [str(lid) for lid in label_ids],
+                    "n_classes": len(label_ids),
+                    "iou_threshold": _DEFAULT_IOU_THRESHOLD,
+                    "conf_threshold": _DEFAULT_CONF_THRESHOLD,
+                    "max_det": _DEFAULT_MAX_DET,
+                    "anchors": None,
+                    "subtype": "yolov8",
+                    "yolo_outputs": output_names,
+                },
+                "outputs": output_names,
+            }
+            model["heads"] = [head]
+            summary = (
+                f"injected YOLO head (n_classes={len(label_ids)}, "
+                f"yolo_outputs={output_names})"
+            )
 
         # Schema sanity check. If the patched config doesn't validate,
         # raise — better to fail the training job here than to ship a
@@ -127,10 +144,7 @@ def patch_nn_archive_heads(
         _repack(extract_dir, repacked, compression)
         os.replace(repacked, p)
 
-    print(
-        f"[ml-yolo] heads-patch: injected YOLO head into {p.name} "
-        f"(n_classes={len(label_ids)}, yolo_outputs={output_names})"
-    )
+    print(f"[ml-yolo] heads-patch: {summary} in {p.name}")
 
 
 def _detect_compression(p: Path) -> str | None:
