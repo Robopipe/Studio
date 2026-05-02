@@ -105,7 +105,7 @@ export const RunPage = () => {
     sahiConfig,
     runtimeConfig,
     beforeDeploy: async () => {
-      await configTabRef.current?.saveIfDirty();
+      return await configTabRef.current?.saveIfDirty();
     },
   });
 
