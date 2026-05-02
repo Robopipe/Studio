@@ -3,36 +3,8 @@ import { Input } from "@/modules/shadcn/ui/input";
 import { Label } from "@/modules/shadcn/ui/label";
 import { Switch } from "@/modules/shadcn/ui/switch";
 import { DashboardConfigurationZoneDirectionEnum } from "@repo/schema";
-import React from "react";
-
-function ToggleGroup({
-  options,
-  value,
-  onChange,
-}: {
-  options: [string, string];
-  value: 0 | 1;
-  onChange: (value: 0 | 1) => void;
-}) {
-  return (
-    <div className="inline-flex h-9 items-center rounded-md border border-input bg-muted p-0.5 text-sm">
-      {options.map((label, i) => (
-        <button
-          key={label}
-          type="button"
-          className={`whitespace-nowrap rounded-sm px-3 py-1 text-sm font-medium transition-colors ${
-            value === i
-              ? "bg-background text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-          onClick={() => onChange(i as 0 | 1)}
-        >
-          {label}
-        </button>
-      ))}
-    </div>
-  );
-}
+import { DirectionPicker } from "./DirectionPicker";
+import { ZoneArrow, getZoneStyle } from "./zonePreview";
 
 export interface ZoneConfig {
   zoneDirection: DashboardConfigurationZoneDirectionEnum;
@@ -54,37 +26,10 @@ export const DashboardZoneConfiguration = ({
 }: DashboardZoneConfigurationProps) => {
   const { data: tasks } = useGetTasksQuery({ projectId, limit: 1 });
 
-  const isVertical =
-    value.zoneDirection === DashboardConfigurationZoneDirectionEnum.VERTICAL;
-
   // UI uses 0-100 for display; ZoneConfig backing values are 0-100 too
   // (converted to 0-1 at save time)
   const centerPct = value.zoneCenter;
   const thicknessPct = value.zoneThickness;
-
-  const zoneStyle: React.CSSProperties = isVertical
-    ? {
-        position: "absolute",
-        top: 0,
-        left: `${centerPct - thicknessPct / 2}%`,
-        width: `${thicknessPct}%`,
-        height: "100%",
-        background: "rgba(239, 68, 68, 0.35)",
-        border: "1px solid #ef4444",
-        boxShadow: "0 0 0 1px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.2)",
-        pointerEvents: "none",
-      }
-    : {
-        position: "absolute",
-        left: 0,
-        top: `${centerPct - thicknessPct / 2}%`,
-        height: `${thicknessPct}%`,
-        width: "100%",
-        background: "rgba(239, 68, 68, 0.35)",
-        border: "1px solid #ef4444",
-        boxShadow: "0 0 0 1px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.2)",
-        pointerEvents: "none",
-      };
 
   return (
     <div className="flex flex-col gap-3">
@@ -96,17 +41,10 @@ export const DashboardZoneConfiguration = ({
         <div className="flex shrink-0 flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <Label className="text-sm text-muted-foreground">Direction</Label>
-            <ToggleGroup
-              options={["Horizontal", "Vertical"]}
-              value={isVertical ? 1 : 0}
-              onChange={(v) =>
-                onChange({
-                  ...value,
-                  zoneDirection:
-                    v === 1
-                      ? DashboardConfigurationZoneDirectionEnum.VERTICAL
-                      : DashboardConfigurationZoneDirectionEnum.HORIZONTAL,
-                })
+            <DirectionPicker
+              value={value.zoneDirection}
+              onChange={(zoneDirection) =>
+                onChange({ ...value, zoneDirection })
               }
             />
           </div>
@@ -170,7 +108,13 @@ export const DashboardZoneConfiguration = ({
             src={tasks?.data[0]?.filePath}
             alt="Task zone preview"
           />
-          <div style={zoneStyle} />
+          <div
+            style={getZoneStyle(value.zoneDirection, centerPct, thicknessPct)}
+          />
+          <ZoneArrow
+            direction={value.zoneDirection}
+            centerPct={centerPct}
+          />
         </div>
       </div>
     </div>

@@ -28,7 +28,7 @@ interface DashboardConfigPageProps {
 }
 
 const defaultZoneConfig: ZoneConfig = {
-  zoneDirection: DashboardConfigurationZoneDirectionEnum.HORIZONTAL,
+  zoneDirection: DashboardConfigurationZoneDirectionEnum.BOTTOM_TO_TOP,
   zoneCenter: 50,
   zoneThickness: 20,
   optimistic: true,

@@ -11,7 +11,7 @@ import { SahiConfigPanel } from "./SahiConfigPanel";
 import { useConfigurationState } from "./useConfigurationState";
 
 export interface ConfigurationTabHandle {
-  saveIfDirty: () => Promise<void>;
+  saveIfDirty: () => Promise<{ capturedVideoId: number | null }>;
 }
 
 interface ConfigurationTabProps {
@@ -97,10 +97,11 @@ const ConfigurationTabContent = ({
     ref,
     () => ({
       saveIfDirty: async () => {
-        if (hasChanges) await handleSave();
+        if (hasChanges) return await handleSave();
+        return { capturedVideoId: selectedVideoId };
       },
     }),
-    [hasChanges, handleSave],
+    [hasChanges, handleSave, selectedVideoId],
   );
 
   return (

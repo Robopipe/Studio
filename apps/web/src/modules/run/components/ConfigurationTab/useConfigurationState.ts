@@ -17,7 +17,7 @@ import {
 import { useEffect, useState } from "react";
 
 const defaultZoneConfig: ZoneConfig = {
-  zoneDirection: DashboardConfigurationZoneDirectionEnum.HORIZONTAL,
+  zoneDirection: DashboardConfigurationZoneDirectionEnum.BOTTOM_TO_TOP,
   zoneCenter: 50,
   zoneThickness: 20,
   optimistic: true,
@@ -95,7 +95,7 @@ export const useConfigurationState = (
       zoneConfig.zoneThickness !== Math.round(config.zoneThickness * 100) ||
       zoneConfig.optimistic !== config.optimistic);
 
-  const handleSave = async () => {
+  const handleSave = async (): Promise<{ capturedVideoId: number | null }> => {
     await updateConfig({
       projectId,
       configId,
@@ -108,6 +108,7 @@ export const useConfigurationState = (
       zoneThickness: zoneConfig.zoneThickness / 100,
       optimistic: zoneConfig.optimistic,
     }).unwrap();
+    return { capturedVideoId: selectedVideoId };
   };
 
   return {
