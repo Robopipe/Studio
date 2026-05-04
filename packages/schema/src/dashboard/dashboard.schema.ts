@@ -2,8 +2,10 @@ import z from "zod";
 import { timestampsSchema } from "../helpers";
 
 export enum DashboardConfigurationZoneDirectionEnum {
-  HORIZONTAL = "HORIZONTAL",
-  VERTICAL = "VERTICAL",
+  LEFT_TO_RIGHT = "LEFT_TO_RIGHT",
+  RIGHT_TO_LEFT = "RIGHT_TO_LEFT",
+  TOP_TO_BOTTOM = "TOP_TO_BOTTOM",
+  BOTTOM_TO_TOP = "BOTTOM_TO_TOP",
 }
 
 export const dashboardConfigurationSchema = z.object({

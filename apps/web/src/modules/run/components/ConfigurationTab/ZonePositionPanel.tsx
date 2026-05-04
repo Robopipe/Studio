@@ -1,15 +1,10 @@
-import { ZoneConfig } from "@/modules/dashboard/components/DashboardZoneConfiguration";
+import {
+  DirectionPicker,
+  ZoneConfig,
+} from "@/modules/dashboard/components/DashboardZoneConfiguration";
 import { Input } from "@/modules/shadcn/ui/input";
 import { Label } from "@/modules/shadcn/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/modules/shadcn/ui/select";
 import { Switch } from "@/modules/shadcn/ui/switch";
-import { DashboardConfigurationZoneDirectionEnum } from "@repo/schema";
 
 interface ZonePositionPanelProps {
   value: ZoneConfig;
@@ -27,31 +22,10 @@ export const ZonePositionPanel = ({
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
           <label className="text-sm text-muted-foreground">Direction</label>
-          <Select
+          <DirectionPicker
             value={value.zoneDirection}
-            onValueChange={(v) =>
-              onChange({
-                ...value,
-                zoneDirection: v as DashboardConfigurationZoneDirectionEnum,
-              })
-            }
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem
-                value={DashboardConfigurationZoneDirectionEnum.HORIZONTAL}
-              >
-                Horizontal
-              </SelectItem>
-              <SelectItem
-                value={DashboardConfigurationZoneDirectionEnum.VERTICAL}
-              >
-                Vertical
-              </SelectItem>
-            </SelectContent>
-          </Select>
+            onChange={(zoneDirection) => onChange({ ...value, zoneDirection })}
+          />
         </div>
 
         <div className="flex flex-col gap-1.5">

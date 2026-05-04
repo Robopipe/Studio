@@ -29,6 +29,7 @@ const PHASE_MESSAGES: Record<Exclude<DeployPhase, "idle">, string> = {
   "loading-data": "Loading dashboard data…",
   "downloading-model": "Downloading model…",
   "uploading-video": "Uploading replay video…",
+  "removing-video": "Removing replay video…",
   deploying: "Deploying to camera…",
 };
 
