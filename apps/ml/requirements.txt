@@ -16,7 +16,7 @@ onnx==1.20.1
 onnxsim==0.4.36
 
 # HubAI SDK for model conversion
-hubai-sdk==0.2.1
+hubai-sdk @ git+https://github.com/luxonis/hubai-sdk.git@e5e64a92a7b167610c41ecbba48def2abd3620c8
 
 # HTTP client for webhooks
 requests==2.32.3
