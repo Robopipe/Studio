@@ -1,10 +1,9 @@
 import {
   useAddReplayVideoFromUrlMutation,
   useAddReplayVideoMutation,
-  useCreateCameraMutation,
-  useDeleteCameraMutation,
   useDeployDashboardMutation,
   useGetDashboardQuery,
+  useRemoveDashboardMutation,
   useRemoveReplayVideoMutation,
 } from "@/core/cameraApi";
 import type { DeviceInfo } from "@/core/cameraApi/schemas";
@@ -56,7 +55,7 @@ export type DeployPhase =
   | "uploading-video"
   | "removing-video"
   | "deploying"
-  | "restarting";
+  | "stopping";
 
 interface UseRunDeployParams {
   selectedCamera: string | null;
@@ -132,8 +131,7 @@ export const useRunDeploy = ({
 
   // Mutations
   const [deployDashboardMut] = useDeployDashboardMutation();
-  const [deleteCameraMut] = useDeleteCameraMutation();
-  const [createCameraMut] = useCreateCameraMutation();
+  const [removeDashboardMut] = useRemoveDashboardMutation();
   const [addReplayVideoMut] = useAddReplayVideoMutation();
   const [addReplayVideoFromUrlMut] = useAddReplayVideoFromUrlMutation();
   const [removeReplayVideoMut] = useRemoveReplayVideoMutation();
@@ -509,12 +507,16 @@ export const useRunDeploy = ({
   }
 
   const handleStop = async () => {
-    if (!selectedCamera) return;
+    if (!selectedCamera || !selectedStream) return;
 
-    setDeployPhase("restarting");
+    setDeployPhase("stopping");
     try {
-      await deleteCameraMut(selectedCamera).unwrap();
-      await createCameraMut(selectedCamera).unwrap();
+      await removeDashboardMut({
+        mxid: selectedCamera,
+        streamName: selectedStream,
+      })
+        .unwrap()
+        .catch(() => {});
       // Tag invalidation in the mutations drops dashboardUrl to null via the
       // query refetch — no local state to reset.
     } finally {
