@@ -31,6 +31,7 @@ const PHASE_MESSAGES: Record<Exclude<DeployPhase, "idle">, string> = {
   "uploading-video": "Uploading replay video…",
   "removing-video": "Removing replay video…",
   deploying: "Deploying to camera…",
+  stopping: "Stopping dashboard…",
 };
 
 export const RunSubheader = ({
