@@ -4,15 +4,11 @@ import {
   useDeployDashboardMutation,
   useGetDashboardQuery,
   useRemoveDashboardMutation,
-  useRemoveNNMutation,
   useRemoveReplayVideoMutation,
 } from "@/core/cameraApi";
 import type { DeviceInfo } from "@/core/cameraApi/schemas";
 import type { DeployConfigEntry } from "@/core/cameraApi/schemas/dashboard";
-import type {
-  NNRuntimeConfig,
-  SahiConfig,
-} from "@/core/cameraApi/schemas/nn";
+import type { NNRuntimeConfig, SahiConfig } from "@/core/cameraApi/schemas/nn";
 import { DEFAULT_NN_RUNTIME_CONFIG } from "@/core/cameraApi/schemas/nn";
 import { useLazyGetDashboardConfigsQuery } from "@/modules/dashboard/services/dashboardConfigApi";
 import {
@@ -58,7 +54,8 @@ export type DeployPhase =
   | "downloading-model"
   | "uploading-video"
   | "removing-video"
-  | "deploying";
+  | "deploying"
+  | "stopping";
 
 interface UseRunDeployParams {
   selectedCamera: string | null;
@@ -134,7 +131,6 @@ export const useRunDeploy = ({
 
   // Mutations
   const [deployDashboardMut] = useDeployDashboardMutation();
-  const [removeNNMut] = useRemoveNNMutation();
   const [removeDashboardMut] = useRemoveDashboardMutation();
   const [addReplayVideoMut] = useAddReplayVideoMutation();
   const [addReplayVideoFromUrlMut] = useAddReplayVideoFromUrlMutation();
@@ -470,8 +466,14 @@ export const useRunDeploy = ({
   async function downloadConfigModel(
     intermediate: ConfigIntermediate,
   ): Promise<AssembledConfig> {
-    const { pid, projectName, config, assembledTestCases, masterThresholds, labels } =
-      intermediate;
+    const {
+      pid,
+      projectName,
+      config,
+      assembledTestCases,
+      masterThresholds,
+      labels,
+    } = intermediate;
     const modelBuffer = await fetch(intermediate.compatibleOutputFilePath).then(
       (res) => res.arrayBuffer(),
     );
@@ -507,19 +509,19 @@ export const useRunDeploy = ({
   const handleStop = async () => {
     if (!selectedCamera || !selectedStream) return;
 
-    await Promise.all([
-      removeNNMut({ mxid: selectedCamera, streamName: selectedStream })
+    setDeployPhase("stopping");
+    try {
+      await removeDashboardMut({
+        mxid: selectedCamera,
+        streamName: selectedStream,
+      })
         .unwrap()
-        .catch(() => {}),
-      removeDashboardMut({ mxid: selectedCamera, streamName: selectedStream })
-        .unwrap()
-        .catch(() => {}),
-      removeReplayVideoMut({ mxid: selectedCamera, streamName: selectedStream })
-        .unwrap()
-        .catch(() => {}),
-    ]);
-    // Tag invalidation in the mutations drops dashboardUrl to null via the
-    // query refetch — no local state to reset.
+        .catch(() => {});
+      // Tag invalidation in the mutations drops dashboardUrl to null via the
+      // query refetch — no local state to reset.
+    } finally {
+      setDeployPhase("idle");
+    }
   };
 
   const handleConfirmDeploy = () => {
