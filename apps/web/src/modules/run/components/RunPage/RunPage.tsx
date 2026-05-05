@@ -1,8 +1,5 @@
 import { useListCamerasQuery } from "@/core/cameraApi";
-import type {
-  NNRuntimeConfig,
-  SahiConfig,
-} from "@/core/cameraApi/schemas/nn";
+import type { SahiConfig } from "@/core/cameraApi/schemas/nn";
 import { DEFAULT_NN_RUNTIME_CONFIG } from "@/core/cameraApi/schemas/nn";
 import { useCameraApiUrl } from "@/hooks";
 import { useSelectedCameraStream } from "@/modules/camera-selection";
@@ -43,9 +40,6 @@ export const RunPage = () => {
   const [selectedConfigs, setSelectedConfigs] = useState<ConfigSelection[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [sahiConfig, setSahiConfig] = useState<SahiConfig | null>(null);
-  const [runtimeConfig, setRuntimeConfig] = useState<NNRuntimeConfig>(
-    DEFAULT_NN_RUNTIME_CONFIG,
-  );
   const configTabRef = useRef<ConfigurationTabHandle>(null);
 
   const [activeProject] = useActiveProject();
@@ -103,7 +97,7 @@ export const RunPage = () => {
     cameraApiUrl,
     selectedConfigs,
     sahiConfig,
-    runtimeConfig,
+    runtimeConfig: DEFAULT_NN_RUNTIME_CONFIG,
     beforeDeploy: async () => {
       return await configTabRef.current?.saveIfDirty();
     },
@@ -165,8 +159,6 @@ export const RunPage = () => {
           configId={activeConfigId}
           sahiConfig={sahiConfig}
           onSahiConfigChange={setSahiConfig}
-          runtimeConfig={runtimeConfig}
-          onRuntimeConfigChange={setRuntimeConfig}
         />
       ) : null;
     }

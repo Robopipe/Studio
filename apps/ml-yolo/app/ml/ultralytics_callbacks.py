@@ -65,11 +65,21 @@ class WebhookCallbacks:
             "accuracy": None,
             "loss": None,
         }
+        self._last_epoch: int = -1
 
     # ---- Ultralytics callback entry point ----
 
     def on_fit_epoch_end(self, trainer: Any) -> None:
         """Fires after train + val for one epoch."""
+        # Ultralytics' BaseTrainer.final_eval() re-runs validation on best.pt
+        # after training and fires on_fit_epoch_end one extra time with the
+        # same trainer.epoch. That payload only carries validator output, so
+        # train/* losses (and often val/*_loss) are gone — our loss collapses
+        # to 0.0 and corrupts the stats. Drop the duplicate.
+        epoch = int(getattr(trainer, "epoch", 0))
+        if epoch <= self._last_epoch:
+            return
+
         raw_metrics = getattr(trainer, "metrics", {}) or {}
         metrics: dict[str, float] = {}
         for key, value in raw_metrics.items():
@@ -94,12 +104,13 @@ class WebhookCallbacks:
         payload = {
             "progress": {
                 "type": "log",
-                "epoch": int(getattr(trainer, "epoch", 0)),
+                "epoch": epoch,
                 "metrics": metrics,
                 "perClassMetrics": self._per_class_metrics(trainer),
                 "confusionMatrix": self._confusion_matrix(trainer),
             }
         }
+        self._last_epoch = epoch
         try:
             r = requests.post(
                 self.webhook_url, json=payload, headers={"Authorization": self.api_key}

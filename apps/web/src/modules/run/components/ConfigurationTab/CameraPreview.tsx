@@ -14,12 +14,14 @@ export const CameraPreview = ({ imageUrl, zoneConfig }: CameraPreviewProps) => {
   const thicknessPct = zoneConfig.zoneThickness;
 
   return (
-    <div className="relative m-6 flex-1 self-center overflow-hidden rounded-xl aspect-video">
-      <img
-        className="block h-full w-full object-cover"
-        src={imageUrl}
-        alt="Camera preview"
-      />
+    <div className="relative aspect-video w-full max-w-full overflow-hidden rounded-xl bg-black/5">
+      {imageUrl && (
+        <img
+          className="block h-full w-full object-cover"
+          src={imageUrl}
+          alt="Camera preview"
+        />
+      )}
       <div
         style={getZoneStyle(zoneConfig.zoneDirection, centerPct, thicknessPct)}
       />
