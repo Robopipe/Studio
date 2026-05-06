@@ -230,6 +230,7 @@ def run_training(config: ModelConfig) -> None:
                     label_ids=config.training_config.dataset_config.label_ids,
                 )
                 model.add_callback("on_fit_epoch_end", callbacks.on_fit_epoch_end)
+                model.add_callback("on_train_end", callbacks.on_train_end)
 
             # 5) Train.
             project_dir = os.path.join(workdir, "runs")
