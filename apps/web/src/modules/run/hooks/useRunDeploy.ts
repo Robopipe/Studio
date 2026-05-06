@@ -418,6 +418,7 @@ export const useRunDeploy = ({
       name: tc.name,
       type: tc.type,
       severity: tc.severity,
+      enabled: tc.enabled,
       limits: tc.limits.map((limit) => ({
         id: limit.id,
         name: limit.name,

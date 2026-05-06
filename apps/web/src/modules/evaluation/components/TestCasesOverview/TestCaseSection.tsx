@@ -15,6 +15,7 @@ import {
 } from "../../api/evaluationApi";
 import { CreateLimitModal, UpdateLimitModal } from "../CreateUpdateLimit";
 import { UpdateTestCaseModal } from "../UpdateTestCase";
+import { TestCaseEnabledSwitch } from "./TestCaseEnabledSwitch";
 import { useLimitColumns } from "./useLimitColumns.hook";
 
 interface TestCaseSectionProps {
@@ -108,7 +109,13 @@ export function TestCaseSection({ testCase, projectId, configId }: TestCaseSecti
           <PlusIcon />
           Add limit
         </Button>
-        <div className="ml-auto flex shrink-0 items-center gap-1">
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          <TestCaseEnabledSwitch
+            testCase={testCase}
+            projectId={projectId}
+            configId={configId}
+          />
+          <Separator orientation="vertical" className="h-4 my-auto" />
           <Button
             variant="secondary"
             size="icon-sm"
