@@ -1,6 +1,6 @@
 import { useCameraStream } from "@/modules/camera-stream";
 import { useGetModelQuery } from "@/modules/model/services";
-import { RefObject, useEffect, useRef } from "react";
+import { RefObject, useEffect, useRef, useState } from "react";
 import {
   renderBBoxDetection,
   renderClassificationDetection,
@@ -15,6 +15,8 @@ export interface UseSyncedRendererOptions {
 
 export interface UseSyncedRendererReturn {
   canvasRef: RefObject<HTMLCanvasElement | null>;
+  sourceWidth: number | null;
+  sourceHeight: number | null;
 }
 
 /**
@@ -34,6 +36,10 @@ export const useSyncedRenderer = ({
 }: UseSyncedRendererOptions): UseSyncedRendererReturn => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const offscreenRef = useRef<HTMLCanvasElement | null>(null);
+  const [sourceSize, setSourceSize] = useState<{
+    width: number;
+    height: number;
+  } | null>(null);
   const { subscribeSyncedFrames } = useCameraStream();
   const { data: model } = useGetModelQuery(
     { projectId, modelId },
@@ -61,6 +67,7 @@ export const useSyncedRenderer = ({
       if (canvas.width !== w || canvas.height !== h) {
         canvas.width = w;
         canvas.height = h;
+        setSourceSize({ width: w, height: h });
       }
 
       const ctx = canvas.getContext("2d");
@@ -106,5 +113,9 @@ export const useSyncedRenderer = ({
     return unsubscribe;
   }, [enabled, subscribeSyncedFrames]);
 
-  return { canvasRef };
+  return {
+    canvasRef,
+    sourceWidth: sourceSize?.width ?? null,
+    sourceHeight: sourceSize?.height ?? null,
+  };
 };

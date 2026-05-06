@@ -8,7 +8,6 @@ import {
   useGetDashboardConfigQuery,
   useGetDashboardConfigsQuery,
 } from "@/modules/dashboard/services/dashboardConfigApi";
-import { EditProjectModal } from "@/modules/project/components/EditProjectModal";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import { Button } from "@/modules/shadcn/ui/button";
 import {
@@ -19,8 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/modules/shadcn/ui/dialog";
-import { NoCameraDetected, SearchingForCamera } from "@/modules/ui";
-import { Settings, TriangleAlert, Video } from "lucide-react";
+import { TriangleAlert } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useBlocker } from "react-router";
 import { toast } from "sonner";
@@ -31,20 +29,18 @@ import {
   type ConfigurationTabHandle,
 } from "@/modules/run";
 import { DeployConfigSelector } from "../DeployConfigSelector/DeployConfigSelector";
-import { LiveInference } from "@/modules/run";
 import { RunSubheader, RunTab } from "@/modules/run";
 
 export const RunPage = () => {
-  const [activeTab, setActiveTab] = useState<RunTab>("configuration");
+  const [activeTab, setActiveTab] = useState<RunTab>("inference");
   const [activeConfigId, setActiveConfigId] = useState<number | null>(null);
   const [selectedConfigs, setSelectedConfigs] = useState<ConfigSelection[]>([]);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [sahiConfig, setSahiConfig] = useState<SahiConfig | null>(null);
   const configTabRef = useRef<ConfigurationTabHandle>(null);
 
   const [activeProject] = useActiveProject();
   const projectId = activeProject?.id;
-  const { url: cameraApiUrl, isOverride } = useCameraApiUrl();
+  const { url: cameraApiUrl } = useCameraApiUrl();
 
   // Fetch configs list so we can auto-select on mount (regardless of active tab)
   const { data: configs = [] } = useGetDashboardConfigsQuery(
@@ -58,12 +54,7 @@ export const RunPage = () => {
     }
   }, [configs, activeConfigId]);
 
-  const {
-    data: cameras,
-    isLoading: camerasLoading,
-    refetch: refetchCameras,
-    isFetching: camerasFetching,
-  } = useListCamerasQuery();
+  const { data: cameras, isLoading: camerasLoading } = useListCamerasQuery();
 
   // Unified selection across Capture and Run — see useSelectedCameraStream.
   // Changing camera here immediately reflects on Capture and vice versa.
@@ -145,24 +136,11 @@ export const RunPage = () => {
   const hasCameras = !!cameras && cameras.length > 0;
   const cameraReady = !camerasLoading && hasCameras;
 
-  // Configuration is where you set up the camera, so it's always accessible.
-  // Dashboard contains test-case and evaluation sub-tabs that don't depend on
-  // a live camera (the Custom dashboard sub-tab shows its own "not running"
-  // placeholder when no deployed URL is available). Only Inference truly
-  // requires a connected camera for the live video stream.
+  // Inference now owns the configuration controls (camera/sensor pickers,
+  // model, zone, replay video) — the page falls back to a dataset preview
+  // image when no camera/stream is selected, so it stays accessible without
+  // a live device. Dashboard contains test-case and evaluation sub-tabs.
   const renderTabContent = () => {
-    if (activeTab === "configuration") {
-      return projectId ? (
-        <ConfigurationTab
-          ref={configTabRef}
-          projectId={projectId}
-          configId={activeConfigId}
-          sahiConfig={sahiConfig}
-          onSahiConfigChange={setSahiConfig}
-        />
-      ) : null;
-    }
-
     if (activeTab === "dashboard") {
       return (
         <DashboardPage
@@ -172,42 +150,15 @@ export const RunPage = () => {
       );
     }
 
-    // inference
-    const openSettings = activeProject
-      ? () => setSettingsOpen(true)
-      : undefined;
-
-    if (!cameraApiUrl) {
-      return (
-        <NoCameraDetected
-          onRefresh={refetchCameras}
-          isRefreshing={camerasFetching}
-          onOpenSettings={openSettings}
-        />
-      );
-    }
-
-    if (camerasLoading) {
-      return <SearchingForCamera url={cameraApiUrl} isOverride={isOverride} />;
-    }
-
-    if (!hasCameras) {
-      return (
-        <NoCameraDetected
-          onRefresh={refetchCameras}
-          isRefreshing={camerasFetching}
-          onOpenSettings={openSettings}
-        />
-      );
-    }
-
-    return (
-      <InferenceContent
-        selectedCamera={selectedCamera}
-        selectedStream={selectedStream}
-        onGoToConfiguration={() => setActiveTab("configuration")}
+    return projectId ? (
+      <ConfigurationTab
+        ref={configTabRef}
+        projectId={projectId}
+        configId={activeConfigId}
+        sahiConfig={sahiConfig}
+        onSahiConfigChange={setSahiConfig}
       />
-    );
+    ) : null;
   };
 
   return (
@@ -231,13 +182,6 @@ export const RunPage = () => {
         onConfirm={handleConfirmDeploy}
         onCancel={handleCancelDeploy}
       />
-
-      {settingsOpen && activeProject && (
-        <EditProjectModal
-          project={activeProject}
-          onClose={() => setSettingsOpen(false)}
-        />
-      )}
     </div>
   );
 };
@@ -273,38 +217,3 @@ const DeployConfirmDialog = ({
   </Dialog>
 );
 
-const InferenceContent = ({
-  selectedCamera,
-  selectedStream,
-  onGoToConfiguration,
-}: {
-  selectedCamera: string | null;
-  selectedStream: string | null;
-  onGoToConfiguration: () => void;
-}) => {
-  if (!selectedCamera || !selectedStream) {
-    return (
-      <div className="flex flex-1 flex-col items-center justify-center p-8">
-        <div className="mb-5 flex h-[72px] w-[72px] items-center justify-center rounded-full bg-black/5 [&_svg]:size-7 [&_svg]:text-black/30">
-          <Video />
-        </div>
-        <p className="mb-2 text-base text-black/85">No live stream available</p>
-        <p className="mb-6 max-w-[360px] text-center text-sm text-black/45">
-          Set up a camera and sensor in the Configuration tab, then deploy to
-          see the live inference stream.
-        </p>
-        <Button variant="outline" size="sm" onClick={onGoToConfiguration}>
-          <Settings className="size-4" />
-          Go to Configuration
-        </Button>
-      </div>
-    );
-  }
-
-  return (
-    <LiveInference
-      selectedCamera={selectedCamera}
-      selectedStream={selectedStream}
-    />
-  );
-};

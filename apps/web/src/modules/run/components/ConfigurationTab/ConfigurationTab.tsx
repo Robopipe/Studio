@@ -113,8 +113,14 @@ const ConfigurationTabContent = ({
         onSahiConfigChange={onSahiConfigChange}
       />
 
-      <main className="flex min-w-0 flex-1 items-center justify-center overflow-y-auto p-6">
-        <CameraPreview imageUrl={previewImageUrl} zoneConfig={zoneConfig} />
+      <main className="flex min-w-0 flex-1 flex-col gap-4 overflow-y-auto p-6">
+        <p className="text-xl">Live stream</p>
+        <CameraPreview
+          imageUrl={previewImageUrl}
+          zoneConfig={zoneConfig}
+          selectedCamera={selectedCamera}
+          selectedStream={selectedStream}
+        />
       </main>
     </div>
   );

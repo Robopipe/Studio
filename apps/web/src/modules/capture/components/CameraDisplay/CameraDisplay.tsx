@@ -1,3 +1,4 @@
+import { pickDisplayCropRows } from "@/modules/camera-stream/utils/decodeTimestampBurnin";
 import { useCallback, useEffect, useState } from "react";
 import { useWebRTCStream } from "../../hooks/useWebRTCStream";
 
@@ -23,11 +24,16 @@ export const CameraDisplay = ({
   });
 
   const [aspectRatio, setAspectRatio] = useState("16/9");
+  const [sourceSize, setSourceSize] = useState<{
+    width: number;
+    height: number;
+  } | null>(null);
 
   const handleLoadedMetadata = useCallback(() => {
     const video = videoRef.current;
     if (video && video.videoWidth && video.videoHeight) {
       setAspectRatio(`${video.videoWidth}/${video.videoHeight}`);
+      setSourceSize({ width: video.videoWidth, height: video.videoHeight });
     }
   }, [videoRef]);
 
@@ -56,7 +62,12 @@ export const CameraDisplay = ({
         muted
         playsInline
         onLoadedMetadata={handleLoadedMetadata}
-        style={{ aspectRatio }}
+        style={{
+          aspectRatio,
+          ...(sourceSize && {
+            clipPath: `inset(${(pickDisplayCropRows(sourceSize.width) / sourceSize.height) * 100}% 0 0 0)`,
+          }),
+        }}
         className="w-full rounded-md bg-black/5"
       ></video>
 
