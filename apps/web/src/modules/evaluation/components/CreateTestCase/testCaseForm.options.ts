@@ -10,6 +10,7 @@ export const testCaseFormOptions = formOptions({
     name: "",
     type: EvalTestCaseTypeEnum.CHECK,
     severity: null,
+    enabled: true,
   } satisfies CreateTestCaseFormSchema as CreateTestCaseFormSchema,
   validationLogic: revalidateLogic(),
   validators: {

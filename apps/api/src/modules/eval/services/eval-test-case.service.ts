@@ -96,7 +96,8 @@ export class EvalTestCaseService {
       logicNodes: data.logicNodes ?? [],
       name: data.name,
       type: data.type,
-      severity: data.severity
+      severity: data.severity,
+      enabled: data.enabled,
     })
 
     await this.evalThresholdRepository.createManyForTestCase(createdTestCase.id, defaultThresholds)
@@ -140,6 +141,7 @@ export class EvalTestCaseService {
       name: data.name,
       type: data.type,
       severity: data.severity,
+      enabled: data.enabled,
       logicNodes: data.logicNodes ?? existingTestCase.logicNodes,
     })
 

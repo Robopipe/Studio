@@ -22,13 +22,15 @@ export const SahiConfigPanel = ({ value, onChange }: SahiConfigPanelProps) => {
   };
 
   return (
-    <div className="rounded-xl bg-card p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-sm font-semibold">SAHI Configuration</h2>
+    <section className="flex flex-col gap-4 border-b px-6 py-5 last:border-b-0">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          SAHI Configuration
+        </h2>
         <Switch checked={enabled} onCheckedChange={handleToggle} size="sm" />
       </div>
       {enabled && (
-        <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+        <div className="flex flex-col gap-4">
           <SahiField
             label="Slice Width"
             value={config.slice_width}
@@ -63,7 +65,7 @@ export const SahiConfigPanel = ({ value, onChange }: SahiConfigPanelProps) => {
           />
         </div>
       )}
-    </div>
+    </section>
   );
 };
 

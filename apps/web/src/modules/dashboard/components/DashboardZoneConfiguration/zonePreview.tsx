@@ -14,35 +14,92 @@ export const isHorizontalStrip = (
   direction === DashboardConfigurationZoneDirectionEnum.TOP_TO_BOTTOM ||
   direction === DashboardConfigurationZoneDirectionEnum.BOTTOM_TO_TOP;
 
-export const getZoneStyle = (
-  direction: DashboardConfigurationZoneDirectionEnum,
+export interface SafeBounds {
+  safeStartPct: number;
+  safeEndPct: number;
+}
+
+export const centerThicknessToSafeBounds = (
   centerPct: number,
   thicknessPct: number,
-): React.CSSProperties => {
-  const base: React.CSSProperties = {
-    position: "absolute",
-    background: "rgba(239, 68, 68, 0.35)",
-    border: "1px solid #ef4444",
-    boxShadow: "0 0 0 1px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.2)",
-    pointerEvents: "none",
+): SafeBounds => {
+  const half = thicknessPct / 2;
+  return {
+    safeStartPct: centerPct - half,
+    safeEndPct: 100 - (centerPct + half),
   };
+};
+
+export const safeBoundsToCenterThickness = (
+  safeStartPct: number,
+  safeEndPct: number,
+): { centerPct: number; thicknessPct: number } => {
+  const thicknessPct = 100 - safeStartPct - safeEndPct;
+  const centerPct = safeStartPct + thicknessPct / 2;
+  return { centerPct, thicknessPct };
+};
+
+export const safeZoneLabels = (
+  direction: DashboardConfigurationZoneDirectionEnum,
+): { start: string; end: string } =>
+  isHorizontalStrip(direction)
+    ? { start: "Safe from top", end: "Safe from bottom" }
+    : { start: "Safe from left", end: "Safe from right" };
+
+const safeZoneBaseStyle: React.CSSProperties = {
+  position: "absolute",
+  background: "rgba(239, 68, 68, 0.25)",
+  pointerEvents: "none",
+};
+
+const innerDashed = "1px dashed #ef4444";
+
+export const getSafeZoneStyles = (
+  direction: DashboardConfigurationZoneDirectionEnum,
+  safeStartPct: number,
+  safeEndPct: number,
+): { start: React.CSSProperties; end: React.CSSProperties } => {
+  const start = Math.max(0, Math.min(100, safeStartPct));
+  const end = Math.max(0, Math.min(100, safeEndPct));
 
   if (isHorizontalStrip(direction)) {
     return {
-      ...base,
-      left: 0,
-      width: "100%",
-      top: `${centerPct - thicknessPct / 2}%`,
-      height: `${thicknessPct}%`,
+      start: {
+        ...safeZoneBaseStyle,
+        left: 0,
+        width: "100%",
+        top: 0,
+        height: `${start}%`,
+        borderBottom: start > 0 ? innerDashed : undefined,
+      },
+      end: {
+        ...safeZoneBaseStyle,
+        left: 0,
+        width: "100%",
+        bottom: 0,
+        height: `${end}%`,
+        borderTop: end > 0 ? innerDashed : undefined,
+      },
     };
   }
 
   return {
-    ...base,
-    top: 0,
-    height: "100%",
-    left: `${centerPct - thicknessPct / 2}%`,
-    width: `${thicknessPct}%`,
+    start: {
+      ...safeZoneBaseStyle,
+      top: 0,
+      height: "100%",
+      left: 0,
+      width: `${start}%`,
+      borderRight: start > 0 ? innerDashed : undefined,
+    },
+    end: {
+      ...safeZoneBaseStyle,
+      top: 0,
+      height: "100%",
+      right: 0,
+      width: `${end}%`,
+      borderLeft: end > 0 ? innerDashed : undefined,
+    },
   };
 };
 

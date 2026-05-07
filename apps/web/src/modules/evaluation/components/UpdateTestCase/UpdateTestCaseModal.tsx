@@ -68,6 +68,11 @@ export const UpdateTestCaseModal = ({
             <div className="flex flex-col gap-3">
               <h6 className="text-sm font-bold">General</h6>
 
+              <form.AppField
+                name="enabled"
+                children={(field) => <field.Switch label="Enabled" />}
+              />
+
               <form.AppField name="name">
                 {(field) => (
                   <field.TextInput label="Name" placeholder="Test case name" />

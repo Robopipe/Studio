@@ -1,13 +1,7 @@
-import type {
-  NNRuntimeConfig,
-  SahiConfig,
-} from "@/core/cameraApi/schemas/nn";
+import type { SahiConfig } from "@/core/cameraApi/schemas/nn";
 import { useImperativeHandle, type Ref } from "react";
-import { CameraConfigPanel } from "./CameraConfigPanel";
 import { CameraPreview } from "./CameraPreview";
-import { NNRuntimePanel } from "./NNRuntimePanel";
-import { ZonePositionPanel } from "./ZonePositionPanel";
-import { SahiConfigPanel } from "./SahiConfigPanel";
+import { ConfigurationSidebar } from "./ConfigurationSidebar";
 import { useConfigurationState } from "./useConfigurationState";
 
 export interface ConfigurationTabHandle {
@@ -19,8 +13,6 @@ interface ConfigurationTabProps {
   configId: number | null;
   sahiConfig: SahiConfig | null;
   onSahiConfigChange: (config: SahiConfig | null) => void;
-  runtimeConfig: NNRuntimeConfig;
-  onRuntimeConfigChange: (config: NNRuntimeConfig) => void;
   ref?: Ref<ConfigurationTabHandle>;
 }
 
@@ -29,8 +21,6 @@ export const ConfigurationTab = ({
   configId,
   sahiConfig,
   onSahiConfigChange,
-  runtimeConfig,
-  onRuntimeConfigChange,
   ref,
 }: ConfigurationTabProps) => {
   if (!configId) {
@@ -50,8 +40,6 @@ export const ConfigurationTab = ({
       configId={configId}
       sahiConfig={sahiConfig}
       onSahiConfigChange={onSahiConfigChange}
-      runtimeConfig={runtimeConfig}
-      onRuntimeConfigChange={onRuntimeConfigChange}
     />
   );
 };
@@ -61,16 +49,12 @@ const ConfigurationTabContent = ({
   configId,
   sahiConfig,
   onSahiConfigChange,
-  runtimeConfig,
-  onRuntimeConfigChange,
   ref,
 }: {
   projectId: number;
   configId: number;
   sahiConfig: SahiConfig | null;
   onSahiConfigChange: (config: SahiConfig | null) => void;
-  runtimeConfig: NNRuntimeConfig;
-  onRuntimeConfigChange: (config: NNRuntimeConfig) => void;
   ref?: Ref<ConfigurationTabHandle>;
 }) => {
   const {
@@ -105,44 +89,39 @@ const ConfigurationTabContent = ({
   );
 
   return (
-    <div className="h-full overflow-y-auto bg-gray-100">
-      <div className="flex flex-col gap-6 p-6">
-        <h1 className="text-xl font-semibold">Configuration</h1>
+    <div className="flex h-full min-h-0 flex-1 overflow-hidden bg-background">
+      <ConfigurationSidebar
+        trainedModels={trainedModels}
+        selectedModelId={selectedModelId}
+        onModelChange={setSelectedModelId}
+        onModelClear={() => setSelectedModelId(null)}
+        zoneConfig={zoneConfig}
+        onZoneConfigChange={setZoneConfig}
+        cameras={cameras}
+        streams={streams}
+        selectedCamera={selectedCamera}
+        onCameraChange={(mxid) => {
+          setSelectedCamera(mxid);
+          setSelectedStream(null);
+        }}
+        selectedStream={selectedStream}
+        onStreamChange={setSelectedStream}
+        capturedVideos={capturedVideos}
+        selectedVideoId={selectedVideoId}
+        onVideoChange={setSelectedVideoId}
+        sahiConfig={sahiConfig}
+        onSahiConfigChange={onSahiConfigChange}
+      />
 
-        <div className="flex flex-col gap-2 rounded-xl lg:flex-row lg:items-stretch">
-          <div className="flex min-w-0 flex-1 rounded-xl bg-card lg:flex-3/5">
-            <ZonePositionPanel value={zoneConfig} onChange={setZoneConfig} />
-
-            <CameraPreview imageUrl={previewImageUrl} zoneConfig={zoneConfig} />
-          </div>
-
-          <CameraConfigPanel
-            cameras={cameras}
-            streams={streams}
-            trainedModels={trainedModels}
-            capturedVideos={capturedVideos}
-            selectedCamera={selectedCamera}
-            onCameraChange={(mxid) => {
-              setSelectedCamera(mxid);
-              setSelectedStream(null);
-            }}
-            selectedStream={selectedStream}
-            onStreamChange={setSelectedStream}
-            selectedModelId={selectedModelId}
-            onModelChange={setSelectedModelId}
-            onModelClear={() => setSelectedModelId(null)}
-            selectedVideoId={selectedVideoId}
-            onVideoChange={setSelectedVideoId}
-          />
-        </div>
-
-        <NNRuntimePanel
-          value={runtimeConfig}
-          onChange={onRuntimeConfigChange}
+      <main className="flex min-w-0 flex-1 flex-col gap-4 overflow-y-auto p-6">
+        <p className="text-xl">Live stream</p>
+        <CameraPreview
+          imageUrl={previewImageUrl}
+          zoneConfig={zoneConfig}
+          selectedCamera={selectedCamera}
+          selectedStream={selectedStream}
         />
-
-        <SahiConfigPanel value={sahiConfig} onChange={onSahiConfigChange} />
-      </div>
+      </main>
     </div>
   );
 };

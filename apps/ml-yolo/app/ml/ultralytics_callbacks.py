@@ -65,11 +65,47 @@ class WebhookCallbacks:
             "accuracy": None,
             "loss": None,
         }
+        # We buffer one epoch ahead so final_eval's confusion matrix (the only
+        # one Ultralytics ever populates — training-time validation runs with
+        # plots=False) can be merged into the real last-epoch payload before
+        # it ships. See on_fit_epoch_end / on_train_end below.
+        self._pending_payload: Optional[dict] = None
+        self._pending_epoch: int = -1
 
     # ---- Ultralytics callback entry point ----
 
     def on_fit_epoch_end(self, trainer: Any) -> None:
-        """Fires after train + val for one epoch."""
+        """Fires after train + val for one epoch.
+
+        Ultralytics' BaseTrainer.final_eval() re-runs validation on best.pt
+        after training and fires this callback one extra time with the same
+        trainer.epoch. That second payload only carries validator output, so
+        train/* losses (and usually val/*_loss) are gone — naive emission
+        produces a duplicate log row with loss=0 that corrupts stats. But
+        the duplicate IS the only call where ConfusionMatrix is populated
+        (final_eval flips plots=True), so we can't just drop it.
+
+        Strategy: buffer the most recent real epoch's payload. On the
+        duplicate, merge in the better confusionMatrix / perClassMetrics
+        without touching loss/accuracy. Flush on the next real epoch or on
+        on_train_end.
+        """
+        epoch = int(getattr(trainer, "epoch", 0))
+
+        # Duplicate fire from final_eval — graft the better matrix/per-class
+        # values onto the buffered payload and stop.
+        if epoch == self._pending_epoch and self._pending_payload is not None:
+            conf = self._confusion_matrix(trainer)
+            if conf:
+                self._pending_payload["progress"]["confusionMatrix"] = conf
+            per_class = self._per_class_metrics(trainer)
+            if per_class:
+                self._pending_payload["progress"]["perClassMetrics"] = per_class
+            return
+
+        # Real epoch — flush whatever was buffered, then build a new payload.
+        self._flush_pending()
+
         raw_metrics = getattr(trainer, "metrics", {}) or {}
         metrics: dict[str, float] = {}
         for key, value in raw_metrics.items():
@@ -91,15 +127,29 @@ class WebhookCallbacks:
         self.final_metrics["accuracy"] = accuracy
         self.final_metrics["loss"] = loss
 
-        payload = {
+        self._pending_payload = {
             "progress": {
                 "type": "log",
-                "epoch": int(getattr(trainer, "epoch", 0)),
+                "epoch": epoch,
                 "metrics": metrics,
                 "perClassMetrics": self._per_class_metrics(trainer),
                 "confusionMatrix": self._confusion_matrix(trainer),
             }
         }
+        self._pending_epoch = epoch
+
+    def on_train_end(self, trainer: Any) -> None:
+        """Fires once after final_eval. Flush the buffered last epoch — by
+        now its confusion matrix has been merged with final_eval's output."""
+        self._flush_pending()
+
+    # ---- Internals ----
+
+    def _flush_pending(self) -> None:
+        if self._pending_payload is None:
+            return
+        payload = self._pending_payload
+        self._pending_payload = None
         try:
             r = requests.post(
                 self.webhook_url, json=payload, headers={"Authorization": self.api_key}

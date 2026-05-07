@@ -18,6 +18,17 @@ export function pickBlockSize(width: number): number {
   return Math.max(MIN_BLOCK, Math.floor(width / (TOTAL_BITS * 5)));
 }
 
+/**
+ * Number of source rows to crop off the top when displaying the stream so
+ * the burned-in marker is fully hidden. Equals `pickBlockSize(width)` plus
+ * a 2-row buffer for H.264 compression ringing at the burn/image boundary
+ * (the burn writes only the Y plane, leaving chroma + DCT ringing leaking
+ * a row or two into the image below the strict strip).
+ */
+export function pickDisplayCropRows(width: number): number {
+  return pickBlockSize(width) + 2;
+}
+
 export function stripDimensions(frameWidth: number): {
   block: number;
   stripWidth: number;
