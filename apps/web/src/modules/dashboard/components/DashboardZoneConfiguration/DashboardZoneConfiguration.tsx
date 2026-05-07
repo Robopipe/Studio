@@ -4,7 +4,13 @@ import { Label } from "@/modules/shadcn/ui/label";
 import { Switch } from "@/modules/shadcn/ui/switch";
 import { DashboardConfigurationZoneDirectionEnum } from "@repo/schema";
 import { DirectionPicker } from "./DirectionPicker";
-import { ZoneArrow, getZoneStyle } from "./zonePreview";
+import {
+  ZoneArrow,
+  centerThicknessToSafeBounds,
+  getSafeZoneStyles,
+  safeBoundsToCenterThickness,
+  safeZoneLabels,
+} from "./zonePreview";
 
 export interface ZoneConfig {
   zoneDirection: DashboardConfigurationZoneDirectionEnum;
@@ -27,9 +33,43 @@ export const DashboardZoneConfiguration = ({
   const { data: tasks } = useGetTasksQuery({ projectId, limit: 1 });
 
   // UI uses 0-100 for display; ZoneConfig backing values are 0-100 too
-  // (converted to 0-1 at save time)
-  const centerPct = value.zoneCenter;
-  const thicknessPct = value.zoneThickness;
+  // (converted to 0-1 at save time). The form exposes safe-zone bounds
+  // (start/end) instead of center/thickness, but the underlying stored
+  // shape stays the same for backend compatibility.
+  const { safeStartPct, safeEndPct } = centerThicknessToSafeBounds(
+    value.zoneCenter,
+    value.zoneThickness,
+  );
+  const labels = safeZoneLabels(value.zoneDirection);
+  const safeStyles = getSafeZoneStyles(
+    value.zoneDirection,
+    safeStartPct,
+    safeEndPct,
+  );
+
+  const applySafeBounds = (nextStart: number, nextEnd: number) => {
+    const { centerPct, thicknessPct } = safeBoundsToCenterThickness(
+      nextStart,
+      nextEnd,
+    );
+    onChange({
+      ...value,
+      zoneCenter: centerPct,
+      zoneThickness: thicknessPct,
+    });
+  };
+
+  const setSafeStart = (next: number) => {
+    const s = Math.max(0, Math.min(100, next));
+    const e = Math.min(safeEndPct, 100 - s);
+    applySafeBounds(s, e);
+  };
+
+  const setSafeEnd = (next: number) => {
+    const e = Math.max(0, Math.min(100, next));
+    const s = Math.min(safeStartPct, 100 - e);
+    applySafeBounds(s, e);
+  };
 
   return (
     <div className="flex flex-col gap-3">
@@ -50,17 +90,17 @@ export const DashboardZoneConfiguration = ({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label className="text-sm text-muted-foreground">Zone center</Label>
+            <Label className="text-sm text-muted-foreground">
+              {labels.start}
+            </Label>
             <div className="flex items-center gap-2">
               <Input
                 type="number"
                 className="w-24"
-                value={centerPct}
+                value={safeStartPct}
                 min={0}
                 max={100}
-                onChange={(e) =>
-                  onChange({ ...value, zoneCenter: Number(e.target.value) })
-                }
+                onChange={(e) => setSafeStart(Number(e.target.value))}
               />
               <span className="text-sm text-muted-foreground">%</span>
             </div>
@@ -68,18 +108,16 @@ export const DashboardZoneConfiguration = ({
 
           <div className="flex flex-col gap-1.5">
             <Label className="text-sm text-muted-foreground">
-              Zone thickness
+              {labels.end}
             </Label>
             <div className="flex items-center gap-2">
               <Input
                 type="number"
                 className="w-24"
-                value={thicknessPct}
+                value={safeEndPct}
                 min={0}
                 max={100}
-                onChange={(e) =>
-                  onChange({ ...value, zoneThickness: Number(e.target.value) })
-                }
+                onChange={(e) => setSafeEnd(Number(e.target.value))}
               />
               <span className="text-sm text-muted-foreground">%</span>
             </div>
@@ -108,12 +146,11 @@ export const DashboardZoneConfiguration = ({
             src={tasks?.data[0]?.filePath}
             alt="Task zone preview"
           />
-          <div
-            style={getZoneStyle(value.zoneDirection, centerPct, thicknessPct)}
-          />
+          <div style={safeStyles.start} />
+          <div style={safeStyles.end} />
           <ZoneArrow
             direction={value.zoneDirection}
-            centerPct={centerPct}
+            centerPct={value.zoneCenter}
           />
         </div>
       </div>

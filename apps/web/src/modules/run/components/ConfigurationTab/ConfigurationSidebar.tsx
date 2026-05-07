@@ -3,6 +3,9 @@ import { formatDuration } from "@/lib/utils";
 import {
   DirectionPicker,
   ZoneConfig,
+  centerThicknessToSafeBounds,
+  safeBoundsToCenterThickness,
+  safeZoneLabels,
 } from "@/modules/dashboard/components/DashboardZoneConfiguration";
 import { Input } from "@/modules/shadcn/ui/input";
 import { Label } from "@/modules/shadcn/ui/label";
@@ -113,16 +116,13 @@ export const ConfigurationSidebar = ({
               </SelectContent>
             </Select>
             {selectedModelId !== null && (
-              <ClearButton
-                ariaLabel="Clear model"
-                onClick={onModelClear}
-              />
+              <ClearButton ariaLabel="Clear model" onClick={onModelClear} />
             )}
           </div>
         </Field>
       </Section>
 
-      <Section title="Setup Line Position">
+      <Section title="Setup Safe Zones">
         <Field label="Direction">
           <div className="w-fit">
             <DirectionPicker
@@ -133,22 +133,44 @@ export const ConfigurationSidebar = ({
             />
           </div>
         </Field>
-        <Field label="Position">
-          <PercentInput
-            value={zoneConfig.zoneCenter}
-            onChange={(v) =>
-              onZoneConfigChange({ ...zoneConfig, zoneCenter: v })
-            }
-          />
-        </Field>
-        <Field label="Width">
-          <PercentInput
-            value={zoneConfig.zoneThickness}
-            onChange={(v) =>
-              onZoneConfigChange({ ...zoneConfig, zoneThickness: v })
-            }
-          />
-        </Field>
+        {(() => {
+          const { safeStartPct, safeEndPct } = centerThicknessToSafeBounds(
+            zoneConfig.zoneCenter,
+            zoneConfig.zoneThickness,
+          );
+          const labels = safeZoneLabels(zoneConfig.zoneDirection);
+          const applySafeBounds = (nextStart: number, nextEnd: number) => {
+            const { centerPct, thicknessPct } = safeBoundsToCenterThickness(
+              nextStart,
+              nextEnd,
+            );
+            onZoneConfigChange({
+              ...zoneConfig,
+              zoneCenter: centerPct,
+              zoneThickness: thicknessPct,
+            });
+          };
+          const setSafeStart = (next: number) => {
+            const s = Math.max(0, Math.min(100, next));
+            const e = Math.min(safeEndPct, 100 - s);
+            applySafeBounds(s, e);
+          };
+          const setSafeEnd = (next: number) => {
+            const e = Math.max(0, Math.min(100, next));
+            const s = Math.min(safeStartPct, 100 - e);
+            applySafeBounds(s, e);
+          };
+          return (
+            <>
+              <Field label={labels.start}>
+                <PercentInput value={safeStartPct} onChange={setSafeStart} />
+              </Field>
+              <Field label={labels.end}>
+                <PercentInput value={safeEndPct} onChange={setSafeEnd} />
+              </Field>
+            </>
+          );
+        })()}
         <div className="flex items-center justify-between gap-3 pt-1">
           <Label
             htmlFor="run-zone-optimistic"
@@ -212,7 +234,9 @@ export const ConfigurationSidebar = ({
               ))}
               {(!streams || streams.length === 0) && (
                 <p className="px-2 py-1.5 text-sm text-muted-foreground">
-                  {selectedCamera ? "No sensors found" : "Select a camera first"}
+                  {selectedCamera
+                    ? "No sensors found"
+                    : "Select a camera first"}
                 </p>
               )}
             </SelectContent>
@@ -262,10 +286,7 @@ export const ConfigurationSidebar = ({
         </Field>
       </Section>
 
-      <SahiConfigPanel
-        value={sahiConfig}
-        onChange={onSahiConfigChange}
-      />
+      <SahiConfigPanel value={sahiConfig} onChange={onSahiConfigChange} />
     </aside>
   );
 };
@@ -285,13 +306,7 @@ const Section = ({
   </section>
 );
 
-const Field = ({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}) => (
+const Field = ({ label, children }: { label: string; children: ReactNode }) => (
   <div className="flex flex-col gap-1.5">
     <label className="text-sm text-muted-foreground">{label}</label>
     {children}
