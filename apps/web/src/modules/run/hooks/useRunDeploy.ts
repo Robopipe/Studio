@@ -518,6 +518,12 @@ export const useRunDeploy = ({
       })
         .unwrap()
         .catch(() => {});
+      await removeReplayVideoMut({
+        mxid: selectedCamera,
+        streamName: selectedStream,
+      })
+        .unwrap()
+        .catch(() => {});
       // Tag invalidation in the mutations drops dashboardUrl to null via the
       // query refetch — no local state to reset.
     } finally {
