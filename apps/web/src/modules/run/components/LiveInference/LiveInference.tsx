@@ -54,9 +54,18 @@ export const LiveInference = ({
   const sourceHeight = hasNN ? canvasSourceHeight : videoSourceSize?.height;
   const cropTimestampStyle =
     sourceWidth && sourceHeight
-      ? {
-          clipPath: `inset(${(pickDisplayCropRows(sourceWidth) / sourceHeight) * 100}% 0 0 0)`,
-        }
+      ? (() => {
+          const cropFrac = pickDisplayCropRows(sourceWidth) / sourceHeight;
+          if (cropFrac <= 0) return undefined;
+          // Scale the video up so the visible (post-timestamp) portion fills
+          // the full container; the cropped strip overflows above and is
+          // clipped by the parent's overflow:hidden.
+          return {
+            top: `-${(cropFrac / (1 - cropFrac)) * 100}%`,
+            height: `${100 / (1 - cropFrac)}%`,
+            bottom: "auto",
+          };
+        })()
       : undefined;
 
   return (

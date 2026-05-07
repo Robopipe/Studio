@@ -48,11 +48,11 @@ export const safeZoneLabels = (
 
 const safeZoneBaseStyle: React.CSSProperties = {
   position: "absolute",
-  background: "rgba(16, 185, 129, 0.35)",
-  border: "1px solid #10b981",
-  boxShadow: "0 0 0 1px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.2)",
+  background: "rgba(239, 68, 68, 0.25)",
   pointerEvents: "none",
 };
+
+const innerDashed = "1px dashed #ef4444";
 
 export const getSafeZoneStyles = (
   direction: DashboardConfigurationZoneDirectionEnum,
@@ -70,6 +70,7 @@ export const getSafeZoneStyles = (
         width: "100%",
         top: 0,
         height: `${start}%`,
+        borderBottom: start > 0 ? innerDashed : undefined,
       },
       end: {
         ...safeZoneBaseStyle,
@@ -77,6 +78,7 @@ export const getSafeZoneStyles = (
         width: "100%",
         bottom: 0,
         height: `${end}%`,
+        borderTop: end > 0 ? innerDashed : undefined,
       },
     };
   }
@@ -88,6 +90,7 @@ export const getSafeZoneStyles = (
       height: "100%",
       left: 0,
       width: `${start}%`,
+      borderRight: start > 0 ? innerDashed : undefined,
     },
     end: {
       ...safeZoneBaseStyle,
@@ -95,6 +98,7 @@ export const getSafeZoneStyles = (
       height: "100%",
       right: 0,
       width: `${end}%`,
+      borderLeft: end > 0 ? innerDashed : undefined,
     },
   };
 };
