@@ -78,6 +78,7 @@ export const evalTestCaseTable = p.pgTable("eval_test_case", {
   name: p.varchar("name", {length: 255}).notNull(),
   type: evalTestCaseTypeEnum("type").notNull(),
   severity: evalSeverityEnum("severity"),
+  enabled: p.boolean("enabled").notNull().default(true),
   logicNodes: p.jsonb("logic_nodes").$type<EvalLogicNode[]>().notNull(),
   projectId: p.integer("project_id").notNull().references(() => projectTable.id, {onDelete: 'cascade'}),
   dashboardConfigurationId: p.integer("dashboard_configuration_id").notNull().references(() => dashboardConfigurationTable.id, {onDelete: 'cascade'}),

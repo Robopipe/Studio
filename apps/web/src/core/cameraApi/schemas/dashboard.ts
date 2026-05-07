@@ -64,6 +64,7 @@ export type DeployEvalTestCase = {
   name: string;
   type: string;
   severity: string | null;
+  enabled: boolean;
   limits: DeployEvalLimit[];
   logicNodes: unknown[];
   thresholds: DeployEvalThreshold[];

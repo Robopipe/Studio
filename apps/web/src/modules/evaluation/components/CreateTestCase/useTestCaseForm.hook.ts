@@ -37,6 +37,7 @@ function toFormValues(testCase: EvalTestCaseDetail): CreateTestCaseFormSchema {
     name: testCase.name,
     type: testCase.type,
     severity: testCase.severity,
+    enabled: testCase.enabled,
   };
 }
 

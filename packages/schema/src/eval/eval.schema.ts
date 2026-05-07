@@ -117,6 +117,7 @@ export const evalTestCaseSchema = z.object({
   name: z.string(),
   type: z.enum(EvalTestCaseTypeEnum),
   severity: z.enum(EvalSeverityEnum).nullable(),
+  enabled: z.boolean(),
   limits: z.array(evalLimitSchema), // Always required
   createdAt: timestampsSchema.createdAt,
   updatedAt: timestampsSchema.updatedAt,
@@ -156,6 +157,7 @@ export const evalTestCaseCreateOrUpdateSchema = evalTestCaseDetailSchema
     name: true,
     type: true,
     severity: true,
+    enabled: true,
   })
   .extend({
     logicNodes: evalLogicNodeSchema.array().optional(),
@@ -193,6 +195,7 @@ export const evalTestCaseFullCreateOrUpdateSchema = evalTestCaseDetailSchema.pic
   name: true,
   type: true,
   severity: true,
+  enabled: true,
 }).extend({
   logicNodes: evalLogicNodeSchema.array().optional(),
   limits: evalLimitCreateOrUpdateSchema.extend({id: z.uuidv7().nullish()}).array().optional()
