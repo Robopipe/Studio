@@ -1,7 +1,8 @@
 import {
   ZoneArrow,
   ZoneConfig,
-  getZoneStyle,
+  centerThicknessToSafeBounds,
+  getSafeZoneStyles,
 } from "@/modules/dashboard/components/DashboardZoneConfiguration";
 import { LiveInference } from "../LiveInference/LiveInference";
 
@@ -18,8 +19,15 @@ export const CameraPreview = ({
   selectedCamera,
   selectedStream,
 }: CameraPreviewProps) => {
-  const centerPct = zoneConfig.zoneCenter;
-  const thicknessPct = zoneConfig.zoneThickness;
+  const { safeStartPct, safeEndPct } = centerThicknessToSafeBounds(
+    zoneConfig.zoneCenter,
+    zoneConfig.zoneThickness,
+  );
+  const safeStyles = getSafeZoneStyles(
+    zoneConfig.zoneDirection,
+    safeStartPct,
+    safeEndPct,
+  );
 
   return (
     <div className="relative aspect-video w-full max-w-full overflow-hidden rounded-xl bg-black/5">
@@ -37,10 +45,12 @@ export const CameraPreview = ({
           />
         )
       )}
-      <div
-        style={getZoneStyle(zoneConfig.zoneDirection, centerPct, thicknessPct)}
+      <div style={safeStyles.start} />
+      <div style={safeStyles.end} />
+      <ZoneArrow
+        direction={zoneConfig.zoneDirection}
+        centerPct={zoneConfig.zoneCenter}
       />
-      <ZoneArrow direction={zoneConfig.zoneDirection} centerPct={centerPct} />
     </div>
   );
 };
