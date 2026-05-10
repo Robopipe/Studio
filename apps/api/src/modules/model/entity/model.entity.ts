@@ -31,6 +31,7 @@ export class ModelEntity {
   readonly errorMessage: string | null;
   readonly finalAccuracy: number | null;
   readonly finalLoss: number | null;
+  readonly bestMap50: number | null;
   readonly labels: ProjectLabelEntity[];
   readonly taskIds: number[];
   readonly datasetVersionId: number | null;
@@ -66,6 +67,7 @@ export class ModelEntity {
     this.errorMessage = data.errorMessage;
     this.finalAccuracy = data.finalAccuracy;
     this.finalLoss = data.finalLoss;
+    this.bestMap50 = data.bestMap50;
     this.labels = data.labels.map((label) => new ProjectLabelEntity(label));
     this.taskIds = data.taskIds ?? [];
     this.datasetVersionId = data.datasetVersionId ?? null;
@@ -104,6 +106,7 @@ export class ModelEntity {
       errorMessage: this.errorMessage,
       finalAccuracy: this.finalAccuracy,
       finalLoss: this.finalLoss,
+      bestMap50: this.bestMap50,
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),
       deletedAt: this.deletedAt ? this.deletedAt.toISOString() : null,

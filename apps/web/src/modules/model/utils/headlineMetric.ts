@@ -1,7 +1,7 @@
-import { type ModelLog, ProjectTypeEnum } from "@repo/schema";
+import { type Model, type ModelLog, ProjectTypeEnum } from "@repo/schema";
 
 // Ultralytics raw metric key for mAP@0.5 per task type. Classification has no
-// mAP, so we fall back to the canonical `accuracy` (which is top-1 for cls).
+// mAP, so the chart falls back to the canonical `accuracy` (top-1 for cls).
 // `metrics` is a `.loose()` object — declared at the schema level only with
 // `accuracy`/`loss`, but Ultralytics forwards every raw key it produces.
 const MAP50_KEY: Partial<Record<ProjectTypeEnum, string>> = {
@@ -37,15 +37,13 @@ export const headlineSeries = (
     return value === undefined ? [] : [{ epoch: log.epoch, value }];
   });
 
-export const bestHeadline = (
-  logs: ModelLog[] | undefined,
-  trainingType: ProjectTypeEnum,
-): number | undefined => {
-  let best: number | undefined;
-  for (const log of logs ?? []) {
-    const v = pickHeadlineValue(log, trainingType);
-    if (v === undefined) continue;
-    if (best === undefined || v > best) best = v;
-  }
-  return best;
+/**
+ * Headline value for a model card. Reads pre-computed columns instead of
+ * fetching logs:
+ *   - det/seg: `bestMap50` (max mAP@50 across epochs, written by ml-yolo)
+ *   - cls:     `finalAccuracy` (last-epoch top-1; cls has no mAP)
+ */
+export const getHeadlineValue = (model: Model): number | null => {
+  if (MAP50_KEY[model.trainingType]) return model.bestMap50;
+  return model.finalAccuracy;
 };

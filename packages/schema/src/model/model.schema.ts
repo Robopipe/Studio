@@ -98,6 +98,7 @@ export const modelSchema = z.object({
   errorMessage: z.string().nullable(),
   finalAccuracy: z.number().nullable(),
   finalLoss: z.number().nullable(),
+  bestMap50: z.number().nullable(),
   ...timestampsSchema,
 });
 
