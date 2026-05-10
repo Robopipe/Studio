@@ -56,6 +56,9 @@ export const modelTable = p.pgTable("model", {
   errorMessage: p.text("error_message"),
   finalAccuracy: p.real("final_accuracy"),
   finalLoss: p.real("final_loss"),
+  // Best mAP@50 across all epochs (det/seg only). Null for classification —
+  // FE falls back to `finalAccuracy` (which is `accuracy_top1` for cls).
+  bestMap50: p.real("best_map50"),
   projectId: p
     .integer("project_id")
     .references(() => projectTable.id, { onDelete: "cascade" })

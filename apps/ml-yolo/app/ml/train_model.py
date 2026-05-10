@@ -416,6 +416,9 @@ def run_training(config: ModelConfig) -> None:
                     "finalLoss": (
                         callbacks.final_metrics.get("loss") if callbacks else None
                     ),
+                    "bestMap50": (
+                        callbacks.final_metrics.get("best_map50") if callbacks else None
+                    ),
                 },
             )
     except Exception as e:

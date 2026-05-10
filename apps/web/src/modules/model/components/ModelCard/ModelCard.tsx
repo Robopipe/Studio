@@ -3,8 +3,10 @@ import { cn } from "@/lib/utils";
 import { Model, ModelStatusEnum } from "@repo/schema";
 import { Link, useParams } from "react-router";
 import { TRAINING_TYPE_LABELS } from "../../constants/labels";
-import { useGetModelLogsQuery } from "../../services";
-import { bestHeadline, getHeadlineLabel } from "../../utils/headlineMetric";
+import {
+  getHeadlineLabel,
+  getHeadlineValue,
+} from "../../utils/headlineMetric";
 
 const formatMetric = (value: number | null | undefined): string => {
   if (value == null || !Number.isFinite(value)) return "—";
@@ -51,13 +53,7 @@ export const ModelCard = ({ model, order }: ModelCardProps) => {
   const status = STATUS_STYLES[model.status];
   const isSelected = model.id.toString() === modelId;
 
-  // Pull per-epoch logs so we can show the best mAP@50 (or canonical accuracy
-  // for classification) — `model.finalAccuracy` is mAP50-95, the wrong metric.
-  const { data: logs } = useGetModelLogsQuery(
-    { projectId: Number(projectId), modelId: model.id },
-    { skip: model.status !== ModelStatusEnum.DONE },
-  );
-  const headlineValue = bestHeadline(logs, model.trainingType);
+  const headlineValue = getHeadlineValue(model);
   const headlineLabel = getHeadlineLabel(model.trainingType);
 
   return (

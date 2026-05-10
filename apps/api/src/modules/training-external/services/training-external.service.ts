@@ -165,6 +165,7 @@ export class TrainingExternalService {
       status: ModelStatusEnum.DONE,
       finalAccuracy: data.finalAccuracy,
       finalLoss: data.finalLoss,
+      bestMap50: data.bestMap50 ?? null,
     });
   }
 

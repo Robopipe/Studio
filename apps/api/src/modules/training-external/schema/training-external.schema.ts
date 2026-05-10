@@ -63,6 +63,9 @@ export const trainingCompleteRequestSchema = z.object({
     .array(),
   finalAccuracy: z.number().nullable(),
   finalLoss: z.number().nullable(),
+  // Best mAP@50 across epochs (det/seg only). Null for classification.
+  // Optional so older ml-yolo deployments without the field still validate.
+  bestMap50: z.number().nullable().optional(),
 });
 
 export type TrainingCompleteData = z.infer<typeof trainingCompleteRequestSchema>;
