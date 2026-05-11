@@ -1,41 +1,93 @@
 import { type Model, type ModelLog, ProjectTypeEnum } from "@repo/schema";
 
-// Ultralytics raw metric key for mAP@0.5 per task type. Classification has no
-// mAP, so the chart falls back to the canonical `accuracy` (top-1 for cls).
-// `metrics` is a `.loose()` object — declared at the schema level only with
-// `accuracy`/`loss`, but Ultralytics forwards every raw key it produces.
-const MAP50_KEY: Partial<Record<ProjectTypeEnum, string>> = {
-  [ProjectTypeEnum.DETECTION]: "metrics/mAP50(B)",
-  [ProjectTypeEnum.SEGMENTATION]: "metrics/mAP50(M)",
+// Raw metric keys for mAP@50 per task type, ordered by backend preference. The
+// first key that resolves to a finite number wins per epoch.
+//   - Ultralytics ([B]/[M] suffix) — apps/ml-yolo
+//   - luxonis-train (head/submetric path) — apps/ml; submetrics log under their
+//     bare name (e.g. `map_50`, `segm_map_50`), NOT prefixed by the metric class.
+//
+// mAP@50:95 is read straight from `log.metrics.accuracy`: both backends
+// canonicalize that value (Ultralytics → mAP50-95(B/M), luxonis → main
+// MeanAveragePrecision), so it doesn't need raw-key probing.
+const MAP50_KEYS: Partial<Record<ProjectTypeEnum, readonly string[]>> = {
+  [ProjectTypeEnum.DETECTION]: [
+    "metrics/mAP50(B)",
+    "val/metric/EfficientBBoxHead/map_50",
+  ],
+  [ProjectTypeEnum.SEGMENTATION]: [
+    "metrics/mAP50(M)",
+    "val/metric/PrecisionSegmentBBoxHead/segm_map_50",
+  ],
 };
+
+export const MAP50_SERIES_KEY = "map50";
+export const MAP50_95_SERIES_KEY = "map50_95";
+export const ACCURACY_SERIES_KEY = "accuracy";
 
 export const getHeadlineLabel = (trainingType: ProjectTypeEnum): string =>
-  MAP50_KEY[trainingType] ? "mAP@50" : "Accuracy";
+  MAP50_KEYS[trainingType] ? "mAP@50" : "Accuracy";
 
-const pickHeadlineValue = (
-  log: ModelLog,
-  trainingType: ProjectTypeEnum,
+const pickFirstNumber = (
+  metrics: Record<string, unknown>,
+  keys: readonly string[],
 ): number | undefined => {
-  const key = MAP50_KEY[trainingType];
-  if (key) {
-    // Legacy luxonis-train runs don't emit mAP50 — show nothing rather than
-    // fall back to mAP50-95 mislabelled as mAP50.
-    const raw = (log.metrics as Record<string, unknown>)[key];
-    return typeof raw === "number" && Number.isFinite(raw) ? raw : undefined;
+  for (const key of keys) {
+    const raw = metrics[key];
+    if (typeof raw === "number" && Number.isFinite(raw)) return raw;
   }
-  return Number.isFinite(log.metrics.accuracy)
-    ? log.metrics.accuracy
-    : undefined;
+  return undefined;
 };
 
-export const headlineSeries = (
+export interface HeadlineSeriesPoint {
+  epoch: number;
+  [key: string]: number | undefined;
+}
+
+export const headlineDualSeries = (
   logs: ModelLog[] | undefined,
   trainingType: ProjectTypeEnum,
-): { epoch: number; value: number }[] =>
-  (logs ?? []).flatMap((log) => {
-    const value = pickHeadlineValue(log, trainingType);
-    return value === undefined ? [] : [{ epoch: log.epoch, value }];
+): HeadlineSeriesPoint[] => {
+  const map50Keys = MAP50_KEYS[trainingType];
+
+  return (logs ?? []).flatMap<HeadlineSeriesPoint>((log) => {
+    const point: HeadlineSeriesPoint = { epoch: log.epoch };
+
+    if (map50Keys) {
+      const map50 = pickFirstNumber(
+        log.metrics as Record<string, unknown>,
+        map50Keys,
+      );
+      const map5095 = Number.isFinite(log.metrics.accuracy)
+        ? log.metrics.accuracy
+        : undefined;
+      if (map50 === undefined && map5095 === undefined) return [];
+      if (map50 !== undefined) point[MAP50_SERIES_KEY] = map50;
+      if (map5095 !== undefined) point[MAP50_95_SERIES_KEY] = map5095;
+      return [point];
+    }
+
+    if (Number.isFinite(log.metrics.accuracy)) {
+      point[ACCURACY_SERIES_KEY] = log.metrics.accuracy;
+      return [point];
+    }
+    return [];
   });
+};
+
+export interface HeadlineSeriesDescriptor {
+  key: string;
+  label: string;
+}
+
+export const headlineSeriesConfig = (
+  trainingType: ProjectTypeEnum,
+): HeadlineSeriesDescriptor[] =>
+  MAP50_KEYS[trainingType]
+    ? [
+        { key: MAP50_SERIES_KEY, label: "mAP@50" },
+        { key: MAP50_95_SERIES_KEY, label: "mAP@50:95" },
+      ]
+    : [{ key: ACCURACY_SERIES_KEY, label: "Accuracy" }];
 
 /**
  * Headline value for a model card. Reads pre-computed columns instead of
@@ -44,6 +96,6 @@ export const headlineSeries = (
  *   - cls:     `finalAccuracy` (last-epoch top-1; cls has no mAP)
  */
 export const getHeadlineValue = (model: Model): number | null => {
-  if (MAP50_KEY[model.trainingType]) return model.bestMap50;
+  if (MAP50_KEYS[model.trainingType]) return model.bestMap50;
   return model.finalAccuracy;
 };
