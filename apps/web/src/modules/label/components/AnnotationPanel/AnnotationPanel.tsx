@@ -20,7 +20,10 @@ export interface AnnotationPanelProps {
   annotations: Annotation[];
   labels: Label[];
   selectedAnnotationIds: Set<string>;
-  onSelectAnnotation: (id: string, opts?: { additive?: boolean }) => void;
+  onSelectAnnotation: (
+    id: string,
+    opts?: { additive?: boolean; range?: boolean },
+  ) => void;
   onDeleteAnnotation: (id: string) => void;
   onReorderAnnotations: (fromIndex: number, toIndex: number) => void;
   hiddenAnnotationIds: Set<string>;
@@ -164,12 +167,14 @@ export const AnnotationPanel = ({
                   {...dnd.containerProps}
                   onClick={(e) =>
                     onSelectAnnotation(annotation.id, {
-                      additive: e.ctrlKey || e.metaKey,
+                      additive: !e.shiftKey && (e.ctrlKey || e.metaKey),
+                      range: e.shiftKey,
                     })
                   }
                   className={cn(
-                    "group relative flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-black/5",
-                    isSelected && "bg-primary/10",
+                    "group relative flex cursor-pointer select-none items-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-black/5",
+                    isSelected &&
+                      "bg-primary/15 ring-1 ring-inset ring-primary/40 hover:bg-primary/15",
                     dnd.isDragging && "opacity-40",
                     isHidden && "opacity-50 grayscale",
                     dnd.showDropAbove &&

@@ -107,7 +107,11 @@ export const BoundingBox = ({
         stroke={annotation.color}
         strokeWidth={isSelected ? 3 : 2}
         strokeScaleEnabled={false}
-        fill={annotation.color + (isSelected ? "55" : "33")}
+        fill={annotation.color + (isSelected ? "60" : "33")}
+        shadowEnabled={isSelected}
+        shadowColor={annotation.color}
+        shadowBlur={6}
+        shadowOpacity={0.5}
         draggable={isInteractive && isSelected}
         onMouseDown={(e) => {
           if (!isInteractive) return;
