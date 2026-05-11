@@ -3,6 +3,7 @@ import { Rect, Transformer } from "react-konva";
 import Konva from "konva";
 import { Annotation } from "../../types/annotations";
 import { ToolMode } from "../../types/annotations";
+import type { GroupDragApi } from "./KonvaStage";
 
 interface BoundingBoxProps {
   annotation: Annotation;
@@ -13,6 +14,7 @@ interface BoundingBoxProps {
   toolMode: ToolMode;
   onSelect: (id: string, opts?: { additive?: boolean }) => void;
   onUpdate: (id: string, updates: Partial<Annotation>) => void;
+  groupDrag: GroupDragApi;
 }
 
 export const BoundingBox = ({
@@ -24,9 +26,13 @@ export const BoundingBox = ({
   toolMode,
   onSelect,
   onUpdate,
+  groupDrag,
 }: BoundingBoxProps) => {
   const rectRef = useRef<Konva.Rect>(null);
   const trRef = useRef<Konva.Transformer>(null);
+  // Captured on mouseDown; consumed on click (collapse selection) and cleared
+  // on dragStart (a drag is happening — don't collapse).
+  const pendingClickRef = useRef<{ additive: boolean } | null>(null);
   const bbox = annotation.bbox!;
 
   const x = (bbox.x / 100) * imageWidth;
@@ -41,9 +47,27 @@ export const BoundingBox = ({
     }
   }, [showHandles]);
 
+  useEffect(() => {
+    const node = rectRef.current;
+    if (!node) return;
+    groupDrag.registerNode(annotation.id, node);
+    return () => groupDrag.registerNode(annotation.id, null);
+  }, [annotation.id, groupDrag]);
+
   const isInteractive = toolMode === ToolMode.SELECT;
 
+  const handleDragStart = () => {
+    pendingClickRef.current = null;
+    groupDrag.onDragStart(annotation.id);
+  };
+
+  const handleDragMove = () => {
+    groupDrag.onDragMove(annotation.id);
+  };
+
   const handleDragEnd = (e: Konva.KonvaEventObject<DragEvent>) => {
+    const wasGroup = groupDrag.onDragEnd(annotation.id);
+    if (wasGroup) return;
     const node = e.target;
     onUpdate(annotation.id, {
       bbox: {
@@ -84,20 +108,41 @@ export const BoundingBox = ({
         strokeWidth={isSelected ? 3 : 2}
         strokeScaleEnabled={false}
         fill={annotation.color + (isSelected ? "55" : "33")}
-        draggable={isInteractive && showHandles}
+        draggable={isInteractive && isSelected}
         onMouseDown={(e) => {
-          if (isInteractive) {
-            e.cancelBubble = true;
-            const additive = e.evt.ctrlKey || e.evt.metaKey;
+          if (!isInteractive) return;
+          e.cancelBubble = true;
+          const additive = e.evt.ctrlKey || e.evt.metaKey;
+          if (!isSelected) {
+            // Need to select first so the upcoming drag (if any) can begin.
             onSelect(annotation.id, { additive });
+            pendingClickRef.current = null;
+          } else {
+            // Already selected — defer the selection change so a drag-without-
+            // release preserves the group, but a click-without-drag collapses
+            // (or toggles, if ctrl).
+            pendingClickRef.current = { additive };
           }
         }}
         onTouchStart={(e) => {
-          if (isInteractive) {
-            e.cancelBubble = true;
-            onSelect(annotation.id);
-          }
+          if (!isInteractive) return;
+          e.cancelBubble = true;
+          if (!isSelected) onSelect(annotation.id);
         }}
+        onClick={() => {
+          const pending = pendingClickRef.current;
+          pendingClickRef.current = null;
+          if (!pending) return;
+          onSelect(annotation.id, { additive: pending.additive });
+        }}
+        onTap={() => {
+          const pending = pendingClickRef.current;
+          pendingClickRef.current = null;
+          if (!pending) return;
+          onSelect(annotation.id, { additive: pending.additive });
+        }}
+        onDragStart={handleDragStart}
+        onDragMove={handleDragMove}
         onDragEnd={handleDragEnd}
         onTransformEnd={handleTransformEnd}
       />

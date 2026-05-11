@@ -16,9 +16,9 @@ const labelFor = (entry: HistoryEntry): string => {
     case "delete":
       return "Deleted";
     case "batch":
-      return entry.label === "delete"
-        ? `Deleted ${entry.children.length}`
-        : `Pasted ${entry.children.length}`;
+      if (entry.label === "delete") return `Deleted ${entry.children.length}`;
+      if (entry.label === "paste") return `Pasted ${entry.children.length}`;
+      return `Moved ${entry.children.length}`;
   }
 };
 
@@ -31,9 +31,9 @@ const badgeClassFor = (entry: HistoryEntry): string => {
     case "delete":
       return "bg-red-500/15 text-red-700";
     case "batch":
-      return entry.label === "delete"
-        ? "bg-red-500/15 text-red-700"
-        : "bg-emerald-500/15 text-emerald-700";
+      if (entry.label === "delete") return "bg-red-500/15 text-red-700";
+      if (entry.label === "paste") return "bg-emerald-500/15 text-emerald-700";
+      return "bg-blue-500/15 text-blue-700";
   }
 };
 

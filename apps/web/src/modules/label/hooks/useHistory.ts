@@ -62,7 +62,7 @@ export const useHistory = ({
   );
 
   const runBatch = useCallback(
-    (label: "delete" | "paste", fn: () => void) => {
+    (label: "delete" | "paste" | "move", fn: () => void) => {
       // Nested batches: re-enter the existing frame, no nesting in the entry
       // tree. Simpler and the only nesting case we care about is "delete the
       // selection" called from inside something else, which we don't actually do.

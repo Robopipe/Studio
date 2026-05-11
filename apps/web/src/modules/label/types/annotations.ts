@@ -32,4 +32,4 @@ export type AtomicHistoryEntry =
 
 export type HistoryEntry =
   | AtomicHistoryEntry
-  | { type: "batch"; label: "delete" | "paste"; children: AtomicHistoryEntry[] };
+  | { type: "batch"; label: "delete" | "paste" | "move"; children: AtomicHistoryEntry[] };
