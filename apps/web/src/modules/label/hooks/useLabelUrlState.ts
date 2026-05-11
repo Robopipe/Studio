@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef } from "react";
 import { useSearchParams } from "react-router";
 import { AnnotationFilter } from "../components/DataSourcePanel/DataSourcePanel";
 import { TaskFilterState } from "../components/TaskFilterDialog";
@@ -45,7 +45,7 @@ const parseTaskId = (raw: string | null): number | null => {
  */
 export const useLabelUrlState = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [pendingAnchor, setPendingAnchor] = useState<PageAnchor | null>(null);
+  const pendingAnchorRef = useRef<PageAnchor | null>(null);
 
   const selectedTaskId = parseTaskId(searchParams.get(TASK_PARAM));
   const page = parsePage(searchParams.get(PAGE_PARAM));
@@ -70,7 +70,7 @@ export const useLabelUrlState = () => {
 
   const setPage = useCallback(
     (nextPage: number, anchor: PageAnchor = "first") => {
-      setPendingAnchor(anchor);
+      pendingAnchorRef.current = anchor;
       setSearchParams((prev) => {
         const next = new URLSearchParams(prev);
         if (nextPage <= 1) next.delete(PAGE_PARAM);
@@ -111,7 +111,6 @@ export const useLabelUrlState = () => {
     setPage,
     filter,
     setFilter,
-    pendingAnchor,
-    setPendingAnchor,
+    pendingAnchorRef,
   };
 };
