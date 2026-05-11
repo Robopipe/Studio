@@ -46,8 +46,7 @@ export const LabelPage = () => {
     setPage,
     filter,
     setFilter,
-    pendingAnchor,
-    setPendingAnchor,
+    pendingAnchorRef,
   } = useLabelUrlState();
 
   const { data: tasksData, isFetching: isFetchingTasks } = useGetTasksQuery(
@@ -78,19 +77,12 @@ export const LabelPage = () => {
   useEffect(() => {
     if (selectedTaskId !== null || isFetchingTasks || tasks.length === 0) return;
     const targetId =
-      pendingAnchor === "last"
+      pendingAnchorRef.current === "last"
         ? tasks[tasks.length - 1].id
         : tasks[0].id;
     setSelectedTaskId(targetId, { replace: true });
-    if (pendingAnchor) setPendingAnchor(null);
-  }, [
-    selectedTaskId,
-    pendingAnchor,
-    isFetchingTasks,
-    tasks,
-    setSelectedTaskId,
-    setPendingAnchor,
-  ]);
+    pendingAnchorRef.current = null;
+  }, [selectedTaskId, isFetchingTasks, tasks, setSelectedTaskId, pendingAnchorRef]);
 
   const selectedTask = tasks.find((t) => t.id === selectedTaskId);
 
