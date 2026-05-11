@@ -27,6 +27,9 @@ export interface AnnotationPanelProps {
   onToggleAnnotationVisibility: (id: string) => void;
   onHideAllAnnotations: () => void;
   onShowAllAnnotations: () => void;
+  onIsolateLabel: (labelId: string) => void;
+  onIsolateAny: () => void;
+  onClearIsolate: () => void;
   historyEntries: HistoryEntry[];
   historyIndex: number;
   onJumpTo: (index: number) => void;
@@ -45,13 +48,18 @@ export const AnnotationPanel = ({
   onToggleAnnotationVisibility,
   onHideAllAnnotations,
   onShowAllAnnotations,
+  onIsolateLabel,
+  onIsolateAny,
+  onClearIsolate,
   onOpenSettings,
   isLoadingLabels,
 }: AnnotationPanelProps) => {
-  const classCounts = labels.map((label) => ({
-    ...label,
-    count: annotations.filter((a) => a.labelId === String(label.id)).length,
-  }));
+  const classCounts = labels
+    .map((label) => ({
+      ...label,
+      count: annotations.filter((a) => a.labelId === String(label.id)).length,
+    }))
+    .filter((cls) => cls.count > 0);
 
   const { getItemProps } = useDraggableList(onReorderAnnotations);
 
@@ -75,6 +83,8 @@ export const AnnotationPanel = ({
                 icon={<AnnotateIcon className="size-4 text-foreground/60" />}
                 name="Any"
                 count={annotations.length}
+                onPressDown={onIsolateAny}
+                onPressUp={onClearIsolate}
               />
               {classCounts.map((cls) => (
                 <ClassRow
@@ -87,6 +97,8 @@ export const AnnotationPanel = ({
                   }
                   name={cls.name}
                   count={cls.count}
+                  onPressDown={() => onIsolateLabel(String(cls.id))}
+                  onPressUp={onClearIsolate}
                 />
               ))}
             </div>
@@ -225,12 +237,36 @@ const ClassRow = ({
   icon,
   name,
   count,
+  onPressDown,
+  onPressUp,
 }: {
   icon: React.ReactNode;
   name: string;
   count: number;
+  onPressDown: () => void;
+  onPressUp: () => void;
 }) => (
-  <div className="flex items-center gap-2 rounded-md p-2">
+  <div
+    role="button"
+    tabIndex={0}
+    onMouseDown={(e) => {
+      // Only react to primary button; right-click should release if held.
+      if (e.button !== 0) {
+        onPressUp();
+        return;
+      }
+      e.preventDefault();
+      onPressDown();
+    }}
+    onMouseUp={onPressUp}
+    onMouseLeave={onPressUp}
+    onPointerCancel={onPressUp}
+    onContextMenu={onPressUp}
+    onTouchStart={onPressDown}
+    onTouchEnd={onPressUp}
+    onTouchCancel={onPressUp}
+    className="flex cursor-pointer select-none items-center gap-2 rounded-md p-2 transition-colors hover:bg-black/5 active:bg-black/[0.07]"
+  >
     {icon}
     <span className="flex-1 text-xs text-foreground/90">{name}</span>
     <span className="flex h-3.5 min-w-6 items-center justify-center rounded-full bg-black/[0.03] px-1.5 text-[11px] leading-none text-foreground/60">
