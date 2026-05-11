@@ -62,53 +62,57 @@ export const PolygonRegion = ({
   }, [annotation.id, groupDrag]);
 
   const handleLineClick = () => {
-    // First: drain a pending selection click (mousedown-without-drag).
     const pending = pendingClickRef.current;
     pendingClickRef.current = null;
-    if (pending) {
-      onSelect(annotation.id, { additive: pending.additive });
-      return;
-    }
-    // Otherwise: in single-select mode this inserts a vertex on the nearest edge.
-    if (!isInteractive || !showHandles) return;
-    const line = lineRef.current;
-    if (!line) return;
-    const stage = line.getStage();
-    if (!stage) return;
-    const pointer = stage.getPointerPosition();
-    if (!pointer) return;
 
-    const transform = line.getAbsoluteTransform().copy().invert();
-    const localPos = transform.point(pointer);
+    // In single-select mode, prefer inserting a vertex on a near-edge hit
+    // over draining the pending click — otherwise the drain swallows the
+    // click and the user can never add points to an already-selected polygon.
+    if (isInteractive && showHandles) {
+      const line = lineRef.current;
+      const stage = line?.getStage();
+      const pointer = stage?.getPointerPosition();
+      if (line && pointer) {
+        const transform = line.getAbsoluteTransform().copy().invert();
+        const localPos = transform.point(pointer);
 
-    let bestDist = Infinity;
-    let insertAfter = 0;
-    for (let i = 0; i < pts.length; i++) {
-      const ax = (pts[i][0] / 100) * imageWidth;
-      const ay = (pts[i][1] / 100) * imageHeight;
-      const next = (i + 1) % pts.length;
-      const bx = (pts[next][0] / 100) * imageWidth;
-      const by = (pts[next][1] / 100) * imageHeight;
-      const dist = distToSegment(localPos.x, localPos.y, ax, ay, bx, by);
-      if (dist < bestDist) {
-        bestDist = dist;
-        insertAfter = i;
+        let bestDist = Infinity;
+        let insertAfter = 0;
+        for (let i = 0; i < pts.length; i++) {
+          const ax = (pts[i][0] / 100) * imageWidth;
+          const ay = (pts[i][1] / 100) * imageHeight;
+          const next = (i + 1) % pts.length;
+          const bx = (pts[next][0] / 100) * imageWidth;
+          const by = (pts[next][1] / 100) * imageHeight;
+          const dist = distToSegment(localPos.x, localPos.y, ax, ay, bx, by);
+          if (dist < bestDist) {
+            bestDist = dist;
+            insertAfter = i;
+          }
+        }
+
+        const absTransform = line.getAbsoluteTransform();
+        const origin = absTransform.point({ x: 0, y: 0 });
+        const unit = absTransform.point({ x: 1, y: 0 });
+        const scaleX = Math.sqrt((unit.x - origin.x) ** 2 + (unit.y - origin.y) ** 2);
+
+        if (bestDist * scaleX <= 10) {
+          const newPt: [number, number] = [
+            (localPos.x / imageWidth) * 100,
+            (localPos.y / imageHeight) * 100,
+          ];
+          const newPts = [...pts];
+          newPts.splice(insertAfter + 1, 0, newPt);
+          onUpdate(annotation.id, { points: newPts });
+          return;
+        }
       }
     }
 
-    const absTransform = line.getAbsoluteTransform();
-    const origin = absTransform.point({ x: 0, y: 0 });
-    const unit = absTransform.point({ x: 1, y: 0 });
-    const scaleX = Math.sqrt((unit.x - origin.x) ** 2 + (unit.y - origin.y) ** 2);
-    if (bestDist * scaleX > 10) return;
-
-    const newPt: [number, number] = [
-      (localPos.x / imageWidth) * 100,
-      (localPos.y / imageHeight) * 100,
-    ];
-    const newPts = [...pts];
-    newPts.splice(insertAfter + 1, 0, newPt);
-    onUpdate(annotation.id, { points: newPts });
+    // Fallback: drain a deferred selection click (mousedown-without-drag).
+    if (pending) {
+      onSelect(annotation.id, { additive: pending.additive });
+    }
   };
 
   const handlePointDragMove = (index: number, e: Konva.KonvaEventObject<DragEvent>) => {
