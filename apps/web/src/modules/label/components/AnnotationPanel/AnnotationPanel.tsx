@@ -15,19 +15,21 @@ import { Label } from "@repo/schema";
 import { AlertTriangle, Eye, EyeOff, GripVertical, Trash2 } from "lucide-react";
 import { useDraggableList } from "../../hooks/useDraggableList";
 import { Annotation, HistoryEntry } from "../../types/annotations";
-import { HistoryTab } from "../HistoryTab";
 
 export interface AnnotationPanelProps {
   annotations: Annotation[];
   labels: Label[];
-  selectedAnnotationId: string | null;
-  onSelectAnnotation: (id: string) => void;
+  selectedAnnotationIds: Set<string>;
+  onSelectAnnotation: (id: string, opts?: { additive?: boolean }) => void;
   onDeleteAnnotation: (id: string) => void;
   onReorderAnnotations: (fromIndex: number, toIndex: number) => void;
   hiddenAnnotationIds: Set<string>;
   onToggleAnnotationVisibility: (id: string) => void;
   onHideAllAnnotations: () => void;
   onShowAllAnnotations: () => void;
+  onIsolateLabel: (labelId: string) => void;
+  onIsolateAny: () => void;
+  onClearIsolate: () => void;
   historyEntries: HistoryEntry[];
   historyIndex: number;
   onJumpTo: (index: number) => void;
@@ -38,7 +40,7 @@ export interface AnnotationPanelProps {
 export const AnnotationPanel = ({
   annotations,
   labels,
-  selectedAnnotationId,
+  selectedAnnotationIds,
   onSelectAnnotation,
   onDeleteAnnotation,
   onReorderAnnotations,
@@ -46,16 +48,18 @@ export const AnnotationPanel = ({
   onToggleAnnotationVisibility,
   onHideAllAnnotations,
   onShowAllAnnotations,
-  historyEntries,
-  historyIndex,
-  onJumpTo,
+  onIsolateLabel,
+  onIsolateAny,
+  onClearIsolate,
   onOpenSettings,
   isLoadingLabels,
 }: AnnotationPanelProps) => {
-  const classCounts = labels.map((label) => ({
-    ...label,
-    count: annotations.filter((a) => a.labelId === String(label.id)).length,
-  }));
+  const classCounts = labels
+    .map((label) => ({
+      ...label,
+      count: annotations.filter((a) => a.labelId === String(label.id)).length,
+    }))
+    .filter((cls) => cls.count > 0);
 
   const { getItemProps } = useDraggableList(onReorderAnnotations);
 
@@ -66,14 +70,9 @@ export const AnnotationPanel = ({
     >
       <TabsList variant="line" className="h-10 shrink-0">
         <TabsTrigger value="labels">Annotations</TabsTrigger>
-        <TabsTrigger value="info" disabled>Info</TabsTrigger>
-        <TabsTrigger value="history" disabled>History</TabsTrigger>
       </TabsList>
 
-      <TabsContent
-        value="labels"
-        className="min-h-0 flex-1 overflow-y-auto"
-      >
+      <TabsContent value="labels" className="min-h-0 flex-1 overflow-y-auto">
         <Collapsible defaultOpen={false} className="px-4 pt-4">
           <CollapsibleTrigger className="text-[10px] font-bold uppercase tracking-[1px] text-foreground/90 hover:text-foreground/90 py-0">
             Classes
@@ -84,6 +83,8 @@ export const AnnotationPanel = ({
                 icon={<AnnotateIcon className="size-4 text-foreground/60" />}
                 name="Any"
                 count={annotations.length}
+                onPressDown={onIsolateAny}
+                onPressUp={onClearIsolate}
               />
               {classCounts.map((cls) => (
                 <ClassRow
@@ -96,6 +97,8 @@ export const AnnotationPanel = ({
                   }
                   name={cls.name}
                   count={cls.count}
+                  onPressDown={() => onIsolateLabel(String(cls.id))}
+                  onPressUp={onClearIsolate}
                 />
               ))}
             </div>
@@ -139,28 +142,34 @@ export const AnnotationPanel = ({
                   onClick={onOpenSettings}
                 >
                   project settings
-                </button>
-                {" "}before annotating.
+                </button>{" "}
+                before annotating.
               </span>
             </div>
           )}
           <div className="flex flex-col">
             {annotations.map((annotation, index) => {
-              const isSelected = annotation.id === selectedAnnotationId;
+              const isSelected = selectedAnnotationIds.has(annotation.id);
               const isHidden = hiddenAnnotationIds.has(annotation.id);
               const dnd = getItemProps(index);
               return (
                 <div
                   key={annotation.id}
                   {...dnd.containerProps}
-                  onClick={() => onSelectAnnotation(annotation.id)}
+                  onClick={(e) =>
+                    onSelectAnnotation(annotation.id, {
+                      additive: e.ctrlKey || e.metaKey,
+                    })
+                  }
                   className={cn(
                     "group relative flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-black/5",
                     isSelected && "bg-primary/10",
                     dnd.isDragging && "opacity-40",
                     isHidden && "opacity-50 grayscale",
-                    dnd.showDropAbove && "before:absolute before:inset-x-1 before:-top-px before:h-0.5 before:rounded-full before:bg-primary",
-                    dnd.showDropBelow && "after:absolute after:inset-x-1 after:-bottom-px after:h-0.5 after:rounded-full after:bg-primary"
+                    dnd.showDropAbove &&
+                      "before:absolute before:inset-x-1 before:-top-px before:h-0.5 before:rounded-full before:bg-primary",
+                    dnd.showDropBelow &&
+                      "after:absolute after:inset-x-1 after:-bottom-px after:h-0.5 after:rounded-full after:bg-primary",
                   )}
                 >
                   <button
@@ -195,7 +204,7 @@ export const AnnotationPanel = ({
                       "flex shrink-0 cursor-pointer items-center justify-center rounded p-1 text-muted-foreground transition-opacity hover:bg-black/5 hover:text-foreground [&_svg]:size-3.5",
                       isHidden || isSelected
                         ? "opacity-100"
-                        : "opacity-0 group-hover:opacity-100"
+                        : "opacity-0 group-hover:opacity-100",
                     )}
                   >
                     {isHidden ? <EyeOff /> : <Eye />}
@@ -209,7 +218,7 @@ export const AnnotationPanel = ({
                     }}
                     className={cn(
                       "flex shrink-0 cursor-pointer items-center justify-center rounded p-1 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive [&_svg]:size-3.5",
-                      isSelected && "opacity-100"
+                      isSelected && "opacity-100",
                     )}
                   >
                     <Trash2 />
@@ -220,26 +229,6 @@ export const AnnotationPanel = ({
           </div>
         </section>
       </TabsContent>
-
-      <TabsContent
-        value="info"
-        className="min-h-0 flex-1 overflow-y-auto p-4"
-      >
-        <p className="text-xs text-muted-foreground">
-          No additional information available.
-        </p>
-      </TabsContent>
-
-      <TabsContent
-        value="history"
-        className="min-h-0 flex-1 overflow-y-auto p-4"
-      >
-        <HistoryTab
-          entries={historyEntries}
-          currentIndex={historyIndex}
-          onJumpTo={onJumpTo}
-        />
-      </TabsContent>
     </Tabs>
   );
 };
@@ -248,12 +237,36 @@ const ClassRow = ({
   icon,
   name,
   count,
+  onPressDown,
+  onPressUp,
 }: {
   icon: React.ReactNode;
   name: string;
   count: number;
+  onPressDown: () => void;
+  onPressUp: () => void;
 }) => (
-  <div className="flex items-center gap-2 rounded-md p-2">
+  <div
+    role="button"
+    tabIndex={0}
+    onMouseDown={(e) => {
+      // Only react to primary button; right-click should release if held.
+      if (e.button !== 0) {
+        onPressUp();
+        return;
+      }
+      e.preventDefault();
+      onPressDown();
+    }}
+    onMouseUp={onPressUp}
+    onMouseLeave={onPressUp}
+    onPointerCancel={onPressUp}
+    onContextMenu={onPressUp}
+    onTouchStart={onPressDown}
+    onTouchEnd={onPressUp}
+    onTouchCancel={onPressUp}
+    className="flex cursor-pointer select-none items-center gap-2 rounded-md p-2 transition-colors hover:bg-black/5 active:bg-black/[0.07]"
+  >
     {icon}
     <span className="flex-1 text-xs text-foreground/90">{name}</span>
     <span className="flex h-3.5 min-w-6 items-center justify-center rounded-full bg-black/[0.03] px-1.5 text-[11px] leading-none text-foreground/60">
