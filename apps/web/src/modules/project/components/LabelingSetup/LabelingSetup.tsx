@@ -63,9 +63,6 @@ export const LabelingSetup = ({
             <div className="w-40">
               <ColorPicker value={pendingColor} onChange={setPendingColor} />
             </div>
-            <p className="text-xs text-muted-foreground">
-              Color used for the next added label
-            </p>
           </div>
           <Button onClick={handleAdd} size="sm" className="w-fit">
             Add Labels
@@ -73,9 +70,7 @@ export const LabelingSetup = ({
         </div>
 
         <div className="flex h-full min-h-0 w-75 flex-col gap-4 self-stretch">
-          <span className="text-base font-bold">
-            Labels ({labels.length})
-          </span>
+          <span className="text-base font-bold">Labels ({labels.length})</span>
           <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1">
             {labels.map((label) => (
               <LabelChip
