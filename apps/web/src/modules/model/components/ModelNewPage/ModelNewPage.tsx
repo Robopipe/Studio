@@ -6,6 +6,7 @@ import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import { Button } from "@/modules/shadcn/ui/button";
 import { Input } from "@/modules/shadcn/ui/input";
 import { Label } from "@/modules/shadcn/ui/label";
+import { NumberInput } from "@/modules/shadcn/ui/number-input";
 import {
   // hyperparamsConfigSchema import kept for reference — validation intentionally bypassed
   // hyperparamsConfigSchema,
@@ -67,7 +68,9 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
     { skip: !activeProject },
   );
   const [name, setName] = useState("");
-  const [epochs, setEpochs] = useState(duplicateState?.epochs ?? 100);
+  const [epochs, setEpochs] = useState<number | null>(
+    duplicateState?.epochs ?? 100,
+  );
   const [outputs, setOutputs] = useState<ModelOutputTypeEnum[]>(
     duplicateState?.outputs ?? [ModelOutputTypeEnum.RAW, ModelOutputTypeEnum.RVC4],
   );
@@ -251,7 +254,9 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
     const trimmedName = name.trim();
     const nextNameError = trimmedName ? null : "Version name is required";
     const nextEpochsError =
-      epochs > 0 ? null : "Epochs must be greater than 0";
+      epochs !== null && epochs > 0
+        ? null
+        : "Epochs must be greater than 0";
     setNameError(nextNameError);
     setEpochsError(nextEpochsError);
     if (nextNameError || nextEpochsError) return;
@@ -279,7 +284,7 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
     ];
 
     const newModel = await createModel({
-      epochs,
+      epochs: epochs!,
       labelIds: activeLabels?.map((label) => label.id) || [],
       taskIds: selectedTaskIds,
       ...(sourceDatasetVersionId != null && { sourceDatasetVersionId }),
@@ -340,16 +345,15 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
             )}
           </div>
           <div className="flex flex-1 flex-col gap-1">
-            <Input
-              type="number"
+            <NumberInput
               min={1}
               value={epochs}
-              onChange={(e) => {
-                setEpochs(Number(e.target.value));
+              onValueChange={(v) => {
+                setEpochs(v);
                 if (epochsError) setEpochsError(null);
               }}
               placeholder="Epochs"
-              aria-invalid={Boolean(epochsError) || undefined}
+              error={Boolean(epochsError)}
             />
             {epochsError && (
               <span className="text-xs text-red-600">{epochsError}</span>
