@@ -1,8 +1,23 @@
-import type { ModelLog, ProjectTypeEnum } from "@repo/schema";
-import { getHeadlineLabel, headlineSeries } from "../../utils/headlineMetric";
+import { ProjectTypeEnum, type ModelLog } from "@repo/schema";
+import {
+  headlineDualSeries,
+  headlineSeriesConfig,
+} from "../../utils/headlineMetric";
 import { ModelLogs } from "../ModelLogs";
 import { ModelMetrics } from "../ModelMetrics";
 import { TrainingChart } from "../TrainingChart";
+
+const LOSS_SERIES = [{ key: "value", label: "Loss" }];
+
+const headlineTitle = (trainingType: ProjectTypeEnum | undefined): string => {
+  if (
+    trainingType === ProjectTypeEnum.DETECTION ||
+    trainingType === ProjectTypeEnum.SEGMENTATION
+  ) {
+    return "Model Performance";
+  }
+  return "Accuracy";
+};
 
 export interface ModelOverviewProps {
   modelName: string | undefined;
@@ -20,11 +35,13 @@ export const ModelOverview = ({
       {modelName && <h2 className="text-xl font-bold">{modelName}</h2>}
       <div className="grid grid-cols-2 gap-4">
         <TrainingChart
-          title={trainingType ? getHeadlineLabel(trainingType) : "Accuracy"}
-          data={trainingType ? headlineSeries(logs, trainingType) : []}
+          title={headlineTitle(trainingType)}
+          data={trainingType ? headlineDualSeries(logs, trainingType) : []}
+          series={trainingType ? headlineSeriesConfig(trainingType) : []}
         />
         <TrainingChart
           title="Loss"
+          series={LOSS_SERIES}
           data={
             logs?.map((log) => ({
               value: log.metrics.loss,

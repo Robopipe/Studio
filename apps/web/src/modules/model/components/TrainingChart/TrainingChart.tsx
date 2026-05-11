@@ -1,24 +1,97 @@
+import { useEffect, useState } from "react";
 import {
-  Area,
-  AreaChart,
   CartesianGrid,
+  Line,
+  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
 
-export interface TrainingChartProps {
-  data: { epoch: number; value: number }[];
-  title: string;
+const PROMOTED_STROKE = "var(--color-emerald-600)";
+const DEMOTED_STROKE = "var(--color-emerald-300)";
+const PROMOTED_WIDTH = 3;
+const DEMOTED_WIDTH = 2;
+
+export interface TrainingChartSeries {
+  key: string;
+  label: string;
 }
 
-export const TrainingChart = ({ data, title }: TrainingChartProps) => {
+export interface TrainingChartProps {
+  data: ({ epoch: number } & Record<string, number | undefined>)[];
+  series: TrainingChartSeries[];
+  title: string;
+  valueFormat?: "percent" | "decimal";
+}
+
+const formatters: Record<
+  NonNullable<TrainingChartProps["valueFormat"]>,
+  (value: number) => string
+> = {
+  percent: (value) => `${(value * 100).toFixed(1)}%`,
+  decimal: (value) => value.toFixed(3),
+};
+
+export const TrainingChart = ({
+  data,
+  series,
+  title,
+  valueFormat = "decimal",
+}: TrainingChartProps) => {
+  const [promotedKey, setPromotedKey] = useState<string | undefined>(
+    series[0]?.key,
+  );
+
+  useEffect(() => {
+    if (!promotedKey || !series.some((s) => s.key === promotedKey)) {
+      setPromotedKey(series[0]?.key);
+    }
+  }, [series, promotedKey]);
+
+  const showLegend = series.length > 1;
+  const formatValue = formatters[valueFormat];
+
+  const seriesWithMeta = series.map((s) => {
+    const promoted = !showLegend || s.key === promotedKey;
+    return {
+      ...s,
+      promoted,
+      stroke: promoted ? PROMOTED_STROKE : DEMOTED_STROKE,
+    };
+  });
+
   return (
     <div className="w-full">
-      <p className="text-sm font-bold">{title}</p>
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-bold">{title}</p>
+        {showLegend && (
+          <div className="flex items-center gap-2">
+            {seriesWithMeta.map((s) => (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => setPromotedKey(s.key)}
+                className="flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-0.5 text-xs hover:bg-gray-100"
+                aria-pressed={s.promoted}
+              >
+                <span
+                  className="inline-block h-2.5 w-4 rounded-sm"
+                  style={{ backgroundColor: s.stroke }}
+                />
+                <span
+                  className={s.promoted ? "font-semibold" : "text-gray-500"}
+                >
+                  {s.label}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
       <ResponsiveContainer width="100%" height={250}>
-        <AreaChart
+        <LineChart
           data={data}
           margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
         >
@@ -30,16 +103,28 @@ export const TrainingChart = ({ data, title }: TrainingChartProps) => {
           <YAxis
             label={{ value: "Value", angle: -90, position: "insideLeft" }}
           />
-          <Tooltip />
-          <Area
-            type="monotone"
-            dataKey="value"
-            stroke="var(--color-emerald-600)"
-            strokeWidth={3}
-            fill="var(--color-emerald-100)"
-            fillOpacity={0.6}
+          <Tooltip
+            formatter={(value) =>
+              typeof value === "number" ? formatValue(value) : "-"
+            }
+            labelFormatter={(epoch) => `Epoch ${String(epoch)}`}
           />
-        </AreaChart>
+          {[...seriesWithMeta]
+            .sort((a, b) => Number(a.promoted) - Number(b.promoted))
+            .map((s) => (
+              <Line
+                key={s.key}
+                type="monotone"
+                dataKey={s.key}
+                name={s.label}
+                stroke={s.stroke}
+                strokeWidth={s.promoted ? PROMOTED_WIDTH : DEMOTED_WIDTH}
+                dot={false}
+                isAnimationActive={false}
+                connectNulls
+              />
+            ))}
+        </LineChart>
       </ResponsiveContainer>
     </div>
   );
