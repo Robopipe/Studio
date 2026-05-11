@@ -140,6 +140,23 @@ export const projectApi = projectApiBase.injectEndpoints({
         },
       ],
     }),
+    updateProjectLabel: builder.mutation<
+      Label,
+      { projectId: number; labelId: number; name: string; color: string }
+    >({
+      query: ({ projectId, labelId, ...body }) => ({
+        url: projects.projectLabel(projectId, labelId),
+        method: HttpMethod.PUT,
+        body,
+      }),
+      invalidatesTags: (_result, _error, { projectId }) => [
+        {
+          type: ProjectApiTagType.Projects,
+          id: projectId,
+          subType: ProjectApiTagType.ProjectLabels,
+        },
+      ],
+    }),
   }),
   overrideExisting: true,
 });
@@ -154,5 +171,6 @@ export const {
   useGetProjectLabelsQuery,
   useLazyGetProjectLabelsQuery,
   useDeleteProjectLabelMutation,
+  useUpdateProjectLabelMutation,
   useUpdateProjectMutation,
 } = projectApi;
