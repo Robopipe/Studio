@@ -26,6 +26,8 @@ export interface UseLabelShortcutsOptions {
    *  anchor (typically via a `pendingPageSelection` state). */
   onChangePage: (page: number, anchor: "first" | "last") => void;
   onSelectLabel: (labelId: number) => void;
+  onHidePreviewDown: () => void;
+  onHidePreviewUp: () => void;
 }
 
 /**
@@ -43,22 +45,29 @@ export const useLabelShortcuts = (options: UseLabelShortcutsOptions) => {
   });
 
   useEffect(() => {
+    const isFromFormField = (target: EventTarget | null) => {
+      const el = target as HTMLElement | null;
+      return !!(
+        el &&
+        (el.tagName === "INPUT" ||
+          el.tagName === "TEXTAREA" ||
+          el.isContentEditable)
+      );
+    };
+
     const handler = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
-      const target = e.target as HTMLElement | null;
-      if (
-        target &&
-        (target.tagName === "INPUT" ||
-          target.tagName === "TEXTAREA" ||
-          target.isContentEditable)
-      ) {
-        return;
-      }
+      if (isFromFormField(e.target)) return;
 
       const opts = optionsRef.current;
       const key = e.key.toLowerCase();
 
       switch (key) {
+        case "h":
+          if (e.repeat) return;
+          e.preventDefault();
+          opts.onHidePreviewDown();
+          return;
         case "s":
           if (opts.isDirty && !opts.isSaving) {
             e.preventDefault();
@@ -149,7 +158,24 @@ export const useLabelShortcuts = (options: UseLabelShortcutsOptions) => {
       }
     };
 
+    const keyupHandler = (e: KeyboardEvent) => {
+      if (isFromFormField(e.target)) return;
+      if (e.key.toLowerCase() === "h") {
+        optionsRef.current.onHidePreviewUp();
+      }
+    };
+
+    const blurHandler = () => {
+      optionsRef.current.onHidePreviewUp();
+    };
+
     window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    window.addEventListener("keyup", keyupHandler);
+    window.addEventListener("blur", blurHandler);
+    return () => {
+      window.removeEventListener("keydown", handler);
+      window.removeEventListener("keyup", keyupHandler);
+      window.removeEventListener("blur", blurHandler);
+    };
   }, []);
 };

@@ -167,6 +167,23 @@ export const LabelPage = () => {
   const showAllAnnotations = useCallback(() => {
     setHiddenAnnotationIds(new Set());
   }, []);
+  // Transient "hold-to-preview" overlays that don't mutate hiddenAnnotationIds,
+  // so per-annotation eye toggles are restored exactly on release.
+  const [previewHideAll, setPreviewHideAll] = useState(false);
+  const [previewIsolate, setPreviewIsolate] = useState<
+    { kind: "label"; labelId: string } | { kind: "any" } | null
+  >(null);
+  const startPreviewHideAll = useCallback(() => setPreviewHideAll(true), []);
+  const stopPreviewHideAll = useCallback(() => setPreviewHideAll(false), []);
+  const startIsolateLabel = useCallback(
+    (labelId: string) => setPreviewIsolate({ kind: "label", labelId }),
+    [],
+  );
+  const startIsolateAny = useCallback(
+    () => setPreviewIsolate({ kind: "any" }),
+    [],
+  );
+  const stopIsolate = useCallback(() => setPreviewIsolate(null), []);
   const [activeLabel, setActiveLabel] = useState<Label | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const canvasState = useCanvasState();
@@ -236,6 +253,8 @@ export const LabelPage = () => {
       setAnnotations(taskDetailToAnnotations(taskDetail));
       setIsDirty(false);
       setHiddenAnnotationIds(new Set());
+      setPreviewHideAll(false);
+      setPreviewIsolate(null);
       history.reset();
       setSelectedAnnotationIds(new Set());
       setPrimarySelectedId(null);
@@ -465,12 +484,20 @@ export const LabelPage = () => {
     onSelectTask: setSelectedTaskId,
     onChangePage: setPage,
     onSelectLabel: handleSelectLabel,
+    onHidePreviewDown: startPreviewHideAll,
+    onHidePreviewUp: stopPreviewHideAll,
   });
 
-  const visibleAnnotations = useMemo(
-    () => annotations.filter((a) => !hiddenAnnotationIds.has(a.id)),
-    [annotations, hiddenAnnotationIds],
-  );
+  // Priority: isolate beats hide-all beats per-annotation hides.
+  const visibleAnnotations = useMemo(() => {
+    if (previewIsolate?.kind === "any") return annotations;
+    if (previewIsolate?.kind === "label") {
+      const lid = previewIsolate.labelId;
+      return annotations.filter((a) => a.labelId === lid);
+    }
+    if (previewHideAll) return [];
+    return annotations.filter((a) => !hiddenAnnotationIds.has(a.id));
+  }, [annotations, hiddenAnnotationIds, previewHideAll, previewIsolate]);
 
   const activeLabelForCanvas = useMemo(
     () =>
@@ -505,6 +532,9 @@ export const LabelPage = () => {
         onToggleAnnotationVisibility={toggleAnnotationVisibility}
         onHideAllAnnotations={hideAllAnnotations}
         onShowAllAnnotations={showAllAnnotations}
+        onIsolateLabel={startIsolateLabel}
+        onIsolateAny={startIsolateAny}
+        onClearIsolate={stopIsolate}
         historyEntries={history.entries}
         historyIndex={history.currentIndex}
         onJumpTo={history.jumpTo}
