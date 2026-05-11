@@ -1,5 +1,9 @@
 import { appConfig } from "@/config";
 import { baseRefreshingQuery } from "@/core/api/baseQuery";
+import {
+  captureApi,
+  CaptureApiTagType,
+} from "@/modules/capture/services/captureApi";
 import { HttpMethod } from "@/types";
 import { createApi } from "@reduxjs/toolkit/query/react";
 import {
@@ -156,6 +160,14 @@ export const projectApi = projectApiBase.injectEndpoints({
           subType: ProjectApiTagType.ProjectLabels,
         },
       ],
+      onQueryStarted: async (_arg, { dispatch, queryFulfilled }) => {
+        try {
+          await queryFulfilled;
+          dispatch(captureApi.util.invalidateTags([CaptureApiTagType.Tasks]));
+        } catch {
+          // mutation failed — nothing to invalidate
+        }
+      },
     }),
   }),
   overrideExisting: true,

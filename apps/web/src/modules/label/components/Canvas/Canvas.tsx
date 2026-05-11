@@ -7,15 +7,21 @@ import { KonvaStage, KonvaStageHandle } from "./KonvaStage";
 export interface CanvasProps {
   task: Task | undefined;
   annotations: Annotation[];
-  selectedAnnotationId: string | null;
+  selectedAnnotationIds: Set<string>;
+  primarySelectedId: string | null;
   toolMode: ToolMode;
   activeLabel: { id: string; name: string; color: string } | null;
   scale: number;
   position: { x: number; y: number };
-  onSelect: (id: string | null) => void;
+  onSelect: (id: string | null, opts?: { additive?: boolean }) => void;
   onAddAnnotation: (annotation: Annotation) => void;
   onUpdateAnnotation: (id: string, updates: Partial<Annotation>) => void;
-  onDeleteAnnotation: (id: string) => void;
+  onDeleteSelected: () => void;
+  onCopySelection: () => void;
+  onPasteClipboard: () => void;
+  onGroupTranslate: (
+    updates: Array<{ id: string; updates: Partial<Annotation> }>,
+  ) => void;
   onUndo: () => void;
   onRedo: () => void;
   onZoomAtPoint: (pointer: { x: number; y: number }, factor: number) => void;
@@ -29,10 +35,21 @@ export interface CanvasProps {
   showCrosshair: boolean;
 }
 
+const isTextInputFocused = (target: EventTarget | null) => {
+  const el = target as HTMLElement | null;
+  if (!el) return false;
+  return (
+    el.tagName === "INPUT" ||
+    el.tagName === "TEXTAREA" ||
+    el.isContentEditable
+  );
+};
+
 export const Canvas = ({
   task,
   annotations,
-  selectedAnnotationId,
+  selectedAnnotationIds,
+  primarySelectedId,
   toolMode,
   activeLabel,
   scale,
@@ -40,7 +57,10 @@ export const Canvas = ({
   onSelect,
   onAddAnnotation,
   onUpdateAnnotation,
-  onDeleteAnnotation,
+  onDeleteSelected,
+  onCopySelection,
+  onPasteClipboard,
+  onGroupTranslate,
   onUndo,
   onRedo,
   onZoomAtPoint,
@@ -94,31 +114,53 @@ export const Canvas = ({
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Delete" || e.key === "Backspace") {
-        if (selectedAnnotationId) {
+      const key = e.key;
+      const mod = e.ctrlKey || e.metaKey;
+
+      if (key === "Delete" || key === "Backspace") {
+        if (selectedAnnotationIds.size > 0) {
           e.preventDefault();
-          onDeleteAnnotation(selectedAnnotationId);
+          onDeleteSelected();
         }
+        return;
       }
-      if (e.key === "Escape") {
+      if (key === "Escape") {
         stageHandle.current?.cancelDrawing();
         onSelect(null);
+        return;
       }
-      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+      if (mod && (key === "z" || key === "Z")) {
+        if (isTextInputFocused(e.target)) return;
         e.preventDefault();
-        onUndo();
+        if (e.shiftKey || key === "Z") onRedo();
+        else onUndo();
+        return;
       }
-      if (
-        (e.ctrlKey || e.metaKey) &&
-        (e.key === "Z" || (e.key === "z" && e.shiftKey))
-      ) {
+      if (mod && key.toLowerCase() === "c") {
+        if (isTextInputFocused(e.target)) return;
+        if (selectedAnnotationIds.size === 0) return;
         e.preventDefault();
-        onRedo();
+        onCopySelection();
+        return;
+      }
+      if (mod && key.toLowerCase() === "v") {
+        if (isTextInputFocused(e.target)) return;
+        e.preventDefault();
+        onPasteClipboard();
+        return;
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [selectedAnnotationId, onDeleteAnnotation, onSelect, onUndo, onRedo]);
+  }, [
+    selectedAnnotationIds,
+    onDeleteSelected,
+    onCopySelection,
+    onPasteClipboard,
+    onSelect,
+    onUndo,
+    onRedo,
+  ]);
 
   if (!task) {
     return (
@@ -186,11 +228,13 @@ export const Canvas = ({
               position={position}
               toolMode={toolMode}
               annotations={loading ? [] : annotations}
-              selectedAnnotationId={loading ? null : selectedAnnotationId}
+              selectedAnnotationIds={loading ? new Set() : selectedAnnotationIds}
+              primarySelectedId={loading ? null : primarySelectedId}
               activeLabel={activeLabel}
               onSelect={onSelect}
               onAddAnnotation={onAddAnnotation}
               onUpdateAnnotation={onUpdateAnnotation}
+              onGroupTranslate={onGroupTranslate}
               onZoomAtPoint={onZoomAtPoint}
               onSetPosition={onSetPosition}
               showCrosshair={showCrosshair}

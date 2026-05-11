@@ -7,16 +7,43 @@ interface HistoryTabProps {
   onJumpTo: (index: number) => void;
 }
 
-const typeLabel: Record<HistoryEntry["type"], string> = {
-  add: "Added",
-  update: "Updated",
-  delete: "Deleted",
+const labelFor = (entry: HistoryEntry): string => {
+  switch (entry.type) {
+    case "add":
+      return "Added";
+    case "update":
+      return "Updated";
+    case "delete":
+      return "Deleted";
+    case "batch":
+      if (entry.label === "delete") return `Deleted ${entry.children.length}`;
+      if (entry.label === "paste") return `Pasted ${entry.children.length}`;
+      return `Moved ${entry.children.length}`;
+  }
 };
 
-const badgeClass: Record<HistoryEntry["type"], string> = {
-  add: "bg-green-500/15 text-green-700",
-  update: "bg-blue-500/15 text-blue-700",
-  delete: "bg-red-500/15 text-red-700",
+const badgeClassFor = (entry: HistoryEntry): string => {
+  switch (entry.type) {
+    case "add":
+      return "bg-green-500/15 text-green-700";
+    case "update":
+      return "bg-blue-500/15 text-blue-700";
+    case "delete":
+      return "bg-red-500/15 text-red-700";
+    case "batch":
+      if (entry.label === "delete") return "bg-red-500/15 text-red-700";
+      if (entry.label === "paste") return "bg-emerald-500/15 text-emerald-700";
+      return "bg-blue-500/15 text-blue-700";
+  }
+};
+
+const summaryFor = (entry: HistoryEntry): { color: string; name: string } | null => {
+  if (entry.type === "batch") {
+    const first = entry.children[0];
+    if (!first) return null;
+    return { color: first.annotation.color, name: first.annotation.labelName };
+  }
+  return { color: entry.annotation.color, name: entry.annotation.labelName };
 };
 
 export const HistoryTab = ({
@@ -38,6 +65,7 @@ export const HistoryTab = ({
         const index = entries.length - 1 - ri;
         const isFuture = index >= currentIndex;
         const isCurrent = index === currentIndex - 1;
+        const summary = summaryFor(entry);
 
         return (
           <button
@@ -53,18 +81,22 @@ export const HistoryTab = ({
             <span
               className={cn(
                 "shrink-0 rounded-[0.1875rem] px-1.5 py-px text-[0.6875rem] font-semibold uppercase tracking-wider",
-                badgeClass[entry.type]
+                badgeClassFor(entry)
               )}
             >
-              {typeLabel[entry.type]}
+              {labelFor(entry)}
             </span>
-            <span
-              className="size-2 shrink-0 rounded-full"
-              style={{ background: entry.annotation.color }}
-            />
-            <span className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
-              {entry.annotation.labelName}
-            </span>
+            {summary && (
+              <>
+                <span
+                  className="size-2 shrink-0 rounded-full"
+                  style={{ background: summary.color }}
+                />
+                <span className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
+                  {summary.name}
+                </span>
+              </>
+            )}
           </button>
         );
       })}
