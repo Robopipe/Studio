@@ -29,6 +29,7 @@ import { AnnotationPanel } from "../AnnotationPanel";
 import { Canvas } from "../Canvas";
 import { ClassSelect } from "../ClassSelect";
 import { DataSourcePanel } from "../DataSourcePanel";
+import { LeaveAnnotationsDialog } from "../LeaveAnnotationsDialog";
 import { PreAnnotateSettingsDialog } from "../PreAnnotateSettingsDialog";
 import { Toolbar } from "../Toolbar";
 
@@ -590,6 +591,11 @@ export const LabelPage = () => {
         models={models}
         settings={preAnnotateSettings}
         onApply={updatePreAnnotateSettings}
+      />
+      <LeaveAnnotationsDialog
+        isDirty={isDirty}
+        isSaving={isSaving}
+        onSave={handleSave}
       />
     </div>
   );
