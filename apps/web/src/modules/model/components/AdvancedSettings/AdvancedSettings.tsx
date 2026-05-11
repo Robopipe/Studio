@@ -11,7 +11,7 @@ import { HyperparamsModal } from "./HyperparamsModal";
 
 const BACKEND_LABELS: Record<ModelBackendEnum, string> = {
   [ModelBackendEnum.LUXONIS]: "Luxonis Train",
-  [ModelBackendEnum.ULTRALYTICS]: "Ultralytics YOLO",
+  [ModelBackendEnum.ULTRALYTICS]: "Ultra Vision",
 };
 
 const REGION_LABELS: Record<ModelRegionEnum, string> = {
@@ -76,9 +76,9 @@ export const AdvancedSettings = ({
               Training Backend
             </span>
             <p className="text-sm leading-5 text-black/60">
-              Luxonis Train is the default YOLOv6-style framework. Ultralytics
-              YOLO uses YOLOv11 with a richer augmentation pipeline and stronger
-              small-data fine-tuning — custom hyperparameters are backend-specific.
+              Luxonis Train is the default framework. Ultra Vision provides
+              richer augmentation pipeline and stronger small-data fine-tuning —
+              custom hyperparameters are backend-specific.
             </p>
             <div className="flex flex-row gap-2 py-2">
               {Object.values(ModelBackendEnum).map((value) => {
@@ -107,10 +107,10 @@ export const AdvancedSettings = ({
             </span>
             <p className="text-sm leading-5 text-black/60">
               europe-west4 keeps the training VM in the same region as your
-              dataset and container images, so the job starts quickly. us-central1
-              has better A100 availability and may queue less when GPUs are tight,
-              but the first run pulls the dataset and container image cross-region
-              and adds a few minutes of startup overhead.
+              dataset and container images, so the job starts quickly.
+              us-central1 has better A100 availability and may queue less when
+              GPUs are tight, but the first run pulls the dataset and container
+              image cross-region and adds a few minutes of startup overhead.
             </p>
             <div className="flex flex-row gap-2 py-2">
               {Object.values(ModelRegionEnum).map((value) => {
@@ -142,8 +142,8 @@ export const AdvancedSettings = ({
                 FP16 keeps full-precision weights — slower but most accurate.
                 INT8 quantizes weights and activations to 8 bits, calibrated
                 against a random 400-image sample of your training data:
-                typically 2–3× faster on RVC4 with a small accuracy drop
-                (≈0.5–2 mAP points). Segmentation models use mixed INT8/INT16
+                typically 2–3× faster on RVC4 with a small accuracy drop (≈0.5–2
+                mAP points). Segmentation models use mixed INT8/INT16
                 automatically to preserve mask quality.
               </p>
               <div className="flex flex-row gap-2 py-2">
