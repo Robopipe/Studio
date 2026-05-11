@@ -25,8 +25,11 @@ export interface Annotation {
   points?: [number, number][];
 }
 
-export interface HistoryEntry {
-  type: "add" | "update" | "delete";
-  annotation: Annotation;
-  previousAnnotation?: Annotation;
-}
+export type AtomicHistoryEntry =
+  | { type: "add"; annotation: Annotation }
+  | { type: "update"; annotation: Annotation; previousAnnotation: Annotation }
+  | { type: "delete"; annotation: Annotation };
+
+export type HistoryEntry =
+  | AtomicHistoryEntry
+  | { type: "batch"; label: "delete" | "paste"; children: AtomicHistoryEntry[] };

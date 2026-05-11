@@ -9,8 +9,9 @@ interface BoundingBoxProps {
   imageWidth: number;
   imageHeight: number;
   isSelected: boolean;
+  showHandles: boolean;
   toolMode: ToolMode;
-  onSelect: (id: string) => void;
+  onSelect: (id: string, opts?: { additive?: boolean }) => void;
   onUpdate: (id: string, updates: Partial<Annotation>) => void;
 }
 
@@ -19,6 +20,7 @@ export const BoundingBox = ({
   imageWidth,
   imageHeight,
   isSelected,
+  showHandles,
   toolMode,
   onSelect,
   onUpdate,
@@ -33,11 +35,11 @@ export const BoundingBox = ({
   const h = (bbox.height / 100) * imageHeight;
 
   useEffect(() => {
-    if (isSelected && trRef.current && rectRef.current) {
+    if (showHandles && trRef.current && rectRef.current) {
       trRef.current.nodes([rectRef.current]);
       trRef.current.getLayer()?.batchDraw();
     }
-  }, [isSelected]);
+  }, [showHandles]);
 
   const isInteractive = toolMode === ToolMode.SELECT;
 
@@ -79,14 +81,15 @@ export const BoundingBox = ({
         width={w}
         height={h}
         stroke={annotation.color}
-        strokeWidth={2}
+        strokeWidth={isSelected ? 3 : 2}
         strokeScaleEnabled={false}
-        fill={annotation.color + "33"}
-        draggable={isInteractive}
+        fill={annotation.color + (isSelected ? "55" : "33")}
+        draggable={isInteractive && showHandles}
         onMouseDown={(e) => {
           if (isInteractive) {
             e.cancelBubble = true;
-            onSelect(annotation.id);
+            const additive = e.evt.ctrlKey || e.evt.metaKey;
+            onSelect(annotation.id, { additive });
           }
         }}
         onTouchStart={(e) => {
@@ -98,7 +101,7 @@ export const BoundingBox = ({
         onDragEnd={handleDragEnd}
         onTransformEnd={handleTransformEnd}
       />
-      {isSelected && isInteractive && (
+      {showHandles && isInteractive && (
         <Transformer
           ref={trRef}
           rotateEnabled={false}

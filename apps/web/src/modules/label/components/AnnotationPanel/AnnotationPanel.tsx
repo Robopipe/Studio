@@ -19,8 +19,8 @@ import { Annotation, HistoryEntry } from "../../types/annotations";
 export interface AnnotationPanelProps {
   annotations: Annotation[];
   labels: Label[];
-  selectedAnnotationId: string | null;
-  onSelectAnnotation: (id: string) => void;
+  selectedAnnotationIds: Set<string>;
+  onSelectAnnotation: (id: string, opts?: { additive?: boolean }) => void;
   onDeleteAnnotation: (id: string) => void;
   onReorderAnnotations: (fromIndex: number, toIndex: number) => void;
   hiddenAnnotationIds: Set<string>;
@@ -37,7 +37,7 @@ export interface AnnotationPanelProps {
 export const AnnotationPanel = ({
   annotations,
   labels,
-  selectedAnnotationId,
+  selectedAnnotationIds,
   onSelectAnnotation,
   onDeleteAnnotation,
   onReorderAnnotations,
@@ -137,14 +137,18 @@ export const AnnotationPanel = ({
           )}
           <div className="flex flex-col">
             {annotations.map((annotation, index) => {
-              const isSelected = annotation.id === selectedAnnotationId;
+              const isSelected = selectedAnnotationIds.has(annotation.id);
               const isHidden = hiddenAnnotationIds.has(annotation.id);
               const dnd = getItemProps(index);
               return (
                 <div
                   key={annotation.id}
                   {...dnd.containerProps}
-                  onClick={() => onSelectAnnotation(annotation.id)}
+                  onClick={(e) =>
+                    onSelectAnnotation(annotation.id, {
+                      additive: e.ctrlKey || e.metaKey,
+                    })
+                  }
                   className={cn(
                     "group relative flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-black/5",
                     isSelected && "bg-primary/10",
