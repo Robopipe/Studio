@@ -8,7 +8,7 @@ import {
 } from "@/modules/shadcn/ui/table";
 import type { Label } from "@repo/schema";
 import { useMemo } from "react";
-import { headFromKey, lastSegment, resolveLabelName } from "./utils";
+import { resolveLabelName } from "./utils";
 
 export interface ConfusionMatrixTableProps {
   matrixKey: string;
@@ -18,7 +18,6 @@ export interface ConfusionMatrixTableProps {
 }
 
 export const ConfusionMatrixTable = ({
-  matrixKey,
   labels,
   matrix,
   labelsById,
@@ -31,17 +30,11 @@ export const ConfusionMatrixTable = ({
 
   return (
     <div className="flex min-w-0 flex-col gap-2">
-      <p className="text-sm font-medium" title={matrixKey}>
-        {lastSegment(matrixKey)}{" "}
-        <span className="text-xs font-normal text-muted-foreground">
-          ({headFromKey(matrixKey)})
-        </span>
-      </p>
       <div className="overflow-x-auto">
         <Table className="text-xs">
           <TableHeader>
             <TableRow>
-              <TableHead>&nbsp;</TableHead>
+              <TableHead>Ground Truth / Prediction</TableHead>
               {labels.map((labelId, idx) => (
                 <TableHead
                   key={`${labelId ?? "no-match"}-${idx}`}
@@ -67,9 +60,7 @@ export const ConfusionMatrixTable = ({
                       cell > 0
                         ? {
                             backgroundColor: `rgba(${
-                              colIdx === rowIdx
-                                ? "16, 185, 129"
-                                : "239, 68, 68"
+                              colIdx === rowIdx ? "16, 185, 129" : "239, 68, 68"
                             }, ${alpha})`,
                           }
                         : undefined;
