@@ -121,6 +121,11 @@ const groups: ShortcutGroup[] = [
         keys: <KeyCombo keys={["Ctrl", "Click"]} />,
       },
       {
+        icon: <MousePointer2 />,
+        label: "Select range in sidebar",
+        keys: <KeyCombo keys={["Shift", "Click"]} />,
+      },
+      {
         icon: <Copy />,
         label: "Copy selected region(s)",
         keys: <KeyCombo keys={["Ctrl", "C"]} />,
