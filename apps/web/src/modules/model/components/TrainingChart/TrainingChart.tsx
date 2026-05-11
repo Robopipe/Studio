@@ -53,38 +53,40 @@ export const TrainingChart = ({
   const showLegend = series.length > 1;
   const formatValue = formatters[valueFormat];
 
+  const seriesWithMeta = series.map((s) => {
+    const promoted = !showLegend || s.key === promotedKey;
+    return {
+      ...s,
+      promoted,
+      stroke: promoted ? PROMOTED_STROKE : DEMOTED_STROKE,
+    };
+  });
+
   return (
     <div className="w-full">
       <div className="flex items-center justify-between">
         <p className="text-sm font-bold">{title}</p>
         {showLegend && (
           <div className="flex items-center gap-2">
-            {series.map((s) => {
-              const promoted = s.key === promotedKey;
-              return (
-                <button
-                  key={s.key}
-                  type="button"
-                  onClick={() => setPromotedKey(s.key)}
-                  className="flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-0.5 text-xs hover:bg-gray-100"
-                  aria-pressed={promoted}
+            {seriesWithMeta.map((s) => (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => setPromotedKey(s.key)}
+                className="flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-0.5 text-xs hover:bg-gray-100"
+                aria-pressed={s.promoted}
+              >
+                <span
+                  className="inline-block h-2.5 w-4 rounded-sm"
+                  style={{ backgroundColor: s.stroke }}
+                />
+                <span
+                  className={s.promoted ? "font-semibold" : "text-gray-500"}
                 >
-                  <span
-                    className="inline-block h-2.5 w-4 rounded-sm"
-                    style={{
-                      backgroundColor: promoted
-                        ? PROMOTED_STROKE
-                        : DEMOTED_STROKE,
-                    }}
-                  />
-                  <span
-                    className={promoted ? "font-semibold" : "text-gray-500"}
-                  >
-                    {s.label}
-                  </span>
-                </button>
-              );
-            })}
+                  {s.label}
+                </span>
+              </button>
+            ))}
           </div>
         )}
       </div>
@@ -99,7 +101,6 @@ export const TrainingChart = ({
             label={{ value: "Epoch", position: "insideBottom", offset: -10 }}
           />
           <YAxis
-            tickFormatter={formatValue}
             label={{ value: "Value", angle: -90, position: "insideLeft" }}
           />
           <Tooltip
@@ -108,28 +109,21 @@ export const TrainingChart = ({
             }
             labelFormatter={(epoch) => `Epoch ${String(epoch)}`}
           />
-          {[...series]
-            .sort((a, b) => {
-              const aPromoted = !showLegend || a.key === promotedKey;
-              const bPromoted = !showLegend || b.key === promotedKey;
-              return Number(aPromoted) - Number(bPromoted);
-            })
-            .map((s) => {
-              const promoted = !showLegend || s.key === promotedKey;
-              return (
-                <Line
-                  key={s.key}
-                  type="monotone"
-                  dataKey={s.key}
-                  name={s.label}
-                  stroke={promoted ? PROMOTED_STROKE : DEMOTED_STROKE}
-                  strokeWidth={promoted ? PROMOTED_WIDTH : DEMOTED_WIDTH}
-                  dot={false}
-                  isAnimationActive={false}
-                  connectNulls
-                />
-              );
-            })}
+          {[...seriesWithMeta]
+            .sort((a, b) => Number(a.promoted) - Number(b.promoted))
+            .map((s) => (
+              <Line
+                key={s.key}
+                type="monotone"
+                dataKey={s.key}
+                name={s.label}
+                stroke={s.stroke}
+                strokeWidth={s.promoted ? PROMOTED_WIDTH : DEMOTED_WIDTH}
+                dot={false}
+                isAnimationActive={false}
+                connectNulls
+              />
+            ))}
         </LineChart>
       </ResponsiveContainer>
     </div>
