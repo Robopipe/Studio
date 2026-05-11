@@ -1,35 +1,43 @@
 import { useCallback, useRef, useState } from "react";
-import { Annotation, HistoryEntry } from "../types/annotations";
+import { Annotation, AtomicHistoryEntry, HistoryEntry } from "../types/annotations";
 
 interface UseHistoryOptions {
   annotations: Annotation[];
   setAnnotations: React.Dispatch<React.SetStateAction<Annotation[]>>;
-  setSelectedAnnotationId: (id: string | null) => void;
 }
 
 export const useHistory = ({
   annotations,
   setAnnotations,
-  setSelectedAnnotationId,
 }: UseHistoryOptions) => {
   const undoStack = useRef<HistoryEntry[]>([]);
   const redoStack = useRef<HistoryEntry[]>([]);
+  // While non-null, atomic entries are captured here instead of pushed to
+  // undoStack. `runBatch` wraps a callback in a batch frame.
+  const batchStack = useRef<AtomicHistoryEntry[] | null>(null);
   const [revision, setRevision] = useState(0);
 
   const bumpRevision = useCallback(() => setRevision((r) => r + 1), []);
 
-  const pushEntry = useCallback((entry: HistoryEntry) => {
-    undoStack.current.push(entry);
-    redoStack.current = [];
-    bumpRevision();
-  }, [bumpRevision]);
+  const pushAtomic = useCallback(
+    (entry: AtomicHistoryEntry) => {
+      if (batchStack.current) {
+        batchStack.current.push(entry);
+        return;
+      }
+      undoStack.current.push(entry);
+      redoStack.current = [];
+      bumpRevision();
+    },
+    [bumpRevision],
+  );
 
   const addAnnotation = useCallback(
     (annotation: Annotation) => {
       setAnnotations((prev) => [...prev, annotation]);
-      pushEntry({ type: "add", annotation });
+      pushAtomic({ type: "add", annotation });
     },
-    [setAnnotations, pushEntry],
+    [setAnnotations, pushAtomic],
   );
 
   const updateAnnotation = useCallback(
@@ -38,9 +46,9 @@ export const useHistory = ({
       if (!old) return;
       const updated = { ...old, ...updates };
       setAnnotations((prev) => prev.map((a) => (a.id === id ? updated : a)));
-      pushEntry({ type: "update", annotation: updated, previousAnnotation: old });
+      pushAtomic({ type: "update", annotation: updated, previousAnnotation: old });
     },
-    [annotations, setAnnotations, pushEntry],
+    [annotations, setAnnotations, pushAtomic],
   );
 
   const deleteAnnotation = useCallback(
@@ -48,10 +56,71 @@ export const useHistory = ({
       const old = annotations.find((a) => a.id === id);
       if (!old) return;
       setAnnotations((prev) => prev.filter((a) => a.id !== id));
-      pushEntry({ type: "delete", annotation: old });
-      setSelectedAnnotationId(null);
+      pushAtomic({ type: "delete", annotation: old });
     },
-    [annotations, setAnnotations, setSelectedAnnotationId, pushEntry],
+    [annotations, setAnnotations, pushAtomic],
+  );
+
+  const runBatch = useCallback(
+    (label: "delete" | "paste" | "move", fn: () => void) => {
+      // Nested batches: re-enter the existing frame, no nesting in the entry
+      // tree. Simpler and the only nesting case we care about is "delete the
+      // selection" called from inside something else, which we don't actually do.
+      if (batchStack.current) {
+        fn();
+        return;
+      }
+      const frame: AtomicHistoryEntry[] = [];
+      batchStack.current = frame;
+      try {
+        fn();
+      } finally {
+        batchStack.current = null;
+      }
+      if (frame.length === 0) return;
+      undoStack.current.push({ type: "batch", label, children: frame });
+      redoStack.current = [];
+      bumpRevision();
+    },
+    [bumpRevision],
+  );
+
+  const applyUndo = useCallback(
+    (entry: AtomicHistoryEntry) => {
+      switch (entry.type) {
+        case "add":
+          setAnnotations((prev) => prev.filter((a) => a.id !== entry.annotation.id));
+          break;
+        case "update":
+          setAnnotations((prev) =>
+            prev.map((a) => (a.id === entry.annotation.id ? entry.previousAnnotation : a)),
+          );
+          break;
+        case "delete":
+          setAnnotations((prev) => [...prev, entry.annotation]);
+          break;
+      }
+    },
+    [setAnnotations],
+  );
+
+  const applyRedo = useCallback(
+    (entry: AtomicHistoryEntry) => {
+      switch (entry.type) {
+        case "add":
+          setAnnotations((prev) => [...prev, entry.annotation]);
+          break;
+        case "update":
+          setAnnotations((prev) =>
+            prev.map((a) => (a.id === entry.annotation.id ? entry.annotation : a)),
+          );
+          break;
+        case "delete":
+          setAnnotations((prev) => prev.filter((a) => a.id !== entry.annotation.id));
+          break;
+      }
+    },
+    [setAnnotations],
   );
 
   const undo = useCallback(() => {
@@ -59,49 +128,30 @@ export const useHistory = ({
     if (!entry) return;
     redoStack.current.push(entry);
 
-    switch (entry.type) {
-      case "add":
-        setAnnotations((prev) => prev.filter((a) => a.id !== entry.annotation.id));
-        break;
-      case "update":
-        if (entry.previousAnnotation) {
-          setAnnotations((prev) =>
-            prev.map((a) => (a.id === entry.annotation.id ? entry.previousAnnotation! : a)),
-          );
-        }
-        break;
-      case "delete":
-        setAnnotations((prev) => [...prev, entry.annotation]);
-        break;
+    if (entry.type === "batch") {
+      for (let i = entry.children.length - 1; i >= 0; i--) applyUndo(entry.children[i]);
+    } else {
+      applyUndo(entry);
     }
     bumpRevision();
-  }, [setAnnotations, bumpRevision]);
+  }, [applyUndo, bumpRevision]);
 
   const redo = useCallback(() => {
     const entry = redoStack.current.pop();
     if (!entry) return;
     undoStack.current.push(entry);
 
-    switch (entry.type) {
-      case "add":
-        setAnnotations((prev) => [...prev, entry.annotation]);
-        break;
-      case "update":
-        setAnnotations((prev) =>
-          prev.map((a) => (a.id === entry.annotation.id ? entry.annotation : a)),
-        );
-        break;
-      case "delete":
-        setAnnotations((prev) => prev.filter((a) => a.id !== entry.annotation.id));
-        break;
+    if (entry.type === "batch") {
+      for (const child of entry.children) applyRedo(child);
+    } else {
+      applyRedo(entry);
     }
     bumpRevision();
-  }, [setAnnotations, bumpRevision]);
+  }, [applyRedo, bumpRevision]);
 
   const canUndo = undoStack.current.length > 0;
   const canRedo = redoStack.current.length > 0;
 
-  // Combined entries list: [...undoStack (past), ...redoStack reversed (future)]
   const entries = [...undoStack.current, ...[...redoStack.current].reverse()];
   const currentIndex = undoStack.current.length;
 
@@ -120,6 +170,7 @@ export const useHistory = ({
   const reset = useCallback(() => {
     undoStack.current = [];
     redoStack.current = [];
+    batchStack.current = null;
     bumpRevision();
   }, [bumpRevision]);
 
@@ -127,6 +178,7 @@ export const useHistory = ({
     addAnnotation,
     updateAnnotation,
     deleteAnnotation,
+    runBatch,
     undo,
     redo,
     canUndo,

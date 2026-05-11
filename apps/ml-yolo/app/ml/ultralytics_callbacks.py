@@ -38,6 +38,14 @@ class WebhookCallbacks:
         ModelType.CLASSIFICATION: "metrics/accuracy_top1",
         ModelType.SEGMENTATION: "metrics/mAP50-95(M)",
     }
+    # mAP@0.5 key per task type. Tracked separately so the API can store
+    # `bestMap50` (max across epochs) for the model-card headline. Classification
+    # has no mAP — left None and the FE falls back to finalAccuracy.
+    _MAP50_KEY_MAP: dict[ModelType, Optional[str]] = {
+        ModelType.DETECTION: "metrics/mAP50(B)",
+        ModelType.CLASSIFICATION: None,
+        ModelType.SEGMENTATION: "metrics/mAP50(M)",
+    }
     # Fallback loss keys — Ultralytics reports per-component losses, not a
     # single summed "loss". We pick the most representative component.
     _LOSS_KEY_CANDIDATES: dict[ModelType, tuple[str, ...]] = {
@@ -60,10 +68,13 @@ class WebhookCallbacks:
         self.model_type = model_type
         self.label_ids = list(label_ids or [])
         self.acc_key = self._ACC_KEY_MAP[model_type]
+        self.map50_key = self._MAP50_KEY_MAP[model_type]
         self.loss_candidates = self._LOSS_KEY_CANDIDATES[model_type]
         self.final_metrics: dict[str, Optional[float]] = {
             "accuracy": None,
             "loss": None,
+            # Running max of mAP@50 across epochs; None for classification.
+            "best_map50": None,
         }
         # We buffer one epoch ahead so final_eval's confusion matrix (the only
         # one Ultralytics ever populates — training-time validation runs with
@@ -126,6 +137,16 @@ class WebhookCallbacks:
         metrics["loss"] = loss
         self.final_metrics["accuracy"] = accuracy
         self.final_metrics["loss"] = loss
+
+        # Track the best mAP@50 so far (det/seg only). Falling values from a
+        # later epoch shouldn't replace an earlier peak — best.pt is what gets
+        # exported, so the card should reflect the best the model achieved.
+        if self.map50_key is not None:
+            current_map50 = metrics.get(self.map50_key)
+            if current_map50 is not None:
+                prev_best = self.final_metrics.get("best_map50")
+                if prev_best is None or current_map50 > prev_best:
+                    self.final_metrics["best_map50"] = current_map50
 
         self._pending_payload = {
             "progress": {

@@ -1,5 +1,9 @@
 import { appConfig } from "@/config";
 import { baseRefreshingQuery } from "@/core/api/baseQuery";
+import {
+  captureApi,
+  CaptureApiTagType,
+} from "@/modules/capture/services/captureApi";
 import { HttpMethod } from "@/types";
 import { createApi } from "@reduxjs/toolkit/query/react";
 import {
@@ -140,6 +144,31 @@ export const projectApi = projectApiBase.injectEndpoints({
         },
       ],
     }),
+    updateProjectLabel: builder.mutation<
+      Label,
+      { projectId: number; labelId: number; name: string; color: string }
+    >({
+      query: ({ projectId, labelId, ...body }) => ({
+        url: projects.projectLabel(projectId, labelId),
+        method: HttpMethod.PUT,
+        body,
+      }),
+      invalidatesTags: (_result, _error, { projectId }) => [
+        {
+          type: ProjectApiTagType.Projects,
+          id: projectId,
+          subType: ProjectApiTagType.ProjectLabels,
+        },
+      ],
+      onQueryStarted: async (_arg, { dispatch, queryFulfilled }) => {
+        try {
+          await queryFulfilled;
+          dispatch(captureApi.util.invalidateTags([CaptureApiTagType.Tasks]));
+        } catch {
+          // mutation failed — nothing to invalidate
+        }
+      },
+    }),
   }),
   overrideExisting: true,
 });
@@ -154,5 +183,6 @@ export const {
   useGetProjectLabelsQuery,
   useLazyGetProjectLabelsQuery,
   useDeleteProjectLabelMutation,
+  useUpdateProjectLabelMutation,
   useUpdateProjectMutation,
 } = projectApi;

@@ -8,8 +8,9 @@ import {
 } from "@/modules/shadcn/ui/dialog";
 import { Input } from "@/modules/shadcn/ui/input";
 import { Label } from "@/modules/shadcn/ui/label";
+import { NumberInput } from "@/modules/shadcn/ui/number-input";
 import { useState } from "react";
-import { ColorPicker } from "./ColorPicker";
+import { ColorPicker } from "@/components/ColorPicker";
 
 const DEFAULT_COLOR = "#22c55e";
 
@@ -26,11 +27,11 @@ export function AddEvaluationItemModal({
 }: AddEvaluationItemModalProps) {
   const [name, setName] = useState("");
   const [color, setColor] = useState(DEFAULT_COLOR);
-  const [value, setValue] = useState("");
+  const [value, setValue] = useState<number | null>(null);
 
   const handleSave = () => {
-    if (!name.trim() || !value) return;
-    onSave({ name: name.trim(), color, value: Number(value) / 100 });
+    if (!name.trim() || value === null) return;
+    onSave({ name: name.trim(), color, value: value / 100 });
     resetForm();
   };
 
@@ -42,7 +43,7 @@ export function AddEvaluationItemModal({
   const resetForm = () => {
     setName("");
     setColor(DEFAULT_COLOR);
-    setValue("");
+    setValue(null);
   };
 
   return (
@@ -80,13 +81,13 @@ export function AddEvaluationItemModal({
             <Label className="text-xs font-normal text-muted-foreground">
               Value (%)
             </Label>
-            <Input
-              type="number"
+            <NumberInput
+              decimal
               placeholder="e.g. 90"
               min={0}
               max={100}
               value={value}
-              onChange={(e) => setValue(e.target.value)}
+              onValueChange={setValue}
               className="h-8 text-xs"
             />
           </div>
@@ -99,7 +100,7 @@ export function AddEvaluationItemModal({
           <Button
             size="sm"
             onClick={handleSave}
-            disabled={!name.trim() || !value}
+            disabled={!name.trim() || value === null}
           >
             Save
           </Button>

@@ -3,6 +3,10 @@ import { cn } from "@/lib/utils";
 import { Model, ModelStatusEnum } from "@repo/schema";
 import { Link, useParams } from "react-router";
 import { TRAINING_TYPE_LABELS } from "../../constants/labels";
+import {
+  getHeadlineLabel,
+  getHeadlineValue,
+} from "../../utils/headlineMetric";
 
 const formatMetric = (value: number | null | undefined): string => {
   if (value == null || !Number.isFinite(value)) return "—";
@@ -48,6 +52,9 @@ export const ModelCard = ({ model, order }: ModelCardProps) => {
   const { projectId, modelId } = useParams();
   const status = STATUS_STYLES[model.status];
   const isSelected = model.id.toString() === modelId;
+
+  const headlineValue = getHeadlineValue(model);
+  const headlineLabel = getHeadlineLabel(model.trainingType);
 
   return (
     <Link
@@ -104,14 +111,14 @@ export const ModelCard = ({ model, order }: ModelCardProps) => {
                 {model.epochs}
               </span>
             </div>
-            {(model.finalAccuracy != null || model.finalLoss != null) && (
+            {(headlineValue != null || model.finalLoss != null) && (
               <>
                 <div className="flex flex-col gap-0.5">
                   <span className="text-[10px] uppercase leading-3 tracking-[0.5px] text-black/50">
-                    Accuracy
+                    {headlineLabel}
                   </span>
                   <span className="text-xs font-semibold leading-4 text-emerald-700">
-                    {formatMetric(model.finalAccuracy)}
+                    {formatMetric(headlineValue)}
                   </span>
                 </div>
                 <div className="flex flex-col gap-0.5">

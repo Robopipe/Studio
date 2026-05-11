@@ -1,6 +1,6 @@
 import type { SahiConfig } from "@/core/cameraApi/schemas/nn";
 import { DEFAULT_SAHI_CONFIG } from "@/core/cameraApi/schemas/nn";
-import { Input } from "@/modules/shadcn/ui/input";
+import { NumberInput } from "@/modules/shadcn/ui/number-input";
 import { Slider } from "@/modules/shadcn/ui/slider";
 import { Switch } from "@/modules/shadcn/ui/switch";
 
@@ -87,15 +87,14 @@ const SahiField = ({
   <div className="flex flex-col gap-2">
     <div className="flex items-center justify-between">
       <label className="text-sm text-muted-foreground">{label}</label>
-      <Input
-        type="number"
+      <NumberInput
+        decimal
         value={value}
         min={min}
         max={max}
         step={step}
-        onChange={(e) => {
-          const v = parseFloat(e.target.value);
-          if (!isNaN(v)) onChange(Math.min(max, Math.max(min, v)));
+        onValueChange={(v) => {
+          if (v !== null) onChange(Math.min(max, Math.max(min, v)));
         }}
         className="h-8 w-20 text-right text-sm"
       />

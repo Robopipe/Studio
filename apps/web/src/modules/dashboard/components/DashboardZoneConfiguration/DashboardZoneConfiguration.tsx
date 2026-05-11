@@ -1,6 +1,6 @@
 import { useGetTasksQuery } from "@/modules/capture/services/captureApi";
-import { Input } from "@/modules/shadcn/ui/input";
 import { Label } from "@/modules/shadcn/ui/label";
+import { NumberInput } from "@/modules/shadcn/ui/number-input";
 import { Switch } from "@/modules/shadcn/ui/switch";
 import { DashboardConfigurationZoneDirectionEnum } from "@repo/schema";
 import { DirectionPicker } from "./DirectionPicker";
@@ -59,14 +59,14 @@ export const DashboardZoneConfiguration = ({
     });
   };
 
-  const setSafeStart = (next: number) => {
-    const s = Math.max(0, Math.min(100, next));
+  const setSafeStart = (next: number | null) => {
+    const s = Math.max(0, Math.min(100, next ?? 0));
     const e = Math.min(safeEndPct, 100 - s);
     applySafeBounds(s, e);
   };
 
-  const setSafeEnd = (next: number) => {
-    const e = Math.max(0, Math.min(100, next));
+  const setSafeEnd = (next: number | null) => {
+    const e = Math.max(0, Math.min(100, next ?? 0));
     const s = Math.min(safeStartPct, 100 - e);
     applySafeBounds(s, e);
   };
@@ -94,13 +94,12 @@ export const DashboardZoneConfiguration = ({
               {labels.start}
             </Label>
             <div className="flex items-center gap-2">
-              <Input
-                type="number"
+              <NumberInput
                 className="w-24"
                 value={safeStartPct}
                 min={0}
                 max={100}
-                onChange={(e) => setSafeStart(Number(e.target.value))}
+                onValueChange={setSafeStart}
               />
               <span className="text-sm text-muted-foreground">%</span>
             </div>
@@ -111,13 +110,12 @@ export const DashboardZoneConfiguration = ({
               {labels.end}
             </Label>
             <div className="flex items-center gap-2">
-              <Input
-                type="number"
+              <NumberInput
                 className="w-24"
                 value={safeEndPct}
                 min={0}
                 max={100}
-                onChange={(e) => setSafeEnd(Number(e.target.value))}
+                onValueChange={setSafeEnd}
               />
               <span className="text-sm text-muted-foreground">%</span>
             </div>

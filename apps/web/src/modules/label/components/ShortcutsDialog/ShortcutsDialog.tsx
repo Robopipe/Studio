@@ -10,7 +10,10 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUp,
+  ClipboardPaste,
+  Copy,
   Crosshair,
+  EyeOff,
   Hand,
   Keyboard,
   MousePointer2,
@@ -99,8 +102,38 @@ const groups: ShortcutGroup[] = [
       },
       {
         icon: <Trash2 />,
-        label: "Delete selected region",
+        label: "Delete selected region(s)",
         keys: <KeyCombo keys={["Del"]} />,
+      },
+      {
+        icon: <EyeOff />,
+        label: "Hide all regions (while held)",
+        keys: <KeyCombo keys={["H"]} />,
+      },
+    ],
+  },
+  {
+    title: "Selection",
+    items: [
+      {
+        icon: <MousePointer2 />,
+        label: "Add / remove from selection",
+        keys: <KeyCombo keys={["Ctrl", "Click"]} />,
+      },
+      {
+        icon: <MousePointer2 />,
+        label: "Select range in sidebar",
+        keys: <KeyCombo keys={["Shift", "Click"]} />,
+      },
+      {
+        icon: <Copy />,
+        label: "Copy selected region(s)",
+        keys: <KeyCombo keys={["Ctrl", "C"]} />,
+      },
+      {
+        icon: <ClipboardPaste />,
+        label: "Paste (same project)",
+        keys: <KeyCombo keys={["Ctrl", "V"]} />,
       },
     ],
   },

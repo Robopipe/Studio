@@ -1,8 +1,9 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { Circle, Line } from "react-konva";
 import Konva from "konva";
 import { Annotation } from "../../types/annotations";
 import { ToolMode } from "../../types/annotations";
+import type { GroupDragApi } from "./KonvaStage";
 
 function distToSegment(px: number, py: number, ax: number, ay: number, bx: number, by: number) {
   const dx = bx - ax;
@@ -22,10 +23,12 @@ interface PolygonRegionProps {
   imageWidth: number;
   imageHeight: number;
   isSelected: boolean;
+  showHandles: boolean;
   toolMode: ToolMode;
   stageScale: number;
-  onSelect: (id: string) => void;
+  onSelect: (id: string, opts?: { additive?: boolean }) => void;
   onUpdate: (id: string, updates: Partial<Annotation>) => void;
+  groupDrag: GroupDragApi;
 }
 
 export const PolygonRegion = ({
@@ -33,10 +36,12 @@ export const PolygonRegion = ({
   imageWidth,
   imageHeight,
   isSelected,
+  showHandles,
   toolMode,
   stageScale,
   onSelect,
   onUpdate,
+  groupDrag,
 }: PolygonRegionProps) => {
   const pts = annotation.points ?? [];
   const flatPoints = pts.flatMap(([px, py]) => [
@@ -45,11 +50,27 @@ export const PolygonRegion = ({
   ]);
   const lineRef = useRef<Konva.Line>(null);
   const circleRefs = useRef<(Konva.Circle | null)[]>([]);
+  const pendingClickRef = useRef<{ additive: boolean } | null>(null);
 
   const isInteractive = toolMode === ToolMode.SELECT;
 
+  useEffect(() => {
+    const node = lineRef.current;
+    if (!node) return;
+    groupDrag.registerNode(annotation.id, node);
+    return () => groupDrag.registerNode(annotation.id, null);
+  }, [annotation.id, groupDrag]);
+
   const handleLineClick = () => {
-    if (!isInteractive || !isSelected) return;
+    // First: drain a pending selection click (mousedown-without-drag).
+    const pending = pendingClickRef.current;
+    pendingClickRef.current = null;
+    if (pending) {
+      onSelect(annotation.id, { additive: pending.additive });
+      return;
+    }
+    // Otherwise: in single-select mode this inserts a vertex on the nearest edge.
+    if (!isInteractive || !showHandles) return;
     const line = lineRef.current;
     if (!line) return;
     const stage = line.getStage();
@@ -60,7 +81,6 @@ export const PolygonRegion = ({
     const transform = line.getAbsoluteTransform().copy().invert();
     const localPos = transform.point(pointer);
 
-    // Find closest edge to insert the new point
     let bestDist = Infinity;
     let insertAfter = 0;
     for (let i = 0; i < pts.length; i++) {
@@ -76,7 +96,6 @@ export const PolygonRegion = ({
       }
     }
 
-    // Only insert when clicking near an edge (within 10 screen pixels)
     const absTransform = line.getAbsoluteTransform();
     const origin = absTransform.point({ x: 0, y: 0 });
     const unit = absTransform.point({ x: 1, y: 0 });
@@ -112,7 +131,15 @@ export const PolygonRegion = ({
     onUpdate(annotation.id, { points: newPts });
   };
 
+  const handleLineDragStart = () => {
+    pendingClickRef.current = null;
+    groupDrag.onDragStart(annotation.id);
+  };
+
   const handleLineDragMove = () => {
+    groupDrag.onDragMove(annotation.id);
+    // Single-select also keeps vertex circles in sync with the dragged line.
+    // (In multi-select, no circles are rendered — loop is a no-op.)
     const line = lineRef.current;
     if (!line) return;
     const dx = line.x();
@@ -127,6 +154,8 @@ export const PolygonRegion = ({
   };
 
   const handleLineDragEnd = (e: Konva.KonvaEventObject<DragEvent>) => {
+    const wasGroup = groupDrag.onDragEnd(annotation.id);
+    if (wasGroup) return;
     const node = e.target;
     const dx = node.x();
     const dy = node.y();
@@ -148,29 +177,38 @@ export const PolygonRegion = ({
         points={flatPoints}
         closed
         stroke={annotation.color}
-        strokeWidth={2}
+        strokeWidth={isSelected ? 3 : 2}
         strokeScaleEnabled={false}
-        fill={annotation.color + "33"}
+        fill={annotation.color + (isSelected ? "60" : "33")}
+        shadowEnabled={isSelected}
+        shadowColor={annotation.color}
+        shadowBlur={6}
+        shadowOpacity={0.5}
         hitStrokeWidth={20 / stageScale}
-        draggable={isInteractive}
+        draggable={isInteractive && isSelected}
+        onDragStart={handleLineDragStart}
         onDragMove={handleLineDragMove}
         onDragEnd={handleLineDragEnd}
         onClick={handleLineClick}
         onTap={handleLineClick}
         onMouseDown={(e) => {
-          if (isInteractive) {
-            e.cancelBubble = true;
-            onSelect(annotation.id);
+          if (!isInteractive) return;
+          e.cancelBubble = true;
+          const additive = e.evt.ctrlKey || e.evt.metaKey;
+          if (!isSelected) {
+            onSelect(annotation.id, { additive });
+            pendingClickRef.current = null;
+          } else {
+            pendingClickRef.current = { additive };
           }
         }}
         onTouchStart={(e) => {
-          if (isInteractive) {
-            e.cancelBubble = true;
-            onSelect(annotation.id);
-          }
+          if (!isInteractive) return;
+          e.cancelBubble = true;
+          if (!isSelected) onSelect(annotation.id);
         }}
       />
-      {isSelected &&
+      {showHandles &&
         isInteractive &&
         pts.map(([px, py], i) => (
           <Circle

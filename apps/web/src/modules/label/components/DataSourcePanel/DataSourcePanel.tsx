@@ -45,8 +45,12 @@ export const DataSourcePanel = ({
     filter.annotationFilter !== "all" || filter.labelIds.length > 0;
 
   useEffect(() => {
-    listRef.current?.scrollTo({ top: 0 });
-  }, [page]);
+    if (selectedTaskId === null) return;
+    const el = listRef.current?.querySelector<HTMLElement>(
+      `[data-task-id="${selectedTaskId}"]`,
+    );
+    el?.scrollIntoView({ block: "nearest" });
+  }, [selectedTaskId, tasks]);
 
   const handleExport = async () => {
     if (!activeProject) return;
@@ -133,14 +137,15 @@ export const DataSourcePanel = ({
           const count =
             isSelected ? annotationCount : task.annotationCount ?? 0;
           return (
-            <TaskListItem
-              key={task.id}
-              task={task}
-              imageSrc={task.thumbnailUrl}
-              selected={isSelected}
-              onClick={() => onSelectTask(task.id)}
-              rightSlot={<AnnotationChip count={count} status={task.status} />}
-            />
+            <div key={task.id} data-task-id={task.id}>
+              <TaskListItem
+                task={task}
+                imageSrc={task.thumbnailUrl}
+                selected={isSelected}
+                onClick={() => onSelectTask(task.id)}
+                rightSlot={<AnnotationChip count={count} status={task.status} />}
+              />
+            </div>
           );
         })}
       </div>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Label } from "@repo/schema";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
@@ -11,7 +11,7 @@ import {
   usePredictAnnotationsMutation,
   useUpdateTaskMutation,
 } from "../../services/labelApi";
-import { useSelectedTask } from "../../hooks/useSelectedTask";
+import { useLabelUrlState } from "../../hooks/useLabelUrlState";
 import { useToolMode } from "../../hooks/useToolMode";
 import { useHistory } from "../../hooks/useHistory";
 import { useCanvasState } from "../../hooks/useCanvasState";
@@ -29,8 +29,8 @@ import { AnnotationPanel } from "../AnnotationPanel";
 import { Canvas } from "../Canvas";
 import { ClassSelect } from "../ClassSelect";
 import { DataSourcePanel } from "../DataSourcePanel";
+import { LeaveAnnotationsDialog } from "../LeaveAnnotationsDialog";
 import { PreAnnotateSettingsDialog } from "../PreAnnotateSettingsDialog";
-import { TaskFilterState } from "../TaskFilterDialog";
 import { Toolbar } from "../Toolbar";
 
 const TASKS_PER_PAGE = 50;
@@ -39,9 +39,17 @@ export const LabelPage = () => {
   const [activeProject] = useActiveProject();
   const projectId = activeProject?.id;
 
-  const [page, setPage] = useState(1);
-  const [filter, setFilter] = useState<TaskFilterState>({ annotationFilter: "all", labelIds: [] });
-  const { data: tasksData } = useGetTasksQuery(
+  const {
+    selectedTaskId,
+    setSelectedTaskId,
+    page,
+    setPage,
+    filter,
+    setFilter,
+    pendingAnchorRef,
+  } = useLabelUrlState();
+
+  const { data: tasksData, isFetching: isFetchingTasks } = useGetTasksQuery(
     {
       projectId: projectId!,
       page,
@@ -59,20 +67,24 @@ export const LabelPage = () => {
     { skip: !projectId },
   );
 
-  const { selectedTaskId, setSelectedTaskId, selectedTask } = useSelectedTask(tasks);
-  const [pendingPageSelection, setPendingPageSelection] = useState<
-    "first" | "last" | null
-  >(null);
-
+  // Whenever there's no task in the URL but the current page has tasks,
+  // pick one. Covers two cases:
+  //   - Initial load (no `?task=…`) → pick the first task.
+  //   - After a page change (`setPage` clears the task) → pick first or
+  //     last depending on the queued anchor.
+  // Gated on `!isFetchingTasks` so we never anchor on the *previous*
+  // page's data — RTK Query keeps `data` around while refetching.
   useEffect(() => {
-    if (!pendingPageSelection || tasks.length === 0) return;
-    setSelectedTaskId(
-      pendingPageSelection === "first"
-        ? tasks[0].id
-        : tasks[tasks.length - 1].id,
-    );
-    setPendingPageSelection(null);
-  }, [tasks, pendingPageSelection, setSelectedTaskId]);
+    if (selectedTaskId !== null || isFetchingTasks || tasks.length === 0) return;
+    const targetId =
+      pendingAnchorRef.current === "last"
+        ? tasks[tasks.length - 1].id
+        : tasks[0].id;
+    setSelectedTaskId(targetId, { replace: true });
+    pendingAnchorRef.current = null;
+  }, [selectedTaskId, isFetchingTasks, tasks, setSelectedTaskId, pendingAnchorRef]);
+
+  const selectedTask = tasks.find((t) => t.id === selectedTaskId);
 
   const { data: taskDetail } = useGetTaskQuery(
     { projectId: projectId!, taskId: selectedTaskId! },
@@ -125,7 +137,11 @@ export const LabelPage = () => {
   }, []);
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [isDirty, setIsDirty] = useState(false);
-  const [selectedAnnotationId, setSelectedAnnotationId] = useState<string | null>(null);
+  const [selectedAnnotationIds, setSelectedAnnotationIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [primarySelectedId, setPrimarySelectedId] = useState<string | null>(null);
+  const clipboardRef = useRef<{ projectId: number; annotations: Annotation[] } | null>(null);
   const [hiddenAnnotationIds, setHiddenAnnotationIds] = useState<Set<string>>(
     () => new Set(),
   );
@@ -143,6 +159,19 @@ export const LabelPage = () => {
   const showAllAnnotations = useCallback(() => {
     setHiddenAnnotationIds(new Set());
   }, []);
+  // Transient "h"-hold overlay; does not mutate hiddenAnnotationIds so the
+  // per-annotation eye toggles are restored exactly on release.
+  const [previewHideAll, setPreviewHideAll] = useState(false);
+  const startPreviewHideAll = useCallback(() => setPreviewHideAll(true), []);
+  const stopPreviewHideAll = useCallback(() => setPreviewHideAll(false), []);
+  // Persistent class filter set by clicking a class in the Annotations tab.
+  // Acts radio-style: re-click same class or click "Any" to clear.
+  const [isolatedLabelId, setIsolatedLabelId] = useState<string | null>(null);
+  const setIsolatedLabel = useCallback(
+    (labelId: string) => setIsolatedLabelId(labelId),
+    [],
+  );
+  const clearIsolatedLabel = useCallback(() => setIsolatedLabelId(null), []);
   const [activeLabel, setActiveLabel] = useState<Label | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const canvasState = useCanvasState();
@@ -155,8 +184,60 @@ export const LabelPage = () => {
   const history = useHistory({
     annotations,
     setAnnotations: setAnnotationsAndDirty,
-    setSelectedAnnotationId,
   });
+
+  const handleSelect = useCallback(
+    (id: string | null, opts?: { additive?: boolean; range?: boolean }) => {
+      if (id === null) {
+        setSelectedAnnotationIds(new Set());
+        setPrimarySelectedId(null);
+        return;
+      }
+      if (opts?.range && primarySelectedId !== null) {
+        const ids = annotations.map((a) => a.id);
+        const fromIdx = ids.indexOf(primarySelectedId);
+        const toIdx = ids.indexOf(id);
+        if (fromIdx !== -1 && toIdx !== -1) {
+          const [lo, hi] = fromIdx <= toIdx ? [fromIdx, toIdx] : [toIdx, fromIdx];
+          setSelectedAnnotationIds(new Set(ids.slice(lo, hi + 1)));
+          setPrimarySelectedId(id);
+          return;
+        }
+      }
+      if (!opts?.additive) {
+        setSelectedAnnotationIds(new Set([id]));
+        setPrimarySelectedId(id);
+        return;
+      }
+      const next = new Set(selectedAnnotationIds);
+      if (next.has(id)) {
+        next.delete(id);
+        setSelectedAnnotationIds(next);
+        setPrimarySelectedId(next.size > 0 ? Array.from(next).pop()! : null);
+      } else {
+        next.add(id);
+        setSelectedAnnotationIds(next);
+        setPrimarySelectedId(id);
+      }
+    },
+    [selectedAnnotationIds, primarySelectedId, annotations],
+  );
+
+  // Wraps history.deleteAnnotation so the id is also removed from the
+  // selection Set (the hook itself is now selection-agnostic).
+  const deleteAnnotationWithSelection = useCallback(
+    (id: string) => {
+      history.deleteAnnotation(id);
+      setSelectedAnnotationIds((prev) => {
+        if (!prev.has(id)) return prev;
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      setPrimarySelectedId((prev) => (prev === id ? null : prev));
+    },
+    [history],
+  );
 
   // Set default active label when labels load
   useEffect(() => {
@@ -171,8 +252,11 @@ export const LabelPage = () => {
       setAnnotations(taskDetailToAnnotations(taskDetail));
       setIsDirty(false);
       setHiddenAnnotationIds(new Set());
+      setPreviewHideAll(false);
+      setIsolatedLabelId(null);
       history.reset();
-      setSelectedAnnotationId(null);
+      setSelectedAnnotationIds(new Set());
+      setPrimarySelectedId(null);
     }
   }, [taskDetail]);
 
@@ -190,10 +274,70 @@ export const LabelPage = () => {
   );
 
   const handleClear = useCallback(() => {
-    if (selectedAnnotationId) {
-      history.deleteAnnotation(selectedAnnotationId);
+    if (selectedAnnotationIds.size === 0) return;
+    const ids = Array.from(selectedAnnotationIds);
+    history.runBatch("delete", () => {
+      for (const id of ids) history.deleteAnnotation(id);
+    });
+    setSelectedAnnotationIds(new Set());
+    setPrimarySelectedId(null);
+  }, [selectedAnnotationIds, history]);
+
+  const cloneAnnotation = useCallback((a: Annotation): Annotation => ({
+    ...a,
+    bbox: a.bbox ? { ...a.bbox } : undefined,
+    points: a.points?.map(([x, y]) => [x, y] as [number, number]),
+  }), []);
+
+  const handleCopySelection = useCallback(() => {
+    if (!projectId || selectedAnnotationIds.size === 0) return;
+    const selected = annotations.filter((a) => selectedAnnotationIds.has(a.id));
+    if (selected.length === 0) return;
+    clipboardRef.current = {
+      projectId,
+      annotations: selected.map(cloneAnnotation),
+    };
+    toast.success(
+      `Copied ${selected.length} region${selected.length === 1 ? "" : "s"}`,
+    );
+  }, [annotations, selectedAnnotationIds, projectId, cloneAnnotation]);
+
+  const handleGroupTranslate = useCallback(
+    (updates: Array<{ id: string; updates: Partial<Annotation> }>) => {
+      if (updates.length === 0) return;
+      history.runBatch("move", () => {
+        for (const { id, updates: u } of updates) history.updateAnnotation(id, u);
+      });
+    },
+    [history],
+  );
+
+  const handlePasteClipboard = useCallback(() => {
+    if (!projectId) return;
+    const clip = clipboardRef.current;
+    if (!clip || clip.annotations.length === 0) {
+      toast.info("Clipboard is empty");
+      return;
     }
-  }, [selectedAnnotationId, history]);
+    if (clip.projectId !== projectId) {
+      toast.error("Clipboard belongs to a different project");
+      return;
+    }
+    const stamp = Date.now();
+    const pasted: Annotation[] = clip.annotations.map((a, idx) => {
+      const cloned = cloneAnnotation(a);
+      return { ...cloned, id: `ann-${stamp}-${idx}`, apiId: undefined };
+    });
+    history.runBatch("paste", () => {
+      for (const ann of pasted) history.addAnnotation(ann);
+    });
+    const newIds = pasted.map((a) => a.id);
+    setSelectedAnnotationIds(new Set(newIds));
+    setPrimarySelectedId(newIds[newIds.length - 1] ?? null);
+    toast.success(
+      `Pasted ${pasted.length} region${pasted.length === 1 ? "" : "s"}`,
+    );
+  }, [projectId, history, cloneAnnotation]);
 
   const handleSelectLabel = useCallback(
     (labelId: number) => {
@@ -280,7 +424,8 @@ export const LabelPage = () => {
         setAnnotations(newAnnotations);
         setIsDirty(true);
         history.reset();
-        setSelectedAnnotationId(null);
+        setSelectedAnnotationIds(new Set());
+        setPrimarySelectedId(null);
 
         if (newAnnotations.length === 0) {
           toast.info("No predictions above the confidence threshold", {
@@ -336,17 +481,28 @@ export const LabelPage = () => {
     onSetToolMode: setToolMode,
     onToggleCrosshair: toggleCrosshair,
     onSelectTask: setSelectedTaskId,
-    onChangePage: (nextPage, anchor) => {
-      setPendingPageSelection(anchor);
-      setPage(nextPage);
-    },
+    onChangePage: setPage,
     onSelectLabel: handleSelectLabel,
+    onHidePreviewDown: startPreviewHideAll,
+    onHidePreviewUp: stopPreviewHideAll,
   });
 
-  const visibleAnnotations = useMemo(
-    () => annotations.filter((a) => !hiddenAnnotationIds.has(a.id)),
-    [annotations, hiddenAnnotationIds],
-  );
+  // Priority: hold-to-hide (h) > class isolate > per-annotation hides.
+  const visibleAnnotations = useMemo(() => {
+    if (previewHideAll) return [];
+    if (isolatedLabelId !== null) {
+      return annotations.filter((a) => a.labelId === isolatedLabelId);
+    }
+    return annotations.filter((a) => !hiddenAnnotationIds.has(a.id));
+  }, [annotations, hiddenAnnotationIds, previewHideAll, isolatedLabelId]);
+
+  // If the isolated class loses all its annotations (e.g. user deleted them),
+  // drop the filter so the canvas isn't stuck empty.
+  useEffect(() => {
+    if (isolatedLabelId === null) return;
+    const stillExists = annotations.some((a) => a.labelId === isolatedLabelId);
+    if (!stillExists) setIsolatedLabelId(null);
+  }, [annotations, isolatedLabelId]);
 
   const activeLabelForCanvas = useMemo(
     () =>
@@ -368,22 +524,22 @@ export const LabelPage = () => {
         onPageChange={setPage}
         filter={filter}
         labels={labels}
-        onFilterChange={(val) => {
-          setFilter(val);
-          setPage(1);
-        }}
+        onFilterChange={setFilter}
       />
       <AnnotationPanel
         annotations={annotations}
         labels={labels}
-        selectedAnnotationId={selectedAnnotationId}
-        onSelectAnnotation={setSelectedAnnotationId}
-        onDeleteAnnotation={history.deleteAnnotation}
+        selectedAnnotationIds={selectedAnnotationIds}
+        onSelectAnnotation={handleSelect}
+        onDeleteAnnotation={deleteAnnotationWithSelection}
         onReorderAnnotations={handleReorderAnnotations}
         hiddenAnnotationIds={hiddenAnnotationIds}
         onToggleAnnotationVisibility={toggleAnnotationVisibility}
         onHideAllAnnotations={hideAllAnnotations}
         onShowAllAnnotations={showAllAnnotations}
+        isolatedLabelId={isolatedLabelId}
+        onIsolateLabel={setIsolatedLabel}
+        onClearIsolate={clearIsolatedLabel}
         historyEntries={history.entries}
         historyIndex={history.currentIndex}
         onJumpTo={history.jumpTo}
@@ -392,9 +548,10 @@ export const LabelPage = () => {
       />
       <div className="relative flex min-h-0 flex-col overflow-hidden">
         <Canvas
-          task={selectedTask}
+          task={selectedTask ?? taskDetail}
           annotations={visibleAnnotations}
-          selectedAnnotationId={selectedAnnotationId}
+          selectedAnnotationIds={selectedAnnotationIds}
+          primarySelectedId={primarySelectedId}
           toolMode={toolMode}
           activeLabel={activeLabelForCanvas}
           scale={canvasState.scale}
@@ -405,10 +562,13 @@ export const LabelPage = () => {
           onSave={handleSave}
           onSaveEmpty={handleSaveEmpty}
           showCrosshair={showCrosshair}
-          onSelect={setSelectedAnnotationId}
+          onSelect={handleSelect}
           onAddAnnotation={history.addAnnotation}
           onUpdateAnnotation={history.updateAnnotation}
-          onDeleteAnnotation={history.deleteAnnotation}
+          onDeleteSelected={handleClear}
+          onCopySelection={handleCopySelection}
+          onPasteClipboard={handlePasteClipboard}
+          onGroupTranslate={handleGroupTranslate}
           onUndo={history.undo}
           onRedo={history.redo}
           onZoomAtPoint={canvasState.zoomAtPoint}
@@ -427,7 +587,7 @@ export const LabelPage = () => {
               onClear={handleClear}
               canUndo={history.canUndo}
               canRedo={history.canRedo}
-              hasSelection={selectedAnnotationId !== null}
+              hasSelection={selectedAnnotationIds.size > 0}
               hasLabels={labels.length > 0 || isLoadingLabels}
               showCrosshair={showCrosshair}
               onToggleCrosshair={toggleCrosshair}
@@ -466,6 +626,11 @@ export const LabelPage = () => {
         models={models}
         settings={preAnnotateSettings}
         onApply={updatePreAnnotateSettings}
+      />
+      <LeaveAnnotationsDialog
+        isDirty={isDirty}
+        isSaving={isSaving}
+        onSave={handleSave}
       />
     </div>
   );

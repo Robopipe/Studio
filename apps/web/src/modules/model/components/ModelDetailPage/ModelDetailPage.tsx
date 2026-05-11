@@ -214,7 +214,11 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
       */}
       <div className="flex min-h-0 flex-1 flex-col">
         {activeTab === "overview" && (
-          <ModelOverview modelName={model?.name} logs={logs} />
+          <ModelOverview
+            modelName={model?.name}
+            logs={logs}
+            trainingType={model?.trainingType}
+          />
         )}
         {activeTab === "parameters" && model && (
           <ModelParameters model={model} />
