@@ -27,8 +27,8 @@ export interface AnnotationPanelProps {
   onToggleAnnotationVisibility: (id: string) => void;
   onHideAllAnnotations: () => void;
   onShowAllAnnotations: () => void;
+  isolatedLabelId: string | null;
   onIsolateLabel: (labelId: string) => void;
-  onIsolateAny: () => void;
   onClearIsolate: () => void;
   historyEntries: HistoryEntry[];
   historyIndex: number;
@@ -48,8 +48,8 @@ export const AnnotationPanel = ({
   onToggleAnnotationVisibility,
   onHideAllAnnotations,
   onShowAllAnnotations,
+  isolatedLabelId,
   onIsolateLabel,
-  onIsolateAny,
   onClearIsolate,
   onOpenSettings,
   isLoadingLabels,
@@ -83,24 +83,30 @@ export const AnnotationPanel = ({
                 icon={<AnnotateIcon className="size-4 text-foreground/60" />}
                 name="Any"
                 count={annotations.length}
-                onPressDown={onIsolateAny}
-                onPressUp={onClearIsolate}
+                isActive={isolatedLabelId === null}
+                onClick={onClearIsolate}
               />
-              {classCounts.map((cls) => (
-                <ClassRow
-                  key={cls.id}
-                  icon={
-                    <AnnotateIcon
-                      className="size-4 shrink-0"
-                      style={{ color: cls.color }}
-                    />
-                  }
-                  name={cls.name}
-                  count={cls.count}
-                  onPressDown={() => onIsolateLabel(String(cls.id))}
-                  onPressUp={onClearIsolate}
-                />
-              ))}
+              {classCounts.map((cls) => {
+                const id = String(cls.id);
+                const isActive = isolatedLabelId === id;
+                return (
+                  <ClassRow
+                    key={cls.id}
+                    icon={
+                      <AnnotateIcon
+                        className="size-4 shrink-0"
+                        style={{ color: cls.color }}
+                      />
+                    }
+                    name={cls.name}
+                    count={cls.count}
+                    isActive={isActive}
+                    onClick={() =>
+                      isActive ? onClearIsolate() : onIsolateLabel(id)
+                    }
+                  />
+                );
+              })}
             </div>
           </CollapsiblePanel>
         </Collapsible>
@@ -237,40 +243,27 @@ const ClassRow = ({
   icon,
   name,
   count,
-  onPressDown,
-  onPressUp,
+  isActive,
+  onClick,
 }: {
   icon: React.ReactNode;
   name: string;
   count: number;
-  onPressDown: () => void;
-  onPressUp: () => void;
+  isActive: boolean;
+  onClick: () => void;
 }) => (
-  <div
-    role="button"
-    tabIndex={0}
-    onMouseDown={(e) => {
-      // Only react to primary button; right-click should release if held.
-      if (e.button !== 0) {
-        onPressUp();
-        return;
-      }
-      e.preventDefault();
-      onPressDown();
-    }}
-    onMouseUp={onPressUp}
-    onMouseLeave={onPressUp}
-    onPointerCancel={onPressUp}
-    onContextMenu={onPressUp}
-    onTouchStart={onPressDown}
-    onTouchEnd={onPressUp}
-    onTouchCancel={onPressUp}
-    className="flex cursor-pointer select-none items-center gap-2 rounded-md p-2 transition-colors hover:bg-black/5 active:bg-black/[0.07]"
+  <button
+    type="button"
+    onClick={onClick}
+    className={cn(
+      "flex cursor-pointer select-none items-center gap-2 rounded-md p-2 text-left transition-colors hover:bg-black/5",
+      isActive && "bg-primary/10 hover:bg-primary/15",
+    )}
   >
     {icon}
     <span className="flex-1 text-xs text-foreground/90">{name}</span>
     <span className="flex h-3.5 min-w-6 items-center justify-center rounded-full bg-black/[0.03] px-1.5 text-[11px] leading-none text-foreground/60">
       {count}
     </span>
-  </div>
+  </button>
 );
