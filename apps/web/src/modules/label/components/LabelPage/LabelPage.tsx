@@ -11,7 +11,7 @@ import {
   usePredictAnnotationsMutation,
   useUpdateTaskMutation,
 } from "../../services/labelApi";
-import { useSelectedTask } from "../../hooks/useSelectedTask";
+import { useLabelUrlState } from "../../hooks/useLabelUrlState";
 import { useToolMode } from "../../hooks/useToolMode";
 import { useHistory } from "../../hooks/useHistory";
 import { useCanvasState } from "../../hooks/useCanvasState";
@@ -30,7 +30,6 @@ import { Canvas } from "../Canvas";
 import { ClassSelect } from "../ClassSelect";
 import { DataSourcePanel } from "../DataSourcePanel";
 import { PreAnnotateSettingsDialog } from "../PreAnnotateSettingsDialog";
-import { TaskFilterState } from "../TaskFilterDialog";
 import { Toolbar } from "../Toolbar";
 
 const TASKS_PER_PAGE = 50;
@@ -39,9 +38,18 @@ export const LabelPage = () => {
   const [activeProject] = useActiveProject();
   const projectId = activeProject?.id;
 
-  const [page, setPage] = useState(1);
-  const [filter, setFilter] = useState<TaskFilterState>({ annotationFilter: "all", labelIds: [] });
-  const { data: tasksData } = useGetTasksQuery(
+  const {
+    selectedTaskId,
+    setSelectedTaskId,
+    page,
+    setPage,
+    filter,
+    setFilter,
+    pendingAnchor,
+    setPendingAnchor,
+  } = useLabelUrlState();
+
+  const { data: tasksData, isFetching: isFetchingTasks } = useGetTasksQuery(
     {
       projectId: projectId!,
       page,
@@ -59,20 +67,31 @@ export const LabelPage = () => {
     { skip: !projectId },
   );
 
-  const { selectedTaskId, setSelectedTaskId, selectedTask } = useSelectedTask(tasks);
-  const [pendingPageSelection, setPendingPageSelection] = useState<
-    "first" | "last" | null
-  >(null);
-
+  // Whenever there's no task in the URL but the current page has tasks,
+  // pick one. Covers two cases:
+  //   - Initial load (no `?task=…`) → pick the first task.
+  //   - After a page change (`setPage` clears the task) → pick first or
+  //     last depending on the queued anchor.
+  // Gated on `!isFetchingTasks` so we never anchor on the *previous*
+  // page's data — RTK Query keeps `data` around while refetching.
   useEffect(() => {
-    if (!pendingPageSelection || tasks.length === 0) return;
-    setSelectedTaskId(
-      pendingPageSelection === "first"
-        ? tasks[0].id
-        : tasks[tasks.length - 1].id,
-    );
-    setPendingPageSelection(null);
-  }, [tasks, pendingPageSelection, setSelectedTaskId]);
+    if (selectedTaskId !== null || isFetchingTasks || tasks.length === 0) return;
+    const targetId =
+      pendingAnchor === "last"
+        ? tasks[tasks.length - 1].id
+        : tasks[0].id;
+    setSelectedTaskId(targetId, { replace: true });
+    if (pendingAnchor) setPendingAnchor(null);
+  }, [
+    selectedTaskId,
+    pendingAnchor,
+    isFetchingTasks,
+    tasks,
+    setSelectedTaskId,
+    setPendingAnchor,
+  ]);
+
+  const selectedTask = tasks.find((t) => t.id === selectedTaskId);
 
   const { data: taskDetail } = useGetTaskQuery(
     { projectId: projectId!, taskId: selectedTaskId! },
@@ -443,10 +462,7 @@ export const LabelPage = () => {
     onSetToolMode: setToolMode,
     onToggleCrosshair: toggleCrosshair,
     onSelectTask: setSelectedTaskId,
-    onChangePage: (nextPage, anchor) => {
-      setPendingPageSelection(anchor);
-      setPage(nextPage);
-    },
+    onChangePage: setPage,
     onSelectLabel: handleSelectLabel,
   });
 
@@ -475,10 +491,7 @@ export const LabelPage = () => {
         onPageChange={setPage}
         filter={filter}
         labels={labels}
-        onFilterChange={(val) => {
-          setFilter(val);
-          setPage(1);
-        }}
+        onFilterChange={setFilter}
       />
       <AnnotationPanel
         annotations={annotations}
@@ -499,7 +512,7 @@ export const LabelPage = () => {
       />
       <div className="relative flex min-h-0 flex-col overflow-hidden">
         <Canvas
-          task={selectedTask}
+          task={selectedTask ?? taskDetail}
           annotations={visibleAnnotations}
           selectedAnnotationIds={selectedAnnotationIds}
           primarySelectedId={primarySelectedId}
