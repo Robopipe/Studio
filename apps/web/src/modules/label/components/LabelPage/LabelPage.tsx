@@ -187,11 +187,22 @@ export const LabelPage = () => {
   });
 
   const handleSelect = useCallback(
-    (id: string | null, opts?: { additive?: boolean }) => {
+    (id: string | null, opts?: { additive?: boolean; range?: boolean }) => {
       if (id === null) {
         setSelectedAnnotationIds(new Set());
         setPrimarySelectedId(null);
         return;
+      }
+      if (opts?.range && primarySelectedId !== null) {
+        const ids = annotations.map((a) => a.id);
+        const fromIdx = ids.indexOf(primarySelectedId);
+        const toIdx = ids.indexOf(id);
+        if (fromIdx !== -1 && toIdx !== -1) {
+          const [lo, hi] = fromIdx <= toIdx ? [fromIdx, toIdx] : [toIdx, fromIdx];
+          setSelectedAnnotationIds(new Set(ids.slice(lo, hi + 1)));
+          setPrimarySelectedId(id);
+          return;
+        }
       }
       if (!opts?.additive) {
         setSelectedAnnotationIds(new Set([id]));
@@ -209,7 +220,7 @@ export const LabelPage = () => {
         setPrimarySelectedId(id);
       }
     },
-    [selectedAnnotationIds],
+    [selectedAnnotationIds, primarySelectedId, annotations],
   );
 
   // Wraps history.deleteAnnotation so the id is also removed from the
