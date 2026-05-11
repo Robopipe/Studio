@@ -159,23 +159,19 @@ export const LabelPage = () => {
   const showAllAnnotations = useCallback(() => {
     setHiddenAnnotationIds(new Set());
   }, []);
-  // Transient "hold-to-preview" overlays that don't mutate hiddenAnnotationIds,
-  // so per-annotation eye toggles are restored exactly on release.
+  // Transient "h"-hold overlay; does not mutate hiddenAnnotationIds so the
+  // per-annotation eye toggles are restored exactly on release.
   const [previewHideAll, setPreviewHideAll] = useState(false);
-  const [previewIsolate, setPreviewIsolate] = useState<
-    { kind: "label"; labelId: string } | { kind: "any" } | null
-  >(null);
   const startPreviewHideAll = useCallback(() => setPreviewHideAll(true), []);
   const stopPreviewHideAll = useCallback(() => setPreviewHideAll(false), []);
-  const startIsolateLabel = useCallback(
-    (labelId: string) => setPreviewIsolate({ kind: "label", labelId }),
+  // Persistent class filter set by clicking a class in the Annotations tab.
+  // Acts radio-style: re-click same class or click "Any" to clear.
+  const [isolatedLabelId, setIsolatedLabelId] = useState<string | null>(null);
+  const setIsolatedLabel = useCallback(
+    (labelId: string) => setIsolatedLabelId(labelId),
     [],
   );
-  const startIsolateAny = useCallback(
-    () => setPreviewIsolate({ kind: "any" }),
-    [],
-  );
-  const stopIsolate = useCallback(() => setPreviewIsolate(null), []);
+  const clearIsolatedLabel = useCallback(() => setIsolatedLabelId(null), []);
   const [activeLabel, setActiveLabel] = useState<Label | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const canvasState = useCanvasState();
@@ -246,7 +242,7 @@ export const LabelPage = () => {
       setIsDirty(false);
       setHiddenAnnotationIds(new Set());
       setPreviewHideAll(false);
-      setPreviewIsolate(null);
+      setIsolatedLabelId(null);
       history.reset();
       setSelectedAnnotationIds(new Set());
       setPrimarySelectedId(null);
@@ -480,16 +476,22 @@ export const LabelPage = () => {
     onHidePreviewUp: stopPreviewHideAll,
   });
 
-  // Priority: isolate beats hide-all beats per-annotation hides.
+  // Priority: hold-to-hide (h) > class isolate > per-annotation hides.
   const visibleAnnotations = useMemo(() => {
-    if (previewIsolate?.kind === "any") return annotations;
-    if (previewIsolate?.kind === "label") {
-      const lid = previewIsolate.labelId;
-      return annotations.filter((a) => a.labelId === lid);
-    }
     if (previewHideAll) return [];
+    if (isolatedLabelId !== null) {
+      return annotations.filter((a) => a.labelId === isolatedLabelId);
+    }
     return annotations.filter((a) => !hiddenAnnotationIds.has(a.id));
-  }, [annotations, hiddenAnnotationIds, previewHideAll, previewIsolate]);
+  }, [annotations, hiddenAnnotationIds, previewHideAll, isolatedLabelId]);
+
+  // If the isolated class loses all its annotations (e.g. user deleted them),
+  // drop the filter so the canvas isn't stuck empty.
+  useEffect(() => {
+    if (isolatedLabelId === null) return;
+    const stillExists = annotations.some((a) => a.labelId === isolatedLabelId);
+    if (!stillExists) setIsolatedLabelId(null);
+  }, [annotations, isolatedLabelId]);
 
   const activeLabelForCanvas = useMemo(
     () =>
@@ -524,9 +526,9 @@ export const LabelPage = () => {
         onToggleAnnotationVisibility={toggleAnnotationVisibility}
         onHideAllAnnotations={hideAllAnnotations}
         onShowAllAnnotations={showAllAnnotations}
-        onIsolateLabel={startIsolateLabel}
-        onIsolateAny={startIsolateAny}
-        onClearIsolate={stopIsolate}
+        isolatedLabelId={isolatedLabelId}
+        onIsolateLabel={setIsolatedLabel}
+        onClearIsolate={clearIsolatedLabel}
         historyEntries={history.entries}
         historyIndex={history.currentIndex}
         onJumpTo={history.jumpTo}
