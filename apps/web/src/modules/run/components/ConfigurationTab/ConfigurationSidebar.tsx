@@ -7,8 +7,8 @@ import {
   safeBoundsToCenterThickness,
   safeZoneLabels,
 } from "@/modules/dashboard/components/DashboardZoneConfiguration";
-import { Input } from "@/modules/shadcn/ui/input";
 import { Label } from "@/modules/shadcn/ui/label";
+import { NumberInput } from "@/modules/shadcn/ui/number-input";
 import {
   Select,
   SelectContent,
@@ -321,12 +321,11 @@ const PercentInput = ({
   onChange: (value: number) => void;
 }) => (
   <div className="relative">
-    <Input
-      type="number"
+    <NumberInput
       value={value}
       min={0}
       max={100}
-      onChange={(e) => onChange(Number(e.target.value))}
+      onValueChange={(v) => onChange(v ?? 0)}
       className="pr-8"
     />
     <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">

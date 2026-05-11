@@ -6,58 +6,20 @@ import z from "zod";
 import { useCaptureImageFromCamera } from "../../hooks/useCaptureImageFromCamera";
 import { CaptureStillImageCountdown } from "../CaptureStillImageCountdown";
 
-const stringToNumber = z.string().transform((val, ctx) => {
-  const parsed = parseInt(val);
-  if (isNaN(parsed)) {
-    ctx.addIssue({
-      code: "invalid_type",
-      expected: "number",
-      message: "Not a number",
-    });
-    return z.NEVER;
-  }
-  if (parsed < 1) {
-    ctx.addIssue({
-      code: "too_small",
-      minimum: 1,
-      inclusive: true,
-      origin: "string",
-      message: "Must be greater than 0",
-    });
-    return z.NEVER;
-  }
-  return parsed;
-});
-
-const stringToFloat = z.string().transform((val, ctx) => {
-  const parsed = parseFloat(val);
-  if (isNaN(parsed)) {
-    ctx.addIssue({
-      code: "invalid_type",
-      expected: "number",
-      message: "Not a number",
-    });
-    return z.NEVER;
-  }
-  if (parsed < 0.1) {
-    ctx.addIssue({
-      code: "too_small",
-      minimum: 0.1,
-      inclusive: true,
-      origin: "string",
-      message: "Must be greater than or equal to 0.1",
-    });
-    return z.NEVER;
-  }
-  return parsed;
-});
-
 const intervalShootingConfigSchema = z.object({
-  numberOfImages: stringToNumber,
-  intervalSeconds: stringToFloat,
+  numberOfImages: z
+    .number({ message: "Not a number" })
+    .int("Must be an integer")
+    .min(1, "Must be greater than 0"),
+  intervalSeconds: z
+    .number({ message: "Not a number" })
+    .min(0.1, "Must be greater than or equal to 0.1"),
 });
 
-type IntervalShootingConfigInput = z.input<typeof intervalShootingConfigSchema>;
+type IntervalShootingConfigForm = {
+  numberOfImages: number | null;
+  intervalSeconds: number | null;
+};
 export type IntervalShootingConfig = z.output<
   typeof intervalShootingConfigSchema
 >;
@@ -76,12 +38,12 @@ export const CaptureStillImage = ({
   const { handleCaptureImage, isLoading } = useCaptureImageFromCamera();
   const [useIntervalShooting, setUseIntervalShooting] = useState(false);
   const [intervalShootingConfig, setIntervalShootingConfig] =
-    useState<IntervalShootingConfigInput>({
-      numberOfImages: "",
-      intervalSeconds: "",
+    useState<IntervalShootingConfigForm>({
+      numberOfImages: null,
+      intervalSeconds: null,
     });
 
-  const intervalShootingConfigResult = intervalShootingConfigSchema.safeDecode(
+  const intervalShootingConfigResult = intervalShootingConfigSchema.safeParse(
     intervalShootingConfig,
   );
 
@@ -107,22 +69,23 @@ export const CaptureStillImage = ({
             label="Total"
             placeholder="Total images"
             value={intervalShootingConfig.numberOfImages}
-            onChange={(e) => {
+            onValueChange={(v) => {
               setIntervalShootingConfig({
                 ...intervalShootingConfig,
-                numberOfImages: e.target.value,
+                numberOfImages: v,
               });
             }}
           />
           <NumberInput
+            decimal
             label="Interval"
             placeholder="Interval"
             suffix="sec"
             value={intervalShootingConfig.intervalSeconds}
-            onChange={(e) => {
+            onValueChange={(v) => {
               setIntervalShootingConfig({
                 ...intervalShootingConfig,
-                intervalSeconds: e.target.value,
+                intervalSeconds: v,
               });
             }}
           />
