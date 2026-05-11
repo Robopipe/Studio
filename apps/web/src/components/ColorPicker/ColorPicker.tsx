@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/modules/shadcn/ui/button";
 import { Input } from "@/modules/shadcn/ui/input";
 import {
@@ -5,15 +6,23 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/modules/shadcn/ui/popover";
-import { cn } from "@/lib/utils";
-import { useState, useEffect } from "react";
+import { ReactElement, useEffect, useState } from "react";
 
 interface ColorPickerProps {
   value: string;
   onChange: (color: string) => void;
+  trigger?: ReactElement;
+  triggerClassName?: string;
+  contentAlign?: "start" | "center" | "end";
 }
 
-export function ColorPicker({ value, onChange }: ColorPickerProps) {
+export function ColorPicker({
+  value,
+  onChange,
+  trigger,
+  triggerClassName,
+  contentAlign = "start",
+}: ColorPickerProps) {
   const [hexInput, setHexInput] = useState(value);
 
   useEffect(() => {
@@ -32,21 +41,30 @@ export function ColorPicker({ value, onChange }: ColorPickerProps) {
     setHexInput(v);
   };
 
-  return (
-    <Popover>
-      <PopoverTrigger
-        className={cn(
+  const triggerProps = trigger
+    ? { render: trigger }
+    : {
+        className: cn(
           buttonVariants({ variant: "outline", size: "sm" }),
           "h-8 w-full justify-start gap-2 px-2 text-xs font-normal",
+          triggerClassName,
+        ),
+      };
+
+  return (
+    <Popover>
+      <PopoverTrigger {...triggerProps}>
+        {trigger ? null : (
+          <>
+            <span
+              className="size-4 rounded-sm border"
+              style={{ backgroundColor: value }}
+            />
+            <span className="font-mono">{value.toUpperCase()}</span>
+          </>
         )}
-      >
-        <span
-          className="size-4 rounded-sm border"
-          style={{ backgroundColor: value }}
-        />
-        <span className="font-mono">{value.toUpperCase()}</span>
       </PopoverTrigger>
-      <PopoverContent className="w-56 p-3" align="start">
+      <PopoverContent className="w-56 p-3" align={contentAlign}>
         <div className="flex flex-col gap-2">
           <input
             type="color"

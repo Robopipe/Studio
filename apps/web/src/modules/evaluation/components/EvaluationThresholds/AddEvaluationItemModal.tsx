@@ -10,7 +10,7 @@ import { Input } from "@/modules/shadcn/ui/input";
 import { Label } from "@/modules/shadcn/ui/label";
 import { NumberInput } from "@/modules/shadcn/ui/number-input";
 import { useState } from "react";
-import { ColorPicker } from "./ColorPicker";
+import { ColorPicker } from "@/components/ColorPicker";
 
 const DEFAULT_COLOR = "#22c55e";
 

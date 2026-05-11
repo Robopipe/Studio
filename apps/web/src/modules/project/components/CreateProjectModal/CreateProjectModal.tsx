@@ -62,6 +62,12 @@ export const CreateProjectModal = ({
     setLocalLabels((prev) => prev.filter((l) => l.name !== labelName));
   };
 
+  const handleUpdateLocalLabelColor = (labelName: string, color: string) => {
+    setLocalLabels((prev) =>
+      prev.map((l) => (l.name === labelName ? { ...l, color } : l)),
+    );
+  };
+
   const tabs: ModalTab[] = [
     {
       id: "details",
@@ -85,6 +91,7 @@ export const CreateProjectModal = ({
           labels={localLabels}
           onAddLabel={handleAddLocalLabel}
           onRemoveLabel={handleRemoveLocalLabel}
+          onUpdateLabelColor={handleUpdateLocalLabelColor}
         />
       ),
     },
