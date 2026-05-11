@@ -18,9 +18,10 @@ interface KonvaStageProps {
   position: { x: number; y: number };
   toolMode: ToolMode;
   annotations: Annotation[];
-  selectedAnnotationId: string | null;
+  selectedAnnotationIds: Set<string>;
+  primarySelectedId: string | null;
   activeLabel: { id: string; name: string; color: string } | null;
-  onSelect: (id: string | null) => void;
+  onSelect: (id: string | null, opts?: { additive?: boolean }) => void;
   onAddAnnotation: (annotation: Annotation) => void;
   onUpdateAnnotation: (id: string, updates: Partial<Annotation>) => void;
   onZoomAtPoint: (pointer: { x: number; y: number }, factor: number) => void;
@@ -50,7 +51,8 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
   position,
   toolMode,
   annotations,
-  selectedAnnotationId,
+  selectedAnnotationIds,
+  primarySelectedId,
   activeLabel,
   onSelect,
   onAddAnnotation,
@@ -336,12 +338,13 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
       }
     }
     if (hitIds.length < 2) return;
-    // Cycle one layer down (to the next annotation in array order, wrapping around)
-    const currentPos = selectedAnnotationId
-      ? hitIds.indexOf(selectedAnnotationId)
+    // Cycle one layer down (to the next annotation in array order, wrapping around).
+    // Dbl-click collapses any multi-selection to a single primary.
+    const currentPos = primarySelectedId
+      ? hitIds.indexOf(primarySelectedId)
       : -1;
     const nextId = hitIds[(currentPos + 1) % hitIds.length];
-    onSelect(nextId);
+    onSelect(nextId, { additive: false });
   };
 
   const handleClick = (e: Konva.KonvaEventObject<MouseEvent>) => {
@@ -428,37 +431,41 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
       </Layer>
       <Layer name="regions">
         {[...annotations]
-          .sort((a, b) => {
-            if (a.id === selectedAnnotationId) return 1;
-            if (b.id === selectedAnnotationId) return -1;
-            return 0;
-          })
-          .map((ann) =>
-          ann.type === "bbox" && ann.bbox ? (
-            <BoundingBox
-              key={ann.id}
-              annotation={ann}
-              imageWidth={imgW}
-              imageHeight={imgH}
-              isSelected={ann.id === selectedAnnotationId}
-              toolMode={toolMode}
-              onSelect={(id) => onSelect(id)}
-              onUpdate={onUpdateAnnotation}
-            />
-          ) : ann.type === "polygon" && ann.points ? (
-            <PolygonRegion
-              key={ann.id}
-              annotation={ann}
-              imageWidth={imgW}
-              imageHeight={imgH}
-              isSelected={ann.id === selectedAnnotationId}
-              toolMode={toolMode}
-              stageScale={scale}
-              onSelect={(id) => onSelect(id)}
-              onUpdate={onUpdateAnnotation}
-            />
-          ) : null,
-        )}
+          .sort(
+            (a, b) =>
+              Number(selectedAnnotationIds.has(a.id)) -
+              Number(selectedAnnotationIds.has(b.id)),
+          )
+          .map((ann) => {
+            const isSelected = selectedAnnotationIds.has(ann.id);
+            const showHandles = isSelected && selectedAnnotationIds.size === 1;
+            return ann.type === "bbox" && ann.bbox ? (
+              <BoundingBox
+                key={ann.id}
+                annotation={ann}
+                imageWidth={imgW}
+                imageHeight={imgH}
+                isSelected={isSelected}
+                showHandles={showHandles}
+                toolMode={toolMode}
+                onSelect={onSelect}
+                onUpdate={onUpdateAnnotation}
+              />
+            ) : ann.type === "polygon" && ann.points ? (
+              <PolygonRegion
+                key={ann.id}
+                annotation={ann}
+                imageWidth={imgW}
+                imageHeight={imgH}
+                isSelected={isSelected}
+                showHandles={showHandles}
+                toolMode={toolMode}
+                stageScale={scale}
+                onSelect={onSelect}
+                onUpdate={onUpdateAnnotation}
+              />
+            ) : null;
+          })}
       </Layer>
       {showCrosshair && (
         <Layer

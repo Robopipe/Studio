@@ -22,9 +22,10 @@ interface PolygonRegionProps {
   imageWidth: number;
   imageHeight: number;
   isSelected: boolean;
+  showHandles: boolean;
   toolMode: ToolMode;
   stageScale: number;
-  onSelect: (id: string) => void;
+  onSelect: (id: string, opts?: { additive?: boolean }) => void;
   onUpdate: (id: string, updates: Partial<Annotation>) => void;
 }
 
@@ -33,6 +34,7 @@ export const PolygonRegion = ({
   imageWidth,
   imageHeight,
   isSelected,
+  showHandles,
   toolMode,
   stageScale,
   onSelect,
@@ -49,7 +51,7 @@ export const PolygonRegion = ({
   const isInteractive = toolMode === ToolMode.SELECT;
 
   const handleLineClick = () => {
-    if (!isInteractive || !isSelected) return;
+    if (!isInteractive || !showHandles) return;
     const line = lineRef.current;
     if (!line) return;
     const stage = line.getStage();
@@ -148,11 +150,11 @@ export const PolygonRegion = ({
         points={flatPoints}
         closed
         stroke={annotation.color}
-        strokeWidth={2}
+        strokeWidth={isSelected ? 3 : 2}
         strokeScaleEnabled={false}
-        fill={annotation.color + "33"}
+        fill={annotation.color + (isSelected ? "55" : "33")}
         hitStrokeWidth={20 / stageScale}
-        draggable={isInteractive}
+        draggable={isInteractive && showHandles}
         onDragMove={handleLineDragMove}
         onDragEnd={handleLineDragEnd}
         onClick={handleLineClick}
@@ -160,7 +162,8 @@ export const PolygonRegion = ({
         onMouseDown={(e) => {
           if (isInteractive) {
             e.cancelBubble = true;
-            onSelect(annotation.id);
+            const additive = e.evt.ctrlKey || e.evt.metaKey;
+            onSelect(annotation.id, { additive });
           }
         }}
         onTouchStart={(e) => {
@@ -170,7 +173,7 @@ export const PolygonRegion = ({
           }
         }}
       />
-      {isSelected &&
+      {showHandles &&
         isInteractive &&
         pts.map(([px, py], i) => (
           <Circle
