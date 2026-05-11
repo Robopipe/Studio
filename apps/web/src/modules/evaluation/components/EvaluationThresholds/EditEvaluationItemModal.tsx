@@ -9,7 +9,7 @@ import {
 } from "@/modules/shadcn/ui/dialog";
 import { Input } from "@/modules/shadcn/ui/input";
 import { Label } from "@/modules/shadcn/ui/label";
-import { ColorPicker } from "./ColorPicker";
+import { ColorPicker } from "@/components/ColorPicker";
 
 interface EditEvaluationItemModalProps {
   open: boolean;

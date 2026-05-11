@@ -8,6 +8,7 @@ import {
   useCreateProjectLabelMutation,
   useDeleteProjectLabelMutation,
   useGetProjectLabelsQuery,
+  useUpdateProjectLabelMutation,
   useUpdateProjectMutation,
 } from "../../services/projectApi";
 import {
@@ -49,6 +50,7 @@ export const EditProjectModal = ({
   const [updateProject, { isLoading: isUpdating }] = useUpdateProjectMutation();
   const [createLabel] = useCreateProjectLabelMutation();
   const [deleteLabel] = useDeleteProjectLabelMutation();
+  const [updateLabel] = useUpdateProjectLabelMutation();
 
   const handleSave = async () => {
     if (!name.trim()) return;
@@ -110,6 +112,17 @@ export const EditProjectModal = ({
             );
             if (labelToDelete) {
               deleteLabel({ projectId: project.id, labelId: labelToDelete.id });
+            }
+          }}
+          onUpdateLabelColor={(labelName, color) => {
+            const target = existingLabels?.find((l) => l.name === labelName);
+            if (target) {
+              updateLabel({
+                projectId: project.id,
+                labelId: target.id,
+                name: target.name,
+                color,
+              });
             }
           }}
         />
