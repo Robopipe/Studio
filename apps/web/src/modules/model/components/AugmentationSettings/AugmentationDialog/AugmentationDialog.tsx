@@ -1,4 +1,5 @@
 import { Button } from "@/modules/shadcn/ui/button";
+import { NumberInput } from "@/modules/shadcn/ui/number-input";
 import { Switch } from "@/modules/shadcn/ui/switch";
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
@@ -35,11 +36,12 @@ export const AugmentationDialog = ({
     editing ? definitions.find((d) => d.id === editing.type) ?? null : null,
   );
   const [paramValues, setParamValues] = useState<
-    Record<string, number | boolean | string>
+    Record<string, number | boolean | string | null>
   >(editing?.params ?? {});
   const [duplicateImage, setDuplicateImage] = useState(
     editing?.duplicateImage ?? false,
   );
+  const [paramErrors, setParamErrors] = useState<Record<string, boolean>>({});
 
   const appliedIds = new Set(appliedAugmentations.map((a) => a.type));
 
@@ -47,6 +49,7 @@ export const AugmentationDialog = ({
     (def: AugmentationDefinition) => {
       if (appliedIds.has(def.id) && editing?.type !== def.id) return;
       setSelectedDef(def);
+      setParamErrors({});
       if (editing?.type === def.id) {
         setParamValues(editing.params);
       } else {
@@ -58,16 +61,37 @@ export const AugmentationDialog = ({
 
   const handleParamChange = (
     key: string,
-    value: number | boolean | string,
+    value: number | boolean | string | null,
   ) => {
     setParamValues((prev) => ({ ...prev, [key]: value }));
+    if (paramErrors[key]) {
+      setParamErrors((prev) => {
+        const { [key]: _, ...rest } = prev;
+        return rest;
+      });
+    }
   };
 
   const handleApply = () => {
     if (!selectedDef) return;
-    const finalParams = duplicateImage
-      ? { ...paramValues, p: 1.0 }
-      : paramValues;
+    // Hide the probability input when "Duplicate image" is on — that key
+    // is force-set to 1.0 below, so don't validate it as required.
+    const skipP = showDuplicateToggle && duplicateImage;
+    const nextErrors: Record<string, boolean> = {};
+    for (const param of selectedDef.params) {
+      if (param.type === "boolean") continue;
+      if (skipP && param.key === "p") continue;
+      const current = paramValues[param.key];
+      if (current === null || current === undefined || current === "") {
+        nextErrors[param.key] = true;
+      }
+    }
+    if (Object.keys(nextErrors).length > 0) {
+      setParamErrors(nextErrors);
+      return;
+    }
+    const resolved = paramValues as Record<string, number | boolean | string>;
+    const finalParams = duplicateImage ? { ...resolved, p: 1.0 } : resolved;
     onApply({
       id: editing?.id ?? `${selectedDef.id}_${Date.now()}`,
       type: selectedDef.id,
@@ -160,20 +184,27 @@ export const AugmentationDialog = ({
                                   {param.label}
                                   {param.unit ? ` (${param.unit})` : ""}
                                 </label>
-                                <input
-                                  type="number"
-                                  className="w-full rounded-md border border-black/20 px-3 py-2 text-sm focus:border-emerald-600 focus:outline-none"
-                                  value={paramValues[param.key] as number}
+                                <NumberInput
+                                  decimal
+                                  value={
+                                    (paramValues[param.key] as
+                                      | number
+                                      | null
+                                      | undefined) ?? null
+                                  }
                                   min={param.min}
                                   max={param.max}
                                   step={param.step}
-                                  onChange={(e) =>
-                                    handleParamChange(
-                                      param.key,
-                                      parseFloat(e.target.value) || 0,
-                                    )
+                                  error={paramErrors[param.key]}
+                                  onValueChange={(v) =>
+                                    handleParamChange(param.key, v)
                                   }
                                 />
+                                {paramErrors[param.key] && (
+                                  <span className="text-xs text-destructive">
+                                    Required
+                                  </span>
+                                )}
                               </div>
                             )}
                           </div>
@@ -199,20 +230,27 @@ export const AugmentationDialog = ({
                                 {param.label}
                                 {param.unit ? ` (${param.unit})` : ""}
                               </label>
-                              <input
-                                type="number"
-                                className="w-full rounded-md border border-black/20 px-3 py-2 text-sm focus:border-emerald-600 focus:outline-none"
-                                value={paramValues[param.key] as number}
+                              <NumberInput
+                                decimal
+                                value={
+                                  (paramValues[param.key] as
+                                    | number
+                                    | null
+                                    | undefined) ?? null
+                                }
                                 min={param.min}
                                 max={param.max}
                                 step={param.step}
-                                onChange={(e) =>
-                                  handleParamChange(
-                                    param.key,
-                                    parseFloat(e.target.value) || 0,
-                                  )
+                                error={paramErrors[param.key]}
+                                onValueChange={(v) =>
+                                  handleParamChange(param.key, v)
                                 }
                               />
+                              {paramErrors[param.key] && (
+                                <span className="text-xs text-destructive">
+                                  Required
+                                </span>
+                              )}
                             </>
                           )}
                         </div>

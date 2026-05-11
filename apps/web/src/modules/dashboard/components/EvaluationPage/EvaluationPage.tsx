@@ -1,5 +1,5 @@
 import { Button } from "@/modules/shadcn/ui/button";
-import { Input } from "@/modules/shadcn/ui/input";
+import { NumberInput } from "@/modules/shadcn/ui/number-input";
 import { useEffect, useState } from "react";
 import {
   useGetDashboardEvaluationQuery,
@@ -13,6 +13,17 @@ interface EvaluationPageProps {
 
 const GRADES = [1, 2, 3, 4] as const;
 
+type GradeValues = {
+  grade1AlertsBelow: number | null;
+  grade1WarningsBelow: number | null;
+  grade2AlertsBelow: number | null;
+  grade2WarningsBelow: number | null;
+  grade3AlertsBelow: number | null;
+  grade3WarningsBelow: number | null;
+  grade4AlertsBelow: number | null;
+  grade4WarningsBelow: number | null;
+};
+
 export const EvaluationPage = ({
   projectId,
   configId,
@@ -23,33 +34,33 @@ export const EvaluationPage = ({
   });
   const [upsert, { isLoading }] = useUpsertDashboardEvaluationMutation();
 
-  const [values, setValues] = useState({
-    grade1AlertsBelow: "",
-    grade1WarningsBelow: "",
-    grade2AlertsBelow: "",
-    grade2WarningsBelow: "",
-    grade3AlertsBelow: "",
-    grade3WarningsBelow: "",
-    grade4AlertsBelow: "",
-    grade4WarningsBelow: "",
+  const [values, setValues] = useState<GradeValues>({
+    grade1AlertsBelow: null,
+    grade1WarningsBelow: null,
+    grade2AlertsBelow: null,
+    grade2WarningsBelow: null,
+    grade3AlertsBelow: null,
+    grade3WarningsBelow: null,
+    grade4AlertsBelow: null,
+    grade4WarningsBelow: null,
   });
 
   useEffect(() => {
     if (evaluation) {
       setValues({
-        grade1AlertsBelow: String(evaluation.grade1AlertsBelow),
-        grade1WarningsBelow: String(evaluation.grade1WarningsBelow),
-        grade2AlertsBelow: String(evaluation.grade2AlertsBelow),
-        grade2WarningsBelow: String(evaluation.grade2WarningsBelow),
-        grade3AlertsBelow: String(evaluation.grade3AlertsBelow),
-        grade3WarningsBelow: String(evaluation.grade3WarningsBelow),
-        grade4AlertsBelow: String(evaluation.grade4AlertsBelow),
-        grade4WarningsBelow: String(evaluation.grade4WarningsBelow),
+        grade1AlertsBelow: evaluation.grade1AlertsBelow,
+        grade1WarningsBelow: evaluation.grade1WarningsBelow,
+        grade2AlertsBelow: evaluation.grade2AlertsBelow,
+        grade2WarningsBelow: evaluation.grade2WarningsBelow,
+        grade3AlertsBelow: evaluation.grade3AlertsBelow,
+        grade3WarningsBelow: evaluation.grade3WarningsBelow,
+        grade4AlertsBelow: evaluation.grade4AlertsBelow,
+        grade4WarningsBelow: evaluation.grade4WarningsBelow,
       });
     }
   }, [evaluation]);
 
-  const handleChange = (field: keyof typeof values, value: string) => {
+  const handleChange = (field: keyof GradeValues, value: number | null) => {
     setValues((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -57,14 +68,14 @@ export const EvaluationPage = ({
     await upsert({
       projectId,
       configId,
-      grade1AlertsBelow: Number(values.grade1AlertsBelow),
-      grade1WarningsBelow: Number(values.grade1WarningsBelow),
-      grade2AlertsBelow: Number(values.grade2AlertsBelow),
-      grade2WarningsBelow: Number(values.grade2WarningsBelow),
-      grade3AlertsBelow: Number(values.grade3AlertsBelow),
-      grade3WarningsBelow: Number(values.grade3WarningsBelow),
-      grade4AlertsBelow: Number(values.grade4AlertsBelow),
-      grade4WarningsBelow: Number(values.grade4WarningsBelow),
+      grade1AlertsBelow: values.grade1AlertsBelow ?? 0,
+      grade1WarningsBelow: values.grade1WarningsBelow ?? 0,
+      grade2AlertsBelow: values.grade2AlertsBelow ?? 0,
+      grade2WarningsBelow: values.grade2WarningsBelow ?? 0,
+      grade3AlertsBelow: values.grade3AlertsBelow ?? 0,
+      grade3WarningsBelow: values.grade3WarningsBelow ?? 0,
+      grade4AlertsBelow: values.grade4AlertsBelow ?? 0,
+      grade4WarningsBelow: values.grade4WarningsBelow ?? 0,
     }).unwrap();
   };
 
@@ -79,15 +90,13 @@ export const EvaluationPage = ({
               <span className="min-w-[180px] whitespace-nowrap text-sm text-gray-600">
                 {grade} - Alerts less than [%]
               </span>
-              <Input
-                type="number"
-                value={
-                  values[`grade${grade}AlertsBelow` as keyof typeof values]
-                }
-                onChange={(e) =>
+              <NumberInput
+                decimal
+                value={values[`grade${grade}AlertsBelow` as keyof GradeValues]}
+                onValueChange={(v) =>
                   handleChange(
-                    `grade${grade}AlertsBelow` as keyof typeof values,
-                    e.target.value,
+                    `grade${grade}AlertsBelow` as keyof GradeValues,
+                    v,
                   )
                 }
               />
@@ -96,15 +105,15 @@ export const EvaluationPage = ({
               <span className="min-w-[180px] whitespace-nowrap text-sm text-gray-600">
                 {grade} - Warnings less than [%]
               </span>
-              <Input
-                type="number"
+              <NumberInput
+                decimal
                 value={
-                  values[`grade${grade}WarningsBelow` as keyof typeof values]
+                  values[`grade${grade}WarningsBelow` as keyof GradeValues]
                 }
-                onChange={(e) =>
+                onValueChange={(v) =>
                   handleChange(
-                    `grade${grade}WarningsBelow` as keyof typeof values,
-                    e.target.value,
+                    `grade${grade}WarningsBelow` as keyof GradeValues,
+                    v,
                   )
                 }
               />
