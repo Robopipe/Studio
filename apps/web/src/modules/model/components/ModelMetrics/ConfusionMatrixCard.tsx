@@ -48,9 +48,13 @@ export const ConfusionMatrixCard = ({
         <CollapsiblePanel className="flex flex-col gap-4 px-5 pb-5">
           <p className="text-sm text-muted-foreground">
             Rows are ground-truth labels; columns are predictions. Diagonal
-            cells (correct predictions) are green, off-diagonal cells
-            (confusions) are red. Intensity scales with the largest cell in the
-            matrix.
+            cells (correct predictions) are green; off-diagonal cells
+            (confusions) are red, and intensity scales with the largest cell in
+            the matrix. A strong green diagonal means the model is performing
+            well. Scan a row to see which classes a true label gets mistaken
+            for, and a column to see which true classes a prediction pulls in —
+            bright red cells highlight the pairs the model struggles to tell
+            apart.
           </p>
 
           {matrixKeys.length > 1 && (
