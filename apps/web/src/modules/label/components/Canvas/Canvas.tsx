@@ -19,6 +19,9 @@ export interface CanvasProps {
   onDeleteSelected: () => void;
   onCopySelection: () => void;
   onPasteClipboard: () => void;
+  onGroupTranslate: (
+    updates: Array<{ id: string; updates: Partial<Annotation> }>,
+  ) => void;
   onUndo: () => void;
   onRedo: () => void;
   onZoomAtPoint: (pointer: { x: number; y: number }, factor: number) => void;
@@ -57,6 +60,7 @@ export const Canvas = ({
   onDeleteSelected,
   onCopySelection,
   onPasteClipboard,
+  onGroupTranslate,
   onUndo,
   onRedo,
   onZoomAtPoint,
@@ -230,6 +234,7 @@ export const Canvas = ({
               onSelect={onSelect}
               onAddAnnotation={onAddAnnotation}
               onUpdateAnnotation={onUpdateAnnotation}
+              onGroupTranslate={onGroupTranslate}
               onZoomAtPoint={onZoomAtPoint}
               onSetPosition={onSetPosition}
               showCrosshair={showCrosshair}

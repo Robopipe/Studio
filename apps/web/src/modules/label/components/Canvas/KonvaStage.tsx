@@ -24,9 +24,22 @@ interface KonvaStageProps {
   onSelect: (id: string | null, opts?: { additive?: boolean }) => void;
   onAddAnnotation: (annotation: Annotation) => void;
   onUpdateAnnotation: (id: string, updates: Partial<Annotation>) => void;
+  onGroupTranslate: (
+    updates: Array<{ id: string; updates: Partial<Annotation> }>,
+  ) => void;
   onZoomAtPoint: (pointer: { x: number; y: number }, factor: number) => void;
   onSetPosition: (pos: { x: number; y: number }) => void;
   showCrosshair: boolean;
+}
+
+export interface GroupDragApi {
+  registerNode: (id: string, node: Konva.Node | null) => void;
+  onDragStart: (id: string) => void;
+  onDragMove: (id: string) => void;
+  /** Returns true if the drag was a group drag and the parent will commit
+   *  the updates (the region must NOT call its own onUpdate). Returns false
+   *  for single-region drags — the region commits its own update as normal. */
+  onDragEnd: (id: string) => boolean;
 }
 
 const CLOSE_THRESHOLD = 10;
@@ -57,6 +70,7 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
   onSelect,
   onAddAnnotation,
   onUpdateAnnotation,
+  onGroupTranslate,
   onZoomAtPoint,
   onSetPosition,
   showCrosshair,
@@ -95,6 +109,121 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
     layer.visible(false);
     layer.batchDraw();
   }, []);
+  // Registry of each region's "anchor" Konva node (Rect for bbox, Line for
+  // polygon). Used to imperatively move siblings during a multi-selection
+  // drag without paying the cost of a React re-render per pointer move.
+  const regionNodesRef = useRef<Map<string, Konva.Node>>(new Map());
+  const registerNode = useCallback(
+    (id: string, node: Konva.Node | null) => {
+      if (node) regionNodesRef.current.set(id, node);
+      else regionNodesRef.current.delete(id);
+    },
+    [],
+  );
+  // Captured at drag start. Null when not in a group drag.
+  const groupDragRef = useRef<{
+    startPositions: Map<string, { x: number; y: number }>;
+  } | null>(null);
+
+  // Keep these as refs so the drag handlers given to children stay stable
+  // across renders (children register the node once on mount).
+  const selectedIdsRef = useRef(selectedAnnotationIds);
+  const annotationsRef = useRef(annotations);
+  const imgWRef = useRef(0);
+  const imgHRef = useRef(0);
+  useLayoutEffect(() => {
+    selectedIdsRef.current = selectedAnnotationIds;
+    annotationsRef.current = annotations;
+  });
+
+  const handleGroupDragStart = useCallback((draggedId: string) => {
+    const selected = selectedIdsRef.current;
+    if (selected.size < 2 || !selected.has(draggedId)) {
+      groupDragRef.current = null;
+      return;
+    }
+    const startPositions = new Map<string, { x: number; y: number }>();
+    for (const id of selected) {
+      const node = regionNodesRef.current.get(id);
+      if (node) startPositions.set(id, { x: node.x(), y: node.y() });
+    }
+    groupDragRef.current = { startPositions };
+  }, []);
+
+  const handleGroupDragMove = useCallback((draggedId: string) => {
+    const state = groupDragRef.current;
+    if (!state) return;
+    const draggedNode = regionNodesRef.current.get(draggedId);
+    const draggedStart = state.startPositions.get(draggedId);
+    if (!draggedNode || !draggedStart) return;
+    const dx = draggedNode.x() - draggedStart.x;
+    const dy = draggedNode.y() - draggedStart.y;
+    let layer: Konva.Layer | null = null;
+    for (const [id, start] of state.startPositions) {
+      if (id === draggedId) continue;
+      const otherNode = regionNodesRef.current.get(id);
+      if (!otherNode) continue;
+      otherNode.x(start.x + dx);
+      otherNode.y(start.y + dy);
+      layer = otherNode.getLayer();
+    }
+    layer?.batchDraw();
+  }, []);
+
+  const handleGroupDragEnd = useCallback(
+    (draggedId: string) => {
+      const state = groupDragRef.current;
+      if (!state) return false;
+      groupDragRef.current = null;
+      const draggedNode = regionNodesRef.current.get(draggedId);
+      const draggedStart = state.startPositions.get(draggedId);
+      if (!draggedNode || !draggedStart) return false;
+      const dxPx = draggedNode.x() - draggedStart.x;
+      const dyPx = draggedNode.y() - draggedStart.y;
+      const iw = imgWRef.current;
+      const ih = imgHRef.current;
+      if (iw === 0 || ih === 0) return false;
+      const dxPct = (dxPx / iw) * 100;
+      const dyPct = (dyPx / ih) * 100;
+      const updates: Array<{ id: string; updates: Partial<Annotation> }> = [];
+      for (const id of state.startPositions.keys()) {
+        const ann = annotationsRef.current.find((a) => a.id === id);
+        if (!ann) continue;
+        if (ann.type === "bbox" && ann.bbox) {
+          updates.push({
+            id,
+            updates: {
+              bbox: { ...ann.bbox, x: ann.bbox.x + dxPct, y: ann.bbox.y + dyPct },
+            },
+          });
+        } else if (ann.type === "polygon" && ann.points) {
+          // Polygons use the Line's x/y as a drag offset; reset to 0 so the
+          // upcoming re-render (with shifted points) isn't double-translated.
+          const node = regionNodesRef.current.get(id);
+          if (node) node.position({ x: 0, y: 0 });
+          updates.push({
+            id,
+            updates: {
+              points: ann.points.map(
+                ([px, py]) => [px + dxPct, py + dyPct] as [number, number],
+              ),
+            },
+          });
+        }
+      }
+      if (updates.length > 0) onGroupTranslate(updates);
+      return true;
+    },
+    [onGroupTranslate],
+  );
+
+  const groupDragApi: GroupDragApi = {
+    registerNode,
+    onDragStart: handleGroupDragStart,
+    onDragMove: handleGroupDragMove,
+    onDragEnd: handleGroupDragEnd,
+  };
+
   const [drawingBBox, setDrawingBBox] = useState<{
     startX: number;
     startY: number;
@@ -190,6 +319,8 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
 
   const imgW = image.width;
   const imgH = image.height;
+  imgWRef.current = imgW;
+  imgHRef.current = imgH;
 
   const getImageCoords = useCallback(
     (stage: Konva.Stage) => {
@@ -450,6 +581,7 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
                 toolMode={toolMode}
                 onSelect={onSelect}
                 onUpdate={onUpdateAnnotation}
+                groupDrag={groupDragApi}
               />
             ) : ann.type === "polygon" && ann.points ? (
               <PolygonRegion
@@ -463,6 +595,7 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
                 stageScale={scale}
                 onSelect={onSelect}
                 onUpdate={onUpdateAnnotation}
+                groupDrag={groupDragApi}
               />
             ) : null;
           })}

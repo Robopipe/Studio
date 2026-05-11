@@ -264,6 +264,16 @@ export const LabelPage = () => {
     );
   }, [annotations, selectedAnnotationIds, projectId, cloneAnnotation]);
 
+  const handleGroupTranslate = useCallback(
+    (updates: Array<{ id: string; updates: Partial<Annotation> }>) => {
+      if (updates.length === 0) return;
+      history.runBatch("move", () => {
+        for (const { id, updates: u } of updates) history.updateAnnotation(id, u);
+      });
+    },
+    [history],
+  );
+
   const handlePasteClipboard = useCallback(() => {
     if (!projectId) return;
     const clip = clipboardRef.current;
@@ -509,6 +519,7 @@ export const LabelPage = () => {
           onDeleteSelected={handleClear}
           onCopySelection={handleCopySelection}
           onPasteClipboard={handlePasteClipboard}
+          onGroupTranslate={handleGroupTranslate}
           onUndo={history.undo}
           onRedo={history.redo}
           onZoomAtPoint={canvasState.zoomAtPoint}
