@@ -65,10 +65,11 @@ export const PolygonRegion = ({
     const pending = pendingClickRef.current;
     pendingClickRef.current = null;
 
-    // In single-select mode, prefer inserting a vertex on a near-edge hit
-    // over draining the pending click — otherwise the drain swallows the
-    // click and the user can never add points to an already-selected polygon.
-    if (isInteractive && showHandles) {
+    // On a re-click of an already-selected polygon (pending is set), prefer
+    // inserting a vertex on a near-edge hit over draining the pending click.
+    // A first-select click has pending === null, so it falls straight through
+    // without adding a point.
+    if (pending && isInteractive && showHandles) {
       const line = lineRef.current;
       const stage = line?.getStage();
       const pointer = stage?.getPointerPosition();
