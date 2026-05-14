@@ -6,4 +6,5 @@ export enum CameraApiTagType {
   NN = "NN",
   Dashboard = "Dashboard",
   Replay = "Replay",
+  Reports = "Reports",
 }
