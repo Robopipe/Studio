@@ -8,11 +8,11 @@ import { Spinner } from "@/modules/shadcn/ui/spinner";
 import { NoCameraDetected } from "@/modules/ui";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { downloadReport } from "../../utils/downloadReport";
+import { hasInflightReports } from "../../utils/hasInflightReports";
 import { CreateReportForm } from "../CreateReportForm";
 import { DeleteReportDialog } from "../DeleteReportDialog";
 import { ReportListItem } from "../ReportListItem";
-import { downloadReport } from "../../utils/downloadReport";
-import { hasInflightReports } from "../../utils/hasInflightReports";
 
 export interface ReportsPageProps {
   dashboardId: number;
@@ -28,8 +28,8 @@ export const ReportsPage = ({ dashboardId }: ReportsPageProps) => {
     data: reports = [],
     refetch,
     isFetching,
-    isLoading,
     isError,
+    isSuccess,
   } = useListReportsQuery(
     { dashboardId },
     {
@@ -48,18 +48,14 @@ export const ReportsPage = ({ dashboardId }: ReportsPageProps) => {
   const [deleteReport, { isLoading: isDeleting }] = useDeleteReportMutation();
 
   if (!cameraApiUrl || isError) {
-    return (
-      <NoCameraDetected
-        onRefresh={refetch}
-        isRefreshing={isFetching}
-      />
-    );
+    return <NoCameraDetected onRefresh={refetch} isRefreshing={isFetching} />;
   }
 
-  if (isLoading) {
+  if (!isSuccess) {
     return (
-      <div className="flex flex-1 items-center justify-center p-8">
-        <Spinner />
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8">
+        <Spinner className="size-10 text-black/60" />
+        <p className="text-sm text-black/60">Loading reports…</p>
       </div>
     );
   }
