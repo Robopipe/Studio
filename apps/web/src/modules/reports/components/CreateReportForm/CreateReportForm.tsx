@@ -1,11 +1,14 @@
 import { Button } from "@/modules/shadcn/ui/button";
 import { Input } from "@/modules/shadcn/ui/input";
 import { Label } from "@/modules/shadcn/ui/label";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 export interface CreateReportFormProps {
-  onSubmit: (params: { start: string | null; end: string | null }) => void;
+  onSubmit: (params: {
+    start: string | null;
+    end: string | null;
+  }) => void | Promise<void>;
   isSubmitting?: boolean;
 }
 
@@ -20,6 +23,11 @@ const pad = (n: number) => n.toString().padStart(2, "0");
 
 const formatLocalDateTime = (date: Date): string =>
   `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+
+const DATETIME_LOCAL_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/;
+
+const isIncompleteDateTime = (value: string): boolean =>
+  value !== "" && !DATETIME_LOCAL_PATTERN.test(value);
 
 export const CreateReportForm = ({
   onSubmit,
@@ -38,8 +46,19 @@ export const CreateReportForm = ({
 
   const [start, setStart] = useState(startOfToday);
   const [end, setEnd] = useState(nowLocal);
+  const startRef = useRef<HTMLInputElement>(null);
+  const endRef = useRef<HTMLInputElement>(null);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (
+      startRef.current?.validity.badInput ||
+      endRef.current?.validity.badInput ||
+      isIncompleteDateTime(start) ||
+      isIncompleteDateTime(end)
+    ) {
+      toast.error("Please provide both date and time");
+      return;
+    }
     if (start && start > maxAllowed) {
       toast.error("Start cannot be in the future");
       return;
@@ -53,9 +72,13 @@ export const CreateReportForm = ({
       return;
     }
 
-    onSubmit({ start: toIsoOrNull(start), end: toIsoOrNull(end) });
-    setStart(startOfToday);
-    setEnd(nowLocal);
+    try {
+      await onSubmit({ start: toIsoOrNull(start), end: toIsoOrNull(end) });
+      setStart(startOfToday);
+      setEnd(nowLocal);
+    } catch {
+      // parent surfaces the error; keep the user's input so they can retry
+    }
   };
 
   const startMax = end && end < maxAllowed ? end : maxAllowed;
@@ -67,6 +90,7 @@ export const CreateReportForm = ({
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="report-start">Start (optional)</Label>
           <Input
+            ref={startRef}
             id="report-start"
             type="datetime-local"
             value={start}
@@ -78,6 +102,7 @@ export const CreateReportForm = ({
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="report-end">End (optional)</Label>
           <Input
+            ref={endRef}
             id="report-end"
             type="datetime-local"
             value={end}

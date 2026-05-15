@@ -63,8 +63,14 @@ export const ReportsPage = ({ dashboardId }: ReportsPageProps) => {
         start: params.start,
         end: params.end,
       }).unwrap();
-    } catch {
-      toast.error("Failed to create report");
+    } catch (err: any) {
+      const data = err?.data;
+      const serverMessage =
+        typeof data === "string"
+          ? data
+          : data?.detail || data?.message || data?.error;
+      toast.error(serverMessage || "Failed to create report");
+      throw err;
     }
   };
 
