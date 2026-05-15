@@ -4,6 +4,7 @@ import {
   useListReportsQuery,
 } from "@/core/cameraApi";
 import { useCameraApiUrl } from "@/hooks";
+import { Spinner } from "@/modules/shadcn/ui/spinner";
 import { NoCameraDetected } from "@/modules/ui";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -27,6 +28,8 @@ export const ReportsPage = ({ dashboardId }: ReportsPageProps) => {
     data: reports = [],
     refetch,
     isFetching,
+    isLoading,
+    isError,
   } = useListReportsQuery(
     { dashboardId },
     {
@@ -44,12 +47,20 @@ export const ReportsPage = ({ dashboardId }: ReportsPageProps) => {
   const [createReport, { isLoading: isCreating }] = useCreateReportMutation();
   const [deleteReport, { isLoading: isDeleting }] = useDeleteReportMutation();
 
-  if (!cameraApiUrl) {
+  if (!cameraApiUrl || isError) {
     return (
       <NoCameraDetected
         onRefresh={refetch}
         isRefreshing={isFetching}
       />
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-1 items-center justify-center p-8">
+        <Spinner />
+      </div>
     );
   }
 
@@ -63,8 +74,14 @@ export const ReportsPage = ({ dashboardId }: ReportsPageProps) => {
         start: params.start,
         end: params.end,
       }).unwrap();
-    } catch {
-      toast.error("Failed to create report");
+    } catch (err: any) {
+      const data = err?.data;
+      const serverMessage =
+        typeof data === "string"
+          ? data
+          : data?.detail || data?.message || data?.error;
+      toast.error(serverMessage || "Failed to create report");
+      throw err;
     }
   };
 
