@@ -25,20 +25,19 @@ export const CreateReportForm = ({
   onSubmit,
   isSubmitting = false,
 }: CreateReportFormProps) => {
-  const { startOfToday, endOfToday } = useMemo(() => {
+  const { startOfToday, nowLocal } = useMemo(() => {
     const now = new Date();
-    const y = now.getFullYear();
-    const m = now.getMonth();
-    const d = now.getDate();
     return {
-      startOfToday: formatLocalDateTime(new Date(y, m, d, 0, 0)),
-      endOfToday: formatLocalDateTime(new Date(y, m, d, 23, 59)),
+      startOfToday: formatLocalDateTime(
+        new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0),
+      ),
+      nowLocal: formatLocalDateTime(now),
     };
   }, []);
-  const maxAllowed = endOfToday;
+  const maxAllowed = nowLocal;
 
   const [start, setStart] = useState(startOfToday);
-  const [end, setEnd] = useState(endOfToday);
+  const [end, setEnd] = useState(nowLocal);
 
   const handleSubmit = () => {
     if (start && start > maxAllowed) {
@@ -56,7 +55,7 @@ export const CreateReportForm = ({
 
     onSubmit({ start: toIsoOrNull(start), end: toIsoOrNull(end) });
     setStart(startOfToday);
-    setEnd(endOfToday);
+    setEnd(nowLocal);
   };
 
   const startMax = end && end < maxAllowed ? end : maxAllowed;
