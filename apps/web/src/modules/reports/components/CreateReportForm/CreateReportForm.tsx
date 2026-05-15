@@ -1,7 +1,8 @@
 import { Button } from "@/modules/shadcn/ui/button";
 import { Input } from "@/modules/shadcn/ui/input";
 import { Label } from "@/modules/shadcn/ui/label";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
 
 export interface CreateReportFormProps {
   onSubmit: (params: { start: string | null; end: string | null }) => void;
@@ -15,18 +16,50 @@ const toIsoOrNull = (value: string): string | null => {
   return date.toISOString();
 };
 
+const pad = (n: number) => n.toString().padStart(2, "0");
+
+const formatLocalDateTime = (date: Date): string =>
+  `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+
 export const CreateReportForm = ({
   onSubmit,
   isSubmitting = false,
 }: CreateReportFormProps) => {
-  const [start, setStart] = useState("");
-  const [end, setEnd] = useState("");
+  const { startOfToday, endOfToday } = useMemo(() => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = now.getMonth();
+    const d = now.getDate();
+    return {
+      startOfToday: formatLocalDateTime(new Date(y, m, d, 0, 0)),
+      endOfToday: formatLocalDateTime(new Date(y, m, d, 23, 59)),
+    };
+  }, []);
+  const maxAllowed = endOfToday;
+
+  const [start, setStart] = useState(startOfToday);
+  const [end, setEnd] = useState(endOfToday);
 
   const handleSubmit = () => {
+    if (start && start > maxAllowed) {
+      toast.error("Start cannot be in the future");
+      return;
+    }
+    if (end && end > maxAllowed) {
+      toast.error("End cannot be in the future");
+      return;
+    }
+    if (start && end && start > end) {
+      toast.error("Start must be before end");
+      return;
+    }
+
     onSubmit({ start: toIsoOrNull(start), end: toIsoOrNull(end) });
-    setStart("");
-    setEnd("");
+    setStart(startOfToday);
+    setEnd(endOfToday);
   };
+
+  const startMax = end && end < maxAllowed ? end : maxAllowed;
 
   return (
     <div className="flex flex-col gap-3 rounded-md border border-black/10 bg-white p-4">
@@ -38,6 +71,7 @@ export const CreateReportForm = ({
             id="report-start"
             type="datetime-local"
             value={start}
+            max={startMax}
             onChange={(e) => setStart(e.target.value)}
             disabled={isSubmitting}
           />
@@ -48,6 +82,8 @@ export const CreateReportForm = ({
             id="report-end"
             type="datetime-local"
             value={end}
+            min={start || undefined}
+            max={maxAllowed}
             onChange={(e) => setEnd(e.target.value)}
             disabled={isSubmitting}
           />
