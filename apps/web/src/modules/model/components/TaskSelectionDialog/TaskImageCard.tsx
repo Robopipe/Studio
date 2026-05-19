@@ -14,32 +14,36 @@ export const TaskImageCard = ({
   selected,
   onToggle,
 }: TaskImageCardProps) => (
-  <button
-    type="button"
+  <div
+    role="button"
+    tabIndex={0}
     onClick={(e) => onToggle(task.id, e.shiftKey)}
+    onKeyDown={(e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onToggle(task.id, e.shiftKey);
+      }
+    }}
     className={cn(
-      "group relative flex cursor-pointer flex-col gap-2 rounded-sm border p-2 transition-colors select-none",
+      "group relative flex cursor-pointer flex-col gap-2 rounded-sm border p-2 transition-colors select-none focus-visible:outline-2 focus-visible:outline-emerald-500",
       selected
         ? "border-emerald-500 bg-emerald-500/10"
         : "border-black/10 bg-black/2 hover:border-black/20",
     )}
   >
-    {/* Top row: checkbox (left) + annotation chip (right) */}
-    <div className="relative flex h-5 items-center justify-between">
-      <div
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggle(task.id, e.shiftKey);
-        }}
-      >
-        <Checkbox
-          checked={selected}
-          className={cn(
-            "size-5 rounded",
-            selected && "border-emerald-600 bg-emerald-600 text-white",
-          )}
-        />
-      </div>
+    {/* Top row: checkbox (left) + iid (center) + annotation chip (right) */}
+    <div className="relative flex h-5 items-center justify-between gap-2">
+      <Checkbox
+        checked={selected}
+        onCheckedChange={() => {}}
+        className={cn(
+          "pointer-events-none size-5 rounded",
+          selected && "border-emerald-600 bg-emerald-600 text-white",
+        )}
+      />
+      <span className="min-w-0 truncate text-xs font-bold leading-4 text-foreground/90">
+        #{task.iid}
+      </span>
       <AnnotationChip
         count={task.annotationCount ?? 0}
         status={task.status}
@@ -54,7 +58,7 @@ export const TaskImageCard = ({
         className="size-full object-cover"
       />
     </div>
-  </button>
+  </div>
 );
 
 /**

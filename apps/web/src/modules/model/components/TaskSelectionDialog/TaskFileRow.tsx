@@ -14,28 +14,29 @@ export const TaskFileRow = ({
   selected,
   onToggle,
 }: TaskFileRowProps) => (
-  <button
-    type="button"
+  <div
+    role="button"
+    tabIndex={0}
     onClick={(e) => onToggle(task.id, e.shiftKey)}
+    onKeyDown={(e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onToggle(task.id, e.shiftKey);
+      }
+    }}
     className={cn(
-      "flex w-full cursor-pointer select-none items-center gap-4 border-b border-black/10 px-4 py-2 text-left transition-colors hover:bg-black/4",
+      "flex w-full cursor-pointer select-none items-center gap-4 border-b border-black/10 px-4 py-2 text-left transition-colors hover:bg-black/4 focus-visible:outline-2 focus-visible:outline-emerald-500",
       selected && "bg-emerald-500/15 hover:bg-emerald-500/15",
     )}
   >
-    <div
-      onClick={(e) => {
-        e.stopPropagation();
-        onToggle(task.id, e.shiftKey);
-      }}
-    >
-      <Checkbox
-        checked={selected}
-        className={cn(
-          "size-5 shrink-0",
-          selected && "border-emerald-600 bg-emerald-600 text-white",
-        )}
-      />
-    </div>
+    <Checkbox
+      checked={selected}
+      onCheckedChange={() => {}}
+      className={cn(
+        "pointer-events-none size-5 shrink-0",
+        selected && "border-emerald-600 bg-emerald-600 text-white",
+      )}
+    />
     <img
       src={task.thumbnailUrl}
       alt={`#${task.iid}`}
@@ -66,5 +67,5 @@ export const TaskFileRow = ({
         {task.annotationCount} annotations
       </span>
     )}
-  </button>
+  </div>
 );
