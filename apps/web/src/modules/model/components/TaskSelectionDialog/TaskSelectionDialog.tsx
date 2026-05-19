@@ -53,6 +53,12 @@ export const TaskSelectionDialog = ({
     }
   }, [open, initialSelectedIds]);
 
+  // Anchor becomes stale when the filter set changes (it may no longer be
+  // present in the new orderedIds), so reset it.
+  useEffect(() => {
+    setLastToggledId(null);
+  }, [showAll, sortOrder]);
+
   const { data: tasksData, isLoading } = useGetTasksQuery(
     {
       projectId: activeProject?.id!,
@@ -83,6 +89,7 @@ export const TaskSelectionDialog = ({
 
   const toggleTask = useCallback(
     (taskId: number, shiftKey: boolean) => {
+      // Shift+click: range-add from the last plain-clicked anchor.
       if (
         shiftKey &&
         lastToggledId != null &&
@@ -98,10 +105,12 @@ export const TaskSelectionDialog = ({
             for (let i = lo; i <= hi; i++) next.add(orderedIds[i]);
             return next;
           });
-          // Anchor intentionally stays on the previous plain-click.
+          // Anchor stays — chained shift-clicks extend from the same origin.
           return;
         }
       }
+
+      // Plain click (or shift+click with no usable anchor): toggle this one.
       setSelectedIds((prev) => {
         const next = new Set(prev);
         if (next.has(taskId)) next.delete(taskId);
@@ -208,18 +217,25 @@ export const TaskSelectionDialog = ({
               </span>
             </div>
 
-            <button
-              type="button"
+            <div
+              role="button"
+              tabIndex={0}
               onClick={() => setShowAll(!showAll)}
-              className={cn(
-                "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
-                showAll
-                  ? "bg-emerald-500/15 text-emerald-700"
-                  : "bg-black/5 text-foreground/60 hover:bg-black/10",
-              )}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setShowAll(!showAll);
+                }
+              }}
+              className="flex cursor-pointer select-none items-center gap-2 text-xs font-medium text-foreground/70"
             >
-              {showAll ? "Showing all" : "Annotated only"}
-            </button>
+              <Checkbox
+                checked={!showAll}
+                onCheckedChange={() => {}}
+                className="pointer-events-none size-4"
+              />
+              Annotated only
+            </div>
 
             <span className="text-xs text-foreground/50">
               Tip: hold{" "}
@@ -247,7 +263,7 @@ export const TaskSelectionDialog = ({
                 type="button"
                 onClick={() => setViewMode("table")}
                 className={cn(
-                  "rounded-lg p-2",
+                  "cursor-pointer rounded-lg p-2",
                   viewMode === "table"
                     ? "bg-emerald-500/15"
                     : "hover:bg-black/5",
@@ -259,7 +275,7 @@ export const TaskSelectionDialog = ({
                 type="button"
                 onClick={() => setViewMode("card")}
                 className={cn(
-                  "rounded-lg p-2",
+                  "cursor-pointer rounded-lg p-2",
                   viewMode === "card"
                     ? "bg-emerald-500/15"
                     : "hover:bg-black/5",
