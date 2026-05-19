@@ -160,11 +160,14 @@ export const TaskSelectionDialog = ({
         if (selectedIds.has(t.id)) known.set(t.id, t.thumbnailUrl);
       });
       const missing = selectedArr.filter((id) => !known.has(id));
-      if (missing.length > 0) {
+      // Backend caps limit at 100, so fetch missing previews in chunks.
+      const CHUNK = 100;
+      for (let i = 0; i < missing.length; i += CHUNK) {
+        const chunk = missing.slice(i, i + CHUNK);
         const result = await fetchTasksByIds({
           projectId: activeProject?.id!,
-          limit: missing.length,
-          ids: missing.join(","),
+          limit: chunk.length,
+          ids: chunk.join(","),
         }).unwrap();
         result.data.forEach((t) => known.set(t.id, t.thumbnailUrl));
       }
