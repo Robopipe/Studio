@@ -26,8 +26,9 @@ import {
 } from "@/modules/project/services/projectApi";
 import type { DashboardConfiguration } from "@repo/schema";
 import { ModelOutputTypeEnum } from "@repo/schema";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { computeSettingsUnlock } from "../utils/dashboardUnlock";
 
 const PLATFORM_TO_OUTPUT_TYPE: Record<string, string> = {
   X_LINK_MYRIAD_X: ModelOutputTypeEnum.RVC2,
@@ -114,8 +115,27 @@ export const useRunDeploy = ({
     { skip: !selectedCamera || !selectedStream },
   );
 
+  const [settingsUnlockToken, setSettingsUnlockToken] = useState<string | null>(
+    null,
+  );
+  useEffect(() => {
+    if (!selectedCamera || !selectedStream) {
+      setSettingsUnlockToken(null);
+      return;
+    }
+    let cancelled = false;
+    computeSettingsUnlock(selectedCamera, selectedStream).then((token) => {
+      if (!cancelled) setSettingsUnlockToken(token);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedCamera, selectedStream]);
+
   const effectiveDashboardUrl = isRemoteDashboardDeployed
-    ? `${cameraApiUrl}/cameras/${selectedCamera}/streams/${selectedStream}/dashboard`
+    ? `${cameraApiUrl}/cameras/${selectedCamera}/streams/${selectedStream}/dashboard${
+        settingsUnlockToken ? `?s=${settingsUnlockToken}` : ""
+      }`
     : null;
   const isDeployed = !!effectiveDashboardUrl;
 

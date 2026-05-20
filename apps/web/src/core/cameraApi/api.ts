@@ -13,6 +13,7 @@ import {
   DeployDashboardResponse,
 } from "./schemas/dashboard";
 import { NNConfig } from "./schemas/nn";
+import type { DashboardReportSummary } from "./schemas/report";
 import { CameraApiTagType } from "./tagType";
 
 const cameraApiBase = createApi({
@@ -321,6 +322,48 @@ export const cameraApi = cameraApiBase.injectEndpoints({
         { type: CameraApiTagType.Replay, id: `${mxid}-${streamName}` },
       ],
     }),
+
+    // ========== Dashboard Reports Endpoints ==========
+
+    listReports: builder.query<
+      DashboardReportSummary[],
+      { dashboardId: number }
+    >({
+      query: ({ dashboardId }) => ({
+        url: `/dashboard/${dashboardId}/report`,
+        method: HttpMethod.GET,
+      }),
+      providesTags: (_result, _error, { dashboardId }) => [
+        { type: CameraApiTagType.Reports, id: dashboardId },
+      ],
+    }),
+
+    createReport: builder.mutation<
+      DashboardReportSummary,
+      { dashboardId: number; start?: string | null; end?: string | null }
+    >({
+      query: ({ dashboardId, start, end }) => ({
+        url: `/dashboard/${dashboardId}/report`,
+        method: HttpMethod.POST,
+        body: { start: start ?? null, end: end ?? null },
+      }),
+      invalidatesTags: (_result, _error, { dashboardId }) => [
+        { type: CameraApiTagType.Reports, id: dashboardId },
+      ],
+    }),
+
+    deleteReport: builder.mutation<
+      void,
+      { dashboardId: number; reportId: number }
+    >({
+      query: ({ dashboardId, reportId }) => ({
+        url: `/dashboard/${dashboardId}/report/${reportId}`,
+        method: HttpMethod.DELETE,
+      }),
+      invalidatesTags: (_result, _error, { dashboardId }) => [
+        { type: CameraApiTagType.Reports, id: dashboardId },
+      ],
+    }),
   }),
   overrideExisting: true,
 });
@@ -357,4 +400,9 @@ export const {
   useAddReplayVideoMutation,
   useAddReplayVideoFromUrlMutation,
   useRemoveReplayVideoMutation,
+
+  // Report hooks
+  useListReportsQuery,
+  useCreateReportMutation,
+  useDeleteReportMutation,
 } = cameraApi;
