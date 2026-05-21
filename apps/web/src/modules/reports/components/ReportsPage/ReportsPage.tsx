@@ -109,11 +109,6 @@ export const ReportsPage = ({ dashboardId }: ReportsPageProps) => {
       <div className="flex flex-col gap-3">
         <div className="flex flex-row items-center justify-between">
           <span className="text-sm font-bold">Existing reports</span>
-          {inflight && (
-            <span className="text-xs text-black/60">
-              Refreshing while reports are being generated…
-            </span>
-          )}
         </div>
 
         {reports.length === 0 ? (
