@@ -1,11 +1,14 @@
 import {
   useCreateReportMutation,
   useDeleteReportMutation,
+  useGetDashboardQuery,
+  useListCamerasQuery,
   useListReportsQuery,
 } from "@/core/cameraApi";
 import { useCameraApiUrl } from "@/hooks";
+import { useSelectedCameraStream } from "@/modules/camera-selection";
 import { Spinner } from "@/modules/shadcn/ui/spinner";
-import { NoCameraDetected } from "@/modules/ui";
+import { ModelRunning, NoCameraDetected } from "@/modules/ui";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { downloadReport } from "../../utils/downloadReport";
@@ -16,13 +19,24 @@ import { ReportListItem } from "../ReportListItem";
 
 export interface ReportsPageProps {
   dashboardId: number;
+  projectId: number;
 }
 
-export const ReportsPage = ({ dashboardId }: ReportsPageProps) => {
+export const ReportsPage = ({ dashboardId, projectId }: ReportsPageProps) => {
   const { url: cameraApiUrl } = useCameraApiUrl();
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
   const [pollingInterval, setPollingInterval] = useState(0);
+
+  const { data: cameras } = useListCamerasQuery(undefined, {
+    skip: !cameraApiUrl,
+  });
+  const { cameraMxid: selectedCamera, streamName: selectedStream } =
+    useSelectedCameraStream(cameras);
+  const { isSuccess: isModelRunning } = useGetDashboardQuery(
+    { mxid: selectedCamera!, streamName: selectedStream! },
+    { skip: !selectedCamera || !selectedStream },
+  );
 
   const {
     data: reports = [],
@@ -49,6 +63,15 @@ export const ReportsPage = ({ dashboardId }: ReportsPageProps) => {
 
   if (!cameraApiUrl || isError) {
     return <NoCameraDetected onRefresh={refetch} isRefreshing={isFetching} />;
+  }
+
+  if (isModelRunning) {
+    return (
+      <ModelRunning
+        projectId={projectId}
+        message="You cannot use reports while a model is running. Disable it first."
+      />
+    );
   }
 
   if (!isSuccess) {
