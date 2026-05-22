@@ -5,9 +5,10 @@ import { Link } from "react-router";
 
 export interface ModelRunningProps {
   projectId: number;
+  message?: string;
 }
 
-export const ModelRunning = ({ projectId }: ModelRunningProps) => {
+export const ModelRunning = ({ projectId, message }: ModelRunningProps) => {
   const runHref = webRoutes.run.replace(":projectId", String(projectId));
 
   return (
@@ -21,7 +22,7 @@ export const ModelRunning = ({ projectId }: ModelRunningProps) => {
       </p>
 
       <p className="mb-6 text-sm text-black/60">
-        You cannot use capture while a model is running. Disable it first.
+        {message ?? "You cannot use capture while a model is running. Disable it first."}
       </p>
 
       <Link to={runHref}>
