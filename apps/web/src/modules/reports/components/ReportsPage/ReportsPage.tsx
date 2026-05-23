@@ -70,6 +70,7 @@ export const ReportsPage = ({ dashboardId, projectId }: ReportsPageProps) => {
       <ModelRunning
         projectId={projectId}
         message="You cannot use reports while a model is running. Disable it first."
+        hideButton
       />
     );
   }
