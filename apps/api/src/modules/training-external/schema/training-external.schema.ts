@@ -97,6 +97,19 @@ export const trainingRectangleLabelSchema = z.object({
   ...trainingSharedLabelSchema,
 });
 
+/**
+ * Optional dataset-prep tweak that splits "bridged" polygon annotations into
+ * one label per visually-disconnected piece. Resolved from human-readable
+ * names in customHyperparams (`split_classes`) to internal indices on the
+ * API side before being sent to the ML service. See
+ * training-external.service.ts for the resolution + validation logic.
+ */
+export const trainingPolygonSplitSchema = z.object({
+  enabled: z.boolean(),
+  class_indices: z.number().int().nonnegative().array(),
+  kernel_size: z.number().int().positive(),
+});
+
 export const trainingConfigSchema = z.object({
   output_types: z.enum(ModelOutputTypeEnum).array(),
   epochs: z.number(),
@@ -123,6 +136,7 @@ export const trainingConfigSchema = z.object({
       .array(),
   }),
   custom_hyperparams: z.record(z.string(), z.unknown()).default({}),
+  polygon_split: trainingPolygonSplitSchema.optional(),
 });
 
 export const trainingOutputUploadSchema = z.object({
