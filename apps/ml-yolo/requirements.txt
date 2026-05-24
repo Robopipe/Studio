@@ -11,8 +11,8 @@ pydantic-settings==2.7.1
 python-multipart==0.0.17
 
 # ML training (no luxonis-train — this is the Ultralytics-only service).
-# 8.4.44: first release series shipping yolo26*.pt weights (YOLO26 support).
-# YOLO11 trains identically on 8.4.x — the 8.3→8.4 bump is additive only.
+# 8.4.53: adds MuSGD optimizer (YOLO26 default). 8.4.44 had YOLO26 weights
+# but MuSGD was absent — auto picked AdamW. YOLO11 unaffected by the bump.
 #
 # torch is PINNED to 2.8.0 (not 2.9). In torch 2.9, `torch.onnx.export`
 # hard-imports `onnxscript` even on the legacy `dynamo=False` path, and
@@ -22,7 +22,7 @@ python-multipart==0.0.17
 # it triggers the crash. torch 2.8's legacy exporter is pure TorchScript
 # with zero onnxscript involvement, sidestepping the trap entirely. Bump
 # only when ultralytics or torch fix the upstream interaction.
-ultralytics==8.4.44
+ultralytics==8.4.53
 torch==2.8.0
 torchvision==0.23.0
 
