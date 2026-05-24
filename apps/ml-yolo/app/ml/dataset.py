@@ -8,6 +8,7 @@ import os
 from ..models.dataset_config import DatasetConfig
 from ..models.image import Image
 from ..models.model_type import ModelType
+from ..models.polygon_split_config import PolygonSplitConfig
 
 DATASET_DIR = "dataset"
 DATASET_CONFIG = "dataset_config.yml"
@@ -86,7 +87,11 @@ def prepare_classification_directory(
 
 
 def prepare_dataset(
-    dir: str, images: list[Image], config: DatasetConfig, task_type: ModelType
+    dir: str,
+    images: list[Image],
+    config: DatasetConfig,
+    task_type: ModelType,
+    polygon_split: PolygonSplitConfig | None = None,
 ):
     global VAL_DIR
     dir = f"{dir}/{DATASET_DIR}"
@@ -112,4 +117,6 @@ def prepare_dataset(
             )
             copy_image(image, f"{image_dir}/{curr_dir}")
             with open(f"{label_dir}/{curr_dir}/{label_filename}", "w") as f:
-                f.write("\n".join(image.labels_str(task_type)))
+                f.write(
+                    "\n".join(image.labels_str(task_type, polygon_split=polygon_split))
+                )

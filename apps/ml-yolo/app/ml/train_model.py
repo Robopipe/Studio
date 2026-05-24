@@ -202,6 +202,7 @@ def run_training(config: ModelConfig) -> None:
                 config.data,
                 config.training_config.dataset_config,
                 config.type,
+                polygon_split=config.training_config.polygon_split,
             )
 
             # 2) Optional deterministic preprocessings.
