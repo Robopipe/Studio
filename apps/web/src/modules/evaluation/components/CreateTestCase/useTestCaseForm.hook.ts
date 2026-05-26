@@ -1,5 +1,5 @@
 import { useAppForm } from "@/core/form";
-import { EvalLogicNode, EvalTestCaseDetail } from "@repo/schema";
+import { EvalLogicNode, EvalTestCaseDetail, EvalTestCaseTypeEnum } from "@repo/schema";
 import {
   useCreateEvalTestCaseMutation,
   useUpdateEvalTestCaseMutation,
@@ -35,7 +35,7 @@ function isUpdate(options: TestCaseFormOptions): options is UpdateOptions {
 function toFormValues(testCase: EvalTestCaseDetail): CreateTestCaseFormSchema {
   return {
     name: testCase.name,
-    type: testCase.type,
+    type: EvalTestCaseTypeEnum.CHECK,
     severity: testCase.severity,
     enabled: testCase.enabled,
   };
