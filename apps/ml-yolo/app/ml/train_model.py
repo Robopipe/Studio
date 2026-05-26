@@ -397,6 +397,7 @@ def run_training(config: ModelConfig) -> None:
                     converted_path,
                     config.type,
                     config.training_config.dataset_config.label_ids,
+                    model_variant=get_model_variant(config),
                 )
                 conv_upload = upload_for(output_type)
                 _upload_to_signed_url(conv_upload, converted_path)
