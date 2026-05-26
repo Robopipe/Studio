@@ -84,30 +84,32 @@ export function LimitItemRow({ index, onDelete }: LimitItemRowProps) {
                   const quantifierUnitLabel = quantifierUnitLabels[quantifierUnit] ?? "%";
                   return (
                     <div className="flex w-48 shrink-0 flex-col">
-                      {showLabels && (
-                        <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center justify-between gap-2">
+                        {showLabels ? (
                           <span className="whitespace-nowrap text-xs text-muted-foreground">Objects count</span>
-                          <Select
-                            value={quantifierUnit}
-                            onValueChange={(v) => unitField.handleChange(v as EvalLimitItemQuantifierUnitEnum)}
+                        ) : (
+                          <span />
+                        )}
+                        <Select
+                          value={quantifierUnit}
+                          onValueChange={(v) => unitField.handleChange(v as EvalLimitItemQuantifierUnitEnum)}
+                        >
+                          <SelectTrigger
+                            size="sm"
+                            className="h-auto w-auto gap-1 border-0 bg-transparent p-0 text-xs font-medium shadow-none focus-visible:border-0 focus-visible:bg-transparent focus-visible:ring-0"
                           >
-                            <SelectTrigger
-                              size="sm"
-                              className="h-auto w-auto gap-1 border-0 bg-transparent p-0 text-xs font-medium shadow-none focus-visible:border-0 focus-visible:bg-transparent focus-visible:ring-0"
-                            >
-                              <span className="text-xs text-muted-foreground">Units</span>
-                              <SelectValue>{quantifierUnitLabel}</SelectValue>
-                            </SelectTrigger>
-                            <SelectContent>
-                              {quantifierUnitOptions.map((o) => (
-                                <SelectItem key={o.value} value={o.value}>
-                                  {o.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      )}
+                            <span className="text-xs text-muted-foreground">Units</span>
+                            <SelectValue>{quantifierUnitLabel}</SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {quantifierUnitOptions.map((o) => (
+                              <SelectItem key={o.value} value={o.value}>
+                                {o.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                       <div className="flex gap-2">
                         <div className="w-24">
                           <form.AppField name={`limitItems[${index}].quantifierType`}>
