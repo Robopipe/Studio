@@ -5,17 +5,12 @@ import {
   DialogContent,
   DialogTitle,
 } from "@/modules/shadcn/ui/dialog";
-import { EvalLimit, EvalTestCaseDetail, EvalSeverityEnum, EvalTestCaseTypeEnum } from "@repo/schema";
+import { EvalLimit, EvalTestCaseDetail, EvalSeverityEnum } from "@repo/schema";
 import { useRef } from "react";
 import { ToggleGroupField } from "../CreateTestCase/ToggleGroupField";
 import { useTestCaseForm } from "../CreateTestCase/useTestCaseForm.hook";
 import { LogicBuilder } from "./LogicBuilder/LogicBuilder";
 import { LogicBuilderState } from "./LogicBuilder/useLogicBuilder.hook";
-
-const typeOptions = [
-  { label: "Check", value: EvalTestCaseTypeEnum.CHECK },
-  { label: "Defect", value: EvalTestCaseTypeEnum.DEFECT },
-] as const;
 
 const severityOptions = [
   { label: "Alert", value: EvalSeverityEnum.ALERT },
@@ -79,25 +74,14 @@ export const UpdateTestCaseModal = ({
                 )}
               </form.AppField>
 
-              <div className="flex gap-8">
-                <form.AppField name="type">
-                  {() => (
-                    <ToggleGroupField
-                      label="Type"
-                      options={[...typeOptions]}
-                    />
-                  )}
-                </form.AppField>
-
-                <form.AppField name="severity">
-                  {() => (
-                    <ToggleGroupField
-                      label="If not fulfilled"
-                      options={[...severityOptions]}
-                    />
-                  )}
-                </form.AppField>
-              </div>
+              <form.AppField name="severity">
+                {() => (
+                  <ToggleGroupField
+                    label="If not fulfilled"
+                    options={[...severityOptions]}
+                  />
+                )}
+              </form.AppField>
             </div>
 
             <div className="flex flex-col gap-2">
