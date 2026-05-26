@@ -10,8 +10,6 @@ Recognized keys in custom_hyperparams (see https://docs.ultralytics.com/usage/cf
     dfl, hsv_h, hsv_s, hsv_v, degrees, translate, scale, shear, perspective,
     flipud, fliplr, mosaic, mixup, copy_paste, optimizer, cos_lr, patience,
     imgsz, workers, device, amp
-Note: `dfl` is silently stripped for YOLO26 variants (DFL removed in YOLO26).
-YOLO26 variants: yolo26[n|s|m|l|x][.pt] and yolo26[n|s|m|l|x]-seg[.pt]
 Plus two ml-yolo-specific keys stripped before passthrough:
     backend          — consumed by the API dispatcher
     model_variant    — pretrained weights filename (e.g. yolo11m.pt)
@@ -35,10 +33,6 @@ _DEFAULT_VARIANT: dict[ModelType, str] = {
     ModelType.CLASSIFICATION: "yolo11n-cls.pt",
     ModelType.SEGMENTATION: "yolo11n-seg.pt",
 }
-
-
-def _is_yolo26(variant: str) -> bool:
-    return Path(variant).stem.lower().startswith("yolo26")
 
 
 def get_model_variant(config: ModelConfig) -> str:
@@ -108,6 +102,4 @@ def build_train_kwargs(
     # custom_hyperparams wins over defaults but not over the dispatch kwargs above.
     for key, value in custom.items():
         kwargs[key] = value
-    if _is_yolo26(get_model_variant(config)):
-        kwargs.pop("dfl", None)
     return kwargs

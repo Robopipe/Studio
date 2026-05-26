@@ -24,13 +24,6 @@ from luxonis_ml.nn_archive.config import Config as NNArchiveConfig
 from ..models.model_type import ModelType
 
 
-def _yolo_subtype(model_variant: str) -> str:
-    stem = Path(model_variant).stem.lower()
-    if stem.startswith("yolo26"):
-        return "yolo26"
-    return "yolov8"
-
-
 # Pre-NMS thresholds the on-device DetectionParser uses. The dashboard
 # does its own confidence filtering on top
 # (sensor.dashboard_config.confidenceThreshold), so this is a coarse
@@ -50,7 +43,6 @@ def patch_nn_archive_heads(
     archive_path: str | Path,
     model_type: ModelType,
     label_ids: list[int],
-    model_variant: str = "",
 ) -> None:
     """Mutate the NN archive at `archive_path` in-place to ensure it has a
     valid `heads` block. No-op when the file isn't an NN archive, when
@@ -126,7 +118,7 @@ def patch_nn_archive_heads(
                     "conf_threshold": _DEFAULT_CONF_THRESHOLD,
                     "max_det": _DEFAULT_MAX_DET,
                     "anchors": None,
-                    "subtype": _yolo_subtype(model_variant),
+                    "subtype": "yolov8",
                     "yolo_outputs": output_names,
                 },
                 "outputs": output_names,

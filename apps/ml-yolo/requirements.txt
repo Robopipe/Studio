@@ -11,8 +11,9 @@ pydantic-settings==2.7.1
 python-multipart==0.0.17
 
 # ML training (no luxonis-train — this is the Ultralytics-only service).
-# 8.4.53: adds MuSGD optimizer (YOLO26 default). 8.4.44 had YOLO26 weights
-# but MuSGD was absent — auto picked AdamW. YOLO11 unaffected by the bump.
+# 8.3.160 decouples the confusion matrix update from args.plots (so the CM
+# is populated even without plot files) and fixes the epoch-47 validation
+# plot broadcast crash. Still numpy-1.x compatible.
 #
 # torch is PINNED to 2.8.0 (not 2.9). In torch 2.9, `torch.onnx.export`
 # hard-imports `onnxscript` even on the legacy `dynamo=False` path, and
@@ -22,7 +23,7 @@ python-multipart==0.0.17
 # it triggers the crash. torch 2.8's legacy exporter is pure TorchScript
 # with zero onnxscript involvement, sidestepping the trap entirely. Bump
 # only when ultralytics or torch fix the upstream interaction.
-ultralytics==8.4.53
+ultralytics==8.3.160
 torch==2.8.0
 torchvision==0.23.0
 

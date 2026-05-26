@@ -12,19 +12,19 @@ export interface CreateReportFormProps {
   isSubmitting?: boolean;
 }
 
-const DATETIME_LOCAL_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/;
-
-// Treat the datetime-local string as literal UTC: send back what the user
-// typed, never apply the browser's timezone offset.
-const toUtcIsoOrNull = (value: string): string | null => {
-  if (!value || !DATETIME_LOCAL_PATTERN.test(value)) return null;
-  return value.length === 19 ? `${value}.000Z` : `${value}:00.000Z`;
+const toIsoOrNull = (value: string): string | null => {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString();
 };
 
 const pad = (n: number) => n.toString().padStart(2, "0");
 
-const formatUtcDateTime = (date: Date): string =>
-  `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}T${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}`;
+const formatLocalDateTime = (date: Date): string =>
+  `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+
+const DATETIME_LOCAL_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/;
 
 const isIncompleteDateTime = (value: string): boolean =>
   value !== "" && !DATETIME_LOCAL_PATTERN.test(value);
@@ -33,27 +33,19 @@ export const CreateReportForm = ({
   onSubmit,
   isSubmitting = false,
 }: CreateReportFormProps) => {
-  const { startOfTodayUtc, nowUtc } = useMemo(() => {
+  const { startOfToday, nowLocal } = useMemo(() => {
     const now = new Date();
     return {
-      startOfTodayUtc: formatUtcDateTime(
-        new Date(
-          Date.UTC(
-            now.getUTCFullYear(),
-            now.getUTCMonth(),
-            now.getUTCDate(),
-            0,
-            0,
-          ),
-        ),
+      startOfToday: formatLocalDateTime(
+        new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0),
       ),
-      nowUtc: formatUtcDateTime(now),
+      nowLocal: formatLocalDateTime(now),
     };
   }, []);
-  const maxAllowed = nowUtc;
+  const maxAllowed = nowLocal;
 
-  const [start, setStart] = useState(startOfTodayUtc);
-  const [end, setEnd] = useState(nowUtc);
+  const [start, setStart] = useState(startOfToday);
+  const [end, setEnd] = useState(nowLocal);
   const startRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLInputElement>(null);
 
@@ -81,9 +73,9 @@ export const CreateReportForm = ({
     }
 
     try {
-      await onSubmit({ start: toUtcIsoOrNull(start), end: toUtcIsoOrNull(end) });
-      setStart(startOfTodayUtc);
-      setEnd(nowUtc);
+      await onSubmit({ start: toIsoOrNull(start), end: toIsoOrNull(end) });
+      setStart(startOfToday);
+      setEnd(nowLocal);
     } catch {
       // parent surfaces the error; keep the user's input so they can retry
     }
@@ -96,7 +88,7 @@ export const CreateReportForm = ({
       <span className="text-sm font-bold">Create new report</span>
       <div className="flex flex-row flex-wrap items-end gap-3">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="report-start">Start (UTC, optional)</Label>
+          <Label htmlFor="report-start">Start (optional)</Label>
           <Input
             ref={startRef}
             id="report-start"
@@ -108,7 +100,7 @@ export const CreateReportForm = ({
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="report-end">End (UTC, optional)</Label>
+          <Label htmlFor="report-end">End (optional)</Label>
           <Input
             ref={endRef}
             id="report-end"

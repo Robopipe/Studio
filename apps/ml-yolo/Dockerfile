@@ -51,8 +51,7 @@ RUN python3 -m venv /opt/tools-venv && \
     /opt/tools-venv/bin/pip install --no-cache-dir --upgrade pip && \
     /opt/tools-venv/bin/pip install --no-cache-dir --timeout=120 --retries=5 \
         --index-url https://download.pytorch.org/whl/cpu \
-        --extra-index-url https://pypi.org/simple \
-        torch==2.8.0+cpu torchvision==0.23.0 && \
+        torch==2.8.0+cpu torchvision==0.23.0+cpu && \
     git clone https://github.com/luxonis/tools.git /tmp/luxonis-tools && \
     cd /tmp/luxonis-tools && \
     git checkout edbe7da1a7f75833a71d65caf1028036faa81061 && \
@@ -131,28 +130,20 @@ ENV IN_DOCKER=1
 ENV ROBOPIPE_MODELCONVERTER_BIN=/opt/modelconverter-venv/bin/modelconverter
 ENV ROBOPIPE_SNPE_ROOT=/opt/snpe
 
-# Pre-download pretrained weights into the image. Ultralytics' YOLO(name)
-# constructor calls safe_download() which has a known silent-failure path: if
-# a retry deletes a partial file and the loop exits without raising,
-# attempt_download_asset() returns a Path to a non-existent file and the next
-# torch.load() raises FileNotFoundError. By baking the weights at /app (the
-# WORKDIR), YOLO()'s first existence check (`Path(file).exists()` against cwd)
-# hits and skips the download entirely.
-# YOLO11 weights at v8.3.0; YOLO26 weights at v8.4.0 (first release that
-# ships the yolo26 family).
+# Pre-download all yolo11 detection + segmentation pretrained weights into the
+# image. Ultralytics' YOLO(name) constructor calls safe_download() which has a
+# known silent-failure path: if a retry deletes a partial file and the loop
+# exits without raising, attempt_download_asset() returns a Path to a
+# non-existent file and the next torch.load() raises FileNotFoundError. By
+# baking the weights at /app (the WORKDIR), YOLO()'s first existence check
+# (`Path(file).exists()` against cwd) hits and skips the download entirely.
+# Pin to v8.3.0 — the release tag that hosts the yolo11 family weights.
 RUN cd /app && for v in \
     yolo11n yolo11s yolo11m yolo11l yolo11x \
     yolo11n-seg yolo11s-seg yolo11m-seg yolo11l-seg yolo11x-seg \
     ; do \
     curl -fL --retry 3 -o ${v}.pt \
         https://github.com/ultralytics/assets/releases/download/v8.3.0/${v}.pt; \
-    done
-RUN cd /app && for v in \
-    yolo26n yolo26s yolo26m yolo26l yolo26x \
-    yolo26n-seg yolo26s-seg yolo26m-seg yolo26l-seg yolo26x-seg \
-    ; do \
-    curl -fL --retry 3 -o ${v}.pt \
-        https://github.com/ultralytics/assets/releases/download/v8.4.0/${v}.pt; \
     done
 
 COPY app/ ./app/
