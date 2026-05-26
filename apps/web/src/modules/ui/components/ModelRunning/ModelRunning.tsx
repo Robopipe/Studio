@@ -5,15 +5,9 @@ import { Link } from "react-router";
 
 export interface ModelRunningProps {
   projectId: number;
-  message?: string;
-  hideButton?: boolean;
 }
 
-export const ModelRunning = ({
-  projectId,
-  message,
-  hideButton,
-}: ModelRunningProps) => {
+export const ModelRunning = ({ projectId }: ModelRunningProps) => {
   const runHref = webRoutes.run.replace(":projectId", String(projectId));
 
   return (
@@ -22,18 +16,17 @@ export const ModelRunning = ({
         <AiPowerIcon />
       </div>
 
-      <p className="mb-2 text-xl font-semibold text-black">Model is running!</p>
-
-      <p className="mb-6 text-sm text-black/60">
-        {message ??
-          "You cannot use capture while a model is running. Disable it first."}
+      <p className="mb-2 text-xl font-semibold text-black">
+        Model is running!
       </p>
 
-      {!hideButton && (
-        <Link to={runHref}>
-          <Button>Go to Run page</Button>
-        </Link>
-      )}
+      <p className="mb-6 text-sm text-black/60">
+        You cannot use capture while a model is running. Disable it first.
+      </p>
+
+      <Link to={runHref}>
+        <Button>Go to Run page</Button>
+      </Link>
     </div>
   );
 };

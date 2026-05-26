@@ -1,13 +1,13 @@
+import { cn } from "@/lib/utils";
 import { useGetProjectQuery } from "@/modules/project/services/projectApi";
 import { Button } from "@/modules/shadcn/ui/button";
 import { Input } from "@/modules/shadcn/ui/input";
 import { Label } from "@/modules/shadcn/ui/label";
-import { cn } from "@/lib/utils";
 import { DashboardConfiguration } from "@repo/schema";
 import { Link } from "lucide-react";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
 import { useParams } from "react-router";
+import { toast } from "sonner";
 import {
   useCreateDashboardConfigMutation,
   useDeleteDashboardConfigMutation,
@@ -15,8 +15,10 @@ import {
   useUpdateDashboardConfigMutation,
 } from "../../services/dashboardConfigApi";
 
-import { EvaluationThresholdsPage } from "@/modules/evaluation";
-import { TestCasesOverviewPage } from "@/modules/evaluation";
+import {
+  EvaluationThresholdsPage,
+  TestCasesOverviewPage,
+} from "@/modules/evaluation";
 import { ReportsPage } from "@/modules/reports";
 import { DashboardRuntimePage } from "../DashboardRuntimePage";
 
@@ -59,7 +61,7 @@ export const DashboardPage = ({
 
   const activeConfigId = showMultipleConfigs
     ? selectedConfigId
-    : configs[0]?.id ?? null;
+    : (configs[0]?.id ?? null);
 
   // Notify parent of active config changes
   useEffect(() => {
@@ -164,7 +166,7 @@ export const DashboardPage = ({
                       key={config.id}
                       className={cn(
                         "group cursor-pointer rounded-md px-3 py-2.5 transition-colors hover:bg-gray-100",
-                        isSelected && "border border-emerald-200 bg-emerald-50"
+                        isSelected && "border border-emerald-200 bg-emerald-50",
                       )}
                       onClick={() => setSelectedConfigId(config.id)}
                     >
@@ -219,7 +221,7 @@ export const DashboardPage = ({
                           <div
                             className={cn(
                               "flex shrink-0 flex-row gap-2 opacity-0 transition-opacity group-hover:opacity-100",
-                              isSelected && "opacity-100"
+                              isSelected && "opacity-100",
                             )}
                           >
                             <button
@@ -270,7 +272,7 @@ export const DashboardPage = ({
                       { key: "custom", label: "Custom dashboard" },
                       { key: "test-cases", label: "Test cases" },
                       { key: "evaluation", label: "Evaluation" },
-                      { key: "reports", label: "Reports" },
+                      // { key: "reports", label: "Reports" },
                     ] as const
                   ).map((tab) => (
                     <button
@@ -279,7 +281,7 @@ export const DashboardPage = ({
                       className={cn(
                         "relative cursor-pointer border-none bg-none px-0 py-3 text-gray-500 hover:text-gray-700",
                         rightTab === tab.key &&
-                          "text-primary after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary after:content-['']"
+                          "text-primary after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary after:content-['']",
                       )}
                       onClick={() => setRightTab(tab.key)}
                     >
@@ -327,10 +329,7 @@ export const DashboardPage = ({
                   />
                 )}
                 {rightTab === "reports" && (
-                  <ReportsPage
-                    dashboardId={activeConfigId}
-                    projectId={projectId}
-                  />
+                  <ReportsPage dashboardId={activeConfigId} />
                 )}
               </div>
             </div>
