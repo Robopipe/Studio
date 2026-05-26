@@ -72,11 +72,7 @@ def run_training(config: ModelConfig):
             luxonis_config = generate_luxonis_config(config, dir)
             config_path = f"{dir}/config.yml"
             prepare_dataset(
-                dir,
-                config.data,
-                config.training_config.dataset_config,
-                config.type,
-                polygon_split=config.training_config.polygon_split,
+                dir, config.data, config.training_config.dataset_config, config.type
             )
             preprocess_cfg = config.training_config.dataset_config
             if preprocess_cfg.preprocessings:

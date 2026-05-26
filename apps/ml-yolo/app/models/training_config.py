@@ -1,7 +1,6 @@
 from .base_schema import BaseSchema
 from .dataset_config import DatasetConfig
 from .model_type import ModelOutputType
-from .polygon_split_config import PolygonSplitConfig
 
 
 class OutputUpload(BaseSchema):
@@ -22,7 +21,3 @@ class TrainingConfig(BaseSchema):
     # we don't ship a calibration dataset). Optional/defaulted so the
     # field stays backward-compatible with older API builds.
     quantization: str = "FP16"
-    # Optional dataset-prep tweak that splits "bridged" polygon annotations
-    # into one label entry per visually-disconnected piece. See
-    # PolygonSplitConfig for the full rationale.
-    polygon_split: PolygonSplitConfig | None = None

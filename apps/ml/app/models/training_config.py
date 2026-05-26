@@ -1,7 +1,6 @@
 from .base_schema import BaseSchema
 from .dataset_config import DatasetConfig
 from .model_type import ModelOutputType
-from .polygon_split_config import PolygonSplitConfig
 
 
 class OutputUpload(BaseSchema):
@@ -16,7 +15,3 @@ class TrainingConfig(BaseSchema):
     dataset_config: DatasetConfig
     output_types: list[ModelOutputType]
     custom_hyperparams: dict = {}
-    # Optional dataset-prep tweak that splits "bridged" polygon annotations
-    # into one label entry per visually-disconnected piece. See
-    # PolygonSplitConfig for the full rationale.
-    polygon_split: PolygonSplitConfig | None = None

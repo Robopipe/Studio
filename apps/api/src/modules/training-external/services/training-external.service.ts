@@ -464,16 +464,6 @@ export class TrainingExternalService {
       }
     })
 
-    // Extract the polygon-split feature flag (if any) from customHyperparams
-    // before forwarding the remaining hyperparams. The split keys are an
-    // ml-yolo / Luxonis dataset-prep concern, not trainer knobs, so they
-    // must NOT leak into the YAML config that gets deep-merged into the
-    // training runtime config.
-    const { polygon_split, remainingHyperparams } = this.extractPolygonSplit(
-      model.customHyperparams,
-      model.labels,
-    );
-
     const basePayload: TrainingBasePayload = {
       id: model.id,
       output_config: outputUploads,
@@ -501,8 +491,7 @@ export class TrainingExternalService {
             keep_original: pp.keepOriginal,
           })),
         },
-        custom_hyperparams: remainingHyperparams,
-        ...(polygon_split && { polygon_split }),
+        custom_hyperparams: model.customHyperparams,
       },
     };
 
@@ -570,97 +559,5 @@ export class TrainingExternalService {
         return { ...basePayload, type: ProjectTypeEnum.DETECTION, data };
       }
     }
-  }
-
-  /**
-   * Pull the bridged-polygon-split feature flag out of customHyperparams,
-   * resolve its `split_classes` (human-readable label names) into the
-   * 0-based class indices the ML service uses, and return the remaining
-   * hyperparams with the split keys removed so they don't pollute the
-   * downstream trainer config.
-   *
-   * The flag is fully optional: when `split_bridged_polygons` is absent
-   * or falsy, this returns the original hyperparams unchanged.
-   *
-   * Throws BadRequestException with an actionable message on misconfiguration
-   * — empty class list, unknown names, non-positive / even kernel size,
-   * wrong types — to fail fast at the train-trigger step rather than
-   * silently disabling the feature mid-training.
-   */
-  private extractPolygonSplit(
-    customHyperparams: Record<string, unknown>,
-    labels: ModelEntity["labels"],
-  ): {
-    polygon_split:
-      | { enabled: true; class_indices: number[]; kernel_size: number }
-      | undefined;
-    remainingHyperparams: Record<string, unknown>;
-  } {
-    const rest = { ...customHyperparams };
-    const enabledRaw = rest.split_bridged_polygons;
-    const classesRaw = rest.split_classes;
-    const kernelRaw = rest.split_kernel_size;
-
-    // Always strip the keys from what we pass to Luxonis, even if the flag
-    // is off — they're never valid trainer config.
-    delete rest.split_bridged_polygons;
-    delete rest.split_classes;
-    delete rest.split_kernel_size;
-
-    if (!enabledRaw) {
-      return { polygon_split: undefined, remainingHyperparams: rest };
-    }
-
-    if (!Array.isArray(classesRaw) || classesRaw.length === 0) {
-      throw new BadRequestException(
-        "split_bridged_polygons is enabled but split_classes is missing or empty. " +
-          "Provide a non-empty array of label names, e.g. [\"kapie\", \"sunkovy salam\"].",
-      );
-    }
-
-    const labelNameToIndex = new Map<string, number>(
-      labels.map((l, i) => [l.name, i]),
-    );
-
-    const unknown: string[] = [];
-    const indices: number[] = [];
-    for (const name of classesRaw) {
-      if (typeof name !== "string") {
-        throw new BadRequestException(
-          `split_classes entries must be strings, got ${typeof name}: ${JSON.stringify(name)}`,
-        );
-      }
-      const idx = labelNameToIndex.get(name);
-      if (idx === undefined) {
-        unknown.push(name);
-      } else {
-        indices.push(idx);
-      }
-    }
-
-    if (unknown.length > 0) {
-      const available = labels.map((l) => l.name).join(", ");
-      throw new BadRequestException(
-        `split_classes contains label name(s) not in this model: [${unknown.join(", ")}]. ` +
-          `Available labels: [${available}]`,
-      );
-    }
-
-    const kernel = kernelRaw === undefined ? 9 : kernelRaw;
-    if (typeof kernel !== "number" || !Number.isInteger(kernel) || kernel <= 0) {
-      throw new BadRequestException(
-        `split_kernel_size must be a positive integer, got ${JSON.stringify(kernelRaw)}`,
-      );
-    }
-    if (kernel % 2 === 0) {
-      throw new BadRequestException(
-        `split_kernel_size must be odd (so the morphological kernel has a centred pixel), got ${kernel}`,
-      );
-    }
-
-    return {
-      polygon_split: { enabled: true, class_indices: indices, kernel_size: kernel },
-      remainingHyperparams: rest,
-    };
   }
 }
