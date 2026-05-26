@@ -60,7 +60,6 @@ export function LimitItemRow({ index, onDelete }: LimitItemRowProps) {
       {(paramField) => {
         const parameter = paramField.state.value as EvalLimitItemParameterEnum;
         const unit = parameterUnit[parameter] ?? "%";
-        const showPosition = isPositionParam(String(parameter));
         const isCount = parameter === EvalLimitItemParameterEnum.COUNT;
         const verb = isPositionParam(String(parameter)) ? "have" : "has";
 
@@ -137,7 +136,9 @@ export function LimitItemRow({ index, onDelete }: LimitItemRowProps) {
               </form.AppField>
             )}
 
-            <span className="pb-2 text-sm text-muted-foreground">{verb}</span>
+            {!isCount && (
+              <span className="pb-2 text-sm text-muted-foreground">{verb}</span>
+            )}
 
             <div className="min-w-40 flex-1">
               <paramField.SelectInput
