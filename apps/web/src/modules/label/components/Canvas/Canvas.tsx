@@ -85,6 +85,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
   const containerRef = useRef<HTMLDivElement>(null);
   const stageHandle = useRef<KonvaStageHandle>(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+  const [selectedVertex, setSelectedVertex] = useState<{ annotationId: string; index: number } | null>(null);
   const { image, loading, error } = useImageLoader(task?.filePath);
   const fittedImageRef = useRef<HTMLImageElement | null>(null);
 
@@ -130,11 +131,25 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
   }, [image, containerSize.width, containerSize.height]);
 
   useEffect(() => {
+    setSelectedVertex(null);
+  }, [selectedAnnotationIds]);
+
+  useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const key = e.key;
       const mod = e.ctrlKey || e.metaKey;
 
       if (key === "Delete" || key === "Backspace") {
+        if (selectedVertex !== null) {
+          const ann = annotations.find((a) => a.id === selectedVertex.annotationId);
+          if (ann?.points && ann.points.length > 3) {
+            const newPoints = ann.points.filter((_, i) => i !== selectedVertex.index);
+            onUpdateAnnotation(ann.id, { points: newPoints });
+          }
+          setSelectedVertex(null);
+          e.preventDefault();
+          return;
+        }
         if (selectedAnnotationIds.size > 0) {
           e.preventDefault();
           onDeleteSelected();
@@ -144,6 +159,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
       if (key === "Escape") {
         stageHandle.current?.cancelDrawing();
         onSelect(null);
+        setSelectedVertex(null);
         return;
       }
       if (mod && (key === "z" || key === "Z")) {
@@ -171,7 +187,10 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
     return () => window.removeEventListener("keydown", handler);
   }, [
     selectedAnnotationIds,
+    selectedVertex,
+    annotations,
     onDeleteSelected,
+    onUpdateAnnotation,
     onCopySelection,
     onPasteClipboard,
     onSelect,
@@ -259,9 +278,11 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
               selectedAnnotationIds={loading ? new Set() : selectedAnnotationIds}
               primarySelectedId={loading ? null : primarySelectedId}
               activeLabel={activeLabel}
+              selectedVertex={selectedVertex}
               onSelect={onSelect}
               onAddAnnotation={onAddAnnotation}
               onUpdateAnnotation={onUpdateAnnotation}
+              onVertexSelect={setSelectedVertex}
               onGroupTranslate={onGroupTranslate}
               onZoomAtPoint={onZoomAtPoint}
               onSetPosition={onSetPosition}
