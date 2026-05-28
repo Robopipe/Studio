@@ -200,8 +200,12 @@ export const LabelPage = () => {
   // Acts radio-style: re-click same class or click "Any" to clear.
   const [isolatedLabelId, setIsolatedLabelId] = useState<string | null>(null);
   const setIsolatedLabel = useCallback(
-    (labelId: string) => setIsolatedLabelId(labelId),
-    [],
+    (labelId: string) => {
+      setIsolatedLabelId(labelId);
+      const label = labels.find((l) => String(l.id) === labelId);
+      if (label) setActiveLabel(label);
+    },
+    [labels],
   );
   const clearIsolatedLabel = useCallback(() => setIsolatedLabelId(null), []);
   const [activeLabel, setActiveLabel] = useState<Label | null>(null);
@@ -278,6 +282,38 @@ export const LabelPage = () => {
       setActiveLabel(labels[0]);
     }
   }, [labels, activeLabel]);
+
+  // When the selection changes to a unanimous set of same-label regions,
+  // mirror that label into activeLabel so the chip reflects the selection.
+  // Mixed or empty selections leave activeLabel alone (Q9: indeterminate is display-only).
+  useEffect(() => {
+    if (selectedAnnotationIds.size === 0) return;
+    const selectedLabelIds = new Set(
+      annotations
+        .filter((a) => selectedAnnotationIds.has(a.id))
+        .map((a) => a.labelId),
+    );
+    if (selectedLabelIds.size !== 1) return;
+    const [onlyId] = selectedLabelIds;
+    const label = labels.find((l) => String(l.id) === onlyId);
+    if (label && label.id !== activeLabel?.id) {
+      setActiveLabel(label);
+    }
+  }, [selectedAnnotationIds, annotations, labels, activeLabel?.id]);
+
+  // Derives the chip's displayed label id. When a multi-selection has mixed
+  // labels, no chip is shown (null) while activeLabel stays unchanged for drawing.
+  const chipDisplayedLabelId = useMemo<number | null>(() => {
+    if (selectedAnnotationIds.size > 1) {
+      const labelIds = new Set(
+        annotations
+          .filter((a) => selectedAnnotationIds.has(a.id))
+          .map((a) => a.labelId),
+      );
+      if (labelIds.size > 1) return null;
+    }
+    return activeLabel?.id ?? null;
+  }, [activeLabel, selectedAnnotationIds, annotations]);
 
   // Sync annotations from task detail
   useEffect(() => {
@@ -379,11 +415,30 @@ export const LabelPage = () => {
   const handleSelectLabel = useCallback(
     (labelId: number) => {
       const label = labels.find((l) => l.id === labelId);
-      if (label) {
-        setActiveLabel(label);
+      if (!label) return;
+
+      const changed = label.id !== activeLabel?.id;
+
+      if (selectedAnnotationIds.size > 0) {
+        const ids = Array.from(selectedAnnotationIds);
+        history.runBatch("relabel", () => {
+          for (const id of ids) {
+            history.updateAnnotation(id, {
+              labelId: String(label.id),
+              labelName: label.name,
+              color: label.color,
+            });
+          }
+        });
+      }
+
+      setActiveLabel(label);
+
+      if (changed && isolatedLabelId !== null) {
+        setIsolatedLabelId(null);
       }
     },
-    [labels],
+    [labels, activeLabel?.id, selectedAnnotationIds, history, isolatedLabelId],
   );
 
   const canMarkEmpty = true;
@@ -677,7 +732,7 @@ export const LabelPage = () => {
           >
             <ClassSelect
               labels={labels}
-              activeLabelId={activeLabel?.id ?? 0}
+              activeLabelId={chipDisplayedLabelId}
               onSelectLabel={handleSelectLabel}
               onOpenSettings={() => setSettingsOpen(true)}
               isLoadingLabels={isLoadingLabels}
