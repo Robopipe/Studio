@@ -55,7 +55,7 @@ export interface DuplicateModelState {
 
 export interface ModelNewPageProps {}
 
-export const ModelNewPage = ({}: ModelNewPageProps) => {
+const ModelNewPageInner = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const duplicateState = (location.state as DuplicateModelState | null)
@@ -411,4 +411,9 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
       />
     </ModelLayout>
   );
+};
+
+export const ModelNewPage = () => {
+  const location = useLocation();
+  return <ModelNewPageInner key={location.key} />;
 };
