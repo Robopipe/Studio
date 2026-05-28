@@ -1,8 +1,12 @@
 import { Task } from "@repo/schema";
-import { useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { useImageLoader } from "../../hooks/useImageLoader";
 import { Annotation, ToolMode } from "../../types/annotations";
 import { KonvaStage, KonvaStageHandle } from "./KonvaStage";
+
+export interface CanvasHandle {
+  resetView: () => void;
+}
 
 export interface CanvasProps {
   task: Task | undefined;
@@ -45,7 +49,7 @@ const isTextInputFocused = (target: EventTarget | null) => {
   );
 };
 
-export const Canvas = ({
+export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
   task,
   annotations,
   selectedAnnotationIds,
@@ -72,12 +76,20 @@ export const Canvas = ({
   onSave,
   onSaveEmpty,
   showCrosshair,
-}: CanvasProps) => {
+}, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const stageHandle = useRef<KonvaStageHandle>(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const { image, loading, error } = useImageLoader(task?.filePath);
   const fittedImageRef = useRef<HTMLImageElement | null>(null);
+
+  useImperativeHandle(ref, () => ({
+    resetView: () => {
+      const container = containerRef.current;
+      if (!container || !image) return;
+      onFitImage(image.width, image.height, container.clientWidth, container.clientHeight);
+    },
+  }), [image, onFitImage]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -244,4 +256,4 @@ export const Canvas = ({
       </div>
     </div>
   );
-};
+});

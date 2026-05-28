@@ -94,11 +94,27 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
 
   const updateCrosshair = useCallback((x: number, y: number) => {
     const layer = crosshairLayerRef.current;
-    if (!layer) return;
-    crosshairVHaloRef.current?.points([x, -1e6, x, 1e6]);
-    crosshairVCoreRef.current?.points([x, -1e6, x, 1e6]);
-    crosshairHHaloRef.current?.points([-1e6, y, 1e6, y]);
-    crosshairHCoreRef.current?.points([-1e6, y, 1e6, y]);
+    const stage = stageRef.current;
+    if (!layer || !stage) return;
+
+    // Compute visible image-space bounds so line geometry is viewport-sized.
+    // ±1e6 in image space causes millions of dash segments at high zoom levels
+    // which tanks Chrome's Canvas2D dashed-stroke performance.
+    const sx = stage.scaleX();
+    const sy = stage.scaleY();
+    const px = stage.x();
+    const py = stage.y();
+    const w = stage.width();
+    const h = stage.height();
+    const x0 = -px / sx;
+    const x1 = (w - px) / sx;
+    const y0 = -py / sy;
+    const y1 = (h - py) / sy;
+
+    crosshairVHaloRef.current?.points([x, y0, x, y1]);
+    crosshairVCoreRef.current?.points([x, y0, x, y1]);
+    crosshairHHaloRef.current?.points([x0, y, x1, y]);
+    crosshairHCoreRef.current?.points([x0, y, x1, y]);
     if (!layer.visible()) layer.visible(true);
     layer.batchDraw();
   }, []);
@@ -347,8 +363,7 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
       const delta = e.evt.deltaY;
       const factor = Math.exp(-delta * 0.01);
       onZoomAtPoint(pointer, factor);
-    } else if (scale > 1) {
-      // Pan when zoomed
+    } else {
       onSetPosition({
         x: position.x - e.evt.deltaX,
         y: position.y - e.evt.deltaY,

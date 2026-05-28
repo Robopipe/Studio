@@ -26,7 +26,7 @@ import {
 } from "../../utils/preAnnotateSettings";
 import { EditProjectModal } from "@/modules/project/components/EditProjectModal";
 import { AnnotationPanel } from "../AnnotationPanel";
-import { Canvas } from "../Canvas";
+import { Canvas, CanvasHandle } from "../Canvas";
 import { ClassSelect } from "../ClassSelect";
 import { DataSourcePanel } from "../DataSourcePanel";
 import { LeaveAnnotationsDialog } from "../LeaveAnnotationsDialog";
@@ -135,6 +135,8 @@ export const LabelPage = () => {
       return next;
     });
   }, []);
+  const canvasRef = useRef<CanvasHandle>(null);
+  const handleResetView = useCallback(() => canvasRef.current?.resetView(), []);
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [isDirty, setIsDirty] = useState(false);
   const [selectedAnnotationIds, setSelectedAnnotationIds] = useState<Set<string>>(
@@ -480,6 +482,7 @@ export const LabelPage = () => {
     onSaveEmpty: handleSaveEmpty,
     onSetToolMode: setToolMode,
     onToggleCrosshair: toggleCrosshair,
+    onResetView: handleResetView,
     onSelectTask: setSelectedTaskId,
     onChangePage: setPage,
     onSelectLabel: handleSelectLabel,
@@ -548,6 +551,7 @@ export const LabelPage = () => {
       />
       <div className="relative flex min-h-0 flex-col overflow-hidden">
         <Canvas
+          ref={canvasRef}
           task={selectedTask ?? taskDetail}
           annotations={visibleAnnotations}
           selectedAnnotationIds={selectedAnnotationIds}
@@ -591,6 +595,7 @@ export const LabelPage = () => {
               hasLabels={labels.length > 0 || isLoadingLabels}
               showCrosshair={showCrosshair}
               onToggleCrosshair={toggleCrosshair}
+              onResetView={handleResetView}
               onPreAnnotate={handlePreAnnotate}
               onOpenPreAnnotateSettings={() => setPreAnnotateOpen(true)}
               preAnnotateDisabled={
