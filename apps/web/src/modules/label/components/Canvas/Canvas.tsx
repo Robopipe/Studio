@@ -1,4 +1,5 @@
 import { Task } from "@repo/schema";
+import { Eye, EyeOff } from "lucide-react";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { useImageLoader } from "../../hooks/useImageLoader";
 import { Annotation, ToolMode } from "../../types/annotations";
@@ -37,6 +38,8 @@ export interface CanvasProps {
   onSave: () => void;
   onSaveEmpty: () => void;
   showCrosshair: boolean;
+  toolbarsVisible: boolean;
+  onToggleToolbars: () => void;
 }
 
 const isTextInputFocused = (target: EventTarget | null) => {
@@ -76,6 +79,8 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
   onSave,
   onSaveEmpty,
   showCrosshair,
+  toolbarsVisible,
+  onToggleToolbars,
 }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const stageHandle = useRef<KonvaStageHandle>(null);
@@ -193,6 +198,17 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
         >
           {task.filePath.split("/").pop() ?? "Task"}
         </span>
+        <button
+          type="button"
+          title="Toggle toolbars (T)"
+          className="shrink-0 cursor-pointer rounded border border-black/10 bg-transparent px-2 py-[3px] text-xs font-semibold text-muted-foreground hover:bg-black/5 hover:text-foreground"
+          onClick={onToggleToolbars}
+        >
+          <span className="flex items-center gap-1.5 [&_svg]:size-3.5">
+            {toolbarsVisible ? <Eye /> : <EyeOff />}
+            {toolbarsVisible ? "Hide toolbars" : "Show toolbars"}
+          </span>
+        </button>
         {canMarkEmpty && annotations.length === 0 && (
           <button
             type="button"
