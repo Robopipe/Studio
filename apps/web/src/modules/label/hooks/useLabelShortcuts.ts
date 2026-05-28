@@ -20,6 +20,7 @@ export interface UseLabelShortcutsOptions {
   onSaveEmpty: () => void;
   onSetToolMode: (mode: ToolMode) => void;
   onToggleCrosshair: () => void;
+  onResetView: () => void;
   onSelectTask: (taskId: number) => void;
   /** Move to a different page and request which task on the new page should
    *  be selected once it loads. The caller is responsible for honoring the
@@ -101,6 +102,10 @@ export const useLabelShortcuts = (options: UseLabelShortcutsOptions) => {
         case "c":
           e.preventDefault();
           opts.onToggleCrosshair();
+          return;
+        case "f":
+          e.preventDefault();
+          opts.onResetView();
           return;
         case "arrowdown": {
           e.preventDefault();
