@@ -8,6 +8,7 @@ import { useGetProjectLabelsQuery } from "@/modules/project/services/projectApi"
 import { Label } from "@repo/schema";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useAnnotationNudge } from "../../hooks/useAnnotationNudge";
 import { useCanvasState } from "../../hooks/useCanvasState";
 import { useHistory } from "../../hooks/useHistory";
 import { useLabelShortcuts } from "../../hooks/useLabelShortcuts";
@@ -162,6 +163,7 @@ export const LabelPage = () => {
   }, []);
   const canvasRef = useRef<CanvasHandle>(null);
   const handleResetView = useCallback(() => canvasRef.current?.resetView(), []);
+  const imageDimsRef = useRef<{ width: number; height: number }>({ width: 0, height: 0 });
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [isDirty, setIsDirty] = useState(false);
   const [selectedAnnotationIds, setSelectedAnnotationIds] = useState<
@@ -326,6 +328,7 @@ export const LabelPage = () => {
       history.reset();
       setSelectedAnnotationIds(new Set());
       setPrimarySelectedId(null);
+      imageDimsRef.current = { width: 0, height: 0 };
     }
   }, [taskDetail]);
 
@@ -586,6 +589,15 @@ export const LabelPage = () => {
     onToggleToolbars: toggleToolbars,
   });
 
+  useAnnotationNudge({
+    annotations,
+    selectedAnnotationIds,
+    toolMode,
+    imageDimsRef,
+    setAnnotations: setAnnotationsAndDirty,
+    pushBatchEntry: history.pushBatchEntry,
+  });
+
   // Priority: hold-to-hide (h) > class isolate > per-annotation hides.
   const visibleAnnotations = useMemo(() => {
     if (previewHideAll) return [];
@@ -680,6 +692,7 @@ export const LabelPage = () => {
           onZoomAtPoint={canvasState.zoomAtPoint}
           onSetPosition={canvasState.setPosition}
           onFitImage={canvasState.fitImage}
+          onImageLoad={(w, h) => { imageDimsRef.current = { width: w, height: h }; }}
         />
         <div
           className={cn(

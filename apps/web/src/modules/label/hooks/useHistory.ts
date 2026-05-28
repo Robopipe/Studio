@@ -85,6 +85,32 @@ export const useHistory = ({
     [bumpRevision],
   );
 
+  // Push a single batch entry from explicit before/after pairs. Unlike
+  // runBatch+updateAnnotation, this doesn't rely on current annotation state
+  // to compute "previousAnnotation", so it works correctly after a burst of
+  // direct setAnnotations calls (e.g. keyboard nudge coalescing).
+  const pushBatchEntry = useCallback(
+    (params: {
+      label: "delete" | "paste" | "move" | "relabel";
+      changes: Array<{ before: Annotation; after: Annotation }>;
+    }) => {
+      if (params.changes.length === 0) return;
+      const children: AtomicHistoryEntry[] = params.changes.map(({ before, after }) => ({
+        type: "update",
+        annotation: after,
+        previousAnnotation: before,
+      }));
+      if (batchStack.current) {
+        for (const c of children) batchStack.current.push(c);
+        return;
+      }
+      undoStack.current.push({ type: "batch", label: params.label, children });
+      redoStack.current = [];
+      bumpRevision();
+    },
+    [bumpRevision],
+  );
+
   const applyUndo = useCallback(
     (entry: AtomicHistoryEntry) => {
       switch (entry.type) {
@@ -179,6 +205,7 @@ export const useHistory = ({
     updateAnnotation,
     deleteAnnotation,
     runBatch,
+    pushBatchEntry,
     undo,
     redo,
     canUndo,
