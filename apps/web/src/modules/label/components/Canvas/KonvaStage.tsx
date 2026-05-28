@@ -21,9 +21,11 @@ interface KonvaStageProps {
   selectedAnnotationIds: Set<string>;
   primarySelectedId: string | null;
   activeLabel: { id: string; name: string; color: string } | null;
+  selectedVertex: { annotationId: string; index: number } | null;
   onSelect: (id: string | null, opts?: { additive?: boolean }) => void;
   onAddAnnotation: (annotation: Annotation) => void;
   onUpdateAnnotation: (id: string, updates: Partial<Annotation>) => void;
+  onVertexSelect: (vertex: { annotationId: string; index: number } | null) => void;
   onGroupTranslate: (
     updates: Array<{ id: string; updates: Partial<Annotation> }>,
   ) => void;
@@ -43,6 +45,8 @@ export interface GroupDragApi {
 }
 
 const CLOSE_THRESHOLD = 10;
+const CROSSHAIR_V_INIT = [0, -1e6, 0, 1e6];
+const CROSSHAIR_H_INIT = [-1e6, 0, 1e6, 0];
 
 function pointInPolygon(x: number, y: number, pts: [number, number][]) {
   let inside = false;
@@ -67,9 +71,11 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
   selectedAnnotationIds,
   primarySelectedId,
   activeLabel,
+  selectedVertex,
   onSelect,
   onAddAnnotation,
   onUpdateAnnotation,
+  onVertexSelect,
   onGroupTranslate,
   onZoomAtPoint,
   onSetPosition,
@@ -333,6 +339,10 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
     };
   }, [polygonPoints.length, cancelDrawing]);
 
+  useEffect(() => {
+    cancelDrawing();
+  }, [toolMode, cancelDrawing]);
+
   const imgW = image.width;
   const imgH = image.height;
   imgWRef.current = imgW;
@@ -378,6 +388,10 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
     if (toolMode === ToolMode.DRAW_BBOX && activeLabel) {
       const coords = getImageCoords(stage);
       if (!coords) return;
+      if (drawingBBox !== null) {
+        // Already have a first anchor; let mouseup handle commit.
+        return;
+      }
       setDrawingBBox({
         startX: coords.x,
         startY: coords.y,
@@ -444,8 +458,9 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
             height: (drawingBBox.height / imgH) * 100,
           },
         });
+        setDrawingBBox(null);
       }
-      setDrawingBBox(null);
+      // else: small/zero drag → stay in two-click mode awaiting second click
     }
   };
 
@@ -608,8 +623,10 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
                 showHandles={showHandles}
                 toolMode={toolMode}
                 stageScale={scale}
+                selectedVertexIndex={selectedVertex?.annotationId === ann.id ? selectedVertex.index : null}
                 onSelect={onSelect}
                 onUpdate={onUpdateAnnotation}
+                onVertexSelect={(index) => onVertexSelect({ annotationId: ann.id, index })}
                 groupDrag={groupDragApi}
               />
             ) : null;
@@ -625,7 +642,7 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
           {/* Dark halo so the bright core stays visible on any background */}
           <Line
             ref={crosshairVHaloRef}
-            points={[0, -1e6, 0, 1e6]}
+            points={CROSSHAIR_V_INIT}
             stroke="rgba(0,0,0,0.7)"
             strokeWidth={2}
             strokeScaleEnabled={false}
@@ -634,7 +651,7 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
           />
           <Line
             ref={crosshairHHaloRef}
-            points={[-1e6, 0, 1e6, 0]}
+            points={CROSSHAIR_H_INIT}
             stroke="rgba(0,0,0,0.7)"
             strokeWidth={2}
             strokeScaleEnabled={false}
@@ -644,7 +661,7 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
           {/* Bright core dashed line */}
           <Line
             ref={crosshairVCoreRef}
-            points={[0, -1e6, 0, 1e6]}
+            points={CROSSHAIR_V_INIT}
             stroke="#ef4444"
             strokeWidth={1}
             strokeScaleEnabled={false}
@@ -653,7 +670,7 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
           />
           <Line
             ref={crosshairHCoreRef}
-            points={[-1e6, 0, 1e6, 0]}
+            points={CROSSHAIR_H_INIT}
             stroke="#ef4444"
             strokeWidth={1}
             strokeScaleEnabled={false}

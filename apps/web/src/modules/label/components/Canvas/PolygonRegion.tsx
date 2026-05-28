@@ -26,8 +26,10 @@ interface PolygonRegionProps {
   showHandles: boolean;
   toolMode: ToolMode;
   stageScale: number;
+  selectedVertexIndex: number | null;
   onSelect: (id: string, opts?: { additive?: boolean }) => void;
   onUpdate: (id: string, updates: Partial<Annotation>) => void;
+  onVertexSelect: (index: number) => void;
   groupDrag: GroupDragApi;
 }
 
@@ -39,8 +41,10 @@ export const PolygonRegion = ({
   showHandles,
   toolMode,
   stageScale,
+  selectedVertexIndex,
   onSelect,
   onUpdate,
+  onVertexSelect,
   groupDrag,
 }: PolygonRegionProps) => {
   const pts = annotation.points ?? [];
@@ -215,25 +219,29 @@ export const PolygonRegion = ({
       />
       {showHandles &&
         isInteractive &&
-        pts.map(([px, py], i) => (
-          <Circle
-            key={i}
-            ref={(node) => { circleRefs.current[i] = node; }}
-            x={(px / 100) * imageWidth}
-            y={(py / 100) * imageHeight}
-            radius={4 / stageScale}
-            hitRadius={40 / stageScale}
-            fill="white"
-            stroke={annotation.color}
-            strokeWidth={2}
-            strokeScaleEnabled={false}
-            draggable
-            onDragMove={(e) => handlePointDragMove(i, e)}
-            onDragEnd={(e) => handlePointDragEnd(i, e)}
-            onMouseDown={(e) => { e.cancelBubble = true; }}
-            onTouchStart={(e) => { e.cancelBubble = true; }}
-          />
-        ))}
+        pts.map(([px, py], i) => {
+          const isVertexSelected = i === selectedVertexIndex;
+          return (
+            <Circle
+              key={i}
+              ref={(node) => { circleRefs.current[i] = node; }}
+              x={(px / 100) * imageWidth}
+              y={(py / 100) * imageHeight}
+              radius={4 / stageScale}
+              hitRadius={40 / stageScale}
+              fill={isVertexSelected ? annotation.color : "white"}
+              stroke={isVertexSelected ? "white" : annotation.color}
+              strokeWidth={2}
+              strokeScaleEnabled={false}
+              draggable
+              onDragMove={(e) => handlePointDragMove(i, e)}
+              onDragEnd={(e) => handlePointDragEnd(i, e)}
+              onMouseDown={(e) => { e.cancelBubble = true; }}
+              onClick={(e) => { e.cancelBubble = true; onVertexSelect(i); }}
+              onTouchStart={(e) => { e.cancelBubble = true; }}
+            />
+          );
+        })}
     </>
   );
 };
