@@ -40,6 +40,7 @@ export interface CanvasProps {
   showCrosshair: boolean;
   toolbarsVisible: boolean;
   onToggleToolbars: () => void;
+  onImageLoad?: (width: number, height: number) => void;
 }
 
 const isTextInputFocused = (target: EventTarget | null) => {
@@ -81,6 +82,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
   showCrosshair,
   toolbarsVisible,
   onToggleToolbars,
+  onImageLoad,
 }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const stageHandle = useRef<KonvaStageHandle>(null);
@@ -127,6 +129,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
         containerSize.width,
         containerSize.height,
       );
+      onImageLoad?.(image.width, image.height);
     }
   }, [image, containerSize.width, containerSize.height]);
 
