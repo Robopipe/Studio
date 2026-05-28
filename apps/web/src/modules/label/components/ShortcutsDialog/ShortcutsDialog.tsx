@@ -13,6 +13,7 @@ import {
   ClipboardPaste,
   Copy,
   Crosshair,
+  Eye,
   EyeOff,
   Hand,
   Keyboard,
@@ -84,6 +85,11 @@ const groups: ShortcutGroup[] = [
         icon: <Crosshair />,
         label: "Toggle crosshair",
         keys: <KeyCombo keys={["C"]} />,
+      },
+      {
+        icon: <Eye />,
+        label: "Toggle toolbars",
+        keys: <KeyCombo keys={["T"]} />,
       },
       {
         icon: <Maximize2 />,

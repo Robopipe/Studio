@@ -29,6 +29,7 @@ export interface UseLabelShortcutsOptions {
   onSelectLabel: (labelId: number) => void;
   onHidePreviewDown: () => void;
   onHidePreviewUp: () => void;
+  onToggleToolbars: () => void;
 }
 
 /**
@@ -102,6 +103,10 @@ export const useLabelShortcuts = (options: UseLabelShortcutsOptions) => {
         case "c":
           e.preventDefault();
           opts.onToggleCrosshair();
+          return;
+        case "t":
+          e.preventDefault();
+          opts.onToggleToolbars();
           return;
         case "f":
           e.preventDefault();
