@@ -11,6 +11,8 @@ import { ProjectGuard } from "../../auth/guards/project-guard";
 import { ModelService } from "../services/model.service";
 import { ProjectId } from "../../auth/decorators/project-id.decorator";
 import {
+  DatasetStatsRequest,
+  DatasetStatsResponse,
   ModelCreateRequest,
   ModelResponse,
   ModelUpdateRequest,
@@ -38,6 +40,20 @@ export class ModelController {
     return model.toResponse()
   }
 
+
+  @Post("dataset-stats")
+  public async getDatasetStats(
+    @ProjectId() projectId: number,
+    @Body() data: DatasetStatsRequest,
+  ): Promise<DatasetStatsResponse> {
+    const { labeledCount, totalCandidateCount } = await this.modelService.countLabeledTasks(
+      projectId,
+      data.taskIds,
+      data.trainingType,
+      data.annotationsUsed,
+    );
+    return { labeledCount, totalCandidateCount, valid: labeledCount > 0 };
+  }
 
   @Post()
   public async createModel(
