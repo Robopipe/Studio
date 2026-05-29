@@ -2,6 +2,8 @@ import z from "zod";
 import { hyperparamsConfigSchema } from "./hyperparams-config.schema";
 import {
   createModelSchema,
+  datasetStatsResponseSchema,
+  datasetStatsSchema,
   modelAugmentationSchema,
   modelLogConfusionMatrixEntrySchema,
   modelLogConfusionMatrixSchema,
@@ -28,3 +30,5 @@ export type ModelAugmentation = z.infer<typeof modelAugmentationSchema>;
 export type Model = z.infer<typeof modelSchema>;
 export type CreateModel = z.infer<typeof createModelSchema>;
 export type ModelOutput = z.infer<typeof modelOutputSchema>;
+export type DatasetStats = z.infer<typeof datasetStatsSchema>;
+export type DatasetStatsResponse = z.infer<typeof datasetStatsResponseSchema>;

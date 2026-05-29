@@ -9,12 +9,12 @@ import { ModelEntity } from "../entity/model.entity";
 import { ModelOutputEntity } from "../entity/model-output.entity";
 import { ModelOutputRepository } from "../../../repository/services/model-output-repository.service";
 import { ModelCreateRequest, ModelUpdateRequest } from "../dto/model.dto";
-import { ModelStatusEnum } from "@repo/schema";
+import { ModelStatusEnum, ProjectTypeEnum, TaskStatusEnum } from "@repo/schema";
 import { ProjectLabelRepository } from "../../../repository/services/project-label-repository.service";
 import { DB_CONNECTION } from "../../../core/database/database.constant";
 import type { DbConnection } from "../../../core/database/types/database.types";
-import { datasetTable, datasetVersionTable, datasetVersionTaskTable, modelAugmentationTable, modelLabelTable, modelPreprocessingTable } from "@repo/database";
-import { eq } from "drizzle-orm";
+import { classificationAnnotationTable, datasetTable, datasetVersionTable, datasetVersionTaskTable, modelAugmentationTable, modelLabelTable, modelPreprocessingTable, polygonAnnotationTable, rectangleAnnotationTable, taskTable } from "@repo/database";
+import { and, count, eq, inArray, isNull, sql, type SQL } from "drizzle-orm";
 import { ModelLogRepository } from "../../../repository/services/model-log-repository.service";
 import { ModelLogEntity } from "../entity/model-log.entity";
 import { TrainingExternalService } from "../../training-external/services/training-external.service";
@@ -77,6 +77,8 @@ export class ModelService{
    * @returns ModelEntity
    */
   public async createModel(projectId: number, data: ModelCreateRequest): Promise<ModelEntity>{
+    await this.assertHasLabeledTasks(projectId, data.taskIds, data.trainingType, data.annotationsUsed);
+
     const labels = await this.getValidLabels(projectId, data.labelIds)
 
     const createdModel = await this.modelRepository.create({
@@ -163,6 +165,8 @@ export class ModelService{
       throw new BadRequestException("Cannot update model that is done or training")
     }
 
+    await this.assertHasLabeledTasks(projectId, data.taskIds, data.trainingType, data.annotationsUsed);
+
     const labels = await this.getValidLabels(projectId, data.labelIds)
 
     await this.modelRepository.update(model.id, {
@@ -234,6 +238,7 @@ export class ModelService{
    */
   public async trainModel(id: number, projectId: number): Promise<ModelEntity>{
     const model = await this.getModelById(id, projectId)
+    await this.assertHasLabeledTasks(model.projectId, model.taskIds, model.trainingType, model.annotationsUsed);
     await this.trainingExternalService.train(model)
     return this.modelRepository.update(id, {
       status: ModelStatusEnum.TRAINING
@@ -270,6 +275,75 @@ export class ModelService{
     return this.getModelById(id, projectId)
   }
 
+
+  public async countLabeledTasks(
+    projectId: number,
+    taskIds: number[],
+    trainingType: ProjectTypeEnum,
+    annotationsUsed: ProjectTypeEnum[],
+  ): Promise<{ labeledCount: number; totalCandidateCount: number }> {
+    const baseConditions = and(
+      eq(taskTable.projectId, projectId),
+      eq(taskTable.status, TaskStatusEnum.DONE),
+      isNull(taskTable.deletedAt),
+      taskIds.length > 0 ? inArray(taskTable.id, taskIds) : undefined,
+    );
+
+    const [totalRow] = await this.db
+      .select({ total: count() })
+      .from(taskTable)
+      .where(baseConditions);
+
+    const annotationExistsExpr = this.buildAnnotationExistsExpr(trainingType, annotationsUsed);
+
+    const [labeledRow] = await this.db
+      .select({ labeled: count() })
+      .from(taskTable)
+      .where(and(baseConditions, annotationExistsExpr));
+
+    return {
+      labeledCount: labeledRow?.labeled ?? 0,
+      totalCandidateCount: totalRow?.total ?? 0,
+    };
+  }
+
+  private buildAnnotationExistsExpr(trainingType: ProjectTypeEnum, annotationsUsed: ProjectTypeEnum[]): SQL {
+    switch (trainingType) {
+      case ProjectTypeEnum.CLASSIFICATION:
+        return sql`EXISTS (SELECT 1 FROM ${classificationAnnotationTable} WHERE ${classificationAnnotationTable.taskId} = ${taskTable.id} LIMIT 1)`;
+      case ProjectTypeEnum.SEGMENTATION:
+        return sql`EXISTS (SELECT 1 FROM ${polygonAnnotationTable} WHERE ${polygonAnnotationTable.taskId} = ${taskTable.id} LIMIT 1)`;
+      case ProjectTypeEnum.DETECTION: {
+        const useRect = annotationsUsed.includes(ProjectTypeEnum.DETECTION);
+        const usePoly = annotationsUsed.includes(ProjectTypeEnum.SEGMENTATION);
+        if (useRect && usePoly) {
+          return sql`(
+            EXISTS (SELECT 1 FROM ${rectangleAnnotationTable} WHERE ${rectangleAnnotationTable.taskId} = ${taskTable.id} LIMIT 1)
+            OR
+            EXISTS (SELECT 1 FROM ${polygonAnnotationTable} WHERE ${polygonAnnotationTable.taskId} = ${taskTable.id} LIMIT 1)
+          )`;
+        }
+        if (useRect) {
+          return sql`EXISTS (SELECT 1 FROM ${rectangleAnnotationTable} WHERE ${rectangleAnnotationTable.taskId} = ${taskTable.id} LIMIT 1)`;
+        }
+        return sql`EXISTS (SELECT 1 FROM ${polygonAnnotationTable} WHERE ${polygonAnnotationTable.taskId} = ${taskTable.id} LIMIT 1)`;
+      }
+    }
+  }
+
+  private async assertHasLabeledTasks(
+    projectId: number,
+    taskIds: number[],
+    trainingType: ProjectTypeEnum,
+    annotationsUsed: ProjectTypeEnum[],
+  ): Promise<void> {
+    const { labeledCount } = await this.countLabeledTasks(projectId, taskIds, trainingType, annotationsUsed);
+    if (labeledCount === 0) {
+      throw new BadRequestException(
+        "Dataset has no labeled images for the selected training type. Label at least one image (or adjust the annotation types used) before continuing.",
+      );
+    }
+  }
 
   /**
    * Check model access
