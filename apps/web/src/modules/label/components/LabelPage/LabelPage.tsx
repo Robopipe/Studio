@@ -1,32 +1,37 @@
+import { useProfileQuery } from "@/core/auth/services";
+import { cn } from "@/lib/utils";
+import { useGetTasksQuery } from "@/modules/capture/services/captureApi";
+import { useGetModelsQuery } from "@/modules/model/services/modelApi";
+import { EditProjectModal } from "@/modules/project/components/EditProjectModal";
+import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
+import { useGetProjectLabelsQuery } from "@/modules/project/services/projectApi";
+import { Label } from "@repo/schema";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Label } from "@repo/schema";
-import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
-import { useGetTasksQuery } from "@/modules/capture/services/captureApi";
-import { useGetProjectLabelsQuery } from "@/modules/project/services/projectApi";
-import { useGetModelsQuery } from "@/modules/model/services/modelApi";
-import { useProfileQuery } from "@/core/auth/services";
+import { useAnnotationNudge } from "../../hooks/useAnnotationNudge";
+import { useCanvasState } from "../../hooks/useCanvasState";
+import { useHistory } from "../../hooks/useHistory";
+import { useLabelShortcuts } from "../../hooks/useLabelShortcuts";
+import { useLabelUrlState } from "../../hooks/useLabelUrlState";
+import { useToolMode } from "../../hooks/useToolMode";
 import {
   useGetTaskQuery,
   usePredictAnnotationsMutation,
   useUpdateTaskMutation,
 } from "../../services/labelApi";
-import { useLabelUrlState } from "../../hooks/useLabelUrlState";
-import { useToolMode } from "../../hooks/useToolMode";
-import { useHistory } from "../../hooks/useHistory";
-import { useCanvasState } from "../../hooks/useCanvasState";
-import { useLabelShortcuts } from "../../hooks/useLabelShortcuts";
 import { Annotation } from "../../types/annotations";
-import { taskDetailToAnnotations, annotationsToUpdatePayload } from "../../utils/mapAnnotations";
+import {
+  annotationsToUpdatePayload,
+  taskDetailToAnnotations,
+} from "../../utils/mapAnnotations";
 import {
   DEFAULT_PRE_ANNOTATE_SETTINGS,
   PreAnnotateSettings,
   readPreAnnotateSettings,
   writePreAnnotateSettings,
 } from "../../utils/preAnnotateSettings";
-import { EditProjectModal } from "@/modules/project/components/EditProjectModal";
 import { AnnotationPanel } from "../AnnotationPanel";
-import { Canvas } from "../Canvas";
+import { Canvas, CanvasHandle } from "../Canvas";
 import { ClassSelect } from "../ClassSelect";
 import { DataSourcePanel } from "../DataSourcePanel";
 import { LeaveAnnotationsDialog } from "../LeaveAnnotationsDialog";
@@ -54,18 +59,22 @@ export const LabelPage = () => {
       projectId: projectId!,
       page,
       limit: TASKS_PER_PAGE,
-      ...(filter.annotationFilter !== "all" && { annotated: filter.annotationFilter }),
-      ...(filter.labelIds.length > 0 && { labelIds: filter.labelIds.join(",") }),
+      ...(filter.annotationFilter !== "all" && {
+        annotated: filter.annotationFilter,
+      }),
+      ...(filter.labelIds.length > 0 && {
+        labelIds: filter.labelIds.join(","),
+      }),
     },
     { skip: !projectId },
   );
   const tasks = tasksData?.data ?? [];
-  const totalPages = tasksData ? Math.ceil(tasksData.total / tasksData.limit) : 0;
+  const totalPages = tasksData
+    ? Math.ceil(tasksData.total / tasksData.limit)
+    : 0;
 
-  const { data: labels = [], isLoading: isLoadingLabels } = useGetProjectLabelsQuery(
-    { projectId: projectId! },
-    { skip: !projectId },
-  );
+  const { data: labels = [], isLoading: isLoadingLabels } =
+    useGetProjectLabelsQuery({ projectId: projectId! }, { skip: !projectId });
 
   // Whenever there's no task in the URL but the current page has tasks,
   // pick one. Covers two cases:
@@ -75,14 +84,21 @@ export const LabelPage = () => {
   // Gated on `!isFetchingTasks` so we never anchor on the *previous*
   // page's data — RTK Query keeps `data` around while refetching.
   useEffect(() => {
-    if (selectedTaskId !== null || isFetchingTasks || tasks.length === 0) return;
+    if (selectedTaskId !== null || isFetchingTasks || tasks.length === 0)
+      return;
     const targetId =
       pendingAnchorRef.current === "last"
         ? tasks[tasks.length - 1].id
         : tasks[0].id;
     setSelectedTaskId(targetId, { replace: true });
     pendingAnchorRef.current = null;
-  }, [selectedTaskId, isFetchingTasks, tasks, setSelectedTaskId, pendingAnchorRef]);
+  }, [
+    selectedTaskId,
+    isFetchingTasks,
+    tasks,
+    setSelectedTaskId,
+    pendingAnchorRef,
+  ]);
 
   const selectedTask = tasks.find((t) => t.id === selectedTaskId);
 
@@ -108,9 +124,7 @@ export const LabelPage = () => {
   // are; mirrors the cameraApiOverride pattern.
   useEffect(() => {
     if (!profile?.id || !projectId) return;
-    setPreAnnotateSettingsState(
-      readPreAnnotateSettings(profile.id, projectId),
-    );
+    setPreAnnotateSettingsState(readPreAnnotateSettings(profile.id, projectId));
   }, [profile?.id, projectId]);
 
   const updatePreAnnotateSettings = useCallback(
@@ -135,13 +149,33 @@ export const LabelPage = () => {
       return next;
     });
   }, []);
+  const [toolbarsVisible, setToolbarsVisible] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    const stored = window.localStorage.getItem("label.toolbarsVisible");
+    return stored === null ? true : stored === "1";
+  });
+  const toggleToolbars = useCallback(() => {
+    setToolbarsVisible((prev) => {
+      const next = !prev;
+      window.localStorage.setItem("label.toolbarsVisible", next ? "1" : "0");
+      return next;
+    });
+  }, []);
+  const canvasRef = useRef<CanvasHandle>(null);
+  const handleResetView = useCallback(() => canvasRef.current?.resetView(), []);
+  const imageDimsRef = useRef<{ width: number; height: number }>({ width: 0, height: 0 });
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [isDirty, setIsDirty] = useState(false);
-  const [selectedAnnotationIds, setSelectedAnnotationIds] = useState<Set<string>>(
-    () => new Set(),
+  const [selectedAnnotationIds, setSelectedAnnotationIds] = useState<
+    Set<string>
+  >(() => new Set());
+  const [primarySelectedId, setPrimarySelectedId] = useState<string | null>(
+    null,
   );
-  const [primarySelectedId, setPrimarySelectedId] = useState<string | null>(null);
-  const clipboardRef = useRef<{ projectId: number; annotations: Annotation[] } | null>(null);
+  const clipboardRef = useRef<{
+    projectId: number;
+    annotations: Annotation[];
+  } | null>(null);
   const [hiddenAnnotationIds, setHiddenAnnotationIds] = useState<Set<string>>(
     () => new Set(),
   );
@@ -168,8 +202,12 @@ export const LabelPage = () => {
   // Acts radio-style: re-click same class or click "Any" to clear.
   const [isolatedLabelId, setIsolatedLabelId] = useState<string | null>(null);
   const setIsolatedLabel = useCallback(
-    (labelId: string) => setIsolatedLabelId(labelId),
-    [],
+    (labelId: string) => {
+      setIsolatedLabelId(labelId);
+      const label = labels.find((l) => String(l.id) === labelId);
+      if (label) setActiveLabel(label);
+    },
+    [labels],
   );
   const clearIsolatedLabel = useCallback(() => setIsolatedLabelId(null), []);
   const [activeLabel, setActiveLabel] = useState<Label | null>(null);
@@ -198,7 +236,8 @@ export const LabelPage = () => {
         const fromIdx = ids.indexOf(primarySelectedId);
         const toIdx = ids.indexOf(id);
         if (fromIdx !== -1 && toIdx !== -1) {
-          const [lo, hi] = fromIdx <= toIdx ? [fromIdx, toIdx] : [toIdx, fromIdx];
+          const [lo, hi] =
+            fromIdx <= toIdx ? [fromIdx, toIdx] : [toIdx, fromIdx];
           setSelectedAnnotationIds(new Set(ids.slice(lo, hi + 1)));
           setPrimarySelectedId(id);
           return;
@@ -246,6 +285,38 @@ export const LabelPage = () => {
     }
   }, [labels, activeLabel]);
 
+  // When the selection changes to a unanimous set of same-label regions,
+  // mirror that label into activeLabel so the chip reflects the selection.
+  // Mixed or empty selections leave activeLabel alone (Q9: indeterminate is display-only).
+  useEffect(() => {
+    if (selectedAnnotationIds.size === 0) return;
+    const selectedLabelIds = new Set(
+      annotations
+        .filter((a) => selectedAnnotationIds.has(a.id))
+        .map((a) => a.labelId),
+    );
+    if (selectedLabelIds.size !== 1) return;
+    const [onlyId] = selectedLabelIds;
+    const label = labels.find((l) => String(l.id) === onlyId);
+    if (label && label.id !== activeLabel?.id) {
+      setActiveLabel(label);
+    }
+  }, [selectedAnnotationIds, annotations, labels, activeLabel?.id]);
+
+  // Derives the chip's displayed label id. When a multi-selection has mixed
+  // labels, no chip is shown (null) while activeLabel stays unchanged for drawing.
+  const chipDisplayedLabelId = useMemo<number | null>(() => {
+    if (selectedAnnotationIds.size > 1) {
+      const labelIds = new Set(
+        annotations
+          .filter((a) => selectedAnnotationIds.has(a.id))
+          .map((a) => a.labelId),
+      );
+      if (labelIds.size > 1) return null;
+    }
+    return activeLabel?.id ?? null;
+  }, [activeLabel, selectedAnnotationIds, annotations]);
+
   // Sync annotations from task detail
   useEffect(() => {
     if (taskDetail) {
@@ -257,6 +328,7 @@ export const LabelPage = () => {
       history.reset();
       setSelectedAnnotationIds(new Set());
       setPrimarySelectedId(null);
+      imageDimsRef.current = { width: 0, height: 0 };
     }
   }, [taskDetail]);
 
@@ -283,11 +355,14 @@ export const LabelPage = () => {
     setPrimarySelectedId(null);
   }, [selectedAnnotationIds, history]);
 
-  const cloneAnnotation = useCallback((a: Annotation): Annotation => ({
-    ...a,
-    bbox: a.bbox ? { ...a.bbox } : undefined,
-    points: a.points?.map(([x, y]) => [x, y] as [number, number]),
-  }), []);
+  const cloneAnnotation = useCallback(
+    (a: Annotation): Annotation => ({
+      ...a,
+      bbox: a.bbox ? { ...a.bbox } : undefined,
+      points: a.points?.map(([x, y]) => [x, y] as [number, number]),
+    }),
+    [],
+  );
 
   const handleCopySelection = useCallback(() => {
     if (!projectId || selectedAnnotationIds.size === 0) return;
@@ -306,7 +381,8 @@ export const LabelPage = () => {
     (updates: Array<{ id: string; updates: Partial<Annotation> }>) => {
       if (updates.length === 0) return;
       history.runBatch("move", () => {
-        for (const { id, updates: u } of updates) history.updateAnnotation(id, u);
+        for (const { id, updates: u } of updates)
+          history.updateAnnotation(id, u);
       });
     },
     [history],
@@ -342,31 +418,53 @@ export const LabelPage = () => {
   const handleSelectLabel = useCallback(
     (labelId: number) => {
       const label = labels.find((l) => l.id === labelId);
-      if (label) {
-        setActiveLabel(label);
+      if (!label) return;
+
+      const changed = label.id !== activeLabel?.id;
+
+      if (selectedAnnotationIds.size > 0) {
+        const ids = Array.from(selectedAnnotationIds);
+        history.runBatch("relabel", () => {
+          for (const id of ids) {
+            history.updateAnnotation(id, {
+              labelId: String(label.id),
+              labelName: label.name,
+              color: label.color,
+            });
+          }
+        });
+      }
+
+      setActiveLabel(label);
+
+      if (changed && isolatedLabelId !== null) {
+        setIsolatedLabelId(null);
       }
     },
-    [labels],
+    [labels, activeLabel?.id, selectedAnnotationIds, history, isolatedLabelId],
   );
 
   const canMarkEmpty = true;
 
   const [isSaving, setIsSaving] = useState(false);
-  const handleSave = useCallback(async (options?: { reviewed?: boolean }) => {
-    if (!projectId || selectedTaskId === null) return;
-    setIsSaving(true);
-    try {
-      const payload = annotationsToUpdatePayload(annotations);
-      await updateTask({
-        projectId,
-        taskId: selectedTaskId,
-        body: { ...payload, ...(options?.reviewed && { reviewed: true }) },
-      }).unwrap();
-      setIsDirty(false);
-    } finally {
-      setIsSaving(false);
-    }
-  }, [projectId, selectedTaskId, annotations, updateTask]);
+  const handleSave = useCallback(
+    async (options?: { reviewed?: boolean }) => {
+      if (!projectId || selectedTaskId === null) return;
+      setIsSaving(true);
+      try {
+        const payload = annotationsToUpdatePayload(annotations);
+        await updateTask({
+          projectId,
+          taskId: selectedTaskId,
+          body: { ...payload, ...(options?.reviewed && { reviewed: true }) },
+        }).unwrap();
+        setIsDirty(false);
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [projectId, selectedTaskId, annotations, updateTask],
+  );
 
   const handleSaveEmpty = useCallback(() => {
     handleSave({ reviewed: true });
@@ -401,21 +499,23 @@ export const LabelPage = () => {
     })
       .unwrap()
       .then((result) => {
-        const newAnnotations: Annotation[] = result.polygons.flatMap((p, idx) => {
-          const label = labelById.get(p.labelId);
-          if (!label) return [];
-          return [
-            {
-              id: `pred-${stamp}-${idx}`,
-              apiId: undefined,
-              labelId: String(label.id),
-              labelName: label.name,
-              color: label.color,
-              type: "polygon",
-              points: p.value,
-            },
-          ];
-        });
+        const newAnnotations: Annotation[] = result.polygons.flatMap(
+          (p, idx) => {
+            const label = labelById.get(p.labelId);
+            if (!label) return [];
+            return [
+              {
+                id: `pred-${stamp}-${idx}`,
+                apiId: undefined,
+                labelId: String(label.id),
+                labelName: label.name,
+                color: label.color,
+                type: "polygon",
+                points: p.value,
+              },
+            ];
+          },
+        );
 
         // Pre-annotate is "load a starting state" rather than a per-action
         // edit. Replace annotations wholesale, mark the task dirty so the
@@ -480,11 +580,22 @@ export const LabelPage = () => {
     onSaveEmpty: handleSaveEmpty,
     onSetToolMode: setToolMode,
     onToggleCrosshair: toggleCrosshair,
+    onResetView: handleResetView,
     onSelectTask: setSelectedTaskId,
     onChangePage: setPage,
     onSelectLabel: handleSelectLabel,
     onHidePreviewDown: startPreviewHideAll,
     onHidePreviewUp: stopPreviewHideAll,
+    onToggleToolbars: toggleToolbars,
+  });
+
+  useAnnotationNudge({
+    annotations,
+    selectedAnnotationIds,
+    toolMode,
+    imageDimsRef,
+    setAnnotations: setAnnotationsAndDirty,
+    pushBatchEntry: history.pushBatchEntry,
   });
 
   // Priority: hold-to-hide (h) > class isolate > per-annotation hides.
@@ -507,7 +618,11 @@ export const LabelPage = () => {
   const activeLabelForCanvas = useMemo(
     () =>
       activeLabel
-        ? { id: String(activeLabel.id), name: activeLabel.name, color: activeLabel.color }
+        ? {
+            id: String(activeLabel.id),
+            name: activeLabel.name,
+            color: activeLabel.color,
+          }
         : null,
     [activeLabel],
   );
@@ -548,6 +663,7 @@ export const LabelPage = () => {
       />
       <div className="relative flex min-h-0 flex-col overflow-hidden">
         <Canvas
+          ref={canvasRef}
           task={selectedTask ?? taskDetail}
           annotations={visibleAnnotations}
           selectedAnnotationIds={selectedAnnotationIds}
@@ -562,6 +678,8 @@ export const LabelPage = () => {
           onSave={handleSave}
           onSaveEmpty={handleSaveEmpty}
           showCrosshair={showCrosshair}
+          toolbarsVisible={toolbarsVisible}
+          onToggleToolbars={toggleToolbars}
           onSelect={handleSelect}
           onAddAnnotation={history.addAnnotation}
           onUpdateAnnotation={history.updateAnnotation}
@@ -574,9 +692,19 @@ export const LabelPage = () => {
           onZoomAtPoint={canvasState.zoomAtPoint}
           onSetPosition={canvasState.setPosition}
           onFitImage={canvasState.fitImage}
+          onImageLoad={(w, h) => { imageDimsRef.current = { width: w, height: h }; }}
         />
-        <div className="pointer-events-none absolute right-6 top-1/2 z-10 -translate-y-1/2">
-          <div className="pointer-events-auto">
+        <div
+          className={cn(
+            "pointer-events-none absolute right-2 top-1/2 z-10 -translate-y-1/2 transition-[transform,opacity] duration-150",
+            !toolbarsVisible && "translate-x-4 opacity-0",
+          )}
+        >
+          <div
+            className={
+              toolbarsVisible ? "pointer-events-auto" : "pointer-events-none"
+            }
+          >
             <Toolbar
               toolMode={toolMode}
               onSetToolMode={setToolMode}
@@ -591,6 +719,7 @@ export const LabelPage = () => {
               hasLabels={labels.length > 0 || isLoadingLabels}
               showCrosshair={showCrosshair}
               onToggleCrosshair={toggleCrosshair}
+              onResetView={handleResetView}
               onPreAnnotate={handlePreAnnotate}
               onOpenPreAnnotateSettings={() => setPreAnnotateOpen(true)}
               preAnnotateDisabled={
@@ -601,11 +730,22 @@ export const LabelPage = () => {
             />
           </div>
         </div>
-        <div className="pointer-events-none absolute inset-x-6 bottom-6 z-10 flex justify-center">
-          <div className="pointer-events-auto min-w-0 max-w-full">
+        <div
+          className={cn(
+            "pointer-events-none absolute inset-x-2 bottom-2 z-10 flex justify-center transition-[transform,opacity] duration-150",
+            !toolbarsVisible && "translate-y-4 opacity-0",
+          )}
+        >
+          <div
+            className={
+              toolbarsVisible
+                ? "pointer-events-auto min-w-0 max-w-full"
+                : "pointer-events-none min-w-0 max-w-full"
+            }
+          >
             <ClassSelect
               labels={labels}
-              activeLabelId={activeLabel?.id ?? 0}
+              activeLabelId={chipDisplayedLabelId}
               onSelectLabel={handleSelectLabel}
               onOpenSettings={() => setSettingsOpen(true)}
               isLoadingLabels={isLoadingLabels}

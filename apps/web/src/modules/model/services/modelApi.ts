@@ -4,6 +4,8 @@ import { HttpMethod } from "@/types";
 import { createApi } from "@reduxjs/toolkit/query/react";
 import {
   CreateModel,
+  DatasetStats,
+  DatasetStatsResponse,
   Model,
   ModelLog,
   ModelOutput,
@@ -101,6 +103,16 @@ export const modelApi = modelApiBase.injectEndpoints({
         method: HttpMethod.GET,
       }),
     }),
+    datasetStats: builder.mutation<
+      DatasetStatsResponse,
+      DatasetStats & { projectId: number }
+    >({
+      query: ({ projectId, ...payload }) => ({
+        url: `${projects.models.models(projectId)}/dataset-stats`,
+        method: HttpMethod.POST,
+        body: payload,
+      }),
+    }),
   }),
   overrideExisting: true,
 });
@@ -115,4 +127,5 @@ export const {
   useGetModelLogsQuery,
   useGetModelOutputsQuery,
   useLazyGetModelOutputsQuery,
+  useDatasetStatsMutation,
 } = modelApi;

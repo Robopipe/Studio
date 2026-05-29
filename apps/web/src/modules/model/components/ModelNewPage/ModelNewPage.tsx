@@ -19,7 +19,7 @@ import {
 } from "@repo/schema";
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { useCreateModelMutation, useGetModelsQuery } from "../../services";
+import { useCreateModelMutation, useDatasetStatsMutation, useGetModelsQuery } from "../../services";
 import { AdvancedSettings } from "../AdvancedSettings";
 import { getHyperparamsPresets } from "../AdvancedSettings/presets";
 import { AppliedAugmentation } from "../AugmentationSettings/augmentationTypes";
@@ -55,7 +55,7 @@ export interface DuplicateModelState {
 
 export interface ModelNewPageProps {}
 
-export const ModelNewPage = ({}: ModelNewPageProps) => {
+const ModelNewPageInner = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const duplicateState = (location.state as DuplicateModelState | null)
@@ -114,6 +114,8 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
   const [hyperparamsError, setHyperparamsError] = useState<string | null>(null);
   const [nameError, setNameError] = useState<string | null>(null);
   const [epochsError, setEpochsError] = useState<string | null>(null);
+  const [datasetError, setDatasetError] = useState<string | null>(null);
+  const [checkDataset] = useDatasetStatsMutation();
   const didPrefillName = useRef(false);
 
   // Task selection state — modal-controlled
@@ -206,6 +208,36 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
     setName(`Model V${String(next).padStart(2, "0")}`);
   }, [existingModels]);
 
+  // Debounced dataset validation — fires whenever the user changes task selection
+  // or training type. Disables Save/Train if no annotated images match the type.
+  useEffect(() => {
+    if (!activeProject?.id) return;
+    const timer = setTimeout(() => {
+      checkDataset({
+        projectId: activeProject.id,
+        taskIds: selectedTaskIds,
+        trainingType,
+        annotationsUsed,
+      })
+        .unwrap()
+        .then((result) => {
+          if (!result.valid) {
+            const msg =
+              result.totalCandidateCount === 0
+                ? "No annotated images in this project. Label at least one image before saving."
+                : `${result.labeledCount} of ${result.totalCandidateCount} selected images have ${trainingType.toLowerCase()} annotations. At least one is required.`;
+            setDatasetError(msg);
+          } else {
+            setDatasetError(null);
+          }
+        })
+        .catch(() => setDatasetError(null));
+    }, 300);
+    return () => clearTimeout(timer);
+  // checkDataset is a stable mutation trigger — omitted from deps intentionally
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTaskIds, trainingType, annotationsUsed, activeProject?.id]);
+
   // When switching backend, swap the hyperparams JSON to the new backend's
   // matching preset *iff* the current text still matches a preset of the
   // previous backend. That way users on defaults get the right defaults for
@@ -251,6 +283,7 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
   };
 
   const saveModel = async (train = false) => {
+    if (datasetError) return;
     const trimmedName = name.trim();
     const nextNameError = trimmedName ? null : "Version name is required";
     const nextEpochsError =
@@ -283,31 +316,42 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
       }),
     ];
 
-    const newModel = await createModel({
-      epochs: epochs!,
-      labelIds: activeLabels?.map((label) => label.id) || [],
-      taskIds: selectedTaskIds,
-      ...(sourceDatasetVersionId != null && { sourceDatasetVersionId }),
-      name,
-      projectId: activeProject?.id!,
-      splitTest: datasetSplit.test,
-      splitTrain: datasetSplit.train,
-      splitValidate: datasetSplit.validation,
-      outputTypes: outputs,
-      backend,
-      region,
-      quantization,
-      trainingType,
-      annotationsUsed,
-      augmentations: normalAugs.map((a) => ({
-        type: a.type,
-        params: a.params,
-      })),
-      preprocessings: allPreprocessings,
-      customHyperparams: parsedHyperparams,
-      train,
-    }).unwrap();
-    navigate(`/projects/${activeProject?.id}/models/${newModel.id}`);
+    try {
+      const newModel = await createModel({
+        epochs: epochs!,
+        labelIds: activeLabels?.map((label) => label.id) || [],
+        taskIds: selectedTaskIds,
+        ...(sourceDatasetVersionId != null && { sourceDatasetVersionId }),
+        name,
+        projectId: activeProject?.id!,
+        splitTest: datasetSplit.test,
+        splitTrain: datasetSplit.train,
+        splitValidate: datasetSplit.validation,
+        outputTypes: outputs,
+        backend,
+        region,
+        quantization,
+        trainingType,
+        annotationsUsed,
+        augmentations: normalAugs.map((a) => ({
+          type: a.type,
+          params: a.params,
+        })),
+        preprocessings: allPreprocessings,
+        customHyperparams: parsedHyperparams,
+        train,
+      }).unwrap();
+      navigate(`/projects/${activeProject?.id}/models/${newModel.id}`);
+    } catch (err: unknown) {
+      const msg =
+        typeof err === "object" &&
+        err !== null &&
+        "data" in err &&
+        typeof (err as { data?: { message?: unknown } }).data?.message === "string"
+          ? (err as { data: { message: string } }).data.message
+          : "Failed to save model. Please try again.";
+      setDatasetError(msg);
+    }
   };
 
   return (
@@ -373,6 +417,9 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
           selectedTaskPreviews={selectedTaskPreviews}
           onEditSelection={() => setSelectionDialogOpen(true)}
         />
+        {datasetError && (
+          <span className="text-xs text-red-600">{datasetError}</span>
+        )}
         <DatasetSplitSettings
           split={datasetSplit}
           onChange={setDatasetSplit}
@@ -394,8 +441,8 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
         />
 
         <div className="flex flex-row justify-end gap-2">
-          <Button onClick={() => saveModel()}>Save</Button>
-          <Button onClick={() => saveModel(true)}>Save &amp; Train</Button>
+          <Button onClick={() => saveModel()} disabled={Boolean(datasetError)}>Save</Button>
+          <Button onClick={() => saveModel(true)} disabled={Boolean(datasetError)}>Save &amp; Train</Button>
         </div>
       </div>
 
@@ -411,4 +458,9 @@ export const ModelNewPage = ({}: ModelNewPageProps) => {
       />
     </ModelLayout>
   );
+};
+
+export const ModelNewPage = () => {
+  const location = useLocation();
+  return <ModelNewPageInner key={location.key} />;
 };
