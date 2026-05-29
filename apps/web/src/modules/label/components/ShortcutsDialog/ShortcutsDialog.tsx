@@ -13,9 +13,12 @@ import {
   ClipboardPaste,
   Copy,
   Crosshair,
+  Eye,
   EyeOff,
   Hand,
   Keyboard,
+  Maximize2,
+  Move,
   MousePointer2,
   Redo2,
   Save,
@@ -84,6 +87,16 @@ const groups: ShortcutGroup[] = [
         label: "Toggle crosshair",
         keys: <KeyCombo keys={["C"]} />,
       },
+      {
+        icon: <Eye />,
+        label: "Toggle toolbars",
+        keys: <KeyCombo keys={["T"]} />,
+      },
+      {
+        icon: <Maximize2 />,
+        label: "Fit to screen",
+        keys: <KeyCombo keys={["F"]} />,
+      },
     ],
   },
   {
@@ -109,6 +122,25 @@ const groups: ShortcutGroup[] = [
         icon: <EyeOff />,
         label: "Hide all regions (while held)",
         keys: <KeyCombo keys={["H"]} />,
+      },
+    ],
+  },
+  {
+    title: "Editing",
+    items: [
+      {
+        icon: <Move />,
+        label: "Nudge selection",
+        keys: (
+          <div className="flex items-center gap-1">
+            <Key>Alt</Key>
+            <span className="text-[11px] text-muted-foreground">+</span>
+            <Key>↑</Key>
+            <Key>↓</Key>
+            <Key>←</Key>
+            <Key>→</Key>
+          </div>
+        ),
       },
     ],
   },

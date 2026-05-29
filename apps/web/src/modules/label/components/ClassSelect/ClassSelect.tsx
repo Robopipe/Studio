@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 
 export interface ClassSelectProps {
   labels: Label[];
-  activeLabelId: number;
+  activeLabelId: number | null;
   onSelectLabel: (labelId: number) => void;
   onOpenSettings?: () => void;
   isLoadingLabels?: boolean;
@@ -43,6 +43,7 @@ export const ClassSelect = ({
 
   // Keep the active label in view when it changes (e.g. arrow-key cycling).
   useEffect(() => {
+    if (activeLabelId === null) return;
     const container = scrollRef.current;
     if (!container) return;
     const active = container.querySelector<HTMLElement>(

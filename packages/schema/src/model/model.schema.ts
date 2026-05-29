@@ -217,6 +217,18 @@ export const createModelSchema = modelSchema
 
 export const updateModelSchema = createModelSchema;
 
+export const datasetStatsSchema = z.object({
+  taskIds: z.number().array().default([]),
+  trainingType: z.enum(ProjectTypeEnum),
+  annotationsUsed: z.enum(ProjectTypeEnum).array(),
+});
+
+export const datasetStatsResponseSchema = z.object({
+  labeledCount: z.number(),
+  totalCandidateCount: z.number(),
+  valid: z.boolean(),
+});
+
 export const modelOutputSchema = z.object({
   id: z.number(),
   type: z.enum(ModelOutputTypeEnum),

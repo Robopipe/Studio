@@ -5,6 +5,7 @@ import {
   Hand,
   Info,
   Loader2,
+  Maximize2,
   MousePointer2,
   Redo2,
   Settings,
@@ -32,6 +33,7 @@ export interface ToolbarProps {
   hasLabels: boolean;
   showCrosshair: boolean;
   onToggleCrosshair: () => void;
+  onResetView: () => void;
   onPreAnnotate: () => void;
   onOpenPreAnnotateSettings: () => void;
   preAnnotateDisabled: boolean;
@@ -56,6 +58,7 @@ export const Toolbar = ({
   hasLabels,
   showCrosshair,
   onToggleCrosshair,
+  onResetView,
   onPreAnnotate,
   onOpenPreAnnotateSettings,
   preAnnotateDisabled,
@@ -92,6 +95,7 @@ export const Toolbar = ({
     { icon: <Redo2 />, title: "Redo (Ctrl+Shift+Z)", onClick: onRedo, disabled: !canRedo },
     { icon: <ZoomIn />, title: "Zoom in", onClick: onZoomIn },
     { icon: <ZoomOut />, title: "Zoom out", onClick: onZoomOut },
+    { icon: <Maximize2 />, title: "Fit to screen (F)", onClick: onResetView },
     {
       icon: <Hand />,
       title: "Pan (M)",

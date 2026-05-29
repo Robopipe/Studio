@@ -76,7 +76,7 @@ export const AnnotationPanel = ({
       </TabsList>
 
       <TabsContent value="labels" className="min-h-0 flex-1 overflow-y-auto">
-        <Collapsible defaultOpen={false} className="px-4 pt-4">
+        <Collapsible defaultOpen={true} className="px-4 pt-4">
           <CollapsibleTrigger className="text-[10px] font-bold uppercase tracking-[1px] text-foreground/90 hover:text-foreground/90 py-0">
             Classes
           </CollapsibleTrigger>

@@ -1,8 +1,13 @@
 import { Task } from "@repo/schema";
-import { useEffect, useRef, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { useImageLoader } from "../../hooks/useImageLoader";
 import { Annotation, ToolMode } from "../../types/annotations";
 import { KonvaStage, KonvaStageHandle } from "./KonvaStage";
+
+export interface CanvasHandle {
+  resetView: () => void;
+}
 
 export interface CanvasProps {
   task: Task | undefined;
@@ -33,6 +38,9 @@ export interface CanvasProps {
   onSave: () => void;
   onSaveEmpty: () => void;
   showCrosshair: boolean;
+  toolbarsVisible: boolean;
+  onToggleToolbars: () => void;
+  onImageLoad?: (width: number, height: number) => void;
 }
 
 const isTextInputFocused = (target: EventTarget | null) => {
@@ -45,7 +53,7 @@ const isTextInputFocused = (target: EventTarget | null) => {
   );
 };
 
-export const Canvas = ({
+export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
   task,
   annotations,
   selectedAnnotationIds,
@@ -72,12 +80,24 @@ export const Canvas = ({
   onSave,
   onSaveEmpty,
   showCrosshair,
-}: CanvasProps) => {
+  toolbarsVisible,
+  onToggleToolbars,
+  onImageLoad,
+}, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const stageHandle = useRef<KonvaStageHandle>(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+  const [selectedVertex, setSelectedVertex] = useState<{ annotationId: string; index: number } | null>(null);
   const { image, loading, error } = useImageLoader(task?.filePath);
   const fittedImageRef = useRef<HTMLImageElement | null>(null);
+
+  useImperativeHandle(ref, () => ({
+    resetView: () => {
+      const container = containerRef.current;
+      if (!container || !image) return;
+      onFitImage(image.width, image.height, container.clientWidth, container.clientHeight);
+    },
+  }), [image, onFitImage]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -109,8 +129,13 @@ export const Canvas = ({
         containerSize.width,
         containerSize.height,
       );
+      onImageLoad?.(image.width, image.height);
     }
   }, [image, containerSize.width, containerSize.height]);
+
+  useEffect(() => {
+    setSelectedVertex(null);
+  }, [selectedAnnotationIds]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -118,6 +143,16 @@ export const Canvas = ({
       const mod = e.ctrlKey || e.metaKey;
 
       if (key === "Delete" || key === "Backspace") {
+        if (selectedVertex !== null) {
+          const ann = annotations.find((a) => a.id === selectedVertex.annotationId);
+          if (ann?.points && ann.points.length > 3) {
+            const newPoints = ann.points.filter((_, i) => i !== selectedVertex.index);
+            onUpdateAnnotation(ann.id, { points: newPoints });
+          }
+          setSelectedVertex(null);
+          e.preventDefault();
+          return;
+        }
         if (selectedAnnotationIds.size > 0) {
           e.preventDefault();
           onDeleteSelected();
@@ -127,6 +162,7 @@ export const Canvas = ({
       if (key === "Escape") {
         stageHandle.current?.cancelDrawing();
         onSelect(null);
+        setSelectedVertex(null);
         return;
       }
       if (mod && (key === "z" || key === "Z")) {
@@ -154,7 +190,10 @@ export const Canvas = ({
     return () => window.removeEventListener("keydown", handler);
   }, [
     selectedAnnotationIds,
+    selectedVertex,
+    annotations,
     onDeleteSelected,
+    onUpdateAnnotation,
     onCopySelection,
     onPasteClipboard,
     onSelect,
@@ -181,6 +220,17 @@ export const Canvas = ({
         >
           {task.filePath.split("/").pop() ?? "Task"}
         </span>
+        <button
+          type="button"
+          title="Toggle toolbars (T)"
+          className="shrink-0 cursor-pointer rounded border border-black/10 bg-transparent px-2 py-[3px] text-xs font-semibold text-muted-foreground hover:bg-black/5 hover:text-foreground"
+          onClick={onToggleToolbars}
+        >
+          <span className="flex items-center gap-1.5 [&_svg]:size-3.5">
+            {toolbarsVisible ? <Eye /> : <EyeOff />}
+            {toolbarsVisible ? "Hide toolbars" : "Show toolbars"}
+          </span>
+        </button>
         {canMarkEmpty && annotations.length === 0 && (
           <button
             type="button"
@@ -231,9 +281,11 @@ export const Canvas = ({
               selectedAnnotationIds={loading ? new Set() : selectedAnnotationIds}
               primarySelectedId={loading ? null : primarySelectedId}
               activeLabel={activeLabel}
+              selectedVertex={selectedVertex}
               onSelect={onSelect}
               onAddAnnotation={onAddAnnotation}
               onUpdateAnnotation={onUpdateAnnotation}
+              onVertexSelect={setSelectedVertex}
               onGroupTranslate={onGroupTranslate}
               onZoomAtPoint={onZoomAtPoint}
               onSetPosition={onSetPosition}
@@ -244,4 +296,4 @@ export const Canvas = ({
       </div>
     </div>
   );
-};
+});
