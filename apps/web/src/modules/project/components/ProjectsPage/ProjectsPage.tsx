@@ -5,12 +5,12 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import { useGetProjectsQuery } from "../../services/projectApi";
 import { CreateProjectModal } from "../CreateProjectModal";
-import { ProjectCard } from "../ProjectCard";
+import { ProjectCard, ProjectCardSkeleton } from "../ProjectCard";
 
 export interface ProjectsPageProps {}
 
 export const ProjectsPage = ({}: ProjectsPageProps) => {
-  const { data: projects } = useGetProjectsQuery();
+  const { data: projects, isLoading } = useGetProjectsQuery();
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -24,17 +24,24 @@ export const ProjectsPage = ({}: ProjectsPageProps) => {
         </Button>
       </div>
       <div className="flex w-full flex-wrap gap-6">
-        {projects?.map((project) => (
-          <ProjectCard
-            key={project.id}
-            project={project}
-            onClick={() => {
-              navigate(
-                webRoutes.capture.replace(":projectId", project.id.toString()),
-              );
-            }}
-          />
-        ))}
+        {isLoading
+          ? Array.from({ length: 4 }).map((_, i) => (
+              <ProjectCardSkeleton key={i} />
+            ))
+          : projects?.map((project) => (
+              <ProjectCard
+                key={project.id}
+                project={project}
+                onClick={() => {
+                  navigate(
+                    webRoutes.capture.replace(
+                      ":projectId",
+                      project.id.toString(),
+                    ),
+                  );
+                }}
+              />
+            ))}
       </div>
 
       {isModalOpen && (
