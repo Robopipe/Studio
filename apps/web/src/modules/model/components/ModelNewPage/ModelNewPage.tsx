@@ -8,25 +8,26 @@ import { Input } from "@/modules/shadcn/ui/input";
 import { Label } from "@/modules/shadcn/ui/label";
 import { NumberInput } from "@/modules/shadcn/ui/number-input";
 import {
-  // hyperparamsConfigSchema import kept for reference — validation intentionally bypassed
-  // hyperparamsConfigSchema,
-  Label as ProjectLabel,
   ModelBackendEnum,
   ModelOutputTypeEnum,
   ModelQuantizationEnum,
   ModelRegionEnum,
+  // hyperparamsConfigSchema import kept for reference — validation intentionally bypassed
+  // hyperparamsConfigSchema,
+  Label as ProjectLabel,
   ProjectTypeEnum,
 } from "@repo/schema";
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { useCreateModelMutation, useDatasetStatsMutation, useGetModelsQuery } from "../../services";
+import {
+  useCreateModelMutation,
+  useDatasetStatsMutation,
+  useGetModelsQuery,
+} from "../../services";
 import { AdvancedSettings } from "../AdvancedSettings";
 import { getHyperparamsPresets } from "../AdvancedSettings/presets";
 import { AppliedAugmentation } from "../AugmentationSettings/augmentationTypes";
-import {
-  DatasetSplit,
-  DatasetSplitSettings,
-} from "../DatasetSplitSettings";
+import { DatasetSplit, DatasetSplitSettings } from "../DatasetSplitSettings";
 import { ModelLayout } from "../ModelLayout/ModelLayout";
 import { ModelTypeSettings } from "../ModelTypeSettings";
 import { SourceImagesSettings } from "../SourceImagesSettings";
@@ -72,10 +73,13 @@ const ModelNewPageInner = () => {
     duplicateState?.epochs ?? 100,
   );
   const [outputs, setOutputs] = useState<ModelOutputTypeEnum[]>(
-    duplicateState?.outputs ?? [ModelOutputTypeEnum.RAW, ModelOutputTypeEnum.RVC4],
+    duplicateState?.outputs ?? [
+      ModelOutputTypeEnum.RAW,
+      ModelOutputTypeEnum.RVC4,
+    ],
   );
   const [backend, setBackend] = useState<ModelBackendEnum>(
-    duplicateState?.backend ?? ModelBackendEnum.LUXONIS,
+    duplicateState?.backend ?? ModelBackendEnum.ULTRALYTICS,
   );
   const [region, setRegion] = useState<ModelRegionEnum>(
     duplicateState?.region ?? ModelRegionEnum.EUROPE_WEST4,
@@ -91,8 +95,10 @@ const ModelNewPageInner = () => {
   );
   // Preprocessing + augmentation UI is hidden; values come from a duplicated
   // model's payload (when duplicating) or default to empty.
-  const augmentations: AppliedAugmentation[] = duplicateState?.augmentations ?? [];
-  const preprocessings: AppliedAugmentation[] = duplicateState?.preprocessings ?? [];
+  const augmentations: AppliedAugmentation[] =
+    duplicateState?.augmentations ?? [];
+  const preprocessings: AppliedAugmentation[] =
+    duplicateState?.preprocessings ?? [];
   const [trainingType, setTrainingType] = useState<ProjectTypeEnum>(
     duplicateState?.trainingType ?? ProjectTypeEnum.DETECTION,
   );
@@ -104,8 +110,7 @@ const ModelNewPageInner = () => {
       return duplicateState.customHyperparams;
     }
     // Default to the High Accuracy preset for the initial backend.
-    const initialBackend =
-      duplicateState?.backend ?? ModelBackendEnum.LUXONIS;
+    const initialBackend = duplicateState?.backend ?? ModelBackendEnum.LUXONIS;
     const preset = getHyperparamsPresets(initialBackend).find(
       (p) => p.id === "high-accuracy",
     );
@@ -234,8 +239,8 @@ const ModelNewPageInner = () => {
         .catch(() => setDatasetError(null));
     }, 300);
     return () => clearTimeout(timer);
-  // checkDataset is a stable mutation trigger — omitted from deps intentionally
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // checkDataset is a stable mutation trigger — omitted from deps intentionally
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTaskIds, trainingType, annotationsUsed, activeProject?.id]);
 
   // When switching backend, swap the hyperparams JSON to the new backend's
@@ -287,9 +292,7 @@ const ModelNewPageInner = () => {
     const trimmedName = name.trim();
     const nextNameError = trimmedName ? null : "Version name is required";
     const nextEpochsError =
-      epochs !== null && epochs > 0
-        ? null
-        : "Epochs must be greater than 0";
+      epochs !== null && epochs > 0 ? null : "Epochs must be greater than 0";
     setNameError(nextNameError);
     setEpochsError(nextEpochsError);
     if (nextNameError || nextEpochsError) return;
@@ -347,7 +350,8 @@ const ModelNewPageInner = () => {
         typeof err === "object" &&
         err !== null &&
         "data" in err &&
-        typeof (err as { data?: { message?: unknown } }).data?.message === "string"
+        typeof (err as { data?: { message?: unknown } }).data?.message ===
+          "string"
           ? (err as { data: { message: string } }).data.message
           : "Failed to save model. Please try again.";
       setDatasetError(msg);
@@ -423,7 +427,9 @@ const ModelNewPageInner = () => {
         <DatasetSplitSettings
           split={datasetSplit}
           onChange={setDatasetSplit}
-          customTotal={selectedTaskIds.length > 0 ? selectedTaskIds.length : undefined}
+          customTotal={
+            selectedTaskIds.length > 0 ? selectedTaskIds.length : undefined
+          }
         />
         <AdvancedSettings
           outputs={outputs}
@@ -441,8 +447,15 @@ const ModelNewPageInner = () => {
         />
 
         <div className="flex flex-row justify-end gap-2">
-          <Button onClick={() => saveModel()} disabled={Boolean(datasetError)}>Save</Button>
-          <Button onClick={() => saveModel(true)} disabled={Boolean(datasetError)}>Save &amp; Train</Button>
+          <Button onClick={() => saveModel()} disabled={Boolean(datasetError)}>
+            Save
+          </Button>
+          <Button
+            onClick={() => saveModel(true)}
+            disabled={Boolean(datasetError)}
+          >
+            Save &amp; Train
+          </Button>
         </div>
       </div>
 
