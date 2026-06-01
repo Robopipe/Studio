@@ -11,7 +11,9 @@ import { EmptyProjectsState } from "./EmptyProjectsState";
 export interface ProjectsPageProps {}
 
 export const ProjectsPage = ({}: ProjectsPageProps) => {
-  const { data: projects, isLoading } = useGetProjectsQuery();
+  const { data: projects, isLoading } = useGetProjectsQuery(undefined, {
+    refetchOnMountOrArgChange: true,
+  });
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
