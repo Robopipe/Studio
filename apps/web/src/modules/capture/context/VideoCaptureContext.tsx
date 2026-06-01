@@ -10,6 +10,7 @@ import {
   removePendingVideoCapture,
   updatePendingVideoCaptureProgress,
 } from "../services/pendingVideoCapturesSlice";
+import { makeWebmSeekable } from "../utils/makeWebmSeekable";
 import { uploadToGcs } from "../utils/uploadToGcs";
 
 /**
@@ -107,6 +108,13 @@ export const VideoCaptureProvider = ({
       const pid = projectIdRef.current;
       if (!result || !stream || pid == null) return;
 
+      let uploadBlob = result.videoBlob;
+      try {
+        uploadBlob = await makeWebmSeekable(result.videoBlob);
+      } catch (err) {
+        console.warn("makeWebmSeekable failed; uploading raw blob", err);
+      }
+
       const pendingId = Date.now().toString();
       let thumbnailBlobUrl = "";
 
@@ -124,7 +132,7 @@ export const VideoCaptureProvider = ({
           }),
         );
 
-        const videoContentType = result.videoBlob.type || "video/webm";
+        const videoContentType = uploadBlob.type || "video/webm";
         const thumbnailContentType = "image/webp";
 
         const uploadUrls = await requestVideoUploadUrls({
@@ -137,7 +145,7 @@ export const VideoCaptureProvider = ({
 
         await uploadToGcs({
           signedUrl: uploadUrls.videoSignedUrl,
-          blob: result.videoBlob,
+          blob: uploadBlob,
           contentType: videoContentType,
           onProgress: (progress) =>
             dispatch(updatePendingVideoCaptureProgress({ id: pendingId, progress })),
@@ -154,7 +162,7 @@ export const VideoCaptureProvider = ({
           videoGcsPath: uploadUrls.videoGcsPath,
           thumbnailGcsPath: uploadUrls.thumbnailGcsPath,
           durationMs: result.durationMs,
-          fileSizeBytes: result.videoBlob.size,
+          fileSizeBytes: uploadBlob.size,
         }).unwrap();
       } finally {
         dispatch(removePendingVideoCapture({ id: pendingId }));
