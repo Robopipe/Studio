@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/modules/shadcn/ui/select";
 import { Slider } from "@/modules/shadcn/ui/slider";
-import { Model, ModelStatusEnum } from "@repo/schema";
+import { Model, ModelStatusEnum, ProjectTypeEnum } from "@repo/schema";
 import { useEffect, useState } from "react";
 import {
   DEFAULT_PRE_ANNOTATE_SETTINGS,
@@ -44,7 +44,12 @@ export const PreAnnotateSettingsDialog = ({
   settings,
   onApply,
 }: PreAnnotateSettingsDialogProps) => {
-  const trainedModels = models.filter((m) => m.status === ModelStatusEnum.DONE);
+  const trainedModels = models.filter(
+    (m) =>
+      m.status === ModelStatusEnum.DONE &&
+      m.trainingType === ProjectTypeEnum.SEGMENTATION,
+  );
+  const hasAnyTrainedModel = models.some((m) => m.status === ModelStatusEnum.DONE);
 
   const [modelId, setModelId] = useState<number | null>(settings.modelId);
   const [conf, setConf] = useState(settings.conf);
@@ -122,8 +127,9 @@ export const PreAnnotateSettingsDialog = ({
           <Label>Model</Label>
           {trainedModels.length === 0 ? (
             <p className="rounded-md border border-dashed border-black/10 bg-black/[0.03] px-3 py-2 text-sm text-muted-foreground">
-              No trained models in this project yet. Train a segmentation model
-              first.
+              {hasAnyTrainedModel
+                ? "None of your trained models are segmentation models. Train a segmentation model to enable pre-annotation."
+                : "No trained models in this project yet. Train a segmentation model first."}
             </p>
           ) : (
             <>
