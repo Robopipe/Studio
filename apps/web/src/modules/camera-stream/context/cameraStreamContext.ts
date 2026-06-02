@@ -7,6 +7,7 @@ export interface CameraStreamSnapshot {
   isStreaming: boolean;
   streamError: string | null;
   replayEnded: boolean;
+  isReplay: boolean;
   detections: NNDetections;
   isDetectionsConnected: boolean;
   detectionsError: string | null;

@@ -28,7 +28,7 @@ export const LiveInference = ({
   const hasNN = !!nnInfo?.model_id;
 
   const [activeProject] = useActiveProject();
-  const { videoRef, isStreaming, replayEnded } = useWebRTCStream({
+  const { videoRef, isStreaming, replayEnded, isReplay } = useWebRTCStream({
     selectedMxid: selectedCamera,
     selectedSensorName: selectedStream,
   });
@@ -72,7 +72,7 @@ export const LiveInference = ({
   return (
     <>
       <div className="absolute left-4 top-4 z-10 flex items-center gap-2">
-        {isStreaming && <StreamStatusBadge variant="live" />}
+        {isStreaming && <StreamStatusBadge variant={isReplay ? "replay" : "live"} />}
         {hasNN && isConnected && <StreamStatusBadge variant="sync" />}
       </div>
 

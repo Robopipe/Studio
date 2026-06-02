@@ -293,6 +293,7 @@ export const cameraApi = cameraApiBase.injectEndpoints({
       },
       invalidatesTags: (_result, _error, { mxid, streamName }) => [
         { type: CameraApiTagType.Replay, id: `${mxid}-${streamName}` },
+        { type: CameraApiTagType.Streams, id: mxid },
       ],
     }),
 
@@ -307,6 +308,7 @@ export const cameraApi = cameraApiBase.injectEndpoints({
       }),
       invalidatesTags: (_result, _error, { mxid, streamName }) => [
         { type: CameraApiTagType.Replay, id: `${mxid}-${streamName}` },
+        { type: CameraApiTagType.Streams, id: mxid },
       ],
     }),
 
@@ -320,6 +322,7 @@ export const cameraApi = cameraApiBase.injectEndpoints({
       }),
       invalidatesTags: (_result, _error, { mxid, streamName }) => [
         { type: CameraApiTagType.Replay, id: `${mxid}-${streamName}` },
+        { type: CameraApiTagType.Streams, id: mxid },
       ],
     }),
 
