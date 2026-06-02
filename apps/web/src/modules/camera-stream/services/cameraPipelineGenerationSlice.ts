@@ -1,5 +1,5 @@
 import { cameraApi } from "@/core/cameraApi";
-import { createSlice } from "@reduxjs/toolkit";
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 /**
  * Per-stream counter bumped every time the server restarts its camera
@@ -28,7 +28,15 @@ const keyFor = (mxid: string, streamName: string) => `${mxid}-${streamName}`;
 export const cameraPipelineGenerationSlice = createSlice({
   name: "cameraPipelineGeneration",
   initialState,
-  reducers: {},
+  reducers: {
+    bumpPipeline: (
+      state,
+      action: PayloadAction<{ mxid: string; streamName: string }>,
+    ) => {
+      const key = keyFor(action.payload.mxid, action.payload.streamName);
+      state.byStream[key] = (state.byStream[key] ?? 0) + 1;
+    },
+  },
   extraReducers: (builder) => {
     const endpoints = [
       cameraApi.endpoints.deployNN,
@@ -55,3 +63,5 @@ export const cameraPipelineGenerationSlice = createSlice({
     });
   },
 });
+
+export const { bumpPipeline } = cameraPipelineGenerationSlice.actions;

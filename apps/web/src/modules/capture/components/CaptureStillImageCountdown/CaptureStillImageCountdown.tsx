@@ -1,5 +1,5 @@
 import { Button } from "@/modules/shadcn/ui/button";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useCountdown } from "usehooks-ts";
 import { useCaptureImageFromCamera } from "../../hooks/useCaptureImageFromCamera";
 import { IntervalShootingConfig } from "../CaptureStillImage/CaptureStillImage";
@@ -9,6 +9,8 @@ export interface CaptureStillImageCountdownProps {
   selectedStream: string | null;
   isStreaming: boolean;
   intervalShootingConfig: IntervalShootingConfig;
+  isCapturing: boolean;
+  onIsCapturingChange: (value: boolean) => void;
 }
 
 export const CaptureStillImageCountdown = ({
@@ -16,8 +18,9 @@ export const CaptureStillImageCountdown = ({
   selectedStream,
   isStreaming,
   intervalShootingConfig,
+  isCapturing,
+  onIsCapturingChange,
 }: CaptureStillImageCountdownProps) => {
-  const [isCapturing, setIsCapturing] = useState(false);
   const { handleCaptureImage } = useCaptureImageFromCamera();
   const [count, { startCountdown, resetCountdown }] = useCountdown({
     countStart: intervalShootingConfig.numberOfImages,
@@ -30,7 +33,7 @@ export const CaptureStillImageCountdown = ({
 
       void handleCaptureImage(selectedCamera, selectedStream);
     } else {
-      setIsCapturing(false);
+      onIsCapturingChange(false);
     }
   }, [count, isCapturing]);
 
@@ -44,7 +47,7 @@ export const CaptureStillImageCountdown = ({
 
   return (
     <Button
-      onClick={() => setIsCapturing((x) => !x)}
+      onClick={() => onIsCapturingChange(!isCapturing)}
       variant={isCapturing ? "outline" : "default"}
       disabled={!selectedStream || !isStreaming}
       size="lg"
