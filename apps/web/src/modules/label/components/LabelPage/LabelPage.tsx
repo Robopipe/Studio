@@ -194,6 +194,12 @@ export const LabelPage = () => {
   const showAllAnnotations = useCallback(() => {
     setHiddenAnnotationIds(new Set());
   }, []);
+  const isolateAnnotation = useCallback((id: string | null) => {
+    setIsolatedLabelId(null);
+    setHiddenAnnotationIds(
+      id ? new Set(annotations.filter((a) => a.id !== id).map((a) => a.id)) : new Set(),
+    );
+  }, [annotations]);
   // Transient "h"-hold overlay; does not mutate hiddenAnnotationIds so the
   // per-annotation eye toggles are restored exactly on release.
   const [previewHideAll, setPreviewHideAll] = useState(false);
@@ -601,6 +607,14 @@ export const LabelPage = () => {
     pushBatchEntry: history.pushBatchEntry,
   });
 
+  const isolatedAnnotationId = useMemo(() => {
+    if (isolatedLabelId !== null) return null;
+    if (hiddenAnnotationIds.size === annotations.length - 1 && annotations.length > 0) {
+      return annotations.find((a) => !hiddenAnnotationIds.has(a.id))?.id ?? null;
+    }
+    return null;
+  }, [hiddenAnnotationIds, annotations, isolatedLabelId]);
+
   // Priority: hold-to-hide (h) > class isolate > per-annotation hides.
   const visibleAnnotations = useMemo(() => {
     if (previewHideAll) return [];
@@ -663,6 +677,10 @@ export const LabelPage = () => {
         onJumpTo={history.jumpTo}
         onOpenSettings={() => setSettingsOpen(true)}
         isLoadingLabels={isLoadingLabels}
+        projectId={projectId}
+        taskId={selectedTaskId}
+        isolatedAnnotationId={isolatedAnnotationId}
+        onIsolateAnnotation={isolateAnnotation}
       />
       <div className="relative flex min-h-0 flex-col overflow-hidden">
         <Canvas

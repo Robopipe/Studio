@@ -1,5 +1,7 @@
 import {
   classificationAnnotationSchema,
+  classificationAnnotationHistoryGroupSchema,
+  classificationHistoryEventSchema,
   confirmTaskUploadSchema,
   createClassificationAnnotationSchema,
   createPolygonAnnotationSchema,
@@ -7,11 +9,16 @@ import {
   createTaskSchema,
   paginatedTaskSchema,
   polygonAnnotationSchema,
+  polygonAnnotationHistoryGroupSchema,
+  polygonHistoryEventSchema,
   rectangleAnnotationSchema,
+  rectangleAnnotationHistoryGroupSchema,
+  rectangleHistoryEventSchema,
   requestTaskUploadSchema,
   taskDetailSchema,
   taskExportQuerySchema,
   taskExportSchema,
+  taskHistoryResponseSchema,
   taskIdsQuerySchema,
   taskIdsResponseSchema,
   taskPaginationQuerySchema,
@@ -40,3 +47,10 @@ export type TaskExport = z.infer<typeof taskExportSchema>
 export type TaskExportQuery = z.infer<typeof taskExportQuerySchema>
 export type TaskIdsQuery = z.infer<typeof taskIdsQuerySchema>
 export type TaskIdsResponse = z.infer<typeof taskIdsResponseSchema>
+export type TaskHistory = z.infer<typeof taskHistoryResponseSchema>
+export type RectangleAnnotationHistoryGroup = z.infer<typeof rectangleAnnotationHistoryGroupSchema>
+export type PolygonAnnotationHistoryGroup = z.infer<typeof polygonAnnotationHistoryGroupSchema>
+export type ClassificationAnnotationHistoryGroup = z.infer<typeof classificationAnnotationHistoryGroupSchema>
+export type RectangleHistoryEvent = z.infer<typeof rectangleHistoryEventSchema>
+export type PolygonHistoryEvent = z.infer<typeof polygonHistoryEventSchema>
+export type ClassificationHistoryEvent = z.infer<typeof classificationHistoryEventSchema>
