@@ -15,6 +15,7 @@ import { Label } from "@repo/schema";
 import { AlertTriangle, Eye, EyeOff, GripVertical, Trash2 } from "lucide-react";
 import { useDraggableList } from "../../hooks/useDraggableList";
 import { Annotation, HistoryEntry } from "../../types/annotations";
+import { AnnotationHistoryTab } from "../AnnotationHistoryTab/AnnotationHistoryTab";
 
 export interface AnnotationPanelProps {
   annotations: Annotation[];
@@ -38,6 +39,10 @@ export interface AnnotationPanelProps {
   onJumpTo: (index: number) => void;
   onOpenSettings?: () => void;
   isLoadingLabels?: boolean;
+  projectId?: number;
+  taskId?: number | null;
+  isolatedAnnotationId?: string | null;
+  onIsolateAnnotation?: (id: string | null) => void;
 }
 
 export const AnnotationPanel = ({
@@ -56,6 +61,10 @@ export const AnnotationPanel = ({
   onClearIsolate,
   onOpenSettings,
   isLoadingLabels,
+  projectId,
+  taskId,
+  isolatedAnnotationId,
+  onIsolateAnnotation,
 }: AnnotationPanelProps) => {
   const classCounts = labels
     .map((label) => ({
@@ -73,6 +82,7 @@ export const AnnotationPanel = ({
     >
       <TabsList variant="line" className="h-10 shrink-0">
         <TabsTrigger value="labels">Annotations</TabsTrigger>
+        <TabsTrigger value="history">History</TabsTrigger>
       </TabsList>
 
       <TabsContent value="labels" className="min-h-0 flex-1 overflow-y-auto">
@@ -239,6 +249,20 @@ export const AnnotationPanel = ({
             })}
           </div>
         </section>
+      </TabsContent>
+
+      <TabsContent value="history" className="min-h-0 flex-1 overflow-y-auto">
+        {projectId != null && taskId != null ? (
+          <AnnotationHistoryTab
+            annotations={annotations}
+            projectId={projectId}
+            taskId={taskId}
+            isolatedAnnotationId={isolatedAnnotationId}
+            onIsolateAnnotation={onIsolateAnnotation}
+          />
+        ) : (
+          <p className="p-4 text-xs text-muted-foreground">No task selected.</p>
+        )}
       </TabsContent>
     </Tabs>
   );

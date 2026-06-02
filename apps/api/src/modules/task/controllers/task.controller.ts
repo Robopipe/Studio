@@ -13,6 +13,7 @@ import {
 import { TaskService } from "../services/task.service";
 import { ProjectGuard } from "../../auth/guards/project-guard";
 import { ProjectId } from "../../auth/decorators/project-id.decorator";
+import { User } from "../../auth/decorators/user.decorator";
 import {
   ConfirmTaskUploadDto,
   PaginatedTaskResponse,
@@ -20,6 +21,7 @@ import {
   TaskDetailResponse,
   TaskExportQuery,
   TaskExportResponse,
+  TaskHistoryResponse,
   TaskIdsQuery,
   TaskIdsResponseDto,
   TaskPaginationQuery,
@@ -85,9 +87,22 @@ export class TaskController {
   }
 
   @Put(":taskId")
-  public async updateTask(@ProjectId() projectId: number, @Param("taskId", ParseIntPipe) taskId: number, @Body() data: TaskUpdateRequest): Promise<TaskDetailResponse> {
-    const updatedTask = await this.taskService.updateTask(taskId, projectId, data)
+  public async updateTask(
+    @ProjectId() projectId: number,
+    @Param("taskId", ParseIntPipe) taskId: number,
+    @Body() data: TaskUpdateRequest,
+    @User('id') userId: number,
+  ): Promise<TaskDetailResponse> {
+    const updatedTask = await this.taskService.updateTask(taskId, projectId, data, userId)
     return updatedTask.toDetailResponse()
+  }
+
+  @Get(":taskId/history")
+  public async getTaskHistory(
+    @ProjectId() projectId: number,
+    @Param("taskId", ParseIntPipe) taskId: number,
+  ): Promise<TaskHistoryResponse> {
+    return this.taskService.getTaskHistory(taskId, projectId);
   }
 
   @Delete(":taskId")

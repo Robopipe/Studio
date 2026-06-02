@@ -9,14 +9,11 @@ import { TaskDetailEntity, TaskEntity } from "../entity/task.entity";
 import { TaskUpdateRequest } from "../dto/task.dto";
 import { DB_CONNECTION } from "../../../core/database/database.constant";
 import type { DbConnection } from "../../../core/database/types/database.types";
-import {
-  classificationAnnotationTable,
-  rectangleAnnotationTable,
-  polygonAnnotationTable,
-  taskTable,
-} from "@repo/database";
+import { taskTable } from "@repo/database";
 import { eq } from "drizzle-orm";
+import type { TaskHistory } from "@repo/schema";
 import sharp from "sharp";
+import { AnnotationService } from "./annotation.service";
 
 @Injectable()
 export class TaskService {
@@ -29,6 +26,7 @@ export class TaskService {
     private readonly pendingTaskRepository: PendingTaskRepository,
     private readonly projectRepository: ProjectRepository,
     private readonly projectLabelRepository: ProjectLabelRepository,
+    private readonly annotationService: AnnotationService,
   ) {}
 
   /**
@@ -131,58 +129,21 @@ export class TaskService {
     return this.taskRepository.getAllIdsByProjectId(projectId, annotated, labelIds, order);
   }
 
-  public async updateTask(id: number, projectId: number, data: TaskUpdateRequest): Promise<TaskDetailEntity>{
-    const task = await this.taskRepository.getByIdAndProjectIdOrThrow(id, projectId);
+  public async updateTask(id: number, projectId: number, data: TaskUpdateRequest, userId: number): Promise<TaskDetailEntity>{
+    await this.taskRepository.getByIdAndProjectIdOrThrow(id, projectId);
 
     await this.db.transaction(async(tx) => {
-      await Promise.all([
-        tx.delete(rectangleAnnotationTable).where(eq(rectangleAnnotationTable.taskId, id)),
-        tx.delete(polygonAnnotationTable).where(eq(polygonAnnotationTable.taskId, id)),
-        tx.delete(classificationAnnotationTable).where(eq(classificationAnnotationTable.taskId, id)),
-      ]);
-
-      const rectCount = data.rectangleAnnotations?.length ?? 0;
-      const polyCount = data.polygonAnnotations?.length ?? 0;
-      const classCount = data.classificationAnnotations?.length ?? 0;
-      const totalCount = rectCount + polyCount + classCount;
-
-      if (rectCount > 0) {
-        await tx.insert(rectangleAnnotationTable).values(
-          data.rectangleAnnotations!.map((annotation) => ({
-            taskId: task.id,
-            labelId: annotation.labelId,
-            x: annotation.x,
-            y: annotation.y,
-            width: annotation.width,
-            height: annotation.height,
-          })),
-        );
-      }
-
-      if (polyCount > 0) {
-        await tx.insert(polygonAnnotationTable).values(
-          data.polygonAnnotations!.map((annotation) => ({
-            taskId: task.id,
-            labelId: annotation.labelId,
-            value: annotation.value,
-          })),
-        );
-      }
-
-      if (classCount > 0) {
-        await tx.insert(classificationAnnotationTable).values(
-          data.classificationAnnotations!.map((annotation) => ({
-            taskId: task.id,
-            labelId: annotation.labelId,
-          })),
-        );
-      }
-
+      const totalCount = await this.annotationService.upsertAnnotations(tx, id, data, userId);
       const status = totalCount > 0 || data.reviewed ? TaskStatusEnum.DONE : TaskStatusEnum.TODO;
       await tx.update(taskTable).set({ status, annotationCount: totalCount }).where(eq(taskTable.id, id));
-    })
+    });
 
-    return this.getTask(id, projectId)
+    return this.getTask(id, projectId);
+  }
+
+  public async getTaskHistory(taskId: number, projectId: number): Promise<TaskHistory> {
+    await this.taskRepository.getByIdAndProjectIdOrThrow(taskId, projectId);
+    return this.annotationService.getHistory(taskId);
   }
 
   public async deleteTask(id: number, projectId: number): Promise<void>{

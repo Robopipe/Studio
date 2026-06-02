@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { CaptureStillImage } from "../CaptureStillImage";
 import { CaptureVideo } from "../CaptureVideo";
+import { RestartCameraButton } from "../RestartCameraButton/RestartCameraButton";
 import { SelectCamera } from "../SelectCamera";
 import { SelectStream } from "../SelectStream";
 
@@ -22,6 +24,8 @@ export const CaptureSettings = ({
   onStreamSwitchingChange,
   mediaStream,
 }: CaptureSettingsProps) => {
+  const [isIntervalCapturing, setIsIntervalCapturing] = useState(false);
+
   return (
     <div className="flex flex-col gap-4 border-r border-black/10 bg-black/[0.03] p-4 pl-6">
       <p className="text-[10px] font-bold uppercase tracking-wider text-black">
@@ -41,6 +45,8 @@ export const CaptureSettings = ({
             selectedCamera={selectedCamera}
             selectedStream={selectedStream}
             isStreaming={isStreaming}
+            isIntervalCapturing={isIntervalCapturing}
+            onIntervalCapturingChange={setIsIntervalCapturing}
           />
 
           <CaptureVideo
@@ -48,6 +54,17 @@ export const CaptureSettings = ({
             isStreaming={isStreaming}
           />
         </>
+      )}
+
+      {selectedCamera && (
+        <div className="mt-auto border-t border-black/10 pt-4">
+          <RestartCameraButton
+            mxid={selectedCamera}
+            streamName={selectedStream}
+            isIntervalCapturing={isIntervalCapturing}
+            onBeforeRestart={() => setIsIntervalCapturing(false)}
+          />
+        </div>
       )}
     </div>
   );
