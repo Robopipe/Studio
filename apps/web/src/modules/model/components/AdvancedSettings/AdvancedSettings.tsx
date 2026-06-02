@@ -5,6 +5,7 @@ import {
   ModelQuantizationEnum,
   ModelRegionEnum,
 } from "@repo/schema";
+import { ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { SettingsCard } from "../SettingsCard";
 import { HyperparamsModal } from "./HyperparamsModal";
@@ -54,6 +55,7 @@ export const AdvancedSettings = ({
   onHyperparamsErrorChange,
 }: AdvancedSettingsProps) => {
   const [modalOpen, setModalOpen] = useState(false);
+  const [hyperparamsOpen, setHyperparamsOpen] = useState(false);
 
   const handleApply = (value: string) => {
     onCustomHyperparamsChange(value);
@@ -207,9 +209,21 @@ export const AdvancedSettings = ({
           </div>
           <div className="flex flex-col gap-0.5">
             <div className="flex flex-row items-center gap-2">
-              <span className="text-sm font-medium leading-5 text-black/90">
-                Custom Training Hyperparameters
-              </span>
+              <button
+                type="button"
+                onClick={() => setHyperparamsOpen((o) => !o)}
+                className="flex flex-row items-center gap-1 cursor-pointer"
+              >
+                <ChevronRight
+                  className={cn(
+                    "size-4 shrink-0 transition-transform duration-200",
+                    hyperparamsOpen && "rotate-90",
+                  )}
+                />
+                <span className="text-sm font-medium leading-5 text-black/90">
+                  Custom Training Hyperparameters
+                </span>
+              </button>
               <button
                 type="button"
                 onClick={() => setModalOpen(true)}
@@ -230,14 +244,18 @@ export const AdvancedSettings = ({
                 </button>
               )}
             </div>
-            <p className="text-sm leading-5 text-black/60">
-              JSON object that deep-merges with the generated config. Top-level
-              keys: model, loader, trainer, tracker.
-            </p>
-            {hasSummary && (
-              <pre className="mt-2 overflow-x-auto whitespace-pre rounded bg-black/[0.04] p-2 font-mono text-xs text-muted-foreground">
-                {customHyperparams}
-              </pre>
+            {hyperparamsOpen && (
+              <div className="flex flex-col gap-1 pt-1">
+                <p className="text-sm leading-5 text-black/60">
+                  JSON object that deep-merges with the generated config.
+                  Top-level keys: model, loader, trainer, tracker.
+                </p>
+                {hasSummary && (
+                  <pre className="mt-2 overflow-x-auto whitespace-pre rounded bg-black/[0.04] p-2 font-mono text-xs text-muted-foreground">
+                    {customHyperparams}
+                  </pre>
+                )}
+              </div>
             )}
             {hyperparamsError && (
               <span className="text-xs text-red-500">{hyperparamsError}</span>

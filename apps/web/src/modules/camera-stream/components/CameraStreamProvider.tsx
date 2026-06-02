@@ -1,4 +1,4 @@
-import { useGetNNQuery } from "@/core/cameraApi";
+import { useGetNNQuery, useListStreamsQuery } from "@/core/cameraApi";
 import { useCameraApiUrl } from "@/hooks";
 import { useAppSelector } from "@/hooks/redux";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
@@ -76,9 +76,14 @@ export const CameraStreamProvider = ({ children }: CameraStreamProviderProps) =>
   );
   const hasNN = !!nnInfo;
 
+  const { data: streams } = useListStreamsQuery(mxid!, { skip: !mxid });
+  const isReplay =
+    streams?.find((s) => s.name === streamName)?.replay === true;
+
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamError, setStreamError] = useState<string | null>(null);
+  const [replayEnded, setReplayEnded] = useState(false);
 
   const [detections, setDetections] = useState<NNDetections>({ detections: [] });
   const [isDetectionsConnected, setIsDetectionsConnected] = useState(false);
@@ -128,6 +133,16 @@ export const CameraStreamProvider = ({ children }: CameraStreamProviderProps) =>
           iceTransportPolicy: "all",
         });
         peer = pc;
+        setReplayEnded(false);
+        const eventsChannel = pc.createDataChannel("events");
+        eventsChannel.onmessage = (ev) => {
+          try {
+            const msg = JSON.parse(ev.data as string);
+            if (msg.event === "eof") setReplayEnded(true);
+          } catch {
+            // ignore malformed messages
+          }
+        };
         pc.addTransceiver("video", { direction: "recvonly" });
 
         pc.addEventListener("track", (event) => {
@@ -478,6 +493,8 @@ export const CameraStreamProvider = ({ children }: CameraStreamProviderProps) =>
     mediaStream,
     isStreaming,
     streamError,
+    replayEnded,
+    isReplay,
     detections,
     isDetectionsConnected,
     detectionsError,

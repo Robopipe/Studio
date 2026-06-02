@@ -4,7 +4,7 @@ import z from "zod";
 export const streamInfoSchema = z.object({
   name: z.string(),
   active: z.boolean().optional(),
-  // Add other stream info fields as needed
+  replay: z.boolean(),
 });
 
 export type StreamInfo = z.infer<typeof streamInfoSchema>;
