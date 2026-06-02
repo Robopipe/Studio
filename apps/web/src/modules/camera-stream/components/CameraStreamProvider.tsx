@@ -1,4 +1,4 @@
-import { useGetNNQuery } from "@/core/cameraApi";
+import { useGetNNQuery, useListStreamsQuery } from "@/core/cameraApi";
 import { useCameraApiUrl } from "@/hooks";
 import { useAppSelector } from "@/hooks/redux";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
@@ -75,6 +75,10 @@ export const CameraStreamProvider = ({ children }: CameraStreamProviderProps) =>
     { skip: !mxid || !streamName },
   );
   const hasNN = !!nnInfo;
+
+  const { data: streams } = useListStreamsQuery(mxid!, { skip: !mxid });
+  const isReplay =
+    streams?.find((s) => s.name === streamName)?.replay === true;
 
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -490,6 +494,7 @@ export const CameraStreamProvider = ({ children }: CameraStreamProviderProps) =>
     isStreaming,
     streamError,
     replayEnded,
+    isReplay,
     detections,
     isDetectionsConnected,
     detectionsError,

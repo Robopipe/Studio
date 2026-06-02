@@ -18,7 +18,7 @@ export const CameraDisplay = ({
   onMediaStreamChange,
   isRecording,
 }: CameraDisplayProps) => {
-  const { videoRef, isStreaming, error, replayEnded } = useWebRTCStream({
+  const { videoRef, isStreaming, error, replayEnded, isReplay } = useWebRTCStream({
     selectedMxid,
     selectedSensorName,
     onMediaStreamChange,
@@ -46,7 +46,7 @@ export const CameraDisplay = ({
     <div className="relative">
       {isStreaming && (
         <div className="absolute left-4 top-4 z-10">
-          <StreamStatusBadge variant="live" />
+          <StreamStatusBadge variant={isReplay ? "replay" : "live"} />
         </div>
       )}
 
