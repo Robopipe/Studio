@@ -55,6 +55,7 @@ export function annotationsToUpdatePayload(annotations: Annotation[]): {
     const labelId = Number(a.labelId);
     if (a.type === "bbox" && a.bbox) {
       rectangleAnnotations.push({
+        ...(a.apiId != null && { id: a.apiId }),
         labelId,
         x: a.bbox.x,
         y: a.bbox.y,
@@ -63,11 +64,13 @@ export function annotationsToUpdatePayload(annotations: Annotation[]): {
       });
     } else if (a.type === "polygon" && a.points) {
       polygonAnnotations.push({
+        ...(a.apiId != null && { id: a.apiId }),
         labelId,
         value: a.points,
       });
     } else if (a.type === "class" && a.labelId) {
       classificationAnnotations.push({
+        ...(a.apiId != null && { id: a.apiId }),
         labelId,
       });
     }

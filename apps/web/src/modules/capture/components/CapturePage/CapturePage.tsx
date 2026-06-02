@@ -3,7 +3,9 @@ import {
   useListCamerasQuery,
 } from "@/core/cameraApi";
 import { useCameraApiUrl } from "@/hooks";
+import { useAppDispatch } from "@/hooks/redux";
 import { useSelectedCameraStream } from "@/modules/camera-selection";
+import { bumpPipeline } from "@/modules/camera-stream/services/cameraPipelineGenerationSlice";
 import { EditProjectModal } from "@/modules/project/components/EditProjectModal";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import {
@@ -26,6 +28,7 @@ export interface CapturePageProps {}
 export const CapturePage = ({}: CapturePageProps) => {
   const { url: cameraApiUrl, isOverride } = useCameraApiUrl();
   const [activeProject] = useActiveProject();
+  const dispatch = useAppDispatch();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const {
     data: cameras,
@@ -45,6 +48,26 @@ export const CapturePage = ({}: CapturePageProps) => {
   const [isSwitchingStream, setIsSwitchingStream] = useState(false);
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
   const hasLoadedDashboardOnceRef = useRef(false);
+
+  // When cameras transitions from unavailable (empty array OR network error)
+  // to available, bump the pipeline so CameraStreamProvider retries the WebRTC
+  // connection. Without this, if the same mxid/streamName stays selected (stale
+  // state from the failed connection attempt), the provider's deps don't change
+  // and it never reconnects. We guard on !isLoading so the initial load
+  // (undefined → data) doesn't mistakenly trigger a bump.
+  const hadNoCameraRef = useRef(false);
+  useEffect(() => {
+    if (isLoading) return;
+    const hasCamerasNow = !!(cameras && cameras.length > 0);
+    if (!hasCamerasNow) {
+      hadNoCameraRef.current = true;
+      return;
+    }
+    if (hadNoCameraRef.current && selectedCamera && selectedStream) {
+      hadNoCameraRef.current = false;
+      dispatch(bumpPipeline({ mxid: selectedCamera, streamName: selectedStream }));
+    }
+  }, [cameras, isLoading, selectedCamera, selectedStream, dispatch]);
 
   // isSuccess (not !!data) — RTK Query preserves the last successful body
   // across an error refetch, so checking `data` would keep the banner up

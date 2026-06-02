@@ -1,4 +1,7 @@
 export * from "./classification-annotation";
+export * from "./classification-annotation-history";
+export * from "./polygon-annotation-history";
+export * from "./rectangle-annotation-history";
 export * from "./dataset";
 export * from "./dataset-version";
 export * from "./dataset-version-task";
