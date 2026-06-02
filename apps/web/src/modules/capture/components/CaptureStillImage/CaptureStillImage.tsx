@@ -28,12 +28,16 @@ export interface CaptureStillImageProps {
   selectedCamera: string;
   selectedStream: string | null;
   isStreaming: boolean;
+  isIntervalCapturing: boolean;
+  onIntervalCapturingChange: (value: boolean) => void;
 }
 
 export const CaptureStillImage = ({
   selectedCamera,
   selectedStream,
   isStreaming,
+  isIntervalCapturing,
+  onIntervalCapturingChange,
 }: CaptureStillImageProps) => {
   const { handleCaptureImage, isLoading } = useCaptureImageFromCamera();
   const [useIntervalShooting, setUseIntervalShooting] = useState(false);
@@ -99,6 +103,8 @@ export const CaptureStillImage = ({
             selectedStream={selectedStream}
             isStreaming={isStreaming}
             intervalShootingConfig={intervalShootingConfigResult.data}
+            isCapturing={isIntervalCapturing}
+            onIsCapturingChange={onIntervalCapturingChange}
           />
         ) : null
       ) : (

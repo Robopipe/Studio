@@ -65,6 +65,17 @@ export const cameraApi = cameraApiBase.injectEndpoints({
       invalidatesTags: [CameraApiTagType.Cameras],
     }),
 
+    // Restart camera (tears down and rebuilds the whole camera pipeline)
+    restartCamera: builder.mutation<void, { mxid: string }>({
+      query: ({ mxid }) => ({
+        url: `/cameras/${mxid}/restart`,
+        method: HttpMethod.POST,
+      }),
+      invalidatesTags: (_r, _e, { mxid }) => [
+        { type: CameraApiTagType.Cameras, id: mxid },
+      ],
+    }),
+
     // ========== Stream Endpoints ==========
 
     // List all streams
@@ -378,6 +389,7 @@ export const {
   useGetCameraQuery,
   useCreateCameraMutation,
   useDeleteCameraMutation,
+  useRestartCameraMutation,
 
   // Stream hooks
   useListStreamsQuery,
