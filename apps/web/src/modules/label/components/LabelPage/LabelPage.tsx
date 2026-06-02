@@ -66,7 +66,7 @@ export const LabelPage = () => {
         labelIds: filter.labelIds.join(","),
       }),
     },
-    { skip: !projectId },
+    { skip: !projectId, refetchOnMountOrArgChange: true },
   );
   const tasks = tasksData?.data ?? [];
   const totalPages = tasksData
