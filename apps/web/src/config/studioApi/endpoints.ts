@@ -30,6 +30,7 @@ export const studioApiEndpoints = {
     confirm: (projectId: number) => `task/${projectId}/confirm`,
     export: (projectId: number) => `task/${projectId}/export`,
     ids: (projectId: number) => `task/${projectId}/ids`,
+    history: (projectId: number, taskId: number) => `task/${projectId}/${taskId}/history`,
   },
   projects: {
     projects: "projects",
