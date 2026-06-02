@@ -1,6 +1,7 @@
 import { useGetNNQuery } from "@/core/cameraApi/api";
-import { useWebRTCStream } from "@/modules/capture/hooks/useWebRTCStream";
+import { StreamStatusBadge } from "@/modules/camera-stream/components/StreamStatusBadge";
 import { pickDisplayCropRows } from "@/modules/camera-stream/utils/decodeTimestampBurnin";
+import { useWebRTCStream } from "@/modules/capture/hooks/useWebRTCStream";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import { useState } from "react";
 import { useDetections } from "../../hooks/useDetections";
@@ -27,7 +28,7 @@ export const LiveInference = ({
   const hasNN = !!nnInfo?.model_id;
 
   const [activeProject] = useActiveProject();
-  const { videoRef, isStreaming } = useWebRTCStream({
+  const { videoRef, isStreaming, replayEnded, isReplay } = useWebRTCStream({
     selectedMxid: selectedCamera,
     selectedSensorName: selectedStream,
   });
@@ -70,16 +71,10 @@ export const LiveInference = ({
 
   return (
     <>
-      {isStreaming && (
-        <span className="absolute left-4 top-4 z-10 bg-emerald-700 px-2.5 py-1.5 text-base font-bold uppercase leading-[1.21] tracking-[0.125rem] text-white">
-          LIVE
-        </span>
-      )}
-      {hasNN && isConnected && (
-        <span className="absolute left-[5.5rem] top-4 z-10 bg-violet-300 px-2.5 py-1.5 text-base font-bold uppercase leading-[1.21] tracking-[0.125rem] text-white">
-          SYNC
-        </span>
-      )}
+      <div className="absolute left-4 top-4 z-10 flex items-center gap-2">
+        {isStreaming && <StreamStatusBadge variant={isReplay ? "replay" : "live"} />}
+        {hasNN && isConnected && <StreamStatusBadge variant="sync" />}
+      </div>
 
       {hasNN ? (
         <canvas
@@ -107,7 +102,12 @@ export const LiveInference = ({
         />
       )}
 
-      {!isStreaming && (
+      {replayEnded && (
+        <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
+          Replay finished
+        </div>
+      )}
+      {!replayEnded && !isStreaming && (
         <div className="absolute inset-0 flex items-center justify-center text-sm text-[#666]">
           Connecting to camera...
         </div>

@@ -66,7 +66,7 @@ export const LabelPage = () => {
         labelIds: filter.labelIds.join(","),
       }),
     },
-    { skip: !projectId },
+    { skip: !projectId, refetchOnMountOrArgChange: true },
   );
   const tasks = tasksData?.data ?? [];
   const totalPages = tasksData
@@ -164,6 +164,7 @@ export const LabelPage = () => {
   const canvasRef = useRef<CanvasHandle>(null);
   const handleResetView = useCallback(() => canvasRef.current?.resetView(), []);
   const imageDimsRef = useRef<{ width: number; height: number }>({ width: 0, height: 0 });
+  const prevTaskIdRef = useRef<number | null>(null);
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [isDirty, setIsDirty] = useState(false);
   const [selectedAnnotationIds, setSelectedAnnotationIds] = useState<
@@ -319,16 +320,18 @@ export const LabelPage = () => {
 
   // Sync annotations from task detail
   useEffect(() => {
-    if (taskDetail) {
-      setAnnotations(taskDetailToAnnotations(taskDetail));
-      setIsDirty(false);
-      setHiddenAnnotationIds(new Set());
-      setPreviewHideAll(false);
+    if (!taskDetail) return;
+    setAnnotations(taskDetailToAnnotations(taskDetail));
+    setIsDirty(false);
+    setHiddenAnnotationIds(new Set());
+    setPreviewHideAll(false);
+    history.reset();
+    setSelectedAnnotationIds(new Set());
+    setPrimarySelectedId(null);
+    imageDimsRef.current = { width: 0, height: 0 };
+    if (prevTaskIdRef.current !== taskDetail.id) {
       setIsolatedLabelId(null);
-      history.reset();
-      setSelectedAnnotationIds(new Set());
-      setPrimarySelectedId(null);
-      imageDimsRef.current = { width: 0, height: 0 };
+      prevTaskIdRef.current = taskDetail.id;
     }
   }, [taskDetail]);
 

@@ -11,7 +11,7 @@ import {
   NoCameraDetected,
   SearchingForCamera,
 } from "@/modules/ui";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   useVideoCapture,
   VideoCaptureProvider,
@@ -44,19 +44,29 @@ export const CapturePage = ({}: CapturePageProps) => {
   const [isStreaming, setIsStreaming] = useState(false);
   const [isSwitchingStream, setIsSwitchingStream] = useState(false);
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
+  const hasLoadedDashboardOnceRef = useRef(false);
 
   // isSuccess (not !!data) — RTK Query preserves the last successful body
   // across an error refetch, so checking `data` would keep the banner up
   // after Stop while the server now returns 404. isSuccess correctly
   // flips to false on a rejected refetch, matching useRunDeploy.
-  const { isSuccess: isDashboardRunning, isLoading: isDashboardLoading } =
-    useGetDashboardQuery(
-      { mxid: selectedCamera!, streamName: selectedStream! },
-      { skip: !selectedCamera || !selectedStream },
-    );
+  const {
+    isSuccess: isDashboardRunning,
+    isLoading: isDashboardLoading,
+    isError: isDashboardError,
+  } = useGetDashboardQuery(
+    { mxid: selectedCamera!, streamName: selectedStream! },
+    { skip: !selectedCamera || !selectedStream },
+  );
+  useEffect(() => {
+    if (isDashboardRunning || isDashboardError)
+      hasLoadedDashboardOnceRef.current = true;
+  }, [isDashboardRunning, isDashboardError]);
+
   const isModelRunning = isDashboardRunning;
-  const isCheckingModelStatus =
-    !selectedCamera || !selectedStream || isDashboardLoading;
+  const needsSelection = !selectedCamera || !selectedStream;
+  const isInitialDashboardLoad =
+    isDashboardLoading && !hasLoadedDashboardOnceRef.current;
 
   const hasCameras = cameras && cameras.length > 0;
 
@@ -84,7 +94,7 @@ export const CapturePage = ({}: CapturePageProps) => {
     return renderNoCamera();
   }
 
-  if (isLoading || isCheckingModelStatus) {
+  if (isLoading || needsSelection || isInitialDashboardLoad) {
     return <SearchingForCamera url={cameraApiUrl} isOverride={isOverride} />;
   }
 
