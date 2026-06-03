@@ -382,6 +382,7 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
   };
 
   const handleMouseDown = (e: Konva.KonvaEventObject<MouseEvent>) => {
+    if (e.evt.button !== 0) return;
     const stage = e.target.getStage();
     if (!stage) return;
 
@@ -442,7 +443,8 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
     if (polygonPoints.length === 0) setCursorPos(null);
   };
 
-  const handleMouseUp = (_e: Konva.KonvaEventObject<MouseEvent>) => {
+  const handleMouseUp = (e: Konva.KonvaEventObject<MouseEvent>) => {
+    if (e.evt.button !== 0) return;
     if (toolMode === ToolMode.DRAW_BBOX && drawingBBox && activeLabel) {
       if (drawingBBox.width > 2 && drawingBBox.height > 2) {
         onAddAnnotation({
@@ -509,6 +511,7 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
   };
 
   const handleClick = (e: Konva.KonvaEventObject<MouseEvent>) => {
+    if (e.evt.button !== 0) return;
     // Deselect when clicking empty area in SELECT mode
     if (toolMode === ToolMode.SELECT) {
       const stage = e.target.getStage();
