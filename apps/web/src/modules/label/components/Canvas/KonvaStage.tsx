@@ -339,6 +339,24 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
     };
   }, [polygonPoints.length, cancelDrawing]);
 
+  // Native mousemove tracks the cursor even while a child annotation is being
+  // dragged (Konva's onMouseMove does not fire during child drags).
+  useEffect(() => {
+    if (!showCrosshair) return;
+    const container = stageRef.current?.container();
+    if (!container) return;
+    const onMove = (e: MouseEvent) => {
+      const stage = stageRef.current;
+      if (!stage) return;
+      const rect = container.getBoundingClientRect();
+      const imgX = (e.clientX - rect.left - stage.x()) / stage.scaleX();
+      const imgY = (e.clientY - rect.top - stage.y()) / stage.scaleY();
+      updateCrosshair(imgX, imgY);
+    };
+    container.addEventListener("mousemove", onMove);
+    return () => container.removeEventListener("mousemove", onMove);
+  }, [showCrosshair, updateCrosshair]);
+
   useEffect(() => {
     cancelDrawing();
   }, [toolMode, cancelDrawing]);
@@ -432,9 +450,6 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
 
     if (toolMode === ToolMode.DRAW_POLYGON && polygonPoints.length > 0) {
       setCursorPos(coords);
-    }
-    if (showCrosshair) {
-      updateCrosshair(coords.x, coords.y);
     }
   };
 
