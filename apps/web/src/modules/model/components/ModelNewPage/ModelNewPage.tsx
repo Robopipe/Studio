@@ -110,7 +110,8 @@ const ModelNewPageInner = () => {
       return duplicateState.customHyperparams;
     }
     // Default to the High Accuracy preset for the initial backend.
-    const initialBackend = duplicateState?.backend ?? ModelBackendEnum.LUXONIS;
+    const initialBackend =
+      duplicateState?.backend ?? ModelBackendEnum.ULTRALYTICS;
     const preset = getHyperparamsPresets(initialBackend).find(
       (p) => p.id === "high-accuracy",
     );
