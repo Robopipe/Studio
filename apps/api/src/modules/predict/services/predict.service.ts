@@ -11,6 +11,7 @@ import {
   MlInferPredictResponse,
   ModelOutputTypeEnum,
   ModelStatusEnum,
+  ProjectTypeEnum,
   PredictResponse,
 } from "@repo/schema";
 import { firstValueFrom } from "rxjs";
@@ -76,6 +77,11 @@ export class PredictService {
     if (model.labels.length === 0) {
       throw new BadRequestException(
         "model has no labels recorded; cannot map predictions",
+      );
+    }
+    if (model.trainingType !== ProjectTypeEnum.SEGMENTATION) {
+      throw new BadRequestException(
+        "only segmentation models can be used for pre-annotation",
       );
     }
 

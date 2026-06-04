@@ -17,6 +17,8 @@ export interface UseWebRTCStreamReturn {
   videoRef: React.RefObject<HTMLVideoElement | null>;
   isStreaming: boolean;
   error: string | null;
+  replayEnded: boolean;
+  isReplay: boolean;
 }
 
 /**
@@ -31,7 +33,7 @@ export const useWebRTCStream = (
   options: UseWebRTCStreamOptions,
 ): UseWebRTCStreamReturn => {
   const { onMediaStreamChange } = options;
-  const { mediaStream, isStreaming, streamError } = useCameraStream();
+  const { mediaStream, isStreaming, streamError, replayEnded, isReplay } = useCameraStream();
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   // Attach the shared MediaStream to this consumer's own <video>. Multiple
@@ -53,5 +55,7 @@ export const useWebRTCStream = (
     videoRef,
     isStreaming,
     error: streamError,
+    replayEnded,
+    isReplay,
   };
 };

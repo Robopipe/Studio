@@ -1,3 +1,4 @@
+import { StreamStatusBadge } from "@/modules/camera-stream/components/StreamStatusBadge";
 import { pickDisplayCropRows } from "@/modules/camera-stream/utils/decodeTimestampBurnin";
 import { useCallback, useEffect, useState } from "react";
 import { useWebRTCStream } from "../../hooks/useWebRTCStream";
@@ -17,7 +18,7 @@ export const CameraDisplay = ({
   onMediaStreamChange,
   isRecording,
 }: CameraDisplayProps) => {
-  const { videoRef, isStreaming, error } = useWebRTCStream({
+  const { videoRef, isStreaming, error, replayEnded, isReplay } = useWebRTCStream({
     selectedMxid,
     selectedSensorName,
     onMediaStreamChange,
@@ -44,16 +45,15 @@ export const CameraDisplay = ({
   return (
     <div className="relative">
       {isStreaming && (
-        <span className="absolute left-4 top-4 z-10 bg-red-50 px-2.5 py-1.5 rounded-md text-xs font-bold uppercase text-red-700">
-          Live
-        </span>
+        <div className="absolute left-4 top-4 z-10">
+          <StreamStatusBadge variant={isReplay ? "replay" : "live"} />
+        </div>
       )}
 
       {isRecording && (
-        <span className="absolute right-4 top-4 z-10 flex items-center gap-1.5 bg-red-600 px-2.5 py-1.5 rounded-md text-xs font-bold uppercase text-white">
-          <span className="h-2 w-2 animate-pulse rounded-full bg-white" />
-          REC
-        </span>
+        <div className="absolute right-4 top-4 z-10">
+          <StreamStatusBadge variant="recording" />
+        </div>
       )}
 
       <video
@@ -71,12 +71,17 @@ export const CameraDisplay = ({
         className="w-full rounded-md bg-black/5"
       ></video>
 
-      {!isStreaming && !error && (
+      {replayEnded && (
+        <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
+          Replay finished
+        </div>
+      )}
+      {!replayEnded && !isStreaming && !error && (
         <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
           Connecting to camera...
         </div>
       )}
-      {error && (
+      {!replayEnded && error && (
         <div className="absolute inset-0 flex items-center justify-center text-sm text-destructive">
           Error: {error}
         </div>

@@ -26,6 +26,7 @@ export const rectangleAnnotationSchema = z.object({
 })
 
 export const createRectangleAnnotationSchema = z.object({
+  id: z.number().int().positive().optional(),
   labelId: z.number(),
   x: z.number(),
   y: z.number(),
@@ -43,6 +44,7 @@ export const polygonAnnotationSchema = z.object({
 })
 
 export const createPolygonAnnotationSchema = z.object({
+  id: z.number().int().positive().optional(),
   labelId: z.number(),
   value: z.tuple([z.number(), z.number()]).array(),
 });
@@ -56,6 +58,7 @@ export const classificationAnnotationSchema = z.object({
 })
 
 export const createClassificationAnnotationSchema = z.object({
+  id: z.number().int().positive().optional(),
   labelId: z.number()
 })
 
@@ -259,4 +262,69 @@ export const taskIdsResponseSchema = z.object({
   ids: z.number().array(),
 });
 
+/**
+ * Annotation history
+ */
+export const annotationHistoryActionSchema = z.enum(["created", "updated"]);
 
+const historyUserSchema = z.object({
+  id: z.number(),
+  fullName: z.string(),
+}).nullable();
+
+export const rectangleHistorySnapshotSchema = z.object({
+  labelId: z.number(),
+  x: z.number(),
+  y: z.number(),
+  width: z.number(),
+  height: z.number(),
+});
+
+export const polygonHistorySnapshotSchema = z.object({
+  labelId: z.number(),
+  value: z.tuple([z.number(), z.number()]).array(),
+});
+
+export const classificationHistorySnapshotSchema = z.object({
+  labelId: z.number(),
+});
+
+const historyEventBaseSchema = z.object({
+  id: z.number(),
+  action: annotationHistoryActionSchema,
+  createdAt: z.iso.datetime(),
+  user: historyUserSchema,
+});
+
+export const rectangleHistoryEventSchema = historyEventBaseSchema.extend({
+  snapshot: rectangleHistorySnapshotSchema,
+});
+
+export const polygonHistoryEventSchema = historyEventBaseSchema.extend({
+  snapshot: polygonHistorySnapshotSchema,
+});
+
+export const classificationHistoryEventSchema = historyEventBaseSchema.extend({
+  snapshot: classificationHistorySnapshotSchema,
+});
+
+export const rectangleAnnotationHistoryGroupSchema = z.object({
+  annotationId: z.number(),
+  events: rectangleHistoryEventSchema.array(),
+});
+
+export const polygonAnnotationHistoryGroupSchema = z.object({
+  annotationId: z.number(),
+  events: polygonHistoryEventSchema.array(),
+});
+
+export const classificationAnnotationHistoryGroupSchema = z.object({
+  annotationId: z.number(),
+  events: classificationHistoryEventSchema.array(),
+});
+
+export const taskHistoryResponseSchema = z.object({
+  rectangleHistory: rectangleAnnotationHistoryGroupSchema.array(),
+  polygonHistory: polygonAnnotationHistoryGroupSchema.array(),
+  classificationHistory: classificationAnnotationHistoryGroupSchema.array(),
+});

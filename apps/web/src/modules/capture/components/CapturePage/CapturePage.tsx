@@ -3,7 +3,9 @@ import {
   useListCamerasQuery,
 } from "@/core/cameraApi";
 import { useCameraApiUrl } from "@/hooks";
+import { useAppDispatch } from "@/hooks/redux";
 import { useSelectedCameraStream } from "@/modules/camera-selection";
+import { bumpPipeline } from "@/modules/camera-stream/services/cameraPipelineGenerationSlice";
 import { EditProjectModal } from "@/modules/project/components/EditProjectModal";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import {
@@ -11,7 +13,7 @@ import {
   NoCameraDetected,
   SearchingForCamera,
 } from "@/modules/ui";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   useVideoCapture,
   VideoCaptureProvider,
@@ -26,6 +28,7 @@ export interface CapturePageProps {}
 export const CapturePage = ({}: CapturePageProps) => {
   const { url: cameraApiUrl, isOverride } = useCameraApiUrl();
   const [activeProject] = useActiveProject();
+  const dispatch = useAppDispatch();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const {
     data: cameras,
@@ -44,19 +47,49 @@ export const CapturePage = ({}: CapturePageProps) => {
   const [isStreaming, setIsStreaming] = useState(false);
   const [isSwitchingStream, setIsSwitchingStream] = useState(false);
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
+  const hasLoadedDashboardOnceRef = useRef(false);
+
+  // When cameras transitions from unavailable (empty array OR network error)
+  // to available, bump the pipeline so CameraStreamProvider retries the WebRTC
+  // connection. Without this, if the same mxid/streamName stays selected (stale
+  // state from the failed connection attempt), the provider's deps don't change
+  // and it never reconnects. We guard on !isLoading so the initial load
+  // (undefined → data) doesn't mistakenly trigger a bump.
+  const hadNoCameraRef = useRef(false);
+  useEffect(() => {
+    if (isLoading) return;
+    const hasCamerasNow = !!(cameras && cameras.length > 0);
+    if (!hasCamerasNow) {
+      hadNoCameraRef.current = true;
+      return;
+    }
+    if (hadNoCameraRef.current && selectedCamera && selectedStream) {
+      hadNoCameraRef.current = false;
+      dispatch(bumpPipeline({ mxid: selectedCamera, streamName: selectedStream }));
+    }
+  }, [cameras, isLoading, selectedCamera, selectedStream, dispatch]);
 
   // isSuccess (not !!data) — RTK Query preserves the last successful body
   // across an error refetch, so checking `data` would keep the banner up
   // after Stop while the server now returns 404. isSuccess correctly
   // flips to false on a rejected refetch, matching useRunDeploy.
-  const { isSuccess: isDashboardRunning, isLoading: isDashboardLoading } =
-    useGetDashboardQuery(
-      { mxid: selectedCamera!, streamName: selectedStream! },
-      { skip: !selectedCamera || !selectedStream },
-    );
+  const {
+    isSuccess: isDashboardRunning,
+    isLoading: isDashboardLoading,
+    isError: isDashboardError,
+  } = useGetDashboardQuery(
+    { mxid: selectedCamera!, streamName: selectedStream! },
+    { skip: !selectedCamera || !selectedStream },
+  );
+  useEffect(() => {
+    if (isDashboardRunning || isDashboardError)
+      hasLoadedDashboardOnceRef.current = true;
+  }, [isDashboardRunning, isDashboardError]);
+
   const isModelRunning = isDashboardRunning;
-  const isCheckingModelStatus =
-    !selectedCamera || !selectedStream || isDashboardLoading;
+  const needsSelection = !selectedCamera || !selectedStream;
+  const isInitialDashboardLoad =
+    isDashboardLoading && !hasLoadedDashboardOnceRef.current;
 
   const hasCameras = cameras && cameras.length > 0;
 
@@ -84,7 +117,7 @@ export const CapturePage = ({}: CapturePageProps) => {
     return renderNoCamera();
   }
 
-  if (isLoading || isCheckingModelStatus) {
+  if (isLoading || needsSelection || isInitialDashboardLoad) {
     return <SearchingForCamera url={cameraApiUrl} isOverride={isOverride} />;
   }
 

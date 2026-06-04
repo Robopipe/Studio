@@ -1,3 +1,11 @@
+import { EvalLimitItemQuantifierTypeEnum } from "@repo/schema";
+
+export const quantifierTypeLabel: Record<EvalLimitItemQuantifierTypeEnum, string> = {
+  [EvalLimitItemQuantifierTypeEnum.MIN]: "At least",
+  [EvalLimitItemQuantifierTypeEnum.MAX]: "At most",
+  [EvalLimitItemQuantifierTypeEnum.EXACT]: "Exactly",
+};
+
 export const parameterLabel: Record<string, string> = {
   POS_LEFT: "Position Left",
   POS_RIGHT: "Position Right",

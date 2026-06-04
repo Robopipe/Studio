@@ -11,6 +11,7 @@ import { useGetProjectLabelsQuery } from "@/modules/project/services/projectApi"
 import { GeneralSection } from "./GeneralSection";
 import { LimitsSection } from "./LimitsSection";
 import { SetupSection } from "./SetupSection";
+import { SeveritySection } from "./SeveritySection";
 import { useLimitForm } from "./useLimitForm.hook";
 
 export type CreateLimitModalProps = {
@@ -40,7 +41,7 @@ export const CreateLimitModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[calc(100vh-4rem)] overflow-y-auto sm:max-w-3xl">
+      <DialogContent className="max-h-[calc(100vh-4rem)] overflow-y-auto sm:max-w-5xl">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">Add Limit</DialogTitle>
         </DialogHeader>
@@ -56,6 +57,7 @@ export const CreateLimitModal = ({
           >
             <GeneralSection />
             <SetupSection labelOptions={[...labelOptions]} />
+            <SeveritySection />
             <LimitsSection />
 
             <DialogFooter>

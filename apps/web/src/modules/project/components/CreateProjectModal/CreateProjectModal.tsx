@@ -1,9 +1,13 @@
+import { cameraApi } from "@/core/cameraApi";
+import { useAuth } from "@/core/auth/hooks";
+import { useAppDispatch } from "@/hooks/redux";
 import { Button } from "@/modules/shadcn/ui/button";
 import { useState } from "react";
 import {
   useCreateProjectLabelMutation,
   useCreateProjectMutation,
 } from "../../services/projectApi";
+import { writeCameraApiOverride } from "../../utils/cameraApiOverride";
 import { LabelingSetup, LocalLabel } from "../LabelingSetup/LabelingSetup";
 import { Modal, ModalTab } from "../Modal";
 import { ProjectDetailsForm } from "../ProjectDetailsForm";
@@ -17,9 +21,13 @@ export const CreateProjectModal = ({
   onClose,
   initialName,
 }: CreateProjectModalProps) => {
+  const { user } = useAuth();
+  const dispatch = useAppDispatch();
+
   const [name, setName] = useState(initialName ?? "");
   const [description, setDescription] = useState("");
   const [cameraApiUrl, setCameraApiUrl] = useState<string | null>(null);
+  const [localOverride, setLocalOverride] = useState<string>("");
   const [localLabels, setLocalLabels] = useState<LocalLabel[]>([]);
 
   const [createProject, { isLoading: isCreatingProject }] =
@@ -35,6 +43,12 @@ export const CreateProjectModal = ({
         description,
         cameraApiUrl,
       }).unwrap();
+
+      const trimmed = localOverride.trim();
+      if (user && trimmed) {
+        writeCameraApiOverride(user.id, project.id, trimmed);
+        dispatch(cameraApi.util.resetApiState());
+      }
 
       if (localLabels.length > 0) {
         await Promise.all(
@@ -80,6 +94,8 @@ export const CreateProjectModal = ({
           setDescription={setDescription}
           cameraApiUrl={cameraApiUrl}
           setCameraApiUrl={setCameraApiUrl}
+          localOverride={localOverride}
+          setLocalOverride={setLocalOverride}
         />
       ),
     },

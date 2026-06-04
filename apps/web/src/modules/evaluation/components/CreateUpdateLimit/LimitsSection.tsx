@@ -37,7 +37,7 @@ export function LimitsSection() {
         {(field) => (
           <div className="-mr-2 flex max-h-[40vh] flex-col gap-3 overflow-y-auto pr-2">
             {field.state.value.map((_, i) => (
-              <div key={i} className="flex flex-col gap-3">
+              <div key={i} className="flex flex-col gap-1">
                 {i > 0 && (
                   <form.AppField name={`limitItems[${i - 1}].operator`}>
                     {() => <LogicalOperatorSelect />}

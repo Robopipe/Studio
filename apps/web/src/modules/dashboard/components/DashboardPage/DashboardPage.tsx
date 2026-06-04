@@ -329,7 +329,10 @@ export const DashboardPage = ({
                   />
                 )}
                 {rightTab === "reports" && (
-                  <ReportsPage dashboardId={activeConfigId} />
+                  <ReportsPage
+                    dashboardId={activeConfigId}
+                    projectId={projectId}
+                  />
                 )}
               </div>
             </div>
