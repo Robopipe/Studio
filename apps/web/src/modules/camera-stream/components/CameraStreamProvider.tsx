@@ -167,6 +167,7 @@ export const CameraStreamProvider = ({ children }: CameraStreamProviderProps) =>
             setStreamError("Connection lost");
           } else if (pc.connectionState === "connected") {
             setIsStreaming(true);
+            setStreamError(null);
           }
         });
 
