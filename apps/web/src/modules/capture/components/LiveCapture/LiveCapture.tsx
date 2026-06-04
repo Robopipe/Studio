@@ -36,7 +36,7 @@ export const LiveCapture = ({
         <div className="relative">
           <div className="aspect-video w-full rounded-md bg-black/5" />
           <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
-            Connecting to camera...
+            Loading stream...
           </div>
         </div>
       )}
