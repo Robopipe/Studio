@@ -70,7 +70,8 @@ export const CapturedPhotos = ({}: CapturedPhotosProps) => {
 
   return (
     <div className="flex w-full flex-col">
-      {unlinkedPending.map((pending) => (
+      {page === 1 &&
+        unlinkedPending.map((pending) => (
         <MediaListItem
           key={pending.id}
           image={
