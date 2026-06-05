@@ -72,7 +72,9 @@ export const LiveInference = ({
   return (
     <>
       <div className="absolute left-4 top-4 z-10 flex items-center gap-2">
-        {isStreaming && <StreamStatusBadge variant={isReplay ? "replay" : "live"} />}
+        {isStreaming && (
+          <StreamStatusBadge variant={isReplay ? "replay" : "live"} />
+        )}
         {hasNN && isConnected && <StreamStatusBadge variant="sync" />}
       </div>
 
@@ -109,7 +111,7 @@ export const LiveInference = ({
       )}
       {!replayEnded && !isStreaming && (
         <div className="absolute inset-0 flex items-center justify-center text-sm text-[#666]">
-          Connecting to camera...
+          Loading stream...
         </div>
       )}
     </>

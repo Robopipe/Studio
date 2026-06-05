@@ -1,4 +1,3 @@
-import { cameraApi } from "@/core/cameraApi";
 import { useAuth } from "@/core/auth/hooks";
 import { useAppDispatch } from "@/hooks/redux";
 import { Button } from "@/modules/shadcn/ui/button";
@@ -7,7 +6,7 @@ import {
   useCreateProjectLabelMutation,
   useCreateProjectMutation,
 } from "../../services/projectApi";
-import { writeCameraApiOverride } from "../../utils/cameraApiOverride";
+import { setCameraApiOverride } from "../../services/cameraApiOverrideSlice";
 import { LabelingSetup, LocalLabel } from "../LabelingSetup/LabelingSetup";
 import { Modal, ModalTab } from "../Modal";
 import { ProjectDetailsForm } from "../ProjectDetailsForm";
@@ -45,9 +44,10 @@ export const CreateProjectModal = ({
       }).unwrap();
 
       const trimmed = localOverride.trim();
-      if (user && trimmed) {
-        writeCameraApiOverride(user.id, project.id, trimmed);
-        dispatch(cameraApi.util.resetApiState());
+      if (user) {
+        dispatch(
+          setCameraApiOverride({ userId: user.id, projectId: project.id, value: trimmed || null }),
+        );
       }
 
       if (localLabels.length > 0) {
