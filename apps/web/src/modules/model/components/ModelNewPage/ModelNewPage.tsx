@@ -30,7 +30,10 @@ import { AppliedAugmentation } from "../AugmentationSettings/augmentationTypes";
 import { DatasetSplit, DatasetSplitSettings } from "../DatasetSplitSettings";
 import { ModelLayout } from "../ModelLayout/ModelLayout";
 import { ModelTypeSettings } from "../ModelTypeSettings";
-import { SourceImagesSettings } from "../SourceImagesSettings";
+import {
+  MAX_VISIBLE_THUMBNAILS,
+  SourceImagesSettings,
+} from "../SourceImagesSettings";
 import { TaskSelectionDialog } from "../TaskSelectionDialog";
 
 export interface DuplicateModelState {
@@ -141,11 +144,12 @@ const ModelNewPageInner = () => {
   // so the Source Images card can render the preview row.
   const needsPreviewFetch =
     selectedTaskIds.length > 0 && selectedTaskPreviews.length === 0;
+  const previewIds = selectedTaskIds.slice(0, MAX_VISIBLE_THUMBNAILS);
   const { data: previewTasksData } = useGetTasksQuery(
     {
       projectId: activeProject?.id!,
-      limit: selectedTaskIds.length || 1,
-      ids: selectedTaskIds.join(","),
+      limit: previewIds.length || 1,
+      ids: previewIds.join(","),
     },
     { skip: !activeProject?.id || !needsPreviewFetch },
   );
