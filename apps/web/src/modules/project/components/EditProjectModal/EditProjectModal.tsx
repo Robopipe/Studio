@@ -1,17 +1,16 @@
-import { cameraApi } from "@/core/cameraApi";
 import { useAuth } from "@/core/auth/hooks";
+import { cameraApi } from "@/core/cameraApi";
 import { useAppDispatch } from "@/hooks/redux";
 import { Button } from "@/modules/shadcn/ui/button";
 import { Project } from "@repo/schema";
 import { useState } from "react";
+import { setCameraApiOverride } from "../../services/cameraApiOverrideSlice";
 import {
   useCreateProjectLabelMutation,
-  useDeleteProjectLabelMutation,
   useGetProjectLabelsQuery,
   useUpdateProjectLabelMutation,
   useUpdateProjectMutation,
 } from "../../services/projectApi";
-import { setCameraApiOverride } from "../../services/cameraApiOverrideSlice";
 import { readCameraApiOverride } from "../../utils/cameraApiOverride";
 import { LabelingSetup, LocalLabel } from "../LabelingSetup";
 import { Modal, ModalTab } from "../Modal";
@@ -47,7 +46,6 @@ export const EditProjectModal = ({
 
   const [updateProject, { isLoading: isUpdating }] = useUpdateProjectMutation();
   const [createLabel] = useCreateProjectLabelMutation();
-  const [deleteLabel] = useDeleteProjectLabelMutation();
   const [updateLabel] = useUpdateProjectLabelMutation();
 
   const handleSave = async () => {
@@ -65,7 +63,11 @@ export const EditProjectModal = ({
       if (user) {
         const trimmed = localOverride.trim();
         dispatch(
-          setCameraApiOverride({ userId: user.id, projectId: project.id, value: trimmed || null }),
+          setCameraApiOverride({
+            userId: user.id,
+            projectId: project.id,
+            value: trimmed || null,
+          }),
         );
       }
 
@@ -108,14 +110,6 @@ export const EditProjectModal = ({
           onAddLabel={(label) =>
             createLabel({ projectId: project.id, ...label })
           }
-          onRemoveLabel={(labelName) => {
-            const labelToDelete = existingLabels?.find(
-              (l) => l.name === labelName,
-            );
-            if (labelToDelete) {
-              deleteLabel({ projectId: project.id, labelId: labelToDelete.id });
-            }
-          }}
           onUpdateLabelColor={(labelName, color) => {
             const target = existingLabels?.find((l) => l.name === labelName);
             if (target) {
