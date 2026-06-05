@@ -1,10 +1,5 @@
 import { Button } from "@/modules/shadcn/ui/button";
 import {
-  Collapsible,
-  CollapsiblePanel,
-  CollapsibleTrigger,
-} from "@/modules/shadcn/ui/collapsible";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -46,14 +41,13 @@ export const NetworkScanDialog = ({
 }: NetworkScanDialogProps) => {
   const [cidr, setCidr] = useState("192.168.0.0/16");
   const [ports, setPorts] = useState("8080");
-  const [hostname, setHostname] = useState("robopipe");
 
   const { scan, cancel, results, isScanning, progress } = useNetworkScan();
   const [hasScanned, setHasScanned] = useState(false);
 
   const handleScan = async () => {
     try {
-      await scan(cidr, ports, hostname);
+      await scan(cidr, ports);
       setHasScanned(true);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Scan failed");
@@ -131,40 +125,11 @@ export const NetworkScanDialog = ({
             </p>
           </div>
 
-          <Collapsible>
-            <CollapsibleTrigger>Advanced Options</CollapsibleTrigger>
-            <CollapsiblePanel>
-              <div className="flex flex-col gap-1.5 px-1 pb-1">
-                <Label htmlFor="mdnsHostname" className="text-xs">
-                  mDNS Hostname
-                </Label>
-                <div className="flex items-center gap-1">
-                  <Input
-                    id="mdnsHostname"
-                    value={hostname}
-                    onChange={(e) => setHostname(e.target.value)}
-                    disabled={isScanning}
-                    className="flex-1"
-                  />
-                  <span className="shrink-0 text-xs text-muted-foreground">
-                    .local
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Before scanning the network, the app will try to reach this
-                  hostname via mDNS.
-                </p>
-              </div>
-            </CollapsiblePanel>
-          </Collapsible>
-
           {isScanning && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Spinner />
               <span>
-                {progress.phase === "mdns"
-                  ? "Trying mDNS discovery..."
-                  : `Scanning... ${progress.scanned}/${progress.total}`}
+                Scanning... {progress.scanned}/{progress.total}
               </span>
             </div>
           )}
