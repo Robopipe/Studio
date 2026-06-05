@@ -11,10 +11,8 @@ import {
   useUpdateProjectLabelMutation,
   useUpdateProjectMutation,
 } from "../../services/projectApi";
-import {
-  readCameraApiOverride,
-  writeCameraApiOverride,
-} from "../../utils/cameraApiOverride";
+import { setCameraApiOverride } from "../../services/cameraApiOverrideSlice";
+import { readCameraApiOverride } from "../../utils/cameraApiOverride";
 import { LabelingSetup, LocalLabel } from "../LabelingSetup";
 import { Modal, ModalTab } from "../Modal";
 import { ProjectDetailsForm } from "../ProjectDetailsForm";
@@ -66,11 +64,15 @@ export const EditProjectModal = ({
 
       if (user) {
         const trimmed = localOverride.trim();
-        const previous = readCameraApiOverride(user.id, project.id) ?? "";
-        writeCameraApiOverride(user.id, project.id, trimmed || null);
-        if (trimmed !== previous) {
-          dispatch(cameraApi.util.resetApiState());
-        }
+        dispatch(
+          setCameraApiOverride({ userId: user.id, projectId: project.id, value: trimmed || null }),
+        );
+      }
+
+      // Eagerly reset cameraApi when the project URL changes so any in-flight
+      // request against the old URL is aborted before the project list refetches.
+      if (cameraApiUrl !== project.cameraApiUrl) {
+        dispatch(cameraApi.util.resetApiState());
       }
 
       onClose();

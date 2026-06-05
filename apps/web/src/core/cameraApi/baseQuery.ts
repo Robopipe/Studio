@@ -1,4 +1,4 @@
-import { readCameraApiOverride } from "@/modules/project/utils/cameraApiOverride";
+import { selectEffectiveCameraApiUrl } from "@/modules/project/services/cameraApiOverrideSlice";
 import { RootState } from "@/store";
 import {
   BaseQueryFn,
@@ -9,7 +9,7 @@ import {
 
 /**
  * Dynamic base query that resolves the camera API URL from the active project,
- * preferring the current user's local override (localStorage) when set.
+ * preferring the current user's local override when set.
  */
 export const baseQuery: BaseQueryFn<
   string | FetchArgs,
@@ -17,10 +17,7 @@ export const baseQuery: BaseQueryFn<
   FetchBaseQueryError
 > = async (args, api, extraOptions) => {
   const state = api.getState() as RootState;
-  const projectId = state.project.activeProject?.id;
-  const userId = state.auth.user?.id;
-  const override = readCameraApiOverride(userId, projectId);
-  const baseUrl = override ?? state.project.activeProject?.cameraApiUrl ?? "";
+  const baseUrl = selectEffectiveCameraApiUrl(state) ?? "";
 
   const dynamicBaseQuery = fetchBaseQuery({
     baseUrl,
