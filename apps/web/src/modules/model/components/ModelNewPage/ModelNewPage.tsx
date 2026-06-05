@@ -124,6 +124,7 @@ const ModelNewPageInner = () => {
   const [nameError, setNameError] = useState<string | null>(null);
   const [epochsError, setEpochsError] = useState<string | null>(null);
   const [datasetError, setDatasetError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [checkDataset] = useDatasetStatsMutation();
   const didPrefillName = useRef(false);
 
@@ -234,7 +235,7 @@ const ModelNewPageInner = () => {
           if (!result.valid) {
             const msg =
               result.totalCandidateCount === 0
-                ? "No annotated images in this project. Label at least one image before saving."
+                ? "No annotated images in this dataset. Label at least one image before saving."
                 : `${result.labeledCount} of ${result.totalCandidateCount} selected images have ${trainingType.toLowerCase()} annotations. At least one is required.`;
             setDatasetError(msg);
           } else {
@@ -294,6 +295,7 @@ const ModelNewPageInner = () => {
 
   const saveModel = async (train = false) => {
     if (datasetError) return;
+    setSaveError(null);
     const trimmedName = name.trim();
     const nextNameError = trimmedName ? null : "Version name is required";
     const nextEpochsError =
@@ -359,7 +361,7 @@ const ModelNewPageInner = () => {
           "string"
           ? (err as { data: { message: string } }).data.message
           : "Failed to save model. Please try again.";
-      setDatasetError(msg);
+      setSaveError(msg);
     }
   };
 
@@ -425,10 +427,8 @@ const ModelNewPageInner = () => {
           selectedTaskIds={selectedTaskIds}
           selectedTaskPreviews={selectedTaskPreviews}
           onEditSelection={() => setSelectionDialogOpen(true)}
+          datasetError={datasetError}
         />
-        {datasetError && (
-          <span className="text-xs text-red-600">{datasetError}</span>
-        )}
         <DatasetSplitSettings
           split={datasetSplit}
           onChange={setDatasetSplit}
@@ -451,6 +451,7 @@ const ModelNewPageInner = () => {
           onHyperparamsErrorChange={setHyperparamsError}
         />
 
+        {saveError && <span className="text-xs text-red-600">{saveError}</span>}
         <div className="flex flex-row justify-end gap-2">
           <Button onClick={() => saveModel()} disabled={Boolean(datasetError)}>
             Save

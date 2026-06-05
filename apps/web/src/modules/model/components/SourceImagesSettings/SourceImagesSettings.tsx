@@ -15,6 +15,7 @@ export interface SourceImagesSettingsProps {
   selectedTaskIds: number[];
   selectedTaskPreviews: { id: number; thumbnailUrl: string }[];
   onEditSelection: () => void;
+  datasetError?: string | null;
 }
 
 export const SourceImagesSettings = (props: SourceImagesSettingsProps) => {
@@ -24,6 +25,7 @@ export const SourceImagesSettings = (props: SourceImagesSettingsProps) => {
     selectedTaskIds,
     selectedTaskPreviews,
     onEditSelection,
+    datasetError,
   } = props;
   const [project] = useActiveProject();
   const { data: labels } = useGetProjectLabelsQuery(
@@ -54,41 +56,46 @@ export const SourceImagesSettings = (props: SourceImagesSettingsProps) => {
   return (
     <SettingsCard
       title="source images"
-      state={hasSelection ? "complete" : "pending"}
+      state={hasSelection && !datasetError ? "complete" : "pending"}
       stepNumber={2}
     >
       <div className="flex flex-1 flex-col gap-4 py-1">
         {/* Images row */}
-        <div className="flex items-center gap-5">
+        <div className="flex items-start gap-5">
           <span className="text-xs text-foreground/90">Images</span>
-          <div className="flex flex-1 items-center gap-1.5">
-            {hasSelection ? (
-              <>
-                {visiblePreviews.map((preview) => (
-                  <img
-                    key={preview.id}
-                    src={preview.thumbnailUrl}
-                    alt=""
-                    className="size-9 shrink-0 rounded-lg object-cover"
-                  />
-                ))}
-                {overflow > 0 && (
-                  <div className="relative size-9 shrink-0 overflow-hidden rounded-lg">
-                    {visiblePreviews.length > 0 && (
-                      <img
-                        src={visiblePreviews[visiblePreviews.length - 1]?.thumbnailUrl}
-                        alt=""
-                        className="size-full object-cover"
-                      />
-                    )}
-                    <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/65">
-                      <span className="text-xs text-white">+{overflow}</span>
+          <div className="flex flex-1 flex-col gap-1">
+            <div className="flex items-center gap-1.5">
+              {hasSelection ? (
+                <>
+                  {visiblePreviews.map((preview) => (
+                    <img
+                      key={preview.id}
+                      src={preview.thumbnailUrl}
+                      alt=""
+                      className="size-9 shrink-0 rounded-lg object-cover"
+                    />
+                  ))}
+                  {overflow > 0 && (
+                    <div className="relative size-9 shrink-0 overflow-hidden rounded-lg">
+                      {visiblePreviews.length > 0 && (
+                        <img
+                          src={visiblePreviews[visiblePreviews.length - 1]?.thumbnailUrl}
+                          alt=""
+                          className="size-full object-cover"
+                        />
+                      )}
+                      <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/65">
+                        <span className="text-xs text-white">+{overflow}</span>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </>
-            ) : (
-              <span className="text-xs text-foreground/60">All images</span>
+                  )}
+                </>
+              ) : (
+                <span className="text-xs text-foreground/60">All images</span>
+              )}
+            </div>
+            {datasetError && (
+              <span className="text-xs text-red-600">{datasetError}</span>
             )}
           </div>
           <Button variant="ghost" size="sm" onClick={onEditSelection}>
