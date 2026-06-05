@@ -1,4 +1,3 @@
-import { Badge } from "@/modules/shadcn/ui/badge";
 import { Button } from "@/modules/shadcn/ui/button";
 import { DiscoveredDevice } from "../../types";
 
@@ -24,14 +23,7 @@ export const DeviceList = ({ devices, onSelect }: DeviceListProps) => {
           className="flex items-center justify-between rounded-md border border-border p-3"
         >
           <div className="flex flex-col gap-0.5">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">{device.host}</span>
-              {device.source === "mdns" && (
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                  mDNS
-                </Badge>
-              )}
-            </div>
+            <span className="text-sm font-medium">{device.host}</span>
             <span className="text-xs text-muted-foreground">
               Port {device.port}
             </span>
