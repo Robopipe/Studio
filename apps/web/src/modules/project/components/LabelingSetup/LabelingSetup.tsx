@@ -11,7 +11,7 @@ export type LocalLabel = Pick<Label, "name" | "color">;
 interface LabelingSetupProps {
   labels: LocalLabel[];
   onAddLabel: (label: LocalLabel) => void;
-  onRemoveLabel: (name: string) => void;
+  onRemoveLabel?: (name: string) => void;
   onUpdateLabelColor?: (name: string, color: string) => void;
 }
 
@@ -76,7 +76,9 @@ export const LabelingSetup = ({
               <LabelChip
                 key={label.name}
                 label={label as Label}
-                onRemove={() => onRemoveLabel(label.name)}
+                onRemove={
+                  onRemoveLabel ? () => onRemoveLabel(label.name) : undefined
+                }
                 onColorChange={
                   onUpdateLabelColor
                     ? (color) => onUpdateLabelColor(label.name, color)
