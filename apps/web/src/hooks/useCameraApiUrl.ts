@@ -1,6 +1,9 @@
-import { useAuth } from "@/core/auth/hooks";
+import {
+  selectActiveOverride,
+  selectEffectiveCameraApiUrl,
+} from "@/modules/project/services/cameraApiOverrideSlice";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
-import { readCameraApiOverride } from "@/modules/project/utils/cameraApiOverride";
+import { useSelector } from "react-redux";
 
 export interface CameraApiUrlInfo {
   /** Effective URL used for camera API requests (override or project). */
@@ -13,17 +16,11 @@ export interface CameraApiUrlInfo {
   isOverride: boolean;
 }
 
-/**
- * Resolves the camera API base URL for the active project, preferring the
- * current user's local override (stored in localStorage) when set.
- */
 export const useCameraApiUrl = (): CameraApiUrlInfo => {
-  const { user } = useAuth();
   const [activeProject] = useActiveProject();
-
-  const override = readCameraApiOverride(user?.id, activeProject?.id);
+  const override = useSelector(selectActiveOverride);
+  const url = useSelector(selectEffectiveCameraApiUrl);
   const projectUrl = activeProject?.cameraApiUrl ?? null;
-  const url = override ?? projectUrl;
 
   return {
     url,
