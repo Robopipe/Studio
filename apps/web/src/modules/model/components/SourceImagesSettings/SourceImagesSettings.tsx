@@ -7,7 +7,7 @@ import { Pencil } from "lucide-react";
 import { CSSProperties, useEffect, useMemo } from "react";
 import { SettingsCard } from "../SettingsCard";
 
-const MAX_VISIBLE_THUMBNAILS = 15;
+export const MAX_VISIBLE_THUMBNAILS = 15;
 
 export interface SourceImagesSettingsProps {
   activeLabels: Label[];
@@ -74,11 +74,13 @@ export const SourceImagesSettings = (props: SourceImagesSettingsProps) => {
                 ))}
                 {overflow > 0 && (
                   <div className="relative size-9 shrink-0 overflow-hidden rounded-lg">
-                    <img
-                      src={visiblePreviews[visiblePreviews.length - 1]?.thumbnailUrl}
-                      alt=""
-                      className="size-full object-cover"
-                    />
+                    {visiblePreviews.length > 0 && (
+                      <img
+                        src={visiblePreviews[visiblePreviews.length - 1]?.thumbnailUrl}
+                        alt=""
+                        className="size-full object-cover"
+                      />
+                    )}
                     <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/65">
                       <span className="text-xs text-white">+{overflow}</span>
                     </div>
