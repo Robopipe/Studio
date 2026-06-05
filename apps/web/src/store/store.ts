@@ -2,6 +2,7 @@ import { api } from "@/core/api";
 import { authApi, authSlice } from "@/core/auth/services";
 import { clearCredentials } from "@/core/auth/services/authActions";
 import { cameraApi } from "@/core/cameraApi";
+import "@/core/cameraApi/listener";
 import { organizationApi } from "@/modules/account/services";
 import { cameraSelectionSlice } from "@/modules/camera-selection/services/cameraSelectionSlice";
 import { cameraPipelineGenerationSlice } from "@/modules/camera-stream/services/cameraPipelineGenerationSlice";
@@ -11,12 +12,15 @@ import { pendingVideoCapturesSlice } from "@/modules/capture/services/pendingVid
 import { dashboardConfigApi } from "@/modules/dashboard/services";
 import { modelApi } from "@/modules/model/services";
 import { projectApi } from "@/modules/project/services/projectApi";
+import { cameraApiOverrideSlice } from "@/modules/project/services/cameraApiOverrideSlice";
 import { projectSlice } from "@/modules/project/services/projectSlice";
 import { combineReducers, configureStore } from "@reduxjs/toolkit";
+import { listenerMiddleware } from "./listenerMiddleware";
 
 const slices = {
   [authSlice.name]: authSlice.reducer,
   [projectSlice.name]: projectSlice.reducer,
+  [cameraApiOverrideSlice.name]: cameraApiOverrideSlice.reducer,
   [pendingCapturesSlice.name]: pendingCapturesSlice.reducer,
   [pendingVideoCapturesSlice.name]: pendingVideoCapturesSlice.reducer,
   [cameraSelectionSlice.name]: cameraSelectionSlice.reducer,
@@ -33,6 +37,7 @@ const apis = {
   [dashboardConfigApi.reducerPath]: dashboardConfigApi.reducer,
 };
 const middlewares = [
+  listenerMiddleware.middleware,
   api.middleware,
   authApi.middleware,
   cameraApi.middleware,

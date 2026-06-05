@@ -78,7 +78,7 @@ export const CameraDisplay = ({
       )}
       {!replayEnded && !isStreaming && !error && (
         <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
-          Connecting to camera...
+          Loading stream...
         </div>
       )}
       {!replayEnded && error && (

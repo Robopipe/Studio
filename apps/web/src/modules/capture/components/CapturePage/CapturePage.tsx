@@ -1,7 +1,4 @@
-import {
-  useGetDashboardQuery,
-  useListCamerasQuery,
-} from "@/core/cameraApi";
+import { useGetDashboardQuery, useListCamerasQuery } from "@/core/cameraApi";
 import { useCameraApiUrl } from "@/hooks";
 import { useAppDispatch } from "@/hooks/redux";
 import { useSelectedCameraStream } from "@/modules/camera-selection";
@@ -65,7 +62,9 @@ export const CapturePage = ({}: CapturePageProps) => {
     }
     if (hadNoCameraRef.current && selectedCamera && selectedStream) {
       hadNoCameraRef.current = false;
-      dispatch(bumpPipeline({ mxid: selectedCamera, streamName: selectedStream }));
+      dispatch(
+        bumpPipeline({ mxid: selectedCamera, streamName: selectedStream }),
+      );
     }
   }, [cameras, isLoading, selectedCamera, selectedStream, dispatch]);
 
@@ -93,9 +92,7 @@ export const CapturePage = ({}: CapturePageProps) => {
 
   const hasCameras = cameras && cameras.length > 0;
 
-  const openSettings = activeProject
-    ? () => setSettingsOpen(true)
-    : undefined;
+  const openSettings = activeProject ? () => setSettingsOpen(true) : undefined;
 
   const renderNoCamera = () => (
     <>
