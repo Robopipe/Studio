@@ -65,7 +65,8 @@ export const ModelLogs = ({}: ModelLogsProps) => {
         for (const labelId of Object.keys(byLabelId)) labelSet.add(labelId);
       }
     }
-    const perClassHeaders: { header: string; base: string; labelId: string }[] = [];
+    const perClassHeaders: { header: string; base: string; labelId: string }[] =
+      [];
     for (const [base, labelSet] of perClassPairs) {
       for (const labelId of labelSet) {
         perClassHeaders.push({
@@ -118,7 +119,7 @@ export const ModelLogs = ({}: ModelLogsProps) => {
   }, [logs]);
 
   return (
-    <div className="mb-6 flex min-h-100 flex-1 flex-col overflow-hidden">
+    <div className="mb-6 flex min-h-100 flex-1 flex-col overflow-hidden pb-4">
       <div className="flex shrink-0 flex-row items-center justify-between py-2">
         <span className="text-base font-bold">Logs</span>
         {logs && logs.length > 0 && (
@@ -135,27 +136,26 @@ export const ModelLogs = ({}: ModelLogsProps) => {
           className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto pr-2 [scrollbar-color:rgba(255,255,255,0.15)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb:hover]:bg-white/25 [&::-webkit-scrollbar-thumb]:rounded-[3px] [&::-webkit-scrollbar-thumb]:bg-white/15 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-1.5"
         >
           {logs?.map((log) => (
-            <p
-              key={log.id}
-              className="font-mono text-sm text-white/60"
-            >
+            <p key={log.id} className="font-mono text-sm text-white/60">
               <span className="text-gray-400">[{log.createdAt}]</span>{" "}
               <span className="text-pear-500">epoch</span>{" "}
               <span className="text-pear-500">{log.epoch}</span>
               <span className="text-gray-400">: </span>
               <span className="text-gray-400">{"{"}</span>
-              {Object.entries(log.metrics).map(([key, value], index, entries) => (
-                <span key={key}>
-                  <span className="text-blue-200">{key}</span>
-                  <span className="text-gray-400">: </span>
-                  <span className="text-emerald-400">
-                    {formatMetricValue(value)}
+              {Object.entries(log.metrics).map(
+                ([key, value], index, entries) => (
+                  <span key={key}>
+                    <span className="text-blue-200">{key}</span>
+                    <span className="text-gray-400">: </span>
+                    <span className="text-emerald-400">
+                      {formatMetricValue(value)}
+                    </span>
+                    {index < entries.length - 1 ? (
+                      <span className="text-gray-400">, </span>
+                    ) : null}
                   </span>
-                  {index < entries.length - 1 ? (
-                    <span className="text-gray-400">, </span>
-                  ) : null}
-                </span>
-              ))}
+                ),
+              )}
               <span className="text-gray-400">{"}"}</span>
             </p>
           ))}
