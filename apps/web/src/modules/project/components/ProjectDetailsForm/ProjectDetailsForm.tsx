@@ -10,10 +10,14 @@ interface ProjectDetailsFormProps {
   setDescription: (val: string) => void;
   cameraApiUrl: string | null;
   setCameraApiUrl: (val: string) => void;
+  cameraApiUrlError?: string | null;
+  onCameraApiUrlBlur?: () => void;
   multipleDashboardConfigs?: boolean;
   setMultipleDashboardConfigs?: (val: boolean) => void;
   localOverride?: string;
   setLocalOverride?: (val: string) => void;
+  localOverrideError?: string | null;
+  onLocalOverrideBlur?: () => void;
 }
 
 export const ProjectDetailsForm = ({
@@ -23,10 +27,14 @@ export const ProjectDetailsForm = ({
   setDescription,
   cameraApiUrl,
   setCameraApiUrl,
+  cameraApiUrlError,
+  onCameraApiUrlBlur,
   multipleDashboardConfigs,
   setMultipleDashboardConfigs,
   localOverride,
   setLocalOverride,
+  localOverrideError,
+  onLocalOverrideBlur,
 }: ProjectDetailsFormProps) => {
   const showLocalOverride = setLocalOverride !== undefined;
 
@@ -70,10 +78,15 @@ export const ProjectDetailsForm = ({
               className="flex-1"
               placeholder="https://robopipe-1.local"
               value={cameraApiUrl ?? ""}
+              aria-invalid={!!cameraApiUrlError}
               onChange={(e) => setCameraApiUrl(e.target.value)}
+              onBlur={onCameraApiUrlBlur}
             />
             <DiscoverCameraApi onSelect={(url) => setCameraApiUrl(url)} />
           </div>
+          {cameraApiUrlError && (
+            <p className="text-xs text-destructive">{cameraApiUrlError}</p>
+          )}
         </div>
 
         {showLocalOverride && (
@@ -87,10 +100,15 @@ export const ProjectDetailsForm = ({
                 className="flex-1"
                 placeholder="Leave empty to use the shared project URL"
                 value={localOverride ?? ""}
+                aria-invalid={!!localOverrideError}
                 onChange={(e) => setLocalOverride!(e.target.value)}
+                onBlur={onLocalOverrideBlur}
               />
               <DiscoverCameraApi onSelect={(url) => setLocalOverride!(url)} />
             </div>
+            {localOverrideError && (
+              <p className="text-xs text-destructive">{localOverrideError}</p>
+            )}
             <p className="text-xs text-black/50">
               Applies only to you on this browser. Overrides the project URL
               above for all camera communication.
