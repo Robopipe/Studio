@@ -134,8 +134,13 @@ export const NetworkScanDialog = ({
             </div>
           )}
 
-          {hasScanned && !isScanning && (
+          {results.length > 0 && (
             <DeviceList devices={results} onSelect={handleSelect} />
+          )}
+          {hasScanned && !isScanning && results.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              No devices found in the specified range.
+            </p>
           )}
         </div>
 
