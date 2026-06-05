@@ -11,10 +11,12 @@ const LUXONIS_PRESETS: HyperparamsPreset[] = [
   {
     id: "fast-training",
     name: "Fast Training",
-    description: "Smaller batch size for quick iteration",
+    description: "Light model variant, small batch for quick iteration",
     config: {
+      model: { predefined_model: { variant: "light" } },
       trainer: {
         batch_size: 4,
+        optimizer: { name: "Adam", params: { lr: 0.001 } },
       },
     },
   },
@@ -22,13 +24,18 @@ const LUXONIS_PRESETS: HyperparamsPreset[] = [
     id: "high-accuracy",
     name: "High Accuracy",
     description:
-      "Larger batch size and lower learning rate for better convergence",
+      "Heavy variant with AdamW + cosine LR for best convergence",
     config: {
+      model: { predefined_model: { variant: "heavy" } },
       trainer: {
         batch_size: 16,
         optimizer: {
-          name: "Adam",
-          params: { lr: 0.0005 },
+          name: "AdamW",
+          params: { lr: 0.001, weight_decay: 0.0005 },
+        },
+        scheduler: {
+          name: "CosineAnnealingLR",
+          params: { eta_min: 1e-6 },
         },
       },
     },
@@ -36,10 +43,14 @@ const LUXONIS_PRESETS: HyperparamsPreset[] = [
   {
     id: "low-memory",
     name: "Low Memory",
-    description: "Smaller batch size for constrained environments",
+    description:
+      "Light variant, tiny batch with gradient accumulation for constrained GPUs",
     config: {
+      model: { predefined_model: { variant: "light" } },
       trainer: {
         batch_size: 2,
+        accumulate_grad_batches: 4,
+        optimizer: { name: "Adam", params: { lr: 0.001 } },
       },
     },
   },
