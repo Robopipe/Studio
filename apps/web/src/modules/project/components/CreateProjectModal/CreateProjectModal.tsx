@@ -2,6 +2,8 @@ import { useAuth } from "@/core/auth/hooks";
 import { useAppDispatch } from "@/hooks/redux";
 import { Button } from "@/modules/shadcn/ui/button";
 import { useState } from "react";
+import { toast } from "sonner";
+import { validateCameraApiUrl } from "../../utils/validateCameraApiUrl";
 import {
   useCreateProjectLabelMutation,
   useCreateProjectMutation,
@@ -26,21 +28,49 @@ export const CreateProjectModal = ({
   const [name, setName] = useState(initialName ?? "");
   const [description, setDescription] = useState("");
   const [cameraApiUrl, setCameraApiUrl] = useState<string | null>(null);
+  const [cameraApiUrlError, setCameraApiUrlError] = useState<string | null>(null);
   const [localOverride, setLocalOverride] = useState<string>("");
+  const [localOverrideError, setLocalOverrideError] = useState<string | null>(null);
   const [localLabels, setLocalLabels] = useState<LocalLabel[]>([]);
 
   const [createProject, { isLoading: isCreatingProject }] =
     useCreateProjectMutation();
   const [createLabel] = useCreateProjectLabelMutation();
 
+  const handleCameraApiUrlChange = (val: string) => {
+    setCameraApiUrl(val);
+    if (cameraApiUrlError) setCameraApiUrlError(validateCameraApiUrl(val));
+  };
+
+  const handleCameraApiUrlBlur = () => {
+    setCameraApiUrlError(validateCameraApiUrl(cameraApiUrl));
+  };
+
+  const handleLocalOverrideChange = (val: string) => {
+    setLocalOverride(val);
+    if (localOverrideError) setLocalOverrideError(validateCameraApiUrl(val));
+  };
+
+  const handleLocalOverrideBlur = () => {
+    setLocalOverrideError(validateCameraApiUrl(localOverride));
+  };
+
   const handleSave = async () => {
     if (!name.trim()) return;
+
+    const urlError = validateCameraApiUrl(cameraApiUrl);
+    const overrideError = validateCameraApiUrl(localOverride);
+    if (urlError) setCameraApiUrlError(urlError);
+    if (overrideError) setLocalOverrideError(overrideError);
+    if (urlError || overrideError) return;
+
+    const normalizedUrl = (cameraApiUrl ?? "").trim() || null;
 
     try {
       const project = await createProject({
         name,
         description,
-        cameraApiUrl,
+        cameraApiUrl: normalizedUrl,
       }).unwrap();
 
       const trimmed = localOverride.trim();
@@ -65,6 +95,17 @@ export const CreateProjectModal = ({
       onClose();
     } catch (error) {
       console.error("Project creation failed:", error);
+      const message =
+        error != null &&
+        typeof error === "object" &&
+        "data" in error &&
+        error.data != null &&
+        typeof error.data === "object" &&
+        "message" in error.data &&
+        typeof (error.data as { message: unknown }).message === "string"
+          ? (error.data as { message: string }).message
+          : undefined;
+      toast.error(message ?? "Failed to create project");
     }
   };
 
@@ -93,9 +134,13 @@ export const CreateProjectModal = ({
           description={description}
           setDescription={setDescription}
           cameraApiUrl={cameraApiUrl}
-          setCameraApiUrl={setCameraApiUrl}
+          setCameraApiUrl={handleCameraApiUrlChange}
+          cameraApiUrlError={cameraApiUrlError}
+          onCameraApiUrlBlur={handleCameraApiUrlBlur}
           localOverride={localOverride}
-          setLocalOverride={setLocalOverride}
+          setLocalOverride={handleLocalOverrideChange}
+          localOverrideError={localOverrideError}
+          onLocalOverrideBlur={handleLocalOverrideBlur}
         />
       ),
     },
@@ -126,7 +171,12 @@ export const CreateProjectModal = ({
       <Button
         size="sm"
         onClick={handleSave}
-        disabled={isCreatingProject || !name.trim()}
+        disabled={
+          isCreatingProject ||
+          !name.trim() ||
+          !!cameraApiUrlError ||
+          !!localOverrideError
+        }
       >
         {isCreatingProject ? "Saving..." : "Save"}
       </Button>
