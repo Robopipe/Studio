@@ -4,6 +4,8 @@ import { useAppDispatch } from "@/hooks/redux";
 import { Button } from "@/modules/shadcn/ui/button";
 import { Project } from "@repo/schema";
 import { useState } from "react";
+import { toast } from "sonner";
+import { validateCameraApiUrl } from "../../utils/validateCameraApiUrl";
 import { setCameraApiOverride } from "../../services/cameraApiOverrideSlice";
 import {
   useCreateProjectLabelMutation,
@@ -35,9 +37,11 @@ export const EditProjectModal = ({
   const [cameraApiUrl, setCameraApiUrl] = useState<string | null>(
     project.cameraApiUrl,
   );
+  const [cameraApiUrlError, setCameraApiUrlError] = useState<string | null>(null);
   const [localOverride, setLocalOverride] = useState<string>(
     () => readCameraApiOverride(user?.id, project.id) ?? "",
   );
+  const [localOverrideError, setLocalOverrideError] = useState<string | null>(null);
   const [multipleDashboardConfigs] = useState(project.multipleDashboardConfigs);
 
   const { data: existingLabels } = useGetProjectLabelsQuery({
@@ -48,15 +52,41 @@ export const EditProjectModal = ({
   const [createLabel] = useCreateProjectLabelMutation();
   const [updateLabel] = useUpdateProjectLabelMutation();
 
+  const handleCameraApiUrlChange = (val: string) => {
+    setCameraApiUrl(val);
+    if (cameraApiUrlError) setCameraApiUrlError(validateCameraApiUrl(val));
+  };
+
+  const handleCameraApiUrlBlur = () => {
+    setCameraApiUrlError(validateCameraApiUrl(cameraApiUrl));
+  };
+
+  const handleLocalOverrideChange = (val: string) => {
+    setLocalOverride(val);
+    if (localOverrideError) setLocalOverrideError(validateCameraApiUrl(val));
+  };
+
+  const handleLocalOverrideBlur = () => {
+    setLocalOverrideError(validateCameraApiUrl(localOverride));
+  };
+
   const handleSave = async () => {
     if (!name.trim()) return;
+
+    const urlError = validateCameraApiUrl(cameraApiUrl);
+    const overrideError = validateCameraApiUrl(localOverride);
+    if (urlError) setCameraApiUrlError(urlError);
+    if (overrideError) setLocalOverrideError(overrideError);
+    if (urlError || overrideError) return;
+
+    const normalizedUrl = (cameraApiUrl ?? "").trim() || null;
 
     try {
       await updateProject({
         projectId: project.id,
         name,
         description,
-        cameraApiUrl,
+        cameraApiUrl: normalizedUrl,
         multipleDashboardConfigs,
       }).unwrap();
 
@@ -80,6 +110,17 @@ export const EditProjectModal = ({
       onClose();
     } catch (error) {
       console.error("Update failed:", error);
+      const message =
+        error != null &&
+        typeof error === "object" &&
+        "data" in error &&
+        error.data != null &&
+        typeof error.data === "object" &&
+        "message" in error.data &&
+        typeof (error.data as { message: unknown }).message === "string"
+          ? (error.data as { message: string }).message
+          : undefined;
+      toast.error(message ?? "Failed to update project");
     }
   };
 
@@ -94,9 +135,13 @@ export const EditProjectModal = ({
           description={description}
           setDescription={setDescription}
           cameraApiUrl={cameraApiUrl}
-          setCameraApiUrl={setCameraApiUrl}
+          setCameraApiUrl={handleCameraApiUrlChange}
+          cameraApiUrlError={cameraApiUrlError}
+          onCameraApiUrlBlur={handleCameraApiUrlBlur}
           localOverride={localOverride}
-          setLocalOverride={setLocalOverride}
+          setLocalOverride={handleLocalOverrideChange}
+          localOverrideError={localOverrideError}
+          onLocalOverrideBlur={handleLocalOverrideBlur}
           multipleDashboardConfigs={multipleDashboardConfigs}
         />
       ),
@@ -134,7 +179,12 @@ export const EditProjectModal = ({
       <Button
         size="sm"
         onClick={handleSave}
-        disabled={isUpdating || !name.trim()}
+        disabled={
+          isUpdating ||
+          !name.trim() ||
+          !!cameraApiUrlError ||
+          !!localOverrideError
+        }
       >
         {isUpdating ? "Saving..." : "Save Changes"}
       </Button>
