@@ -40,15 +40,14 @@ export function useNetworkScan() {
       const total = ips.length * ports.length;
       setProgress({ scanned: 0, total });
 
-      const networkResults = await scanNetwork(
+      await scanNetwork(
         ips,
         ports,
         CONCURRENCY,
         controller.signal,
         (scanned) => setProgress({ scanned, total }),
+        (device) => setResults((prev) => [...prev, device]),
       );
-
-      setResults(networkResults);
     } finally {
       setIsScanning(false);
       abortRef.current = null;

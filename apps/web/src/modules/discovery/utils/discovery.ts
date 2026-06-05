@@ -146,7 +146,8 @@ export async function scanNetwork(
   concurrency: number,
   signal: AbortSignal,
   onProgress: (scanned: number) => void,
-): Promise<DiscoveredDevice[]> {
+  onDeviceFound: (device: DiscoveredDevice) => void,
+): Promise<void> {
   const targets: ScanTarget[] = [];
   for (const ip of ips) {
     for (const port of ports) {
@@ -154,7 +155,6 @@ export async function scanNetwork(
     }
   }
 
-  const results: DiscoveredDevice[] = [];
   let scanned = 0;
 
   for (let i = 0; i < targets.length; i += concurrency) {
@@ -167,12 +167,10 @@ export async function scanNetwork(
       scanned++;
       onProgress(scanned);
       if (found) {
-        results.push({ url, host: ip, port });
+        onDeviceFound({ url, host: ip, port });
       }
     });
 
     await Promise.allSettled(promises);
   }
-
-  return results;
 }
