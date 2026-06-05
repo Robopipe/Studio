@@ -44,7 +44,7 @@ export const NetworkScanDialog = ({
   onOpenChange,
   onSelect,
 }: NetworkScanDialogProps) => {
-  const [cidr, setCidr] = useState("192.168.1.0/24");
+  const [cidr, setCidr] = useState("192.168.0.0/16");
   const [ports, setPorts] = useState("8080");
   const [hostname, setHostname] = useState("robopipe");
 
