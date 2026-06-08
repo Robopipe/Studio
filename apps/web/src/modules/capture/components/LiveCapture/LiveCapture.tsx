@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { CameraDisplay } from "../CameraDisplay";
 import { ImageProfile } from "../ImageProfile";
+import { SensorConfig } from "../SensorConfig";
 
 export interface LiveCaptureProps {
   selectedCamera: string | null;
@@ -51,6 +52,10 @@ export const LiveCapture = ({
             isRecording={isRecording}
           />
           <ImageProfile
+            selectedCamera={selectedCamera}
+            selectedStream={selectedStream}
+          />
+          <SensorConfig
             selectedCamera={selectedCamera}
             selectedStream={selectedStream}
           />

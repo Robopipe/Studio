@@ -6,6 +6,8 @@ import type {
   SensorControl,
   SensorControlCapabilities,
   SensorControlUpdate,
+  StillConfig,
+  StillConfigOption,
   StreamInfo,
 } from "./schemas";
 import {
@@ -189,6 +191,54 @@ export const cameraApi = cameraApiBase.injectEndpoints({
       }),
       invalidatesTags: (_result, _error, { mxid, streamName }) => [
         { type: CameraApiTagType.StreamControl, id: `${mxid}-${streamName}` },
+      ],
+    }),
+
+    // Get still image capture config
+    getStreamConfig: builder.query<
+      StillConfig,
+      { mxid: string; streamName: string }
+    >({
+      query: ({ mxid, streamName }) => ({
+        url: `/cameras/${mxid}/streams/${streamName}/config`,
+        method: HttpMethod.GET,
+      }),
+      providesTags: (_result, _error, { mxid, streamName }) => [
+        { type: CameraApiTagType.StreamConfig, id: `${mxid}-${streamName}` },
+      ],
+    }),
+
+    // Get available still config options (sensor-hardware-defined, effectively immutable)
+    getAvailableStreamConfigs: builder.query<
+      StillConfigOption[],
+      { mxid: string; streamName: string }
+    >({
+      query: ({ mxid, streamName }) => ({
+        url: `/cameras/${mxid}/streams/${streamName}/config/available`,
+        method: HttpMethod.GET,
+      }),
+    }),
+
+    // Update still image capture config (causes pipeline restart)
+    updateStreamConfig: builder.mutation<
+      StillConfig,
+      { mxid: string; streamName: string; config: StillConfig }
+    >({
+      query: ({ mxid, streamName, config }) => ({
+        url: `/cameras/${mxid}/streams/${streamName}/config`,
+        method: HttpMethod.POST,
+        body: config,
+      }),
+      invalidatesTags: (_result, _error, { mxid, streamName }) => [
+        { type: CameraApiTagType.StreamConfig, id: `${mxid}-${streamName}` },
+        { type: CameraApiTagType.StreamControl, id: `${mxid}-${streamName}` },
+        {
+          type: CameraApiTagType.StreamControlCapabilities,
+          id: `${mxid}-${streamName}`,
+        },
+        { type: CameraApiTagType.NN, id: `${mxid}-${streamName}` },
+        { type: CameraApiTagType.Replay, id: `${mxid}-${streamName}` },
+        { type: CameraApiTagType.Streams, id: mxid },
       ],
     }),
 
@@ -400,6 +450,9 @@ export const {
   useGetStreamControlCapabilitiesQuery,
   useUpdateStreamControlMutation,
   useResetStreamControlMutation,
+  useGetStreamConfigQuery,
+  useGetAvailableStreamConfigsQuery,
+  useUpdateStreamConfigMutation,
 
   // NN hooks
   useGetNNQuery,
