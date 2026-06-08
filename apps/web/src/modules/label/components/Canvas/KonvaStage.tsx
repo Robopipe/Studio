@@ -279,6 +279,9 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
      *  double-translation that would occur when setAnnotations commits new points
      *  atop a non-zero x/y offset. */
     flatPoints?: number[];
+    /** Vertex circle nodes for the polygon, with their base positions.
+     *  Moved in lockstep with the Line's points so handles track the body. */
+    circles?: Array<{ node: Konva.Circle; baseX: number; baseY: number }>;
   }
   const nudgeStartRef = useRef<Map<string, NudgeStartInfo>>(new Map());
 
@@ -289,7 +292,15 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
       if (!node) continue;
       const info: NudgeStartInfo = { x: node.x(), y: node.y() };
       if (node.getClassName() === "Line") {
-        info.flatPoints = (node as Konva.Line).points().slice();
+        const flatPoints = (node as Konva.Line).points().slice();
+        info.flatPoints = flatPoints;
+        const layer = node.getLayer();
+        const circles: NudgeStartInfo["circles"] = [];
+        for (let i = 0; i < flatPoints.length / 2; i++) {
+          const circle = layer?.findOne<Konva.Circle>(`#vertex-${id}-${i}`);
+          if (circle) circles.push({ node: circle, baseX: flatPoints[2 * i], baseY: flatPoints[2 * i + 1] });
+        }
+        if (circles.length > 0) info.circles = circles;
       }
       nudgeStartRef.current.set(id, info);
     }
@@ -302,10 +313,15 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
       if (!node) continue;
       if (start.flatPoints) {
         // Polygon Line: shift the points array directly so x/y stays 0.
-        // setAnnotations will commit nearlyidentical points — no visible jump.
+        // setAnnotations will commit nearly-identical points — no visible jump.
         (node as Konva.Line).points(
           start.flatPoints.map((v, i) => (i % 2 === 0 ? v + dxPx : v + dyPx)),
         );
+        // Move vertex handles in lockstep so they track the polygon body.
+        start.circles?.forEach(({ node: circle, baseX, baseY }) => {
+          circle.x(baseX + dxPx);
+          circle.y(baseY + dyPx);
+        });
       } else {
         // Rect: shift via x/y. setAnnotations commits finalX ≈ currentX — no jump.
         node.x(start.x + dxPx);
