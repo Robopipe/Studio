@@ -605,6 +605,9 @@ export const LabelPage = () => {
     imageDimsRef,
     setAnnotations: setAnnotationsAndDirty,
     pushBatchEntry: history.pushBatchEntry,
+    startNudge: (ids) => canvasRef.current?.startNudge(ids),
+    applyNudge: (dx, dy) => canvasRef.current?.applyNudge(dx, dy),
+    clearNudge: () => canvasRef.current?.clearNudge(),
   });
 
   const isolatedAnnotationId = useMemo(() => {
