@@ -211,10 +211,15 @@ export const LabelPage = () => {
   const setIsolatedLabel = useCallback(
     (labelId: string) => {
       setIsolatedLabelId(labelId);
-      const label = labels.find((l) => String(l.id) === labelId);
-      if (label) setActiveLabel(label);
+      // Only update the drawing label when no region is selected. With an
+      // active selection the unanimity effect owns activeLabel and would
+      // immediately override this, causing a visible flicker.
+      if (selectedAnnotationIds.size === 0) {
+        const label = labels.find((l) => String(l.id) === labelId);
+        if (label) setActiveLabel(label);
+      }
     },
-    [labels],
+    [labels, selectedAnnotationIds],
   );
   const clearIsolatedLabel = useCallback(() => setIsolatedLabelId(null), []);
   const [activeLabel, setActiveLabel] = useState<Label | null>(null);
@@ -267,6 +272,47 @@ export const LabelPage = () => {
       }
     },
     [selectedAnnotationIds, primarySelectedId, annotations],
+  );
+
+  const handleSelectFromSidebar = useCallback(
+    (id: string, opts?: { additive?: boolean; range?: boolean }) => {
+      if (isolatedLabelId !== null) {
+        const clickedIdx = annotations.findIndex((a) => a.id === id);
+        if (clickedIdx >= 0) {
+          const isRemoval = !!opts?.additive && selectedAnnotationIds.has(id);
+          let added: Annotation[] = [];
+          if (!isRemoval) {
+            if (opts?.range && primarySelectedId) {
+              const anchorIdx = annotations.findIndex(
+                (a) => a.id === primarySelectedId,
+              );
+              if (anchorIdx >= 0) {
+                const [lo, hi] =
+                  anchorIdx < clickedIdx
+                    ? [anchorIdx, clickedIdx]
+                    : [clickedIdx, anchorIdx];
+                added = annotations.slice(lo, hi + 1);
+              } else {
+                added = [annotations[clickedIdx]];
+              }
+            } else {
+              added = [annotations[clickedIdx]];
+            }
+          }
+          if (added.some((a) => a.labelId !== isolatedLabelId)) {
+            setIsolatedLabelId(null);
+          }
+        }
+      }
+      handleSelect(id, opts);
+    },
+    [
+      isolatedLabelId,
+      annotations,
+      primarySelectedId,
+      selectedAnnotationIds,
+      handleSelect,
+    ],
   );
 
   // Wraps history.deleteAnnotation so the id is also removed from the
@@ -665,7 +711,7 @@ export const LabelPage = () => {
         annotations={annotations}
         labels={labels}
         selectedAnnotationIds={selectedAnnotationIds}
-        onSelectAnnotation={handleSelect}
+        onSelectAnnotation={handleSelectFromSidebar}
         onDeleteAnnotation={deleteAnnotationWithSelection}
         onReorderAnnotations={handleReorderAnnotations}
         hiddenAnnotationIds={hiddenAnnotationIds}
