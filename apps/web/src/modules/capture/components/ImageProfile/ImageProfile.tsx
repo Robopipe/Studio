@@ -70,9 +70,6 @@ export const ImageProfile = ({
     value: SensorControl[K],
   ) => {
     pendingRef.current = { ...pendingRef.current, [key]: value };
-    if (key === "exposure_time" || key === "sensitivity_iso") {
-      pendingRef.current.auto_exposure_enable = false;
-    }
     flush();
   };
 
@@ -144,6 +141,36 @@ export const ImageProfile = ({
               <>
                 <div className="grid grid-cols-1 gap-x-6 gap-y-2 lg:grid-cols-2">
                   <div className="flex flex-col gap-2">
+                    <BooleanParameter
+                      label="Auto exposure"
+                      value={control.auto_exposure_enable}
+                      onValueChange={(v) => onChange("auto_exposure_enable", v)}
+                    />
+                    <NumericParameter
+                      label="Exposure compensation"
+                      value={control.auto_exposure_compensation}
+                      min={capabilities.auto_exposure_compensation.min}
+                      max={capabilities.auto_exposure_compensation.max}
+                      step={capabilities.auto_exposure_compensation.step ?? undefined}
+                      disabled={!control.auto_exposure_enable}
+                      onValueChange={(v) => onChange("auto_exposure_compensation", v)}
+                    />
+                    <NumericParameter
+                      label="Auto exposure limit"
+                      value={control.auto_exposure_limit}
+                      min={capabilities.auto_exposure_limit.min}
+                      max={capabilities.auto_exposure_limit.max}
+                      step={capabilities.auto_exposure_limit.step ?? undefined}
+                      scale="log"
+                      disabled={!control.auto_exposure_enable}
+                      onValueChange={(v) => onChange("auto_exposure_limit", v)}
+                    />
+                    <BooleanParameter
+                      label="Auto exposure lock"
+                      value={control.auto_exposure_lock}
+                      disabled={!control.auto_exposure_enable}
+                      onValueChange={(v) => onChange("auto_exposure_lock", v)}
+                    />
                     <NumericParameter
                       label="Exposure time"
                       value={control.exposure_time}
@@ -151,6 +178,7 @@ export const ImageProfile = ({
                       max={capabilities.exposure_time.max}
                       step={capabilities.exposure_time.step ?? undefined}
                       scale="log"
+                      disabled={control.auto_exposure_enable}
                       onValueChange={(v) => onChange("exposure_time", v)}
                     />
                     <NumericParameter
@@ -159,8 +187,23 @@ export const ImageProfile = ({
                       min={capabilities.sensitivity_iso.min}
                       max={capabilities.sensitivity_iso.max}
                       step={capabilities.sensitivity_iso.step ?? undefined}
+                      disabled={control.auto_exposure_enable}
                       onValueChange={(v) => onChange("sensitivity_iso", v)}
                     />
+                    <SelectParameter
+                      label="Anti-banding"
+                      value={control.anti_banding_mode}
+                      options={capabilities.anti_banding_modes}
+                      onValueChange={(v) =>
+                        onChange(
+                          "anti_banding_mode",
+                          v as SensorControl["anti_banding_mode"],
+                        )
+                      }
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-2">
                     <NumericParameter
                       label="Contrast"
                       value={control.contrast}
@@ -187,9 +230,6 @@ export const ImageProfile = ({
                       step={capabilities.sharpness.step ?? undefined}
                       onValueChange={(v) => onChange("sharpness", v)}
                     />
-                  </div>
-
-                  <div className="flex flex-col gap-2">
                     <NumericParameter
                       label="Luma denoise"
                       value={control.luma_denoise}
@@ -279,17 +319,6 @@ export const ImageProfile = ({
                         </>
                       )}
 
-                    <SelectParameter
-                      label="Anti-banding"
-                      value={control.anti_banding_mode}
-                      options={capabilities.anti_banding_modes}
-                      onValueChange={(v) =>
-                        onChange(
-                          "anti_banding_mode",
-                          v as SensorControl["anti_banding_mode"],
-                        )
-                      }
-                    />
                   </div>
                 </div>
               </>
