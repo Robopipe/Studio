@@ -162,14 +162,6 @@ export const ImageProfile = ({
                       onValueChange={(v) => onChange("sensitivity_iso", v)}
                     />
                     <NumericParameter
-                      label="Brightness"
-                      value={control.brightness}
-                      min={capabilities.brightness.min}
-                      max={capabilities.brightness.max}
-                      step={capabilities.brightness.step ?? undefined}
-                      onValueChange={(v) => onChange("brightness", v)}
-                    />
-                    <NumericParameter
                       label="Contrast"
                       value={control.contrast}
                       min={capabilities.contrast.min}
@@ -312,7 +304,7 @@ export const ImageProfile = ({
 const ImageProfileSkeleton = () => (
   <div className="grid grid-cols-1 gap-x-6 gap-y-2 lg:grid-cols-2">
     <div className="flex flex-col gap-2">
-      {Array.from({ length: 7 }).map((_, i) => (
+      {Array.from({ length: 6 }).map((_, i) => (
         <Skeleton key={i} className="h-5 w-full" />
       ))}
     </div>

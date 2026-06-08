@@ -73,7 +73,6 @@ export const sensorControlSchema = z.object({
   auto_exposure_lock: z.boolean(),
 
   // ISP
-  brightness: z.number().int().min(-10).max(10),
   contrast: z.number().int().min(-10).max(10),
   saturation: z.number().int().min(-10).max(10),
   sharpness: z.number().int().min(0).max(4),
@@ -112,7 +111,6 @@ export const sensorControlCapabilitiesSchema = z.object({
   has_autofocus: z.boolean(),
   has_color_controls: z.boolean(),
 
-  brightness: controlRangeSchema,
   contrast: controlRangeSchema,
   sharpness: controlRangeSchema,
   luma_denoise: controlRangeSchema,
