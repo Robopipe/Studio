@@ -7,6 +7,9 @@ import { KonvaStage, KonvaStageHandle } from "./KonvaStage";
 
 export interface CanvasHandle {
   resetView: () => void;
+  startNudge: (selectedIds: Set<string>) => void;
+  applyNudge: (dxPx: number, dyPx: number) => void;
+  clearNudge: () => void;
 }
 
 export interface CanvasProps {
@@ -97,6 +100,9 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
       if (!container || !image) return;
       onFitImage(image.width, image.height, container.clientWidth, container.clientHeight);
     },
+    startNudge: (ids) => stageHandle.current?.startNudge(ids),
+    applyNudge: (dx, dy) => stageHandle.current?.applyNudge(dx, dy),
+    clearNudge: () => stageHandle.current?.clearNudge(),
   }), [image, onFitImage]);
 
   useEffect(() => {

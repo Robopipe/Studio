@@ -58,7 +58,7 @@ export const useLabelShortcuts = (options: UseLabelShortcutsOptions) => {
     };
 
     const handler = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
       if (isFromFormField(e.target)) return;
 
       const opts = optionsRef.current;
