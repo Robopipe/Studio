@@ -12,6 +12,7 @@ import {
 } from "@nestjs/common";
 import { PreAnnotateModelTypeEnum, PreAnnotateSettings } from "@repo/schema";
 import { ProjectId } from "../../auth/decorators/project-id.decorator";
+import { AdminGuard } from "../../auth/guards/admin.guard";
 import { ProjectGuard } from "../../auth/guards/project-guard";
 import { PreAnnotateSettingsDto } from "../dto/pre-annotate-settings.dto";
 import { PreAnnotateSettingsService } from "../services/pre-annotate-settings.service";
@@ -42,6 +43,7 @@ export class PreAnnotateSettingsController {
 
   @Delete(":modelType")
   @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(AdminGuard)
   public async delete(
     @ProjectId() projectId: number,
     @Param("modelType") rawModelType: string,
@@ -50,6 +52,7 @@ export class PreAnnotateSettingsController {
   }
 
   @Put(":modelType")
+  @UseGuards(AdminGuard)
   public async upsert(
     @ProjectId() projectId: number,
     @Param("modelType") rawModelType: string,
