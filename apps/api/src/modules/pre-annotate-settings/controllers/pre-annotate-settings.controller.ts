@@ -2,7 +2,10 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Put,
   UseGuards,
@@ -35,6 +38,15 @@ export class PreAnnotateSettingsController {
     @Param("modelType") rawModelType: string,
   ): Promise<PreAnnotateSettings | null> {
     return this.service.get(projectId, parseModelType(rawModelType));
+  }
+
+  @Delete(":modelType")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  public async delete(
+    @ProjectId() projectId: number,
+    @Param("modelType") rawModelType: string,
+  ): Promise<void> {
+    return this.service.delete(projectId, parseModelType(rawModelType));
   }
 
   @Put(":modelType")

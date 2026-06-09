@@ -5,6 +5,7 @@ import { useGetModelsQuery } from "@/modules/model/services/modelApi";
 import { EditProjectModal } from "@/modules/project/components/EditProjectModal";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import {
+  useDeletePreAnnotateSettingsMutation,
   useGetPreAnnotateSettingsQuery,
   useGetProjectLabelsQuery,
   useUpdatePreAnnotateSettingsMutation,
@@ -117,6 +118,8 @@ export const LabelPage = () => {
   const [preAnnotateOpen, setPreAnnotateOpen] = useState(false);
   const [updatePreAnnotateSettingsMutation, { isLoading: isSavingPreAnnotateSettings }] =
     useUpdatePreAnnotateSettingsMutation();
+  const [deletePreAnnotateSettingsMutation, { isLoading: isDeletingPreAnnotateSettings }] =
+    useDeletePreAnnotateSettingsMutation();
 
   // Only segmentation pre-annotation is supported today.
   const activeModelType = PreAnnotateModelTypeEnum.SEGMENTATION;
@@ -151,6 +154,14 @@ export const LabelPage = () => {
     },
     [projectId, activeModelType, updatePreAnnotateSettingsMutation],
   );
+
+  const deletePreAnnotateSettings = useCallback(async (): Promise<void> => {
+    if (!projectId) return;
+    await deletePreAnnotateSettingsMutation({
+      projectId,
+      modelType: activeModelType,
+    }).unwrap();
+  }, [projectId, activeModelType, deletePreAnnotateSettingsMutation]);
 
   const { toolMode, setToolMode } = useToolMode();
   const [showCrosshair, setShowCrosshair] = useState<boolean>(() => {
@@ -850,8 +861,10 @@ export const LabelPage = () => {
         onOpenChange={setPreAnnotateOpen}
         models={models}
         settings={preAnnotateSettings}
+        hasSavedSettings={savedPreAnnotateSettings != null}
         onApply={updatePreAnnotateSettings}
-        isSaving={isSavingPreAnnotateSettings}
+        onDelete={deletePreAnnotateSettings}
+        isSaving={isSavingPreAnnotateSettings || isDeletingPreAnnotateSettings}
       />
       <LeaveAnnotationsDialog
         isDirty={isDirty}

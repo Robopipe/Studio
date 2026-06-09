@@ -1,6 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { projectPreAnnotateSettingsTable } from "@repo/database/schema";
 import { PreAnnotateModelTypeEnum } from "@repo/schema";
+import { and, eq } from "drizzle-orm";
 import { DB_CONNECTION } from "src/core/database/database.constant";
 import type { DbConnection } from "src/core/database/types/database.types";
 import type {
@@ -39,5 +40,19 @@ export class ProjectPreAnnotateSettingsRepository {
       })
       .returning();
     return row!;
+  }
+
+  public async delete(
+    projectId: number,
+    modelType: PreAnnotateModelTypeEnum,
+  ): Promise<void> {
+    await this.db
+      .delete(projectPreAnnotateSettingsTable)
+      .where(
+        and(
+          eq(projectPreAnnotateSettingsTable.projectId, projectId),
+          eq(projectPreAnnotateSettingsTable.modelType, modelType),
+        ),
+      );
   }
 }

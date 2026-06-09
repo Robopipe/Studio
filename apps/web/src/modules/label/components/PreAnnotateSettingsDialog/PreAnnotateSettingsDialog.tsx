@@ -31,7 +31,9 @@ export interface PreAnnotateSettingsDialogProps {
   onOpenChange: (open: boolean) => void;
   models: Model[];
   settings: PreAnnotateSettings;
+  hasSavedSettings: boolean;
   onApply: (next: PreAnnotateSettings) => Promise<void>;
+  onDelete: () => Promise<void>;
   isSaving: boolean;
 }
 
@@ -48,7 +50,9 @@ export const PreAnnotateSettingsDialog = ({
   onOpenChange,
   models,
   settings,
+  hasSavedSettings,
   onApply,
+  onDelete,
   isSaving,
 }: PreAnnotateSettingsDialogProps) => {
   const trainedModels = models.filter(
@@ -117,6 +121,16 @@ export const PreAnnotateSettingsDialog = ({
     }
   };
 
+  const handleDelete = async () => {
+    setSaveError(null);
+    try {
+      await onDelete();
+      onOpenChange(false);
+    } catch {
+      setSaveError("Failed to delete settings. Please try again.");
+    }
+  };
+
   const handleReset = () => {
     setModelId(null);
     setConf(DEFAULTS.conf);
@@ -130,13 +144,14 @@ export const PreAnnotateSettingsDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="gap-6 sm:max-w-[560px]">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[90vh] flex-col gap-0 sm:max-w-[560px]">
+        <DialogHeader className="shrink-0 pb-6">
           <DialogTitle className="text-xl font-semibold">
             Pre-annotate settings
           </DialogTitle>
         </DialogHeader>
 
+        <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto pr-1 [scrollbar-color:rgba(0,0,0,0.15)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb:hover]:bg-black/25 [&::-webkit-scrollbar-thumb]:rounded-[3px] [&::-webkit-scrollbar-thumb]:bg-black/15 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-1.5">
         <div className="flex flex-col gap-1.5">
           <Label>Model</Label>
           {trainedModels.length === 0 ? (
@@ -280,17 +295,32 @@ export const PreAnnotateSettingsDialog = ({
         {saveError && (
           <p className="text-sm text-destructive">{saveError}</p>
         )}
+        </div>
 
-        <DialogFooter className="sm:justify-end">
-          <Button variant="outline" onClick={handleReset} disabled={isSaving}>
-            Reset
-          </Button>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
-            Cancel
-          </Button>
-          <Button onClick={handleSave} disabled={modelId == null || isSaving}>
-            {isSaving ? "Saving…" : "Save"}
-          </Button>
+        <DialogFooter className="shrink-0 pt-6 sm:justify-between">
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleReset} disabled={isSaving}>
+              Reset
+            </Button>
+            {hasSavedSettings && (
+              <Button
+                variant="outline"
+                onClick={handleDelete}
+                disabled={isSaving}
+                className="text-destructive hover:text-destructive"
+              >
+                Delete
+              </Button>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave} disabled={modelId == null || isSaving}>
+              {isSaving ? "Saving…" : "Save"}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

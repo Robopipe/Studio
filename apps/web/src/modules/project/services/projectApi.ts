@@ -204,6 +204,21 @@ export const projectApi = projectApiBase.injectEndpoints({
         },
       ],
     }),
+    deletePreAnnotateSettings: builder.mutation<
+      void,
+      { projectId: number; modelType: PreAnnotateModelTypeEnum }
+    >({
+      query: ({ projectId, modelType }) => ({
+        url: preAnnotateSettingsEndpoint(projectId, modelType),
+        method: HttpMethod.DELETE,
+      }),
+      invalidatesTags: (_result, _error, { projectId, modelType }) => [
+        {
+          type: ProjectApiTagType.PreAnnotateSettings,
+          id: `${projectId}-${modelType}`,
+        },
+      ],
+    }),
   }),
   overrideExisting: true,
 });
@@ -222,4 +237,5 @@ export const {
   useUpdateProjectMutation,
   useGetPreAnnotateSettingsQuery,
   useUpdatePreAnnotateSettingsMutation,
+  useDeletePreAnnotateSettingsMutation,
 } = projectApi;

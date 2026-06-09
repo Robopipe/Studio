@@ -19,6 +19,13 @@ export class PreAnnotateSettingsService {
     return row ? new PreAnnotateSettingsEntity(row).toResponse() : null;
   }
 
+  public async delete(
+    projectId: number,
+    modelType: PreAnnotateModelTypeEnum,
+  ): Promise<void> {
+    await this.repo.delete(projectId, modelType);
+  }
+
   public async upsert(
     projectId: number,
     modelType: PreAnnotateModelTypeEnum,
