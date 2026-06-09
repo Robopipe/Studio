@@ -1,3 +1,4 @@
+import { useAuth } from "@/core/auth/hooks/useAuth";
 import { useProfileQuery } from "@/core/auth/services";
 import { cn } from "@/lib/utils";
 import { useGetTasksQuery } from "@/modules/capture/services/captureApi";
@@ -10,7 +11,7 @@ import {
   useGetProjectLabelsQuery,
   useUpdatePreAnnotateSettingsMutation,
 } from "@/modules/project/services/projectApi";
-import { Label, PRE_ANNOTATE_DEFAULTS, PreAnnotateModelTypeEnum, PreAnnotateSettings } from "@repo/schema";
+import { Label, OrgMemberRoleEnum, PRE_ANNOTATE_DEFAULTS, PreAnnotateModelTypeEnum, PreAnnotateSettings } from "@repo/schema";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useAnnotationNudge } from "../../hooks/useAnnotationNudge";
@@ -110,6 +111,9 @@ export const LabelPage = () => {
   const [predictAnnotations, { isLoading: isPredicting }] =
     usePredictAnnotationsMutation();
   const { data: profile } = useProfileQuery();
+  const { role } = useAuth();
+  const canManagePreAnnotateSettings =
+    role === OrgMemberRoleEnum.OWNER || role === OrgMemberRoleEnum.ADMIN;
   const { data: models = [] } = useGetModelsQuery(
     { projectId: projectId! },
     { skip: !projectId },
@@ -823,6 +827,12 @@ export const LabelPage = () => {
               }
               preAnnotatePending={isPredicting}
               preAnnotateDisabledReason={preAnnotateDisabledReason}
+              preAnnotateSettingsDisabled={!canManagePreAnnotateSettings}
+              preAnnotateSettingsDisabledReason={
+                !canManagePreAnnotateSettings
+                  ? "Only owners and admins can edit pre-annotation settings"
+                  : undefined
+              }
             />
           </div>
         </div>
