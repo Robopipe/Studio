@@ -75,6 +75,12 @@ export const cameraApi = cameraApiBase.injectEndpoints({
       }),
       invalidatesTags: (_r, _e, { mxid }) => [
         { type: CameraApiTagType.Cameras, id: mxid },
+        { type: CameraApiTagType.Streams, id: mxid },
+        CameraApiTagType.StreamControl,
+        CameraApiTagType.StreamControlCapabilities,
+        CameraApiTagType.StreamConfig,
+        CameraApiTagType.NN,
+        CameraApiTagType.Replay,
       ],
     }),
 
