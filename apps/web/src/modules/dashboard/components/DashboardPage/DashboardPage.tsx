@@ -272,7 +272,7 @@ export const DashboardPage = ({
                       { key: "custom", label: "Custom dashboard" },
                       { key: "test-cases", label: "Test cases" },
                       { key: "evaluation", label: "Evaluation" },
-                      { key: "reports", label: "Reports" },
+                      // { key: "reports", label: "Reports" },
                     ] as const
                   ).map((tab) => (
                     <button
