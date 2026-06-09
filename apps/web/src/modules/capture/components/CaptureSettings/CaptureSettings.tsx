@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { CaptureStillImage } from "../CaptureStillImage";
 import { CaptureVideo } from "../CaptureVideo";
 import { RestartCameraButton } from "../RestartCameraButton/RestartCameraButton";
@@ -9,6 +8,8 @@ export interface CaptureSettingsProps {
   selectedCamera: string | null;
   selectedStream: string | null;
   isStreaming: boolean;
+  isIntervalCapturing: boolean;
+  onIntervalCapturingChange: (value: boolean) => void;
   onSelectCamera: (camera: string | null) => void;
   onSelectStream: (stream: string | null) => void;
   onStreamSwitchingChange?: (isSwitching: boolean) => void;
@@ -19,12 +20,13 @@ export const CaptureSettings = ({
   selectedCamera,
   selectedStream,
   isStreaming,
+  isIntervalCapturing,
+  onIntervalCapturingChange: setIsIntervalCapturing,
   onSelectCamera,
   onSelectStream,
   onStreamSwitchingChange,
   mediaStream,
 }: CaptureSettingsProps) => {
-  const [isIntervalCapturing, setIsIntervalCapturing] = useState(false);
 
   return (
     <div className="flex flex-col gap-4 border-r border-black/10 bg-black/[0.03] p-4 pl-6">

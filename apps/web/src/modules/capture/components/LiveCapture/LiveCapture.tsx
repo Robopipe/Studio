@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { CameraDisplay } from "../CameraDisplay";
 import { ImageProfile } from "../ImageProfile";
+import { SensorConfig } from "../SensorConfig";
 
 export interface LiveCaptureProps {
   selectedCamera: string | null;
@@ -9,6 +10,8 @@ export interface LiveCaptureProps {
   onStreamingChange?: (isStreaming: boolean) => void;
   onMediaStreamChange?: (stream: MediaStream | null) => void;
   isRecording?: boolean;
+  isIntervalCapturing?: boolean;
+  onIntervalCapturingChange?: (value: boolean) => void;
 }
 
 export const LiveCapture = ({
@@ -18,6 +21,8 @@ export const LiveCapture = ({
   onStreamingChange,
   onMediaStreamChange,
   isRecording,
+  isIntervalCapturing = false,
+  onIntervalCapturingChange,
 }: LiveCaptureProps) => {
   useEffect(() => {
     if (!selectedStream || isSwitchingStream) {
@@ -53,6 +58,12 @@ export const LiveCapture = ({
           <ImageProfile
             selectedCamera={selectedCamera}
             selectedStream={selectedStream}
+          />
+          <SensorConfig
+            selectedCamera={selectedCamera}
+            selectedStream={selectedStream}
+            isIntervalCapturing={isIntervalCapturing}
+            onIntervalCapturingChange={onIntervalCapturingChange}
           />
         </>
       )}
