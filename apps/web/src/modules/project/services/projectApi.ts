@@ -10,6 +10,8 @@ import {
   CreateLabel,
   CreateProjectRequest,
   Label,
+  PreAnnotateModelTypeEnum,
+  PreAnnotateSettings,
   Project,
   ProjectListResponse,
 } from "@repo/schema";
@@ -19,9 +21,11 @@ import { setActiveProject } from "./projectActions";
 export enum ProjectApiTagType {
   Projects = "Projects",
   ProjectLabels = "ProjectLabels",
+  PreAnnotateSettings = "PreAnnotateSettings",
 }
 
-const { projects } = appConfig.studioApi.endpoints;
+const { projects, preAnnotateSettings: preAnnotateSettingsEndpoint } =
+  appConfig.studioApi.endpoints;
 const projectApiBase = createApi({
   reducerPath: "projectApi",
   baseQuery: baseRefreshingQuery,
@@ -169,6 +173,37 @@ export const projectApi = projectApiBase.injectEndpoints({
         }
       },
     }),
+    getPreAnnotateSettings: builder.query<
+      PreAnnotateSettings | null,
+      { projectId: number; modelType: PreAnnotateModelTypeEnum }
+    >({
+      query: ({ projectId, modelType }) => ({
+        url: preAnnotateSettingsEndpoint(projectId, modelType),
+        method: HttpMethod.GET,
+      }),
+      providesTags: (_result, _error, { projectId, modelType }) => [
+        {
+          type: ProjectApiTagType.PreAnnotateSettings,
+          id: `${projectId}-${modelType}`,
+        },
+      ],
+    }),
+    updatePreAnnotateSettings: builder.mutation<
+      PreAnnotateSettings,
+      { projectId: number; modelType: PreAnnotateModelTypeEnum; body: PreAnnotateSettings }
+    >({
+      query: ({ projectId, modelType, body }) => ({
+        url: preAnnotateSettingsEndpoint(projectId, modelType),
+        method: HttpMethod.PUT,
+        body,
+      }),
+      invalidatesTags: (_result, _error, { projectId, modelType }) => [
+        {
+          type: ProjectApiTagType.PreAnnotateSettings,
+          id: `${projectId}-${modelType}`,
+        },
+      ],
+    }),
   }),
   overrideExisting: true,
 });
@@ -185,4 +220,6 @@ export const {
   useDeleteProjectLabelMutation,
   useUpdateProjectLabelMutation,
   useUpdateProjectMutation,
+  useGetPreAnnotateSettingsQuery,
+  useUpdatePreAnnotateSettingsMutation,
 } = projectApi;

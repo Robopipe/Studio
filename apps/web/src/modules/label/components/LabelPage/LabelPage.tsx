@@ -4,8 +4,12 @@ import { useGetTasksQuery } from "@/modules/capture/services/captureApi";
 import { useGetModelsQuery } from "@/modules/model/services/modelApi";
 import { EditProjectModal } from "@/modules/project/components/EditProjectModal";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
-import { useGetProjectLabelsQuery } from "@/modules/project/services/projectApi";
-import { Label } from "@repo/schema";
+import {
+  useGetPreAnnotateSettingsQuery,
+  useGetProjectLabelsQuery,
+  useUpdatePreAnnotateSettingsMutation,
+} from "@/modules/project/services/projectApi";
+import { Label, PRE_ANNOTATE_DEFAULTS, PreAnnotateModelTypeEnum, PreAnnotateSettings } from "@repo/schema";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useAnnotationNudge } from "../../hooks/useAnnotationNudge";
@@ -24,12 +28,6 @@ import {
   annotationsToUpdatePayload,
   taskDetailToAnnotations,
 } from "../../utils/mapAnnotations";
-import {
-  DEFAULT_PRE_ANNOTATE_SETTINGS,
-  PreAnnotateSettings,
-  readPreAnnotateSettings,
-  writePreAnnotateSettings,
-} from "../../utils/preAnnotateSettings";
 import { AnnotationPanel } from "../AnnotationPanel";
 import { Canvas, CanvasHandle } from "../Canvas";
 import { ClassSelect } from "../ClassSelect";
@@ -117,24 +115,41 @@ export const LabelPage = () => {
   );
 
   const [preAnnotateOpen, setPreAnnotateOpen] = useState(false);
-  const [preAnnotateSettings, setPreAnnotateSettingsState] =
-    useState<PreAnnotateSettings>(DEFAULT_PRE_ANNOTATE_SETTINGS);
+  const [updatePreAnnotateSettingsMutation, { isLoading: isSavingPreAnnotateSettings }] =
+    useUpdatePreAnnotateSettingsMutation();
 
-  // Hydrate from localStorage as soon as we know which (user, project) we
-  // are; mirrors the cameraApiOverride pattern.
+  // Only segmentation pre-annotation is supported today.
+  const activeModelType = PreAnnotateModelTypeEnum.SEGMENTATION;
+
+  const { data: savedPreAnnotateSettings } = useGetPreAnnotateSettingsQuery(
+    { projectId: projectId!, modelType: activeModelType },
+    { skip: !projectId },
+  );
+
+  const preAnnotateSettings: PreAnnotateSettings =
+    savedPreAnnotateSettings ?? PRE_ANNOTATE_DEFAULTS[activeModelType];
+
+  // One-time cleanup: remove old per-user localStorage keys from before
+  // settings were centralised in the DB.
   useEffect(() => {
     if (!profile?.id || !projectId) return;
-    setPreAnnotateSettingsState(readPreAnnotateSettings(profile.id, projectId));
+    try {
+      localStorage.removeItem(`preAnnotateSettings:${profile.id}:${projectId}`);
+    } catch {
+      // ignore
+    }
   }, [profile?.id, projectId]);
 
   const updatePreAnnotateSettings = useCallback(
-    (next: PreAnnotateSettings) => {
-      setPreAnnotateSettingsState(next);
-      if (profile?.id && projectId) {
-        writePreAnnotateSettings(profile.id, projectId, next);
-      }
+    async (next: PreAnnotateSettings): Promise<void> => {
+      if (!projectId) return;
+      await updatePreAnnotateSettingsMutation({
+        projectId,
+        modelType: activeModelType,
+        body: next,
+      }).unwrap();
     },
-    [profile?.id, projectId],
+    [projectId, activeModelType, updatePreAnnotateSettingsMutation],
   );
 
   const { toolMode, setToolMode } = useToolMode();
@@ -836,6 +851,7 @@ export const LabelPage = () => {
         models={models}
         settings={preAnnotateSettings}
         onApply={updatePreAnnotateSettings}
+        isSaving={isSavingPreAnnotateSettings}
       />
       <LeaveAnnotationsDialog
         isDirty={isDirty}
