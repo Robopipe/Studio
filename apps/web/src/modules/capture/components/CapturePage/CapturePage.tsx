@@ -124,7 +124,7 @@ export const CapturePage = ({}: CapturePageProps) => {
     return renderNoCamera();
   }
 
-  if (isLoading || needsSelection || isInitialDashboardLoad) {
+  if (isLoading || (needsSelection && hasCameras) || isInitialDashboardLoad) {
     return <SearchingForCamera url={cameraApiUrl} isOverride={isOverride} />;
   }
 
