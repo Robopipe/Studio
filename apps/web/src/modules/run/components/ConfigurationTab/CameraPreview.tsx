@@ -4,6 +4,8 @@ import {
   centerThicknessToSafeBounds,
   getSafeZoneStyles,
 } from "@/modules/dashboard/components/DashboardZoneConfiguration";
+import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
+import { useParams } from "react-router";
 import { LiveInference } from "../LiveInference/LiveInference";
 
 interface CameraPreviewProps {
@@ -19,6 +21,11 @@ export const CameraPreview = ({
   selectedCamera,
   selectedStream,
 }: CameraPreviewProps) => {
+  const [activeProject] = useActiveProject();
+  const { projectId: urlProjectId } = useParams<{ projectId: string }>();
+  const isSwitchingProject =
+    !activeProject || String(activeProject.id) !== urlProjectId;
+
   const { safeStartPct, safeEndPct } = centerThicknessToSafeBounds(
     zoneConfig.zoneCenter,
     zoneConfig.zoneThickness,
@@ -31,7 +38,7 @@ export const CameraPreview = ({
 
   return (
     <div className="relative aspect-video w-full max-w-full overflow-hidden rounded-xl bg-black/5">
-      {selectedCamera && selectedStream ? (
+      {!isSwitchingProject && selectedCamera && selectedStream ? (
         <LiveInference
           selectedCamera={selectedCamera}
           selectedStream={selectedStream}
