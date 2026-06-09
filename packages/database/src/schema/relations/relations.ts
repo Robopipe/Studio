@@ -27,6 +27,10 @@ export const relationBase = defineRelations(schema, (r) => ({
       from: r.projectTable.id,
       to: r.capturedVideoTable.projectId,
     }),
+    preAnnotateSettings: r.many.projectPreAnnotateSettingsTable({
+      from: r.projectTable.id,
+      to: r.projectPreAnnotateSettingsTable.projectId,
+    }),
   },
   taskTable: {
     project: r.one.projectTable({
@@ -50,6 +54,10 @@ export const relationBase = defineRelations(schema, (r) => ({
     project: r.one.projectTable({
       from: r.modelTable.projectId,
       to: r.projectTable.id,
+    }),
+    preAnnotateSettings: r.many.projectPreAnnotateSettingsTable({
+      from: r.modelTable.id,
+      to: r.projectPreAnnotateSettingsTable.modelId,
     }),
     datasetVersion: r.one.datasetVersionTable({
       from: r.modelTable.datasetVersionId,
@@ -176,6 +184,16 @@ export const relationBase = defineRelations(schema, (r) => ({
     dashboardConfiguration: r.one.dashboardConfigurationTable({
       from: r.dashboardEvaluationTable.dashboardConfigurationId,
       to: r.dashboardConfigurationTable.id,
+    }),
+  },
+  projectPreAnnotateSettingsTable: {
+    project: r.one.projectTable({
+      from: r.projectPreAnnotateSettingsTable.projectId,
+      to: r.projectTable.id,
+    }),
+    model: r.one.modelTable({
+      from: r.projectPreAnnotateSettingsTable.modelId,
+      to: r.modelTable.id,
     }),
   },
 }));
