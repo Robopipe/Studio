@@ -17,11 +17,12 @@ def convert_model(
         ModelOutputType.RVC3: client.convert.RVC3,
         ModelOutputType.RVC4: client.convert.RVC4,
     }
-    conv_params = {
+    conv_params: dict = {
         "path": path,
         "output_dir": output_dir,
-        "quantization_mode": "FP16_STANDARD",
     }
+    if target_format == ModelOutputType.RVC4:
+        conv_params["quantization_mode"] = "FP16_STANDARD"
     conv_fn = conv_fn_map.get(target_format)
 
     if conv_fn is None:

@@ -41,11 +41,12 @@ def convert_model(
     conv_params: dict = {
         "path": path,
         "output_dir": output_dir,
-        "quantization_mode": quantization_mode,
         "name": f"robopipe-yolo-{uuid.uuid4().hex[:12]}",
     }
-    if quantization_data is not None:
-        conv_params["quantization_data"] = quantization_data
+    if target_format == ModelOutputType.RVC4:
+        conv_params["quantization_mode"] = quantization_mode
+        if quantization_data is not None:
+            conv_params["quantization_data"] = quantization_data
     conv_fn = conv_fn_map.get(target_format)
 
     if conv_fn is None:
