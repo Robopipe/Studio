@@ -339,6 +339,24 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
     };
   }, [polygonPoints.length, cancelDrawing]);
 
+  // Native mousemove tracks the cursor even while a child annotation is being
+  // dragged (Konva's onMouseMove does not fire during child drags).
+  useEffect(() => {
+    if (!showCrosshair) return;
+    const container = stageRef.current?.container();
+    if (!container) return;
+    const onMove = (e: MouseEvent) => {
+      const stage = stageRef.current;
+      if (!stage) return;
+      const rect = container.getBoundingClientRect();
+      const imgX = (e.clientX - rect.left - stage.x()) / stage.scaleX();
+      const imgY = (e.clientY - rect.top - stage.y()) / stage.scaleY();
+      updateCrosshair(imgX, imgY);
+    };
+    container.addEventListener("mousemove", onMove);
+    return () => container.removeEventListener("mousemove", onMove);
+  }, [showCrosshair, updateCrosshair]);
+
   useEffect(() => {
     cancelDrawing();
   }, [toolMode, cancelDrawing]);
@@ -382,6 +400,7 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
   };
 
   const handleMouseDown = (e: Konva.KonvaEventObject<MouseEvent>) => {
+    if (e.evt.button !== 0) return;
     const stage = e.target.getStage();
     if (!stage) return;
 
@@ -432,9 +451,6 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
     if (toolMode === ToolMode.DRAW_POLYGON && polygonPoints.length > 0) {
       setCursorPos(coords);
     }
-    if (showCrosshair) {
-      updateCrosshair(coords.x, coords.y);
-    }
   };
 
   const handleMouseLeave = () => {
@@ -442,7 +458,8 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
     if (polygonPoints.length === 0) setCursorPos(null);
   };
 
-  const handleMouseUp = (_e: Konva.KonvaEventObject<MouseEvent>) => {
+  const handleMouseUp = (e: Konva.KonvaEventObject<MouseEvent>) => {
+    if (e.evt.button !== 0) return;
     if (toolMode === ToolMode.DRAW_BBOX && drawingBBox && activeLabel) {
       if (drawingBBox.width > 2 && drawingBBox.height > 2) {
         onAddAnnotation({
@@ -509,6 +526,7 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
   };
 
   const handleClick = (e: Konva.KonvaEventObject<MouseEvent>) => {
+    if (e.evt.button !== 0) return;
     // Deselect when clicking empty area in SELECT mode
     if (toolMode === ToolMode.SELECT) {
       const stage = e.target.getStage();

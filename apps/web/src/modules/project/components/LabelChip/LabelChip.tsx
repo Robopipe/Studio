@@ -5,7 +5,7 @@ import { CSSProperties } from "react";
 
 export interface LabelChipProps {
   label: Label;
-  onRemove: () => void;
+  onRemove?: () => void;
   onColorChange?: (color: string) => void;
 }
 
@@ -43,10 +43,12 @@ export const LabelChip = ({
       <span className="flex-1 px-1 text-xs leading-4 text-foreground/90">
         {label.name}
       </span>
-      <X
-        onClick={onRemove}
-        className="size-4 shrink-0 cursor-pointer text-muted-foreground"
-      />
+      {onRemove && (
+        <X
+          onClick={onRemove}
+          className="size-4 shrink-0 cursor-pointer text-muted-foreground"
+        />
+      )}
     </div>
   );
 };

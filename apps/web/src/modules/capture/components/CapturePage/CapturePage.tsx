@@ -1,7 +1,4 @@
-import {
-  useGetDashboardQuery,
-  useListCamerasQuery,
-} from "@/core/cameraApi";
+import { useGetDashboardQuery, useListCamerasQuery } from "@/core/cameraApi";
 import { useCameraApiUrl } from "@/hooks";
 import { useAppDispatch } from "@/hooks/redux";
 import { useSelectedCameraStream } from "@/modules/camera-selection";
@@ -65,7 +62,9 @@ export const CapturePage = ({}: CapturePageProps) => {
     }
     if (hadNoCameraRef.current && selectedCamera && selectedStream) {
       hadNoCameraRef.current = false;
-      dispatch(bumpPipeline({ mxid: selectedCamera, streamName: selectedStream }));
+      dispatch(
+        bumpPipeline({ mxid: selectedCamera, streamName: selectedStream }),
+      );
     }
   }, [cameras, isLoading, selectedCamera, selectedStream, dispatch]);
 
@@ -93,9 +92,7 @@ export const CapturePage = ({}: CapturePageProps) => {
 
   const hasCameras = cameras && cameras.length > 0;
 
-  const openSettings = activeProject
-    ? () => setSettingsOpen(true)
-    : undefined;
+  const openSettings = activeProject ? () => setSettingsOpen(true) : undefined;
 
   const renderNoCamera = () => (
     <>
@@ -179,6 +176,7 @@ const CapturePageBody = ({
   onMediaStreamChange,
 }: CapturePageBodyProps) => {
   const { isRecording } = useVideoCapture();
+  const [isIntervalCapturing, setIsIntervalCapturing] = useState(false);
 
   return (
     <div className="-m-6 grid min-h-0 flex-1 grid-cols-[minmax(250px,1fr)_minmax(500px,2fr)_minmax(250px,1fr)] grid-rows-[minmax(0,1fr)] bg-white">
@@ -186,6 +184,8 @@ const CapturePageBody = ({
         selectedCamera={selectedCamera}
         selectedStream={selectedStream}
         isStreaming={isStreaming && !isSwitchingStream}
+        isIntervalCapturing={isIntervalCapturing}
+        onIntervalCapturingChange={setIsIntervalCapturing}
         onSelectCamera={onSelectCamera}
         onSelectStream={onSelectStream}
         onStreamSwitchingChange={onStreamSwitchingChange}
@@ -198,6 +198,8 @@ const CapturePageBody = ({
         onStreamingChange={onStreamingChange}
         onMediaStreamChange={onMediaStreamChange}
         isRecording={isRecording}
+        isIntervalCapturing={isIntervalCapturing}
+        onIntervalCapturingChange={setIsIntervalCapturing}
       />
       <Captured />
     </div>

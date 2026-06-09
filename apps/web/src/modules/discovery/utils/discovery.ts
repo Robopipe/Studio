@@ -29,7 +29,9 @@ export async function probeRobopipeApi(
 
 export function ipToNumber(ip: string): number {
   const parts = ip.split(".").map(Number);
-  return ((parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3]) >>> 0;
+  return (
+    ((parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3]) >>> 0
+  );
 }
 
 export function numberToIp(n: number): string {
@@ -41,7 +43,7 @@ export function numberToIp(n: number): string {
   ].join(".");
 }
 
-const MAX_IP_RANGE = 1024;
+const MAX_IP_RANGE = Infinity;
 
 export function parseCidr(cidr: string): { startIp: string; endIp: string } {
   const parts = cidr.split("/");
@@ -96,10 +98,11 @@ export function isValidIpv4(ip: string): boolean {
   if (parts.length !== 4) return false;
   return parts.every((part) => {
     const num = Number(part);
-    return Number.isInteger(num) && num >= 0 && num <= 255 && part === String(num);
+    return (
+      Number.isInteger(num) && num >= 0 && num <= 255 && part === String(num)
+    );
   });
 }
-
 
 export function parsePorts(input: string): number[] {
   const trimmed = input.trim();
@@ -109,8 +112,11 @@ export function parsePorts(input: string): number[] {
     const start = Number(startStr);
     const end = Number(endStr);
     if (
-      !Number.isInteger(start) || !Number.isInteger(end) ||
-      start < 1 || end > 65535 || start > end
+      !Number.isInteger(start) ||
+      !Number.isInteger(end) ||
+      start < 1 ||
+      end > 65535 ||
+      start > end
     ) {
       throw new Error("Invalid port range. Expected format: 8080-8090");
     }
@@ -140,8 +146,8 @@ export async function scanNetwork(
   concurrency: number,
   signal: AbortSignal,
   onProgress: (scanned: number) => void,
-  existingUrls: Set<string> = new Set(),
-): Promise<DiscoveredDevice[]> {
+  onDeviceFound: (device: DiscoveredDevice) => void,
+): Promise<void> {
   const targets: ScanTarget[] = [];
   for (const ip of ips) {
     for (const port of ports) {
@@ -149,7 +155,6 @@ export async function scanNetwork(
     }
   }
 
-  const results: DiscoveredDevice[] = [];
   let scanned = 0;
 
   for (let i = 0; i < targets.length; i += concurrency) {
@@ -161,13 +166,11 @@ export async function scanNetwork(
       const found = await probeRobopipeApi(url, 2000, signal);
       scanned++;
       onProgress(scanned);
-      if (found && !existingUrls.has(url)) {
-        results.push({ url, host: ip, port });
+      if (found) {
+        onDeviceFound({ url, host: ip, port });
       }
     });
 
     await Promise.allSettled(promises);
   }
-
-  return results;
 }
