@@ -28,13 +28,13 @@ export const CaptureStillImageCountdown = ({
   });
 
   useEffect(() => {
-    if (count && isCapturing && selectedStream) {
-      console.count("capture");
-
-      void handleCaptureImage(selectedCamera, selectedStream);
-    } else {
+    if (!isCapturing) return;
+    if (count === 0) {
       onIsCapturingChange(false);
+      return;
     }
+    if (!selectedStream) return;
+    void handleCaptureImage(selectedCamera, selectedStream);
   }, [count, isCapturing]);
 
   useEffect(() => {
