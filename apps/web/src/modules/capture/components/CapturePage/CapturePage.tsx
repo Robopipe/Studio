@@ -11,6 +11,7 @@ import {
   SearchingForCamera,
 } from "@/modules/ui";
 import { useEffect, useRef, useState } from "react";
+import { useParams } from "react-router";
 import {
   useVideoCapture,
   VideoCaptureProvider,
@@ -25,6 +26,9 @@ export interface CapturePageProps {}
 export const CapturePage = ({}: CapturePageProps) => {
   const { url: cameraApiUrl, isOverride } = useCameraApiUrl();
   const [activeProject] = useActiveProject();
+  const { projectId: urlProjectId } = useParams<{ projectId: string }>();
+  const isSwitchingProject =
+    !activeProject || String(activeProject.id) !== urlProjectId;
   const dispatch = useAppDispatch();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const {
@@ -32,7 +36,9 @@ export const CapturePage = ({}: CapturePageProps) => {
     isLoading,
     refetch,
     isFetching,
-  } = useListCamerasQuery(undefined, { skip: !cameraApiUrl });
+  } = useListCamerasQuery(undefined, {
+    skip: !cameraApiUrl || isSwitchingProject,
+  });
 
   const {
     cameraMxid: selectedCamera,
@@ -78,7 +84,7 @@ export const CapturePage = ({}: CapturePageProps) => {
     isError: isDashboardError,
   } = useGetDashboardQuery(
     { mxid: selectedCamera!, streamName: selectedStream! },
-    { skip: !selectedCamera || !selectedStream },
+    { skip: !selectedCamera || !selectedStream || isSwitchingProject },
   );
   useEffect(() => {
     if (isDashboardRunning || isDashboardError)
@@ -110,11 +116,15 @@ export const CapturePage = ({}: CapturePageProps) => {
     </>
   );
 
+  if (isSwitchingProject) {
+    return <SearchingForCamera />;
+  }
+
   if (!cameraApiUrl) {
     return renderNoCamera();
   }
 
-  if (isLoading || needsSelection || isInitialDashboardLoad) {
+  if (isLoading || (needsSelection && hasCameras) || isInitialDashboardLoad) {
     return <SearchingForCamera url={cameraApiUrl} isOverride={isOverride} />;
   }
 

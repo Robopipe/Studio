@@ -7,6 +7,8 @@ import {
   fetchBaseQuery,
 } from "@reduxjs/toolkit/query";
 
+export type CameraApiExtraOptions = { timeoutMs?: number };
+
 /**
  * Dynamic base query that resolves the camera API URL from the active project,
  * preferring the current user's local override when set.
@@ -14,7 +16,8 @@ import {
 export const baseQuery: BaseQueryFn<
   string | FetchArgs,
   unknown,
-  FetchBaseQueryError
+  FetchBaseQueryError,
+  CameraApiExtraOptions
 > = async (args, api, extraOptions) => {
   const state = api.getState() as RootState;
   const baseUrl = selectEffectiveCameraApiUrl(state) ?? "";
@@ -30,7 +33,24 @@ export const baseQuery: BaseQueryFn<
     },
   });
 
-  const result = await dynamicBaseQuery(args, api, extraOptions);
+  const { timeoutMs, ...remainingOptions } = extraOptions ?? {};
 
-  return result;
+  if (!timeoutMs) {
+    return dynamicBaseQuery(args, api, remainingOptions);
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  api.signal.addEventListener("abort", () => controller.abort());
+
+  const argsWithSignal: FetchArgs =
+    typeof args === "string"
+      ? { url: args, signal: controller.signal }
+      : { ...args, signal: controller.signal };
+
+  try {
+    return await dynamicBaseQuery(argsWithSignal, api, remainingOptions);
+  } finally {
+    clearTimeout(timeoutId);
+  }
 };
