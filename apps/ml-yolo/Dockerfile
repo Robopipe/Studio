@@ -24,7 +24,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN pip install --no-cache-dir --upgrade pip
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir --timeout=120 --retries=5 -r requirements.txt
+# Install main requirements using the CPU-only PyTorch index.
+# This prevents pip from pulling ~2.5GB of nvidia-* CUDA wheels.
+RUN pip install --no-cache-dir --timeout=120 --retries=5 \
+        --extra-index-url https://download.pytorch.org/whl/cpu \
+        -r requirements.txt && \
+    # Purge heavy build dependencies after compilation (e.g. for onnxsim) is done
+    apt-get purge -y build-essential cmake git && \
+    apt-get autoremove -y && \
+    rm -rf /var/lib/apt/lists/*
 
 # luxonis/tools — used at export time to convert Ultralytics .pt to a
 # multi-output ONNX + NN archive with proper `heads` metadata. Lives in

@@ -20,7 +20,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy requirements and install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Install main requirements using the CPU-only PyTorch index.
+# This prevents pip from pulling massive nvidia-* CUDA wheels.
+RUN pip install --no-cache-dir \
+        --extra-index-url https://download.pytorch.org/whl/cpu \
+        -r requirements.txt && \
+    # Purge heavy build dependencies after compilation
+    apt-get purge -y build-essential gcc g++ cmake git && \
+    apt-get autoremove -y && \
+    rm -rf /var/lib/apt/lists/*
 
 # Apply patches to installed dependencies
 COPY patches/ ./patches/
