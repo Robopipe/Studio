@@ -26,6 +26,7 @@ const PRESET_RANGES = [
   { label: "10.0.0.0/8", value: "10.0.0.0/8" },
   { label: "172.16.0.0/12", value: "172.16.0.0/12" },
   { label: "192.168.0.0/16", value: "192.168.0.0/16" },
+  { label: "192.168.1.0/24", value: "192.168.1.0/24" },
 ] as const;
 
 interface NetworkScanDialogProps {
