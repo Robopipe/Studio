@@ -18,9 +18,13 @@ const STATUS_STYLES: Record<ReportStatus, { label: string; className: string }> 
     failed: { label: "Failed", className: "bg-red-100 text-red-600" },
   };
 
+const HAS_TZ = /(Z|[+-]\d{2}:?\d{2})$/;
+const parseAsUtc = (value: string): Date =>
+  new Date(HAS_TZ.test(value) ? value : `${value}Z`);
+
 const formatDateTime = (value: string | null | undefined): string => {
   if (!value) return "—";
-  const date = new Date(value);
+  const date = parseAsUtc(value);
   if (Number.isNaN(date.getTime())) return "—";
   return date.toLocaleString("en-US", {
     month: "short",
