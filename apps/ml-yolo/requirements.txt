@@ -51,10 +51,7 @@ onnxslim==0.1.91
 onnxruntime==1.23.0
 
 # HubAI SDK for RVC2/3/4 conversion.
-# hubai-sdk imports `Kwargs` from luxonis_ml.typing. That symbol only
-# exists in luxonis-ml >= 0.8.0 — pin the floor so Docker's resolver
-# doesn't drop back to 0.6.x.
-hubai-sdk @ git+https://github.com/luxonis/hubai-sdk.git@e5e64a92a7b167610c41ecbba48def2abd3620c8
+hubai-sdk==0.3.0
 luxonis-ml>=0.8.0
 
 # HTTP client for webhooks
