@@ -24,11 +24,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN pip install --no-cache-dir --upgrade pip
 
 COPY requirements.txt .
-# Install main requirements using the CPU-only PyTorch index.
-# This prevents pip from pulling ~2.5GB of nvidia-* CUDA wheels.
-RUN pip install --no-cache-dir --timeout=120 --retries=5 \
-        --extra-index-url https://download.pytorch.org/whl/cpu \
-        -r requirements.txt
+# The main env MUST install the CUDA build of torch (the PyPI default,
+# which pulls the ~2.5GB nvidia-* wheels). Do NOT add the
+# download.pytorch.org/whl/cpu index here: `2.8.0+cpu` satisfies the
+# `torch==2.8.0` pin and pip prefers it, but +cpu wheels are compiled
+# without CUDA support entirely — torch.cuda.is_available() is then
+# false no matter what the host provides, and Ultralytics silently
+# trains on CPU. Cloud Batch's installGpuDrivers only supplies the
+# kernel driver + libcuda.so; the CUDA user-space libs (cuBLAS, cuDNN,
+# NCCL, ...) ship exclusively in these wheels. The tools venv below is
+# different: export runs on CPU by design, so +cpu is correct there.
+RUN pip install --no-cache-dir --timeout=120 --retries=5 -r requirements.txt
 
 # luxonis/tools — used at export time to convert Ultralytics .pt to a
 # multi-output ONNX + NN archive with proper `heads` metadata. Lives in
