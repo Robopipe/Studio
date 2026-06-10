@@ -217,21 +217,6 @@ export const LabelPage = () => {
   const [hiddenAnnotationIds, setHiddenAnnotationIds] = useState<Set<string>>(
     () => new Set(),
   );
-  const toggleAnnotationVisibility = useCallback((id: string) => {
-    setHiddenAnnotationIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
-  const toggleAllAnnotationsVisibility = useCallback(() => {
-    if (hiddenAnnotationIds.size === 0) {
-      setHiddenAnnotationIds(new Set(annotations.map((a) => a.id)));
-    } else {
-      setHiddenAnnotationIds(new Set());
-    }
-  }, [annotations, hiddenAnnotationIds]);
   const isolateAnnotation = useCallback((id: string | null) => {
     setIsolatedLabelId(null);
     setHiddenAnnotationIds(
@@ -249,6 +234,7 @@ export const LabelPage = () => {
   const setIsolatedLabel = useCallback(
     (labelId: string) => {
       setIsolatedLabelId(labelId);
+      setHiddenAnnotationIds(new Set(annotations.filter((a) => a.labelId !== labelId).map((a) => a.id)));
       // Only update the drawing label when no region is selected. With an
       // active selection the unanimity effect owns activeLabel and would
       // immediately override this, causing a visible flicker.
@@ -260,6 +246,25 @@ export const LabelPage = () => {
     [labels, selectedAnnotationIds],
   );
   const clearIsolatedLabel = useCallback(() => setIsolatedLabelId(null), []);
+  const toggleAllAnnotationsVisibility = useCallback(() => {
+    if (hiddenAnnotationIds.size === 0) {
+      setHiddenAnnotationIds(new Set(annotations.map((a) => a.id)));
+    } else {
+      setHiddenAnnotationIds(new Set());
+      clearIsolatedLabel();
+    }
+  }, [annotations, hiddenAnnotationIds, setHiddenAnnotationIds, clearIsolatedLabel]);
+  const toggleAnnotationVisibility = useCallback((id: string) => {
+    setHiddenAnnotationIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+    if (isolatedLabelId !== annotations.find((a) => a.id === id)?.labelId) {
+      clearIsolatedLabel();
+    }
+  }, [isolatedLabelId, annotations, clearIsolatedLabel]);
   const [activeLabel, setActiveLabel] = useState<Label | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const canvasState = useCanvasState();
@@ -342,6 +347,7 @@ export const LabelPage = () => {
           }
         }
       }
+      setHiddenAnnotationIds((prev) => {prev.delete(id); return new Set(prev)});
       handleSelect(id, opts);
     },
     [
@@ -350,6 +356,7 @@ export const LabelPage = () => {
       primarySelectedId,
       selectedAnnotationIds,
       handleSelect,
+      setHiddenAnnotationIds,
     ],
   );
 
