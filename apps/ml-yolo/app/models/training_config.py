@@ -9,6 +9,11 @@ class OutputUpload(BaseSchema):
     object_path: str
 
 
+class CheckpointConfig(BaseSchema):
+    put_url: str
+    get_url: str
+
+
 class TrainingConfig(BaseSchema):
     epochs: int
     batch_size: int = 8

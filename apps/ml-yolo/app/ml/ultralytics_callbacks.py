@@ -6,11 +6,48 @@ apps/ml/app/ml/callbacks.py for the reference schema.
 """
 
 import math
+from pathlib import Path
+import threading
 from typing import Any, Optional
 
 import requests
 
 from ..models.model_type import ModelType
+
+
+def _upload_checkpoint_worker(put_url: str, file_path: Path) -> None:
+    try:
+        if not file_path.exists():
+            return
+        with open(file_path, "rb") as f:
+            r = requests.put(
+                put_url,
+                data=f,
+                headers={"Content-Type": "application/octet-stream"},
+                timeout=300,  # 5 minute timeout for large checkpoints
+            )
+            r.raise_for_status()
+            # Split URL to avoid logging the signature
+            print(f"[ml-yolo] Uploaded checkpoint to {put_url.split('?')[0]}")
+    except Exception as e:
+        print(f"[ml-yolo] Failed to upload checkpoint: {e}")
+
+
+class CheckpointCallback:
+    """Callback to upload last.pt to GCS after each epoch."""
+
+    def __init__(self, put_url: str):
+        self.put_url = put_url
+
+    def on_fit_epoch_end(self, trainer: Any) -> None:
+        last_pt = Path(trainer.save_dir) / "weights" / "last.pt"
+        # Run upload in background thread to not block training.
+        thread = threading.Thread(
+            target=_upload_checkpoint_worker,
+            args=(self.put_url, last_pt),
+            daemon=True,
+        )
+        thread.start()
 
 
 def _coerce_float(value: Any) -> Optional[float]:
