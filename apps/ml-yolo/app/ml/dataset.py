@@ -4,6 +4,7 @@ import requests
 import shutil
 import yaml
 import os
+from concurrent.futures import ThreadPoolExecutor
 
 from ..models.dataset_config import DatasetConfig
 from ..models.image import Image
@@ -23,7 +24,7 @@ TEST_DIR = "test"
 def copy_image(image: Image, dest: str):
     image_path = image.file_url
     if image_path.startswith("http://") or image_path.startswith("https://"):
-        response = requests.get(image_path, stream=True)
+        response = requests.get(image_path, stream=True, timeout=30)
         if response.status_code == 200:
             filename = os.path.basename(image_path)
             dest_path = os.path.join(dest, filename)
@@ -102,7 +103,8 @@ def prepare_dataset(
         prepare_dirs(label_dir)
         prepare_dataset_config(config, dir)
 
-    for image, curr_dir in iterate_datasets(images, config):
+    def _download_task(args):
+        image, curr_dir = args
         if task_type == ModelType.CLASSIFICATION:
             label_name = label_mapping[image.labels[0].label.label_number]
             copy_image(image, f"{dir}/{curr_dir}/{label_name}")
@@ -113,3 +115,11 @@ def prepare_dataset(
             copy_image(image, f"{image_dir}/{curr_dir}")
             with open(f"{label_dir}/{curr_dir}/{label_filename}", "w") as f:
                 f.write("\n".join(image.labels_str(task_type)))
+
+    tasks = list(iterate_datasets(images, config))
+    max_workers = min(32, len(tasks) or 1)
+    print(f"[ml-yolo] Downloading {len(tasks)} images using {max_workers} workers...")
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        list(executor.map(_download_task, tasks))
+    print(f"[ml-yolo] Dataset preparation complete.")
+

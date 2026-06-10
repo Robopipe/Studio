@@ -98,6 +98,7 @@ def build_train_kwargs(
         "name": str(config.id),
         "exist_ok": True,
         "verbose": True,
+        "cache": True,  # Cache images in RAM for much faster epoch times
     }
     # custom_hyperparams wins over defaults but not over the dispatch kwargs above.
     for key, value in custom.items():
