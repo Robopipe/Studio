@@ -1,5 +1,5 @@
 import { Inject, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, desc, eq, isNull } from 'drizzle-orm';
 import { projectTable, taskTable } from '@repo/database/schema';
 import { TaskStatusEnum } from '@repo/schema';
 import { DB_CONNECTION } from 'src/core/database/database.constant';
@@ -57,6 +57,7 @@ export class ProjectRepository {
         annotatedTaskCount: (table) =>
           this.db.$count(taskTable, and(eq(taskTable.projectId, table.id), eq(taskTable.status, TaskStatusEnum.DONE), isNull(taskTable.deletedAt))),
       },
+      orderBy: (table) => desc(table.createdAt),
     });
 
     return projects.map((p) => new ProjectEntity(p));
