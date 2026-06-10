@@ -61,4 +61,6 @@ export const studioApiEndpoints = {
     predict: (projectId: number, taskId: number) =>
       `predict/${projectId}/${taskId}`,
   },
+  preAnnotateSettings: (projectId: number, modelType: string) =>
+    `projects/${projectId}/pre-annotate-settings/${modelType}`,
 } as const;

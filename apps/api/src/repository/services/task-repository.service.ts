@@ -5,6 +5,7 @@ import type { DbConnection } from "src/core/database/types/database.types";
 import { TaskDetailEntity, TaskEntity } from "../../modules/task/entity/task.entity";
 import { TaskInsert } from "../types/task";
 import { and, asc, count, desc, eq, inArray, isNotNull, isNull, max, sql, type SQL } from "drizzle-orm";
+import type { TaskSortBy } from "@repo/schema";
 import { TaskStatusEnum } from "@repo/schema";
 
 @Injectable()
@@ -143,9 +144,11 @@ export class TaskRepository {
     limit: number,
     deleted: boolean | null = false,
     annotated?: boolean,
-    order: "asc" | "desc" = "asc",
+    sortBy: TaskSortBy = "createdAt",
+    sortOrder: "asc" | "desc" = "desc",
     labelIds?: number[],
     ids?: number[],
+    updatedBy?: number[],
   ): Promise<{ data: TaskEntity[]; total: number }> {
     const offset = (page - 1) * limit;
 
@@ -180,6 +183,13 @@ export class TaskRepository {
       ? inArray(taskTable.id, ids)
       : undefined;
 
+    // Build updatedBy filter
+    const updatedByCondition: SQL | undefined = updatedBy?.length
+      ? inArray(taskTable.updatedBy, updatedBy)
+      : undefined;
+
+    const orderFn = sortOrder === "desc" ? desc : asc;
+
     const [tasks, totalResult] = await Promise.all([
       this.db.query.taskTable.findMany({
         where: {
@@ -187,15 +197,16 @@ export class TaskRepository {
           ...(deletedAtFilter && { deletedAt: deletedAtFilter }),
           ...(statusValue && { status: statusValue }),
           ...(ids?.length && { id: { in: ids } }),
+          ...(updatedBy?.length && { updatedBy: { in: updatedBy } }),
           ...(buildLabelCondition && { RAW: (table: typeof taskTable) => buildLabelCondition(table.id) }),
         },
-        orderBy: (t) => (order === "desc" ? desc(t.createdAt) : asc(t.createdAt)),
+        orderBy: (t) => sortBy === "updatedAt" ? orderFn(t.updatedAt) : orderFn(t.createdAt),
         limit,
         offset,
       }),
       this.db.select({ count: count() })
         .from(taskTable)
-        .where(and(eq(taskTable.projectId, projectId), deletedAtCondition, statusCondition, idsCondition, buildLabelCondition?.(taskTable.id))),
+        .where(and(eq(taskTable.projectId, projectId), deletedAtCondition, statusCondition, idsCondition, updatedByCondition, buildLabelCondition?.(taskTable.id))),
     ]);
 
     return {
@@ -214,7 +225,8 @@ export class TaskRepository {
     projectId: number,
     annotated?: boolean,
     labelIds?: number[],
-    order: "asc" | "desc" = "asc",
+    sortBy: TaskSortBy = "createdAt",
+    sortOrder: "asc" | "desc" = "desc",
   ): Promise<number[]> {
     const statusValue = annotated === true ? TaskStatusEnum.DONE
       : annotated === false ? TaskStatusEnum.TODO
@@ -228,6 +240,9 @@ export class TaskRepository {
       ? this.buildLabelExistsCondition(labelIds)
       : undefined;
 
+    const sortColumn = sortBy === "updatedAt" ? taskTable.updatedAt : taskTable.createdAt;
+    const orderFn = sortOrder === "desc" ? desc : asc;
+
     const rows = await this.db
       .select({ id: taskTable.id })
       .from(taskTable)
@@ -239,7 +254,7 @@ export class TaskRepository {
           buildLabelCondition?.(taskTable.id),
         ),
       )
-      .orderBy(order === "desc" ? desc(taskTable.createdAt) : asc(taskTable.createdAt));
+      .orderBy(orderFn(sortColumn));
 
     return rows.map((r) => r.id);
   }

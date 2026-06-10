@@ -39,6 +39,8 @@ export interface ToolbarProps {
   preAnnotateDisabled: boolean;
   preAnnotatePending: boolean;
   preAnnotateDisabledReason?: string;
+  preAnnotateSettingsDisabled?: boolean;
+  preAnnotateSettingsDisabledReason?: string;
 }
 
 const toolButtonClass =
@@ -64,6 +66,8 @@ export const Toolbar = ({
   preAnnotateDisabled,
   preAnnotatePending,
   preAnnotateDisabledReason,
+  preAnnotateSettingsDisabled,
+  preAnnotateSettingsDisabledReason,
 }: ToolbarProps) => {
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
@@ -174,9 +178,13 @@ export const Toolbar = ({
       </button>
       <button
         type="button"
-        className={toolButtonClass}
-        title="Pre-annotate settings"
+        className={cn(
+          toolButtonClass,
+          preAnnotateSettingsDisabled && "cursor-not-allowed opacity-[0.35]",
+        )}
+        title={preAnnotateSettingsDisabledReason ?? "Pre-annotate settings"}
         onClick={onOpenPreAnnotateSettings}
+        disabled={preAnnotateSettingsDisabled}
       >
         <Settings />
       </button>
