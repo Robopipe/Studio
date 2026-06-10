@@ -1,3 +1,4 @@
+import hashlib
 import math
 import random
 import requests
@@ -58,9 +59,24 @@ def prepare_dataset_config(config: DatasetConfig, dir: str):
         yaml.dump({"names": get_label_mapping(config)}, f)
 
 
-def iterate_datasets(images: list[Image], config: DatasetConfig):
-    shuffled_images = list(images)
-    random.shuffle(shuffled_images)
+def split_seed(seed_source: str) -> int:
+    """Derive a deterministic RNG seed from a stable string (the model id).
+
+    sha256, not the built-in hash() — hash() is salted per process
+    (PYTHONHASHSEED), so it would produce a different seed on every VM and
+    defeat the purpose.
+    """
+    return int.from_bytes(hashlib.sha256(seed_source.encode()).digest()[:8], "big")
+
+
+def iterate_datasets(images: list[Image], config: DatasetConfig, seed: int):
+    # The split must be identical across Cloud Batch task attempts: a Spot
+    # retry resumes from a checkpoint, and a re-drawn split would leak
+    # already-trained images into val/test. Sort by file_url first so the
+    # result is also independent of payload ordering, then shuffle with a
+    # seeded RNG isolated from the global `random` state.
+    shuffled_images = sorted(images, key=lambda image: image.file_url)
+    random.Random(seed).shuffle(shuffled_images)
     train_split, val_split, _ = (s / 100.0 for s in config.dataset_split)
     total_images = len(images)
     train_end = int(total_images * train_split)
@@ -87,7 +103,11 @@ def prepare_classification_directory(
 
 
 def prepare_dataset(
-    dir: str, images: list[Image], config: DatasetConfig, task_type: ModelType
+    dir: str,
+    images: list[Image],
+    config: DatasetConfig,
+    task_type: ModelType,
+    seed: int,
 ):
     global VAL_DIR
     dir = f"{dir}/{DATASET_DIR}"
@@ -116,7 +136,7 @@ def prepare_dataset(
             with open(f"{label_dir}/{curr_dir}/{label_filename}", "w") as f:
                 f.write("\n".join(image.labels_str(task_type)))
 
-    tasks = list(iterate_datasets(images, config))
+    tasks = list(iterate_datasets(images, config, seed))
     max_workers = min(32, len(tasks) or 1)
     print(f"[ml-yolo] Downloading {len(tasks)} images using {max_workers} workers...")
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
