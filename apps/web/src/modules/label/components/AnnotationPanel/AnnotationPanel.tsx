@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AnnotateIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import {
@@ -73,6 +74,19 @@ export const AnnotationPanel = ({
 
   const { getItemProps } = useDraggableList(onReorderAnnotations);
 
+  const classesScrollRef = useRef<HTMLDivElement>(null);
+  const [showClassesGradient, setShowClassesGradient] = useState(false);
+
+  const updateClassesGradient = useCallback(() => {
+    const el = classesScrollRef.current;
+    if (!el) return;
+    setShowClassesGradient(el.scrollHeight > el.clientHeight && el.scrollTop + el.clientHeight < el.scrollHeight - 1);
+  }, []);
+
+  useEffect(() => {
+    updateClassesGradient();
+  }, [classCounts, updateClassesGradient]);
+
   return (
     <Tabs
       defaultValue="labels"
@@ -84,13 +98,13 @@ export const AnnotationPanel = ({
       </TabsList>
 
       <TabsContent value="labels" className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div className="flex max-h-[33.333%] min-h-0 shrink-0 flex-col px-4 pt-4">
+        <div className="relative flex max-h-[33.333%] min-h-0 shrink-0 flex-col px-4 pt-4">
           <Collapsible defaultOpen={true} className="flex min-h-0 flex-col">
             <CollapsibleTrigger className="shrink-0 py-0 text-[10px] font-bold uppercase tracking-[1px] text-foreground/90 hover:text-foreground/90">
               Classes
             </CollapsibleTrigger>
             <CollapsiblePanel className="flex min-h-0 flex-col pt-1">
-              <div className="flex flex-col gap-1 overflow-y-auto pb-4 [scrollbar-color:rgba(0,0,0,0.15)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb:hover]:bg-black/25 [&::-webkit-scrollbar-thumb]:rounded-[3px] [&::-webkit-scrollbar-thumb]:bg-black/15 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-1.5">
+              <div ref={classesScrollRef} onScroll={updateClassesGradient} className="flex flex-col gap-1 overflow-y-auto pb-4 [scrollbar-color:rgba(0,0,0,0.15)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb:hover]:bg-black/25 [&::-webkit-scrollbar-thumb]:rounded-[3px] [&::-webkit-scrollbar-thumb]:bg-black/15 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-1.5">
                 <ClassRow
                   icon={<AnnotateIcon className="size-4 text-foreground/60" />}
                   name="Any"
@@ -122,6 +136,7 @@ export const AnnotationPanel = ({
               </div>
             </CollapsiblePanel>
           </Collapsible>
+            <div className={"pointer-events-none absolute inset-x-0 bottom-0 h-1/4 bg-linear-to-t from-white to-transparent transition-opacity " + (showClassesGradient ? "opacity-100" : "opacity-0")} />
         </div>
 
         <section className="flex min-h-0 flex-1 flex-col gap-2 border-t border-border p-4 pt-2">
