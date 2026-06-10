@@ -75,7 +75,6 @@ export const LiveInference = ({
         {isStreaming && (
           <StreamStatusBadge variant={isReplay ? "replay" : "live"} />
         )}
-        {hasNN && isConnected && <StreamStatusBadge variant="sync" />}
       </div>
 
       {hasNN ? (
