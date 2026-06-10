@@ -85,47 +85,49 @@ export const AnnotationPanel = ({
         <TabsTrigger value="history">History</TabsTrigger>
       </TabsList>
 
-      <TabsContent value="labels" className="min-h-0 flex-1 overflow-y-auto">
-        <Collapsible defaultOpen={true} className="px-4 pt-4">
-          <CollapsibleTrigger className="text-[10px] font-bold uppercase tracking-[1px] text-foreground/90 hover:text-foreground/90 py-0">
-            Classes
-          </CollapsibleTrigger>
-          <CollapsiblePanel className="pt-1">
-            <div className="flex flex-col gap-1">
-              <ClassRow
-                icon={<AnnotateIcon className="size-4 text-foreground/60" />}
-                name="Any"
-                count={annotations.length}
-                isActive={isolatedLabelId === null}
-                onClick={onClearIsolate}
-              />
-              {classCounts.map((cls) => {
-                const id = String(cls.id);
-                const isActive = isolatedLabelId === id;
-                return (
-                  <ClassRow
-                    key={cls.id}
-                    icon={
-                      <AnnotateIcon
-                        className="size-4 shrink-0"
-                        style={{ color: cls.color }}
-                      />
-                    }
-                    name={cls.name}
-                    count={cls.count}
-                    isActive={isActive}
-                    onClick={() =>
-                      isActive ? onClearIsolate() : onIsolateLabel(id)
-                    }
-                  />
-                );
-              })}
-            </div>
-          </CollapsiblePanel>
-        </Collapsible>
+      <TabsContent value="labels" className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div className="flex max-h-[33.333%] min-h-0 shrink-0 flex-col px-4 pt-4">
+          <Collapsible defaultOpen={true} className="flex min-h-0 flex-col">
+            <CollapsibleTrigger className="shrink-0 py-0 text-[10px] font-bold uppercase tracking-[1px] text-foreground/90 hover:text-foreground/90">
+              Classes
+            </CollapsibleTrigger>
+            <CollapsiblePanel className="flex min-h-0 flex-col pt-1">
+              <div className="flex flex-col gap-1 overflow-y-auto pb-4 [scrollbar-color:rgba(0,0,0,0.15)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb:hover]:bg-black/25 [&::-webkit-scrollbar-thumb]:rounded-[3px] [&::-webkit-scrollbar-thumb]:bg-black/15 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-1.5">
+                <ClassRow
+                  icon={<AnnotateIcon className="size-4 text-foreground/60" />}
+                  name="Any"
+                  count={annotations.length}
+                  isActive={isolatedLabelId === null}
+                  onClick={onClearIsolate}
+                />
+                {classCounts.map((cls) => {
+                  const id = String(cls.id);
+                  const isActive = isolatedLabelId === id;
+                  return (
+                    <ClassRow
+                      key={cls.id}
+                      icon={
+                        <AnnotateIcon
+                          className="size-4 shrink-0"
+                          style={{ color: cls.color }}
+                        />
+                      }
+                      name={cls.name}
+                      count={cls.count}
+                      isActive={isActive}
+                      onClick={() =>
+                        isActive ? onClearIsolate() : onIsolateLabel(id)
+                      }
+                    />
+                  );
+                })}
+              </div>
+            </CollapsiblePanel>
+          </Collapsible>
+        </div>
 
-        <section className="flex flex-col gap-2 p-4 pt-2">
-          <div className="flex items-center justify-between">
+        <section className="flex min-h-0 flex-1 flex-col gap-2 border-t border-border p-4 pt-2">
+          <div className="flex shrink-0 items-center justify-between">
             <p className="text-[10px] font-bold uppercase tracking-[1px] text-foreground/90">
               Regions
             </p>
@@ -151,7 +153,7 @@ export const AnnotationPanel = ({
             )}
           </div>
           {labels.length === 0 && !isLoadingLabels && (
-            <div className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
+            <div className="flex shrink-0 items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
               <AlertTriangle className="size-4 shrink-0 text-amber-500" />
               <span className="text-xs text-amber-800">
                 Create labels in{" "}
@@ -166,7 +168,7 @@ export const AnnotationPanel = ({
               </span>
             </div>
           )}
-          <div className="flex flex-col">
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto [scrollbar-color:rgba(0,0,0,0.15)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb:hover]:bg-black/25 [&::-webkit-scrollbar-thumb]:rounded-[3px] [&::-webkit-scrollbar-thumb]:bg-black/15 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-1.5">
             {annotations.map((annotation, index) => {
               const isSelected = selectedAnnotationIds.has(annotation.id);
               const isHidden = hiddenAnnotationIds.has(annotation.id);

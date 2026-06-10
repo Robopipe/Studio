@@ -4,10 +4,12 @@ import { PaginationNumbers } from "@/modules/shadcn/ui/pagination";
 import { TaskListItem } from "@/modules/ui";
 import { cn } from "@/lib/utils";
 import { Label, Task, TaskStatusEnum } from "@repo/schema";
-import { Check, Download, SlidersHorizontal } from "lucide-react";
+import { ArrowUpDown, Check, Download, SlidersHorizontal } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { TaskFilterDialog, TaskFilterState } from "../TaskFilterDialog";
+import { TaskSortDialog, TaskSortState } from "../TaskSortDialog";
+import { DEFAULT_SORT } from "../../hooks/useLabelUrlState";
 
 export type AnnotationFilter = "all" | "true" | "false";
 
@@ -22,6 +24,8 @@ export interface DataSourcePanelProps {
   filter: TaskFilterState;
   labels: Label[];
   onFilterChange: (filter: TaskFilterState) => void;
+  sort: TaskSortState;
+  onSortChange: (sort: TaskSortState) => void;
 }
 
 export const DataSourcePanel = ({
@@ -35,14 +39,20 @@ export const DataSourcePanel = ({
   filter,
   labels,
   onFilterChange,
+  sort,
+  onSortChange,
 }: DataSourcePanelProps) => {
   const listRef = useRef<HTMLDivElement>(null);
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
+  const [sortDialogOpen, setSortDialogOpen] = useState(false);
   const [activeProject] = useActiveProject();
   const [triggerExport, { isFetching: isExporting }] = useLazyExportTasksQuery();
 
   const hasActiveFilter =
-    filter.annotationFilter !== "all" || filter.labelIds.length > 0;
+    filter.annotationFilter !== "all" || filter.labelIds.length > 0 || filter.updatedBy.length > 0;
+
+  const hasActiveSort =
+    sort.sortBy !== DEFAULT_SORT.sortBy || sort.sortOrder !== DEFAULT_SORT.sortOrder;
 
   useEffect(() => {
     if (selectedTaskId === null) return;
@@ -98,6 +108,18 @@ export const DataSourcePanel = ({
         </p>
         <button
           type="button"
+          aria-label="Sort tasks"
+          title="Sort"
+          onClick={() => setSortDialogOpen(true)}
+          className={cn(
+            "flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent text-muted-foreground transition-colors hover:bg-black/[0.06] hover:text-foreground",
+            hasActiveSort && "bg-primary/10 text-primary",
+          )}
+        >
+          <ArrowUpDown className="size-4" />
+        </button>
+        <button
+          type="button"
           aria-label="Filter tasks"
           title="Filter"
           onClick={() => setFilterDialogOpen(true)}
@@ -120,6 +142,12 @@ export const DataSourcePanel = ({
         </button>
       </div>
 
+      <TaskSortDialog
+        open={sortDialogOpen}
+        onOpenChange={setSortDialogOpen}
+        sort={sort}
+        onApply={onSortChange}
+      />
       <TaskFilterDialog
         open={filterDialogOpen}
         onOpenChange={setFilterDialogOpen}

@@ -1,11 +1,17 @@
+import { useAuth } from "@/core/auth/hooks/useAuth";
 import { useProfileQuery } from "@/core/auth/services";
 import { cn } from "@/lib/utils";
 import { useGetTasksQuery } from "@/modules/capture/services/captureApi";
 import { useGetModelsQuery } from "@/modules/model/services/modelApi";
 import { EditProjectModal } from "@/modules/project/components/EditProjectModal";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
-import { useGetProjectLabelsQuery } from "@/modules/project/services/projectApi";
-import { Label } from "@repo/schema";
+import {
+  useDeletePreAnnotateSettingsMutation,
+  useGetPreAnnotateSettingsQuery,
+  useGetProjectLabelsQuery,
+  useUpdatePreAnnotateSettingsMutation,
+} from "@/modules/project/services/projectApi";
+import { Label, OrgMemberRoleEnum, PRE_ANNOTATE_DEFAULTS, PreAnnotateModelTypeEnum, PreAnnotateSettings } from "@repo/schema";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useAnnotationNudge } from "../../hooks/useAnnotationNudge";
@@ -24,12 +30,6 @@ import {
   annotationsToUpdatePayload,
   taskDetailToAnnotations,
 } from "../../utils/mapAnnotations";
-import {
-  DEFAULT_PRE_ANNOTATE_SETTINGS,
-  PreAnnotateSettings,
-  readPreAnnotateSettings,
-  writePreAnnotateSettings,
-} from "../../utils/preAnnotateSettings";
 import { AnnotationPanel } from "../AnnotationPanel";
 import { Canvas, CanvasHandle } from "../Canvas";
 import { ClassSelect } from "../ClassSelect";
@@ -51,6 +51,8 @@ export const LabelPage = () => {
     setPage,
     filter,
     setFilter,
+    sort,
+    setSort,
     pendingAnchorRef,
   } = useLabelUrlState();
 
@@ -65,6 +67,11 @@ export const LabelPage = () => {
       ...(filter.labelIds.length > 0 && {
         labelIds: filter.labelIds.join(","),
       }),
+      ...(filter.updatedBy.length > 0 && {
+        updatedBy: filter.updatedBy.join(","),
+      }),
+      sortBy: sort.sortBy,
+      sortOrder: sort.sortOrder,
     },
     { skip: !projectId, refetchOnMountOrArgChange: true },
   );
@@ -111,31 +118,61 @@ export const LabelPage = () => {
   const [predictAnnotations, { isLoading: isPredicting }] =
     usePredictAnnotationsMutation();
   const { data: profile } = useProfileQuery();
+  const { role } = useAuth();
+  const canManagePreAnnotateSettings =
+    role === OrgMemberRoleEnum.OWNER || role === OrgMemberRoleEnum.ADMIN;
   const { data: models = [] } = useGetModelsQuery(
     { projectId: projectId! },
     { skip: !projectId },
   );
 
   const [preAnnotateOpen, setPreAnnotateOpen] = useState(false);
-  const [preAnnotateSettings, setPreAnnotateSettingsState] =
-    useState<PreAnnotateSettings>(DEFAULT_PRE_ANNOTATE_SETTINGS);
+  const [updatePreAnnotateSettingsMutation, { isLoading: isSavingPreAnnotateSettings }] =
+    useUpdatePreAnnotateSettingsMutation();
+  const [deletePreAnnotateSettingsMutation, { isLoading: isDeletingPreAnnotateSettings }] =
+    useDeletePreAnnotateSettingsMutation();
 
-  // Hydrate from localStorage as soon as we know which (user, project) we
-  // are; mirrors the cameraApiOverride pattern.
+  // Only segmentation pre-annotation is supported today.
+  const activeModelType = PreAnnotateModelTypeEnum.SEGMENTATION;
+
+  const { data: savedPreAnnotateSettings } = useGetPreAnnotateSettingsQuery(
+    { projectId: projectId!, modelType: activeModelType },
+    { skip: !projectId },
+  );
+
+  const preAnnotateSettings: PreAnnotateSettings =
+    savedPreAnnotateSettings ?? PRE_ANNOTATE_DEFAULTS[activeModelType];
+
+  // One-time cleanup: remove old per-user localStorage keys from before
+  // settings were centralised in the DB.
   useEffect(() => {
     if (!profile?.id || !projectId) return;
-    setPreAnnotateSettingsState(readPreAnnotateSettings(profile.id, projectId));
+    try {
+      localStorage.removeItem(`preAnnotateSettings:${profile.id}:${projectId}`);
+    } catch {
+      // ignore
+    }
   }, [profile?.id, projectId]);
 
   const updatePreAnnotateSettings = useCallback(
-    (next: PreAnnotateSettings) => {
-      setPreAnnotateSettingsState(next);
-      if (profile?.id && projectId) {
-        writePreAnnotateSettings(profile.id, projectId, next);
-      }
+    async (next: PreAnnotateSettings): Promise<void> => {
+      if (!projectId) return;
+      await updatePreAnnotateSettingsMutation({
+        projectId,
+        modelType: activeModelType,
+        body: next,
+      }).unwrap();
     },
-    [profile?.id, projectId],
+    [projectId, activeModelType, updatePreAnnotateSettingsMutation],
   );
+
+  const deletePreAnnotateSettings = useCallback(async (): Promise<void> => {
+    if (!projectId) return;
+    await deletePreAnnotateSettingsMutation({
+      projectId,
+      modelType: activeModelType,
+    }).unwrap();
+  }, [projectId, activeModelType, deletePreAnnotateSettingsMutation]);
 
   const { toolMode, setToolMode } = useToolMode();
   const [showCrosshair, setShowCrosshair] = useState<boolean>(() => {
@@ -211,10 +248,15 @@ export const LabelPage = () => {
   const setIsolatedLabel = useCallback(
     (labelId: string) => {
       setIsolatedLabelId(labelId);
-      const label = labels.find((l) => String(l.id) === labelId);
-      if (label) setActiveLabel(label);
+      // Only update the drawing label when no region is selected. With an
+      // active selection the unanimity effect owns activeLabel and would
+      // immediately override this, causing a visible flicker.
+      if (selectedAnnotationIds.size === 0) {
+        const label = labels.find((l) => String(l.id) === labelId);
+        if (label) setActiveLabel(label);
+      }
     },
-    [labels],
+    [labels, selectedAnnotationIds],
   );
   const clearIsolatedLabel = useCallback(() => setIsolatedLabelId(null), []);
   const [activeLabel, setActiveLabel] = useState<Label | null>(null);
@@ -267,6 +309,47 @@ export const LabelPage = () => {
       }
     },
     [selectedAnnotationIds, primarySelectedId, annotations],
+  );
+
+  const handleSelectFromSidebar = useCallback(
+    (id: string, opts?: { additive?: boolean; range?: boolean }) => {
+      if (isolatedLabelId !== null) {
+        const clickedIdx = annotations.findIndex((a) => a.id === id);
+        if (clickedIdx >= 0) {
+          const isRemoval = !!opts?.additive && selectedAnnotationIds.has(id);
+          let added: Annotation[] = [];
+          if (!isRemoval) {
+            if (opts?.range && primarySelectedId) {
+              const anchorIdx = annotations.findIndex(
+                (a) => a.id === primarySelectedId,
+              );
+              if (anchorIdx >= 0) {
+                const [lo, hi] =
+                  anchorIdx < clickedIdx
+                    ? [anchorIdx, clickedIdx]
+                    : [clickedIdx, anchorIdx];
+                added = annotations.slice(lo, hi + 1);
+              } else {
+                added = [annotations[clickedIdx]];
+              }
+            } else {
+              added = [annotations[clickedIdx]];
+            }
+          }
+          if (added.some((a) => a.labelId !== isolatedLabelId)) {
+            setIsolatedLabelId(null);
+          }
+        }
+      }
+      handleSelect(id, opts);
+    },
+    [
+      isolatedLabelId,
+      annotations,
+      primarySelectedId,
+      selectedAnnotationIds,
+      handleSelect,
+    ],
   );
 
   // Wraps history.deleteAnnotation so the id is also removed from the
@@ -605,6 +688,9 @@ export const LabelPage = () => {
     imageDimsRef,
     setAnnotations: setAnnotationsAndDirty,
     pushBatchEntry: history.pushBatchEntry,
+    startNudge: (ids) => canvasRef.current?.startNudge(ids),
+    applyNudge: (dx, dy) => canvasRef.current?.applyNudge(dx, dy),
+    clearNudge: () => canvasRef.current?.clearNudge(),
   });
 
   const isolatedAnnotationId = useMemo(() => {
@@ -657,12 +743,14 @@ export const LabelPage = () => {
         filter={filter}
         labels={labels}
         onFilterChange={setFilter}
+        sort={sort}
+        onSortChange={setSort}
       />
       <AnnotationPanel
         annotations={annotations}
         labels={labels}
         selectedAnnotationIds={selectedAnnotationIds}
-        onSelectAnnotation={handleSelect}
+        onSelectAnnotation={handleSelectFromSidebar}
         onDeleteAnnotation={deleteAnnotationWithSelection}
         onReorderAnnotations={handleReorderAnnotations}
         hiddenAnnotationIds={hiddenAnnotationIds}
@@ -748,6 +836,12 @@ export const LabelPage = () => {
               }
               preAnnotatePending={isPredicting}
               preAnnotateDisabledReason={preAnnotateDisabledReason}
+              preAnnotateSettingsDisabled={!canManagePreAnnotateSettings}
+              preAnnotateSettingsDisabledReason={
+                !canManagePreAnnotateSettings
+                  ? "Only owners and admins can edit pre-annotation settings"
+                  : undefined
+              }
             />
           </div>
         </div>
@@ -786,7 +880,10 @@ export const LabelPage = () => {
         onOpenChange={setPreAnnotateOpen}
         models={models}
         settings={preAnnotateSettings}
+        hasSavedSettings={savedPreAnnotateSettings != null}
         onApply={updatePreAnnotateSettings}
+        onDelete={deletePreAnnotateSettings}
+        isSaving={isSavingPreAnnotateSettings || isDeletingPreAnnotateSettings}
       />
       <LeaveAnnotationsDialog
         isDirty={isDirty}

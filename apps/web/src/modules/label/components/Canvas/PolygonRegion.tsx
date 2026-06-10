@@ -225,6 +225,7 @@ export const PolygonRegion = ({
             <Circle
               key={i}
               ref={(node) => { circleRefs.current[i] = node; }}
+              id={`vertex-${annotation.id}-${i}`}
               x={(px / 100) * imageWidth}
               y={(py / 100) * imageHeight}
               radius={4 / stageScale}

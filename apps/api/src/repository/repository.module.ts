@@ -19,6 +19,7 @@ import { EvalLimitRepository } from './services/eval-limit.service';
 import { EvalTestCaseRepository } from './services/eval-test-case.service';
 import { EvalThresholdRepository } from './services/eval-threshold.service';
 import { CapturedVideoRepository } from './services/captured-video-repository.service';
+import { ProjectPreAnnotateSettingsRepository } from './services/project-pre-annotate-settings-repository.service';
 
 
 @Global()
@@ -43,6 +44,7 @@ import { CapturedVideoRepository } from './services/captured-video-repository.se
     EvalTestCaseRepository,
     EvalThresholdRepository,
     CapturedVideoRepository,
+    ProjectPreAnnotateSettingsRepository,
   ],
   exports: [
     ModelRepository,
@@ -64,6 +66,7 @@ import { CapturedVideoRepository } from './services/captured-video-repository.se
     EvalTestCaseRepository,
     EvalThresholdRepository,
     CapturedVideoRepository,
+    ProjectPreAnnotateSettingsRepository,
   ],
 })
 export class RepositoryModule {}

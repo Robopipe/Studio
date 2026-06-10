@@ -133,7 +133,7 @@ const groups: ShortcutGroup[] = [
         label: "Nudge selection",
         keys: (
           <div className="flex items-center gap-1">
-            <Key>Alt</Key>
+            <Key>Shift</Key>
             <span className="text-[11px] text-muted-foreground">+</span>
             <Key>↑</Key>
             <Key>↓</Key>
@@ -229,32 +229,38 @@ export const ShortcutsDialog = ({
           </div>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 gap-x-6 gap-y-5 pt-2 sm:grid-cols-2">
-          {groups.map((group) => (
-            <section key={group.title} className="flex flex-col gap-2">
-              <p className="text-[10px] font-bold uppercase tracking-[1px] text-muted-foreground">
-                {group.title}
-              </p>
-              <div className="flex flex-col overflow-hidden rounded-lg border border-border bg-card">
-                {group.items.map((item, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-3 border-b border-border px-3 py-2 last:border-b-0"
-                  >
-                    {item.icon && (
-                      <span className="flex size-5 shrink-0 items-center justify-center text-muted-foreground [&_svg]:size-4">
-                        {item.icon}
-                      </span>
-                    )}
-                    <span className="flex-1 text-xs text-foreground">
-                      {item.label}
-                    </span>
-                    {item.keys}
-                  </div>
+        <div className="flex flex-col gap-6 pt-2 sm:flex-row">
+          {[groups.filter((_, i) => i % 2 === 0), groups.filter((_, i) => i % 2 === 1)].map(
+            (col, ci) => (
+              <div key={ci} className="flex flex-1 flex-col gap-5">
+                {col.map((group) => (
+                  <section key={group.title} className="flex flex-col gap-2">
+                    <p className="text-[10px] font-bold uppercase tracking-[1px] text-muted-foreground">
+                      {group.title}
+                    </p>
+                    <div className="flex flex-col overflow-hidden rounded-lg border border-border bg-card">
+                      {group.items.map((item, i) => (
+                        <div
+                          key={i}
+                          className="flex items-center gap-3 border-b border-border px-3 py-2 last:border-b-0"
+                        >
+                          {item.icon && (
+                            <span className="flex size-5 shrink-0 items-center justify-center text-muted-foreground [&_svg]:size-4">
+                              {item.icon}
+                            </span>
+                          )}
+                          <span className="flex-1 text-xs text-foreground">
+                            {item.label}
+                          </span>
+                          {item.keys}
+                        </div>
+                      ))}
+                    </div>
+                  </section>
                 ))}
               </div>
-            </section>
-          ))}
+            ),
+          )}
         </div>
 
         <p className="border-t border-border pt-3 text-[11px] text-muted-foreground">

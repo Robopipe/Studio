@@ -8,6 +8,14 @@ import { DrawingRegion } from "./DrawingRegion";
 
 export interface KonvaStageHandle {
   cancelDrawing: () => void;
+  /** Captures the current Konva node positions for the given annotations so that
+   *  applyNudge can express the offset relative to the hold-start position. */
+  startNudge: (selectedIds: Set<string>) => void;
+  /** Moves selected annotation nodes imperatively by (dxPx, dyPx) image-pixels
+   *  from their hold-start positions, then calls batchDraw. No React state update. */
+  applyNudge: (dxPx: number, dyPx: number) => void;
+  /** Resets nodes to their hold-start positions before the final setAnnotations commit. */
+  clearNudge: () => void;
 }
 
 interface KonvaStageProps {
@@ -263,7 +271,83 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
     setDrawingBBox(null);
   }, []);
 
-  useImperativeHandle(ref, () => ({ cancelDrawing }), [cancelDrawing]);
+  interface NudgeStartInfo {
+    x: number;
+    y: number;
+    /** Original flat-points for polygon Line nodes. Storing these lets applyNudge
+     *  offset the points array directly instead of using x/y, which avoids the
+     *  double-translation that would occur when setAnnotations commits new points
+     *  atop a non-zero x/y offset. */
+    flatPoints?: number[];
+    /** Vertex circle nodes for the polygon, with their base positions.
+     *  Moved in lockstep with the Line's points so handles track the body. */
+    circles?: Array<{ node: Konva.Circle; baseX: number; baseY: number }>;
+  }
+  const nudgeStartRef = useRef<Map<string, NudgeStartInfo>>(new Map());
+
+  const startNudge = useCallback((selectedIds: Set<string>) => {
+    nudgeStartRef.current.clear();
+    for (const id of selectedIds) {
+      const node = regionNodesRef.current.get(id);
+      if (!node) continue;
+      const info: NudgeStartInfo = { x: node.x(), y: node.y() };
+      if (node.getClassName() === "Line") {
+        const flatPoints = (node as Konva.Line).points().slice();
+        info.flatPoints = flatPoints;
+        const layer = node.getLayer();
+        const circles: NudgeStartInfo["circles"] = [];
+        for (let i = 0; i < flatPoints.length / 2; i++) {
+          const circle = layer?.findOne<Konva.Circle>(`#vertex-${id}-${i}`);
+          if (circle) circles.push({ node: circle, baseX: flatPoints[2 * i], baseY: flatPoints[2 * i + 1] });
+        }
+        if (circles.length > 0) info.circles = circles;
+      }
+      nudgeStartRef.current.set(id, info);
+    }
+  }, []);
+
+  const applyNudge = useCallback((dxPx: number, dyPx: number) => {
+    let layer: Konva.Layer | null = null;
+    for (const [id, start] of nudgeStartRef.current) {
+      const node = regionNodesRef.current.get(id);
+      if (!node) continue;
+      if (start.flatPoints) {
+        // Polygon Line: shift the points array directly so x/y stays 0.
+        // setAnnotations will commit nearly-identical points — no visible jump.
+        (node as Konva.Line).points(
+          start.flatPoints.map((v, i) => (i % 2 === 0 ? v + dxPx : v + dyPx)),
+        );
+        // Move vertex handles in lockstep so they track the polygon body.
+        start.circles?.forEach(({ node: circle, baseX, baseY }) => {
+          circle.x(baseX + dxPx);
+          circle.y(baseY + dyPx);
+        });
+      } else {
+        // Rect: shift via x/y. setAnnotations commits finalX ≈ currentX — no jump.
+        node.x(start.x + dxPx);
+        node.y(start.y + dyPx);
+      }
+      layer = node.getLayer();
+    }
+    // Use draw() (synchronous) rather than batchDraw() (deferred rAF) so the
+    // canvas updates in the same frame as the node move. batchDraw would paint
+    // one frame late, causing a visible "final nudge" after the user releases
+    // the key because the canvas catches up in the next rAF after keyup.
+    layer?.draw();
+  }, []);
+
+  // clearNudge no longer moves nodes — react-konva's reconciliation on the
+  // final setAnnotations commit lands on the same positions already in place.
+  // We only clear the nudgeStartRef bookkeeping.
+  const clearNudge = useCallback(() => {
+    nudgeStartRef.current.clear();
+  }, []);
+
+  useImperativeHandle(
+    ref,
+    () => ({ cancelDrawing, startNudge, applyNudge, clearNudge }),
+    [cancelDrawing, startNudge, applyNudge, clearNudge],
+  );
 
   // Middle-mouse drag pan (works in any tool mode)
   useEffect(() => {

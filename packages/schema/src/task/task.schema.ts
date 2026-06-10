@@ -71,6 +71,9 @@ export const createTaskSchema = z.object({
   capturedAt: z.iso.datetime().optional(),
 })
 
+export const taskSortBySchema = z.enum(["createdAt", "updatedAt"]);
+export type TaskSortBy = z.infer<typeof taskSortBySchema>;
+
 export const taskSchema = z.object({
   id: z.number(),
   iid: z.string(),
@@ -81,6 +84,7 @@ export const taskSchema = z.object({
   height: z.number(),
   status: z.enum(TaskStatusEnum),
   annotationCount: z.number().nullable(),
+  updatedBy: z.number().nullable().optional(),
   ...timestampsSchema
 })
 
@@ -128,10 +132,18 @@ export const taskPaginationQuerySchema = paginationQuerySchema.extend({
       if (!val) return undefined;
       return val.split(",").map(Number).filter((n) => !isNaN(n));
     }),
-  order: z
+  updatedBy: z
+    .string()
+    .optional()
+    .transform((val): number[] | undefined => {
+      if (!val) return undefined;
+      return val.split(",").map(Number).filter((n) => !isNaN(n));
+    }),
+  sortBy: taskSortBySchema.optional().default("createdAt"),
+  sortOrder: z
     .union([z.literal("asc"), z.literal("desc")])
     .optional()
-    .default("asc"),
+    .default("desc"),
 });
 
 export const paginatedTaskSchema = paginatedResponseSchema(taskSchema);
@@ -252,10 +264,11 @@ export const taskIdsQuerySchema = z.object({
       if (!val) return undefined;
       return val.split(",").map(Number).filter((n) => !isNaN(n));
     }),
-  order: z
+  sortBy: taskSortBySchema.optional().default("createdAt"),
+  sortOrder: z
     .union([z.literal("asc"), z.literal("desc")])
     .optional()
-    .default("asc"),
+    .default("desc"),
 });
 
 export const taskIdsResponseSchema = z.object({

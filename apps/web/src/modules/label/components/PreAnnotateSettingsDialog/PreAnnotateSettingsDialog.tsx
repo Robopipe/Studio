@@ -16,19 +16,25 @@ import {
   SelectValue,
 } from "@/modules/shadcn/ui/select";
 import { Slider } from "@/modules/shadcn/ui/slider";
-import { Model, ModelStatusEnum, ProjectTypeEnum } from "@repo/schema";
-import { useEffect, useState } from "react";
 import {
-  DEFAULT_PRE_ANNOTATE_SETTINGS,
+  Model,
+  ModelStatusEnum,
+  PRE_ANNOTATE_DEFAULTS,
+  PreAnnotateModelTypeEnum,
   PreAnnotateSettings,
-} from "../../utils/preAnnotateSettings";
+  ProjectTypeEnum,
+} from "@repo/schema";
+import { useEffect, useState } from "react";
 
 export interface PreAnnotateSettingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   models: Model[];
   settings: PreAnnotateSettings;
-  onApply: (next: PreAnnotateSettings) => void;
+  hasSavedSettings: boolean;
+  onApply: (next: PreAnnotateSettings) => Promise<void>;
+  onDelete: () => Promise<void>;
+  isSaving: boolean;
 }
 
 const formatNumber = (value: number, digits: number) =>
@@ -37,12 +43,17 @@ const formatNumber = (value: number, digits: number) =>
     maximumFractionDigits: digits,
   });
 
+const DEFAULTS = PRE_ANNOTATE_DEFAULTS[PreAnnotateModelTypeEnum.SEGMENTATION];
+
 export const PreAnnotateSettingsDialog = ({
   open,
   onOpenChange,
   models,
   settings,
+  hasSavedSettings,
   onApply,
+  onDelete,
+  isSaving,
 }: PreAnnotateSettingsDialogProps) => {
   const trainedModels = models.filter(
     (m) =>
@@ -60,6 +71,7 @@ export const PreAnnotateSettingsDialog = ({
   const [fillConcavityLabelIds, setFillConcavityLabelIds] = useState<number[]>(
     settings.fillConcavityLabelIds,
   );
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -70,6 +82,7 @@ export const PreAnnotateSettingsDialog = ({
     setMaskThreshold(settings.maskThreshold);
     setMinAreaPx(settings.minAreaPx);
     setFillConcavityLabelIds(settings.fillConcavityLabelIds);
+    setSaveError(null);
   }, [open, settings]);
 
   const selectedModel = trainedModels.find((m) => m.id === modelId) ?? null;
@@ -82,47 +95,63 @@ export const PreAnnotateSettingsDialog = ({
     );
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // Drop any label IDs that aren't in the currently selected model so we
     // don't carry stale toggles forward when the user switches models.
     const validIds = selectedModel
       ? new Set(selectedModel.labels.map((l) => l.id))
       : new Set<number>();
-    onApply({
-      modelId,
-      conf,
-      iou,
-      polyEpsilon,
-      maskThreshold,
-      minAreaPx,
-      fillConcavityLabelIds: fillConcavityLabelIds.filter((id) =>
-        validIds.has(id),
-      ),
-    });
-    onOpenChange(false);
+    setSaveError(null);
+    try {
+      await onApply({
+        modelType: PreAnnotateModelTypeEnum.SEGMENTATION,
+        modelId,
+        conf,
+        iou,
+        polyEpsilon,
+        maskThreshold,
+        minAreaPx,
+        fillConcavityLabelIds: fillConcavityLabelIds.filter((id) =>
+          validIds.has(id),
+        ),
+      });
+      onOpenChange(false);
+    } catch {
+      setSaveError("Failed to save settings. Please try again.");
+    }
+  };
+
+  const handleDelete = async () => {
+    setSaveError(null);
+    try {
+      await onDelete();
+      onOpenChange(false);
+    } catch {
+      setSaveError("Failed to delete settings. Please try again.");
+    }
   };
 
   const handleReset = () => {
     setModelId(null);
-    setConf(DEFAULT_PRE_ANNOTATE_SETTINGS.conf);
-    setIou(DEFAULT_PRE_ANNOTATE_SETTINGS.iou);
-    setPolyEpsilon(DEFAULT_PRE_ANNOTATE_SETTINGS.polyEpsilon);
-    setMaskThreshold(DEFAULT_PRE_ANNOTATE_SETTINGS.maskThreshold);
-    setMinAreaPx(DEFAULT_PRE_ANNOTATE_SETTINGS.minAreaPx);
-    setFillConcavityLabelIds(
-      DEFAULT_PRE_ANNOTATE_SETTINGS.fillConcavityLabelIds,
-    );
+    setConf(DEFAULTS.conf);
+    setIou(DEFAULTS.iou);
+    setPolyEpsilon(DEFAULTS.polyEpsilon);
+    setMaskThreshold(DEFAULTS.maskThreshold);
+    setMinAreaPx(DEFAULTS.minAreaPx);
+    setFillConcavityLabelIds(DEFAULTS.fillConcavityLabelIds);
+    setSaveError(null);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="gap-6 sm:max-w-[560px]">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[90vh] flex-col gap-0 sm:max-w-[560px]">
+        <DialogHeader className="shrink-0 pb-6">
           <DialogTitle className="text-xl font-semibold">
             Pre-annotate settings
           </DialogTitle>
         </DialogHeader>
 
+        <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto pr-1 [scrollbar-color:rgba(0,0,0,0.15)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb:hover]:bg-black/25 [&::-webkit-scrollbar-thumb]:rounded-[3px] [&::-webkit-scrollbar-thumb]:bg-black/15 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-1.5">
         <div className="flex flex-col gap-1.5">
           <Label>Model</Label>
           {trainedModels.length === 0 ? (
@@ -263,16 +292,35 @@ export const PreAnnotateSettingsDialog = ({
           />
         </div>
 
-        <DialogFooter className="sm:justify-end">
-          <Button variant="outline" onClick={handleReset}>
-            Reset
-          </Button>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleSave} disabled={modelId == null}>
-            Save
-          </Button>
+        {saveError && (
+          <p className="text-sm text-destructive">{saveError}</p>
+        )}
+        </div>
+
+        <DialogFooter className="shrink-0 pt-6 sm:justify-between">
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleReset} disabled={isSaving}>
+              Reset
+            </Button>
+            {hasSavedSettings && (
+              <Button
+                variant="outline"
+                onClick={handleDelete}
+                disabled={isSaving}
+                className="text-destructive hover:text-destructive"
+              >
+                Delete
+              </Button>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave} disabled={modelId == null || isSaving}>
+              {isSaving ? "Saving…" : "Save"}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
