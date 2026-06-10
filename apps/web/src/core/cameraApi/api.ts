@@ -18,6 +18,8 @@ import { NNConfig } from "./schemas/nn";
 import type { DashboardReportSummary } from "./schemas/report";
 import { CameraApiTagType } from "./tagType";
 
+const LIST_CAMERAS_TIMEOUT_MS = 5000;
+
 const cameraApiBase = createApi({
   reducerPath: "cameraApi",
   baseQuery: baseQuery,
@@ -36,6 +38,7 @@ export const cameraApi = cameraApiBase.injectEndpoints({
         method: HttpMethod.GET,
       }),
       providesTags: [CameraApiTagType.Cameras],
+      extraOptions: { timeoutMs: LIST_CAMERAS_TIMEOUT_MS },
     }),
 
     // Get camera by MXID
@@ -287,10 +290,7 @@ export const cameraApi = cameraApiBase.injectEndpoints({
       ],
     }),
 
-    getDashboard: builder.query<
-      string,
-      { mxid: string; streamName: string }
-    >({
+    getDashboard: builder.query<string, { mxid: string; streamName: string }>({
       query: ({ mxid, streamName }) => ({
         url: `/cameras/${mxid}/streams/${streamName}/dashboard`,
         method: HttpMethod.GET,
@@ -299,6 +299,7 @@ export const cameraApi = cameraApiBase.injectEndpoints({
       providesTags: (_result, _error, { mxid, streamName }) => [
         { type: CameraApiTagType.Dashboard, id: `${mxid}-${streamName}` },
       ],
+      extraOptions: { timeoutMs: LIST_CAMERAS_TIMEOUT_MS },
     }),
 
     deployDashboard: builder.mutation<
