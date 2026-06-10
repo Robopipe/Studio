@@ -323,7 +323,7 @@ export class TrainingExternalService {
       // the N1-style "custom attachment" path.
       const instancePolicy: protos.google.cloud.batch.v1.AllocationPolicy.IInstancePolicy = {
         machineType: mlBatchMachineType,
-        bootDisk: { sizeGb: String(mlBatchBootDiskGb) },
+        bootDisk: { sizeGb: String(mlBatchBootDiskGb), type: "pd-ssd" },
         provisioningModel: "SPOT",
       };
       if (mlBatchGpuType && mlBatchGpuCount > 0) {
