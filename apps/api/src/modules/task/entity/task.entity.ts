@@ -19,6 +19,7 @@ export class TaskEntity {
   readonly updatedAt: Date;
   readonly deletedAt: Date | null;
   readonly annotationCount: number;
+  readonly updatedBy: number | null;
 
   constructor(data: TaskSelect) {
     this.id = data.id;
@@ -33,7 +34,8 @@ export class TaskEntity {
     this.annotationCount = data.annotationCount;
     this.createdAt = data.createdAt;
     this.updatedAt = data.updatedAt;
-    this.deletedAt = data.deletedAt
+    this.deletedAt = data.deletedAt;
+    this.updatedBy = data.updatedBy ?? null;
   }
 
   public toResponse(): Task {
@@ -47,6 +49,7 @@ export class TaskEntity {
       width: this.width,
       height: this.height,
       annotationCount: this.annotationCount,
+      updatedBy: this.updatedBy,
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),
       deletedAt: this.deletedAt ? this.deletedAt.toISOString() : null,

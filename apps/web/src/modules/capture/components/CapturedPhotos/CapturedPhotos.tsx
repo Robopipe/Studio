@@ -46,7 +46,7 @@ export const CapturedPhotos = ({}: CapturedPhotosProps) => {
       projectId: activeProject?.id!,
       page,
       limit: TASKS_PER_PAGE,
-      order: "desc",
+      sortOrder: "desc",
     },
     { skip: !activeProject?.id },
   );

@@ -51,6 +51,8 @@ export const LabelPage = () => {
     setPage,
     filter,
     setFilter,
+    sort,
+    setSort,
     pendingAnchorRef,
   } = useLabelUrlState();
 
@@ -65,6 +67,11 @@ export const LabelPage = () => {
       ...(filter.labelIds.length > 0 && {
         labelIds: filter.labelIds.join(","),
       }),
+      ...(filter.updatedBy.length > 0 && {
+        updatedBy: filter.updatedBy.join(","),
+      }),
+      sortBy: sort.sortBy,
+      sortOrder: sort.sortOrder,
     },
     { skip: !projectId, refetchOnMountOrArgChange: true },
   );
@@ -736,6 +743,8 @@ export const LabelPage = () => {
         filter={filter}
         labels={labels}
         onFilterChange={setFilter}
+        sort={sort}
+        onSortChange={setSort}
       />
       <AnnotationPanel
         annotations={annotations}

@@ -177,7 +177,7 @@ const ModelNewPageInner = () => {
     {
       projectId: activeProject?.id!,
       annotated: "true",
-      order: "desc",
+      sortOrder: "desc",
     },
     { skip: !activeProject?.id || !shouldPrefillTasks },
   );
@@ -187,7 +187,7 @@ const ModelNewPageInner = () => {
       page: 1,
       limit: 15,
       annotated: "true",
-      order: "desc",
+      sortOrder: "desc",
     },
     { skip: !activeProject?.id || !shouldPrefillTasks },
   );
