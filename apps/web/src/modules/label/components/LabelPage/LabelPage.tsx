@@ -225,12 +225,13 @@ export const LabelPage = () => {
       return next;
     });
   }, []);
-  const hideAllAnnotations = useCallback(() => {
-    setHiddenAnnotationIds(new Set(annotations.map((a) => a.id)));
-  }, [annotations]);
-  const showAllAnnotations = useCallback(() => {
-    setHiddenAnnotationIds(new Set());
-  }, []);
+  const toggleAllAnnotationsVisibility = useCallback(() => {
+    if (hiddenAnnotationIds.size === 0) {
+      setHiddenAnnotationIds(new Set(annotations.map((a) => a.id)));
+    } else {
+      setHiddenAnnotationIds(new Set());
+    }
+  }, [annotations, hiddenAnnotationIds]);
   const isolateAnnotation = useCallback((id: string | null) => {
     setIsolatedLabelId(null);
     setHiddenAnnotationIds(
@@ -755,8 +756,7 @@ export const LabelPage = () => {
         onReorderAnnotations={handleReorderAnnotations}
         hiddenAnnotationIds={hiddenAnnotationIds}
         onToggleAnnotationVisibility={toggleAnnotationVisibility}
-        onHideAllAnnotations={hideAllAnnotations}
-        onShowAllAnnotations={showAllAnnotations}
+        onToggleAllAnnotationsVisibility={toggleAllAnnotationsVisibility}
         isolatedLabelId={isolatedLabelId}
         onIsolateLabel={setIsolatedLabel}
         onClearIsolate={clearIsolatedLabel}

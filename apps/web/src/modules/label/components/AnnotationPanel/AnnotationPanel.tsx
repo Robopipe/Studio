@@ -29,8 +29,7 @@ export interface AnnotationPanelProps {
   onReorderAnnotations: (fromIndex: number, toIndex: number) => void;
   hiddenAnnotationIds: Set<string>;
   onToggleAnnotationVisibility: (id: string) => void;
-  onHideAllAnnotations: () => void;
-  onShowAllAnnotations: () => void;
+  onToggleAllAnnotationsVisibility: () => void;
   isolatedLabelId: string | null;
   onIsolateLabel: (labelId: string) => void;
   onClearIsolate: () => void;
@@ -54,8 +53,7 @@ export const AnnotationPanel = ({
   onReorderAnnotations,
   hiddenAnnotationIds,
   onToggleAnnotationVisibility,
-  onHideAllAnnotations,
-  onShowAllAnnotations,
+  onToggleAllAnnotationsVisibility,
   isolatedLabelId,
   onIsolateLabel,
   onClearIsolate,
@@ -136,18 +134,27 @@ export const AnnotationPanel = ({
                 <button
                   type="button"
                   title="Hide all"
-                  onClick={onHideAllAnnotations}
+                  onClick={onToggleAllAnnotationsVisibility}
                   className="flex shrink-0 cursor-pointer items-center justify-center rounded p-1 text-muted-foreground transition-colors hover:bg-black/5 hover:text-foreground [&_svg]:size-3.5"
                 >
-                  <EyeOff />
-                </button>
-                <button
-                  type="button"
-                  title="Show all"
-                  onClick={onShowAllAnnotations}
-                  className="flex shrink-0 cursor-pointer items-center justify-center rounded p-1 text-muted-foreground transition-colors hover:bg-black/5 hover:text-foreground [&_svg]:size-3.5"
-                >
-                  <Eye />
+                  {annotations.length === hiddenAnnotationIds.size ? (
+                    <EyeOff />
+                  ) : hiddenAnnotationIds.size > 0 ? (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="1 4 22 16"
+                      fill="currentColor"
+                      stroke="none"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        clipRule="evenodd"
+                        d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7zm10 3a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"
+                      />
+                    </svg>
+                  ) : (
+                    <Eye />
+                  )}
                 </button>
               </div>
             )}
