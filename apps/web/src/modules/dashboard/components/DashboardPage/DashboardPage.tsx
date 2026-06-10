@@ -269,7 +269,7 @@ export const DashboardPage = ({
                 <div className="flex flex-row items-center gap-6">
                   {(
                     [
-                      { key: "custom", label: "Custom dashboard" },
+                      { key: "custom", label: "Dashboard" },
                       { key: "test-cases", label: "Test cases" },
                       { key: "evaluation", label: "Evaluation" },
                       { key: "reports", label: "Reports" },
