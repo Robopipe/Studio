@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/modules/shadcn/ui/dialog";
+import { useGetMembersQuery } from "@/modules/account/services/organizationApi";
 import { Label } from "@repo/schema";
 import { ReactNode, useEffect, useState } from "react";
 import { AnnotationFilter } from "../DataSourcePanel/DataSourcePanel";
@@ -14,6 +15,7 @@ import { AnnotationFilter } from "../DataSourcePanel/DataSourcePanel";
 export interface TaskFilterState {
   annotationFilter: AnnotationFilter;
   labelIds: number[];
+  updatedBy: number[];
 }
 
 export interface TaskFilterDialogProps {
@@ -33,7 +35,6 @@ const checkboxesToFilter = (yes: boolean, no: boolean): AnnotationFilter => {
   if (yes && no) return "all";
   if (yes) return "true";
   if (no) return "false";
-  // Both unchecked → reset to "all" so the list is never empty by accident.
   return "all";
 };
 
@@ -50,15 +51,19 @@ export const TaskFilterDialog = ({
   const [selectedLabelIds, setSelectedLabelIds] = useState<Set<number>>(
     () => new Set(filter.labelIds),
   );
+  const [selectedUpdatedBy, setSelectedUpdatedBy] = useState<Set<number>>(
+    () => new Set(filter.updatedBy),
+  );
 
-  // Reset local state to the parent's filter every time the dialog opens so
-  // Cancel discards in-flight changes.
+  const { data: members = [] } = useGetMembersQuery();
+
   useEffect(() => {
     if (!open) return;
     const next = filterToCheckboxes(filter.annotationFilter);
     setAnnotatedYes(next.yes);
     setAnnotatedNo(next.no);
     setSelectedLabelIds(new Set(filter.labelIds));
+    setSelectedUpdatedBy(new Set(filter.updatedBy));
   }, [open, filter]);
 
   const toggleLabel = (id: number) => {
@@ -70,10 +75,20 @@ export const TaskFilterDialog = ({
     });
   };
 
+  const toggleUpdatedBy = (id: number) => {
+    setSelectedUpdatedBy((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   const handleSave = () => {
     onApply({
       annotationFilter: checkboxesToFilter(annotatedYes, annotatedNo),
       labelIds: [...selectedLabelIds],
+      updatedBy: [...selectedUpdatedBy],
     });
     onOpenChange(false);
   };
@@ -82,6 +97,7 @@ export const TaskFilterDialog = ({
     setAnnotatedYes(true);
     setAnnotatedNo(true);
     setSelectedLabelIds(new Set());
+    setSelectedUpdatedBy(new Set());
   };
 
   return (
@@ -112,6 +128,19 @@ export const TaskFilterDialog = ({
                 label={label.name}
                 checked={selectedLabelIds.has(label.id)}
                 onCheckedChange={() => toggleLabel(label.id)}
+              />
+            ))}
+          </FilterSection>
+        )}
+
+        {members.length > 0 && (
+          <FilterSection title="Last updated by">
+            {members.map((member) => (
+              <FilterCheckbox
+                key={member.user.id}
+                label={member.user.fullName}
+                checked={selectedUpdatedBy.has(member.user.id)}
+                onCheckedChange={() => toggleUpdatedBy(member.user.id)}
               />
             ))}
           </FilterSection>

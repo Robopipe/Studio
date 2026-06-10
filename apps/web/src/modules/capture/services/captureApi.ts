@@ -57,7 +57,7 @@ export const captureApi = captureApiBase.injectEndpoints({
           dispatch(
             captureApi.util.updateQueryData(
               "getTasks",
-              { projectId, page: 1, limit: 50, order: "desc" },
+              { projectId, page: 1, limit: 50, sortOrder: "desc" },
               (draft) => {
                 draft.data.unshift(newTask);
                 draft.total += 1;
@@ -74,12 +74,12 @@ export const captureApi = captureApiBase.injectEndpoints({
     }),
     getTasks: builder.query<
       PaginatedTasks,
-      { projectId: number; page?: number; limit?: number; annotated?: string; labelIds?: string; ids?: string; order?: "asc" | "desc" }
+      { projectId: number; page?: number; limit?: number; annotated?: string; labelIds?: string; ids?: string; sortBy?: string; sortOrder?: "asc" | "desc"; updatedBy?: string }
     >({
-      query: ({ projectId, page = 1, limit = 50, annotated, labelIds, ids, order }) => ({
+      query: ({ projectId, page = 1, limit = 50, annotated, labelIds, ids, sortBy, sortOrder, updatedBy }) => ({
         url: tasks.tasks(projectId),
         method: HttpMethod.GET,
-        params: { page, limit, ...(annotated && { annotated }), ...(labelIds && { labelIds }), ...(ids && { ids }), ...(order && { order }) },
+        params: { page, limit, ...(annotated && { annotated }), ...(labelIds && { labelIds }), ...(ids && { ids }), ...(sortBy && { sortBy }), ...(sortOrder && { sortOrder }), ...(updatedBy && { updatedBy }) },
       }),
       providesTags: (_result, _error, { projectId }) => [
         { type: CaptureApiTagType.Tasks, id: projectId },
@@ -87,15 +87,16 @@ export const captureApi = captureApiBase.injectEndpoints({
     }),
     getTaskIds: builder.query<
       TaskIdsResponse,
-      { projectId: number; annotated?: string; labelIds?: string; order?: "asc" | "desc" }
+      { projectId: number; annotated?: string; labelIds?: string; sortBy?: string; sortOrder?: "asc" | "desc" }
     >({
-      query: ({ projectId, annotated, labelIds, order }) => ({
+      query: ({ projectId, annotated, labelIds, sortBy, sortOrder }) => ({
         url: tasks.ids(projectId),
         method: HttpMethod.GET,
         params: {
           ...(annotated && { annotated }),
           ...(labelIds && { labelIds }),
-          ...(order && { order }),
+          ...(sortBy && { sortBy }),
+          ...(sortOrder && { sortOrder }),
         },
       }),
       providesTags: (_result, _error, { projectId }) => [

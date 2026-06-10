@@ -47,8 +47,9 @@ export class TaskController {
   public async confirmUpload(
     @ProjectId() projectId: number,
     @Body() body: ConfirmTaskUploadDto,
+    @User('id') userId: number,
   ): Promise<TaskResponse> {
-    const task = await this.taskService.confirmUpload(projectId, body);
+    const task = await this.taskService.confirmUpload(projectId, body, userId);
     return task.toResponse();
   }
 
@@ -65,13 +66,13 @@ export class TaskController {
     @ProjectId() projectId: number,
     @Query() query: TaskIdsQuery,
   ): Promise<TaskIdsResponseDto> {
-    const ids = await this.taskService.getTaskIds(projectId, query.annotated, query.labelIds, query.order);
+    const ids = await this.taskService.getTaskIds(projectId, query.annotated, query.labelIds, query.sortBy, query.sortOrder);
     return { ids };
   }
 
   @Get()
   public async listTasks(@ProjectId() projectId: number, @Query() query: TaskPaginationQuery): Promise<PaginatedTaskResponse>{
-    const { data, total } = await this.taskService.getTasks(projectId, query.page, query.limit, query.deleted, query.annotated, query.order, query.labelIds, query.ids)
+    const { data, total } = await this.taskService.getTasks(projectId, query.page, query.limit, query.deleted, query.annotated, query.sortBy, query.sortOrder, query.labelIds, query.ids, query.updatedBy)
     return {
       data: data.map((task) => task.toResponse()),
       total,

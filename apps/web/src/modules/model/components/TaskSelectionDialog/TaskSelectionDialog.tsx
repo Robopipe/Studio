@@ -64,7 +64,7 @@ export const TaskSelectionDialog = ({
       projectId: activeProject?.id!,
       page,
       limit: TASKS_PER_PAGE,
-      order: sortOrder,
+      sortOrder: sortOrder,
       ...(!showAll && { annotated: "true" }),
     },
     { skip: !activeProject?.id || !open },
@@ -73,7 +73,7 @@ export const TaskSelectionDialog = ({
   const { data: idsData, isFetching: isIdsLoading } = useGetTaskIdsQuery(
     {
       projectId: activeProject?.id!,
-      order: sortOrder,
+      sortOrder: sortOrder,
       ...(!showAll && { annotated: "true" }),
     },
     { skip: !activeProject?.id || !open },
