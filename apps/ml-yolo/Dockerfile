@@ -28,11 +28,7 @@ COPY requirements.txt .
 # This prevents pip from pulling ~2.5GB of nvidia-* CUDA wheels.
 RUN pip install --no-cache-dir --timeout=120 --retries=5 \
         --extra-index-url https://download.pytorch.org/whl/cpu \
-        -r requirements.txt && \
-    # Purge heavy build dependencies after compilation (e.g. for onnxsim) is done
-    apt-get purge -y build-essential cmake git && \
-    apt-get autoremove -y && \
-    rm -rf /var/lib/apt/lists/*
+        -r requirements.txt
 
 # luxonis/tools — used at export time to convert Ultralytics .pt to a
 # multi-output ONNX + NN archive with proper `heads` metadata. Lives in
@@ -65,7 +61,11 @@ RUN python3 -m venv /opt/tools-venv && \
     git checkout edbe7da1a7f75833a71d65caf1028036faa81061 && \
     git submodule update --init --recursive && \
     PIP_CONSTRAINT=constraints.txt /opt/tools-venv/bin/pip install --no-cache-dir --timeout=120 --retries=5 . && \
-    rm -rf /tmp/luxonis-tools
+    rm -rf /tmp/luxonis-tools && \
+    # Purge heavy build dependencies after compilation and git clones are done
+    apt-get purge -y build-essential cmake git && \
+    apt-get autoremove -y && \
+    rm -rf /var/lib/apt/lists/*
 
 ENV ROBOPIPE_TOOLS_BIN=/opt/tools-venv/bin/tools
 

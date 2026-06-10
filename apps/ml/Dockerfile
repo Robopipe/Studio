@@ -24,16 +24,16 @@ COPY requirements.txt .
 # This prevents pip from pulling massive nvidia-* CUDA wheels.
 RUN pip install --no-cache-dir \
         --extra-index-url https://download.pytorch.org/whl/cpu \
-        -r requirements.txt && \
-    # Purge heavy build dependencies after compilation
-    apt-get purge -y build-essential gcc g++ cmake git && \
-    apt-get autoremove -y && \
-    rm -rf /var/lib/apt/lists/*
+        -r requirements.txt
 
 # Apply patches to installed dependencies
 COPY patches/ ./patches/
 COPY postinstall.sh .
-RUN bash postinstall.sh
+RUN bash postinstall.sh && \
+    # Purge heavy build dependencies after compilation and patching
+    apt-get purge -y build-essential gcc g++ cmake git && \
+    apt-get autoremove -y && \
+    rm -rf /var/lib/apt/lists/*
 
 # Copy application code
 COPY app/ ./app/
