@@ -24,6 +24,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN pip install --no-cache-dir --upgrade pip
 
 COPY requirements.txt .
+# The main env MUST install the CUDA build of torch (the PyPI default,
+# which pulls the ~2.5GB nvidia-* wheels). Do NOT add the
+# download.pytorch.org/whl/cpu index here: `2.8.0+cpu` satisfies the
+# `torch==2.8.0` pin and pip prefers it, but +cpu wheels are compiled
+# without CUDA support entirely — torch.cuda.is_available() is then
+# false no matter what the host provides, and Ultralytics silently
+# trains on CPU. Cloud Batch's installGpuDrivers only supplies the
+# kernel driver + libcuda.so; the CUDA user-space libs (cuBLAS, cuDNN,
+# NCCL, ...) ship exclusively in these wheels. The tools venv below is
+# different: export runs on CPU by design, so +cpu is correct there.
 RUN pip install --no-cache-dir --timeout=120 --retries=5 -r requirements.txt
 
 # luxonis/tools — used at export time to convert Ultralytics .pt to a
@@ -57,7 +67,11 @@ RUN python3 -m venv /opt/tools-venv && \
     git checkout edbe7da1a7f75833a71d65caf1028036faa81061 && \
     git submodule update --init --recursive && \
     PIP_CONSTRAINT=constraints.txt /opt/tools-venv/bin/pip install --no-cache-dir --timeout=120 --retries=5 . && \
-    rm -rf /tmp/luxonis-tools
+    rm -rf /tmp/luxonis-tools && \
+    # Purge heavy build dependencies after compilation and git clones are done
+    apt-get purge -y build-essential cmake git && \
+    apt-get autoremove -y && \
+    rm -rf /var/lib/apt/lists/*
 
 ENV ROBOPIPE_TOOLS_BIN=/opt/tools-venv/bin/tools
 

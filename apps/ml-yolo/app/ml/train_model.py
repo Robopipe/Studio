@@ -27,6 +27,7 @@ from .dataset import (
     TRAIN_DIR,
     VAL_DIR,
     prepare_dataset,
+    split_seed,
 )
 from .model_conversion import convert_model
 from .modelconverter_conversion import (
@@ -211,6 +212,10 @@ def run_training(config: ModelConfig) -> None:
             config.data,
             config.training_config.dataset_config,
             config.type,
+            # Seeded by model id so a preempted Spot task re-creates the
+            # exact same train/val/test split before resuming from the
+            # checkpoint (see iterate_datasets).
+            seed=split_seed(str(config.id)),
         )
 
         # 2) Optional deterministic preprocessings.
@@ -246,7 +251,17 @@ def run_training(config: ModelConfig) -> None:
         variant = get_model_variant(config)
         if has_checkpoint:
             print(f"[ml-yolo] Resuming from checkpoint: {checkpoint_path}")
-            model = YOLO(checkpoint_path)
+            try:
+                model = YOLO(checkpoint_path)
+            except Exception as e:
+                # A torn/corrupt checkpoint in GCS must not crash-loop the
+                # Batch task — fall back to a fresh start.
+                print(
+                    f"[ml-yolo] Checkpoint unusable ({e}); "
+                    f"starting fresh from {variant}"
+                )
+                has_checkpoint = False
+                model = YOLO(variant)
         else:
             print(f"[ml-yolo] Loading Ultralytics model: {variant}")
             model = YOLO(variant)
@@ -265,7 +280,9 @@ def run_training(config: ModelConfig) -> None:
             if config.checkpoint_config:
                 from .ultralytics_callbacks import CheckpointCallback
                 checkpoint_cb = CheckpointCallback(config.checkpoint_config.put_url)
-                model.add_callback("on_fit_epoch_end", checkpoint_cb.on_fit_epoch_end)
+                # on_model_save fires after the trainer finishes writing
+                # last.pt; hooking on_fit_epoch_end would race the write.
+                model.add_callback("on_model_save", checkpoint_cb.on_model_save)
 
         # 5) Train.
         project_dir = os.path.join(workdir, "runs")
@@ -291,6 +308,18 @@ def run_training(config: ModelConfig) -> None:
         # Archive." tools-produced archives carry the heads through.
         save_dir = Path(model.trainer.save_dir)
         best_pt = save_dir / "weights" / "best.pt"
+        if not best_pt.exists():
+            # Resumed runs restore best_fitness (the number) from the
+            # checkpoint, but best.pt (the file) lived on the preempted VM.
+            # Ultralytics only rewrites best.pt when a post-resume epoch
+            # reaches that restored fitness, so it may never appear. The
+            # final-epoch weights are the best artifact on this VM.
+            last_pt = save_dir / "weights" / "last.pt"
+            print(
+                f"[ml-yolo] best.pt missing (resumed run where pre-preemption "
+                f"best was never beaten); falling back to {last_pt}"
+            )
+            best_pt = last_pt
         print(f"[ml-yolo] Exporting via luxonis/tools from {best_pt}")
         onnx_path, archive_path = _export_via_tools(
             best_pt, _resolve_imgsz(config), workdir
