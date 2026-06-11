@@ -381,7 +381,7 @@ export class TrainingExternalService {
                 memoryMib: mlBatchTaskMemoryMib,
               },
               maxRunDuration: { seconds: String(mlBatchMaxRunSeconds) },
-              maxRetryCount: 3,
+              maxRetryCount: 10,
               lifecyclePolicies: [
                 {
                   action: protos.google.cloud.batch.v1.LifecyclePolicy.Action.RETRY_TASK,
