@@ -8,6 +8,7 @@ cloud_run_max_instances       = 5
 cloud_sql_deletion_protection = false
 domain                        = "dev.robopipe.io"
 api_domain                    = "api.dev.robopipe.io"
+sendgrid_from_email           = "info@dev.robopipe.io"
 cloud_sql_authorized_networks = [
   { name = "office", value = "213.151.81.18/32" }
 ]
