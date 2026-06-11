@@ -344,10 +344,10 @@ export const LabelPage = () => {
           }
           if (added.some((a) => a.labelId !== isolatedLabelId)) {
             setIsolatedLabelId(null);
+            setHiddenAnnotationIds(new Set());
           }
         }
       }
-      setHiddenAnnotationIds((prev) => {prev.delete(id); return new Set(prev)});
       handleSelect(id, opts);
     },
     [
