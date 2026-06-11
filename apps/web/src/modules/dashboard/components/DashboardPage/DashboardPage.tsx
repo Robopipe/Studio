@@ -295,7 +295,9 @@ export const DashboardPage = ({
                   disabled={!dashboardUrl}
                   onClick={() => {
                     if (!dashboardUrl) return;
-                    navigator.clipboard.writeText(dashboardUrl).then(() => {
+                    const url = new URL(dashboardUrl);
+                    url.search = "";
+                    navigator.clipboard.writeText(url.toString()).then(() => {
                       toast.success("Dashboard link copied to clipboard");
                     });
                   }}
