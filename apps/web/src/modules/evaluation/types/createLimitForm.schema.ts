@@ -7,16 +7,21 @@ import {
 } from "@repo/schema";
 import { z } from "zod";
 
-const limitItemFormSchema = z.object({
-  id: z.string().nullable(),
-  limitFrom: z.number().nullable(),
-  limitTo: z.number().nullable(),
-  parameter: z.enum(EvalLimitItemParameterEnum),
-  operator: z.enum(EvalLimitItemOperatorEnum),
-  quantifierType: z.enum(EvalLimitItemQuantifierTypeEnum),
-  quantifierUnit: z.enum(EvalLimitItemQuantifierUnitEnum),
-  quantifierValue: z.number(),
-});
+const limitItemFormSchema = z
+  .object({
+    id: z.string().nullable(),
+    limitFrom: z.number().nullable(),
+    limitTo: z.number().nullable(),
+    parameter: z.enum(EvalLimitItemParameterEnum),
+    operator: z.enum(EvalLimitItemOperatorEnum),
+    quantifierType: z.enum(EvalLimitItemQuantifierTypeEnum),
+    quantifierUnit: z.enum(EvalLimitItemQuantifierUnitEnum),
+    quantifierValue: z.number(),
+  })
+  .refine((item) => item.limitFrom !== null || item.limitTo !== null, {
+    message: "At least one of From or To must be set",
+    path: ["limitFrom"],
+  });
 
 export const createLimitFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
