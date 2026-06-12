@@ -103,7 +103,7 @@ export const SensorConfig = ({
       ...draft,
       width: option.width,
       height: option.height,
-      fps: option.max_fps,
+      fps: Math.round((option.max_fps + option.min_fps) / 4),
     });
   };
 
