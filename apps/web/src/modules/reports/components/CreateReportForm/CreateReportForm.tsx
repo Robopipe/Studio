@@ -1,7 +1,7 @@
 import { Button } from "@/modules/shadcn/ui/button";
 import { Input } from "@/modules/shadcn/ui/input";
 import { Label } from "@/modules/shadcn/ui/label";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 export interface CreateReportFormProps {
@@ -32,19 +32,27 @@ export const CreateReportForm = ({
   onSubmit,
   isSubmitting = false,
 }: CreateReportFormProps) => {
-  const { startOfToday, now } = useMemo(() => {
-    const now = new Date();
-    return {
-      startOfToday: formatLocalDateTime(
-        new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0),
-      ),
-      now: formatLocalDateTime(now),
+  const [nowDate, setNowDate] = useState(() => new Date());
+
+  useEffect(() => {
+    const msToNextMinute = 60_000 - (Date.now() % 60_000);
+    let interval: ReturnType<typeof setInterval>;
+    const timeout = setTimeout(() => {
+      setNowDate(new Date());
+      interval = setInterval(() => setNowDate(new Date()), 60_000);
+    }, msToNextMinute);
+    return () => {
+      clearTimeout(timeout);
+      clearInterval(interval);
     };
   }, []);
-  const maxAllowed = now;
 
-  const [start, setStart] = useState(startOfToday);
-  const [end, setEnd] = useState(now);
+  const maxAllowed = formatLocalDateTime(nowDate);
+
+  const [start, setStart] = useState(() => formatLocalDateTime(
+    new Date(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate(), 0, 0),
+  ));
+  const [end, setEnd] = useState(() => formatLocalDateTime(nowDate));
   const startRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLInputElement>(null);
 
@@ -58,11 +66,13 @@ export const CreateReportForm = ({
       toast.error("Please provide both date and time");
       return;
     }
-    if (start && start > maxAllowed) {
+    const submitNow = new Date();
+    const submitMax = formatLocalDateTime(submitNow);
+    if (start && start > submitMax) {
       toast.error("Start cannot be in the future");
       return;
     }
-    if (end && end > maxAllowed) {
+    if (end && end > submitMax) {
       toast.error("End cannot be in the future");
       return;
     }
@@ -73,8 +83,11 @@ export const CreateReportForm = ({
 
     try {
       await onSubmit({ start: toUtcIsoOrNull(start), end: toUtcIsoOrNull(end) });
-      setStart(startOfToday);
-      setEnd(now);
+      const resetNow = new Date();
+      setStart(formatLocalDateTime(
+        new Date(resetNow.getFullYear(), resetNow.getMonth(), resetNow.getDate(), 0, 0),
+      ));
+      setEnd(formatLocalDateTime(resetNow));
     } catch {
       // parent surfaces the error; keep the user's input so they can retry
     }
