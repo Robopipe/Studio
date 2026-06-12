@@ -1,4 +1,3 @@
-import { useCallback, useEffect, useRef, useState } from "react";
 import { AnnotateIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import {
@@ -14,6 +13,7 @@ import {
 } from "@/modules/shadcn/ui/tabs";
 import { Label } from "@repo/schema";
 import { AlertTriangle, Eye, EyeOff, GripVertical, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useDraggableList } from "../../hooks/useDraggableList";
 import { Annotation, HistoryEntry } from "../../types/annotations";
 import { AnnotationHistoryTab } from "../AnnotationHistoryTab/AnnotationHistoryTab";
@@ -33,7 +33,7 @@ export interface AnnotationPanelProps {
   onToggleAllAnnotationsVisibility: () => void;
   isolatedLabelId: string | null;
   onIsolateLabel: (labelId: string) => void;
-  onClearIsolate: () => void;
+  onClearIsolate: (showHidden?: boolean) => void;
   historyEntries: HistoryEntry[];
   historyIndex: number;
   onJumpTo: (index: number) => void;
@@ -80,7 +80,10 @@ export const AnnotationPanel = ({
   const updateClassesGradient = useCallback(() => {
     const el = classesScrollRef.current;
     if (!el) return;
-    setShowClassesGradient(el.scrollHeight > el.clientHeight && el.scrollTop + el.clientHeight < el.scrollHeight - 1);
+    setShowClassesGradient(
+      el.scrollHeight > el.clientHeight &&
+        el.scrollTop + el.clientHeight < el.scrollHeight - 1,
+    );
   }, []);
 
   useEffect(() => {
@@ -97,20 +100,27 @@ export const AnnotationPanel = ({
         <TabsTrigger value="history">History</TabsTrigger>
       </TabsList>
 
-      <TabsContent value="labels" className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <TabsContent
+        value="labels"
+        className="flex min-h-0 flex-1 flex-col overflow-hidden"
+      >
         <div className="relative flex max-h-[33.333%] min-h-0 shrink-0 flex-col px-4 pt-4">
           <Collapsible defaultOpen={true} className="flex min-h-0 flex-col">
             <CollapsibleTrigger className="shrink-0 py-0 text-[10px] font-bold uppercase tracking-[1px] text-foreground/90 hover:text-foreground/90">
               Classes
             </CollapsibleTrigger>
             <CollapsiblePanel className="flex min-h-0 flex-col pt-1">
-              <div ref={classesScrollRef} onScroll={updateClassesGradient} className="flex flex-col gap-1 overflow-y-auto pb-4 [scrollbar-color:rgba(0,0,0,0.15)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb:hover]:bg-black/25 [&::-webkit-scrollbar-thumb]:rounded-[3px] [&::-webkit-scrollbar-thumb]:bg-black/15 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-1.5">
+              <div
+                ref={classesScrollRef}
+                onScroll={updateClassesGradient}
+                className="flex flex-col gap-1 overflow-y-auto pb-4 [scrollbar-color:rgba(0,0,0,0.15)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb:hover]:bg-black/25 [&::-webkit-scrollbar-thumb]:rounded-[3px] [&::-webkit-scrollbar-thumb]:bg-black/15 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-1.5"
+              >
                 <ClassRow
                   icon={<AnnotateIcon className="size-4 text-foreground/60" />}
                   name="Any"
                   count={annotations.length}
                   isActive={isolatedLabelId === null}
-                  onClick={onClearIsolate}
+                  onClick={() => onClearIsolate(true)}
                 />
                 {classCounts.map((cls) => {
                   const id = String(cls.id);
@@ -136,7 +146,12 @@ export const AnnotationPanel = ({
               </div>
             </CollapsiblePanel>
           </Collapsible>
-            <div className={"pointer-events-none absolute inset-x-0 bottom-0 h-1/4 bg-linear-to-t from-white to-transparent transition-opacity " + (showClassesGradient ? "opacity-100" : "opacity-0")} />
+          <div
+            className={
+              "pointer-events-none absolute inset-x-0 bottom-0 h-1/4 bg-linear-to-t from-white to-transparent transition-opacity " +
+              (showClassesGradient ? "opacity-100" : "opacity-0")
+            }
+          />
         </div>
 
         <section className="flex min-h-0 flex-1 flex-col gap-2 border-t border-border p-4 pt-2">
