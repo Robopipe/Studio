@@ -9,7 +9,7 @@ import {
 } from "@/core/cameraApi";
 import { Button } from "@/modules/shadcn/ui/button";
 import { Skeleton } from "@/modules/shadcn/ui/skeleton";
-import { ChevronDown, RotateCcw, X } from "lucide-react";
+import { ChevronDown, ChevronUp, RotateCcw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useDebounceCallback } from "usehooks-ts";
 
@@ -97,13 +97,9 @@ export const ImageProfile = ({
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-[10px] font-bold uppercase tracking-[1px] text-foreground/90">
-        Image Profile
-      </p>
-
       <div className="flex flex-col gap-3 rounded-xl border border-black/5 bg-black/3 px-5 py-4">
         <div className="flex items-center justify-between">
-          <p className="text-base font-medium leading-6 text-foreground">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-black">
             Profile setup
           </p>
           <div className="flex items-center gap-1">
@@ -127,7 +123,7 @@ export const ImageProfile = ({
               {isCollapsed ? (
                 <ChevronDown className="size-4" />
               ) : (
-                <X className="size-4" />
+                <ChevronUp className="size-4" />
               )}
             </Button>
           </div>
@@ -151,9 +147,14 @@ export const ImageProfile = ({
                       value={control.auto_exposure_compensation}
                       min={capabilities.auto_exposure_compensation.min}
                       max={capabilities.auto_exposure_compensation.max}
-                      step={capabilities.auto_exposure_compensation.step ?? undefined}
+                      step={
+                        capabilities.auto_exposure_compensation.step ??
+                        undefined
+                      }
                       disabled={!control.auto_exposure_enable}
-                      onValueChange={(v) => onChange("auto_exposure_compensation", v)}
+                      onValueChange={(v) =>
+                        onChange("auto_exposure_compensation", v)
+                      }
                     />
                     <NumericParameter
                       label="Auto exposure limit"
@@ -318,7 +319,6 @@ export const ImageProfile = ({
                           )}
                         </>
                       )}
-
                   </div>
                 </div>
               </>
