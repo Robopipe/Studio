@@ -11,7 +11,13 @@ import {
   useGetProjectLabelsQuery,
   useUpdatePreAnnotateSettingsMutation,
 } from "@/modules/project/services/projectApi";
-import { Label, OrgMemberRoleEnum, PRE_ANNOTATE_DEFAULTS, PreAnnotateModelTypeEnum, PreAnnotateSettings } from "@repo/schema";
+import {
+  Label,
+  OrgMemberRoleEnum,
+  PRE_ANNOTATE_DEFAULTS,
+  PreAnnotateModelTypeEnum,
+  PreAnnotateSettings,
+} from "@repo/schema";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useAnnotationNudge } from "../../hooks/useAnnotationNudge";
@@ -127,10 +133,14 @@ export const LabelPage = () => {
   );
 
   const [preAnnotateOpen, setPreAnnotateOpen] = useState(false);
-  const [updatePreAnnotateSettingsMutation, { isLoading: isSavingPreAnnotateSettings }] =
-    useUpdatePreAnnotateSettingsMutation();
-  const [deletePreAnnotateSettingsMutation, { isLoading: isDeletingPreAnnotateSettings }] =
-    useDeletePreAnnotateSettingsMutation();
+  const [
+    updatePreAnnotateSettingsMutation,
+    { isLoading: isSavingPreAnnotateSettings },
+  ] = useUpdatePreAnnotateSettingsMutation();
+  const [
+    deletePreAnnotateSettingsMutation,
+    { isLoading: isDeletingPreAnnotateSettings },
+  ] = useDeletePreAnnotateSettingsMutation();
 
   // Only segmentation pre-annotation is supported today.
   const activeModelType = PreAnnotateModelTypeEnum.SEGMENTATION;
@@ -200,7 +210,10 @@ export const LabelPage = () => {
   }, []);
   const canvasRef = useRef<CanvasHandle>(null);
   const handleResetView = useCallback(() => canvasRef.current?.resetView(), []);
-  const imageDimsRef = useRef<{ width: number; height: number }>({ width: 0, height: 0 });
+  const imageDimsRef = useRef<{ width: number; height: number }>({
+    width: 0,
+    height: 0,
+  });
   const prevTaskIdRef = useRef<number | null>(null);
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [isDirty, setIsDirty] = useState(false);
@@ -217,12 +230,17 @@ export const LabelPage = () => {
   const [hiddenAnnotationIds, setHiddenAnnotationIds] = useState<Set<string>>(
     () => new Set(),
   );
-  const isolateAnnotation = useCallback((id: string | null) => {
-    setIsolatedLabelId(null);
-    setHiddenAnnotationIds(
-      id ? new Set(annotations.filter((a) => a.id !== id).map((a) => a.id)) : new Set(),
-    );
-  }, [annotations]);
+  const isolateAnnotation = useCallback(
+    (id: string | null) => {
+      setIsolatedLabelId(null);
+      setHiddenAnnotationIds(
+        id
+          ? new Set(annotations.filter((a) => a.id !== id).map((a) => a.id))
+          : new Set(),
+      );
+    },
+    [annotations],
+  );
   // Transient "h"-hold overlay; does not mutate hiddenAnnotationIds so the
   // per-annotation eye toggles are restored exactly on release.
   const [previewHideAll, setPreviewHideAll] = useState(false);
@@ -234,7 +252,11 @@ export const LabelPage = () => {
   const setIsolatedLabel = useCallback(
     (labelId: string) => {
       setIsolatedLabelId(labelId);
-      setHiddenAnnotationIds(new Set(annotations.filter((a) => a.labelId !== labelId).map((a) => a.id)));
+      setHiddenAnnotationIds(
+        new Set(
+          annotations.filter((a) => a.labelId !== labelId).map((a) => a.id),
+        ),
+      );
       // Only update the drawing label when no region is selected. With an
       // active selection the unanimity effect owns activeLabel and would
       // immediately override this, causing a visible flicker.
@@ -245,7 +267,15 @@ export const LabelPage = () => {
     },
     [labels, selectedAnnotationIds],
   );
-  const clearIsolatedLabel = useCallback(() => setIsolatedLabelId(null), []);
+  const clearIsolatedLabel = useCallback(
+    (showHidden: boolean = false) => {
+      setIsolatedLabelId(null);
+      if (showHidden) {
+        setHiddenAnnotationIds(new Set());
+      }
+    },
+    [setHiddenAnnotationIds],
+  );
   const toggleAllAnnotationsVisibility = useCallback(() => {
     if (hiddenAnnotationIds.size === 0) {
       setHiddenAnnotationIds(new Set(annotations.map((a) => a.id)));
@@ -253,18 +283,26 @@ export const LabelPage = () => {
       setHiddenAnnotationIds(new Set());
       clearIsolatedLabel();
     }
-  }, [annotations, hiddenAnnotationIds, setHiddenAnnotationIds, clearIsolatedLabel]);
-  const toggleAnnotationVisibility = useCallback((id: string) => {
-    setHiddenAnnotationIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-    if (isolatedLabelId !== annotations.find((a) => a.id === id)?.labelId) {
-      clearIsolatedLabel();
-    }
-  }, [isolatedLabelId, annotations, clearIsolatedLabel]);
+  }, [
+    annotations,
+    hiddenAnnotationIds,
+    setHiddenAnnotationIds,
+    clearIsolatedLabel,
+  ]);
+  const toggleAnnotationVisibility = useCallback(
+    (id: string) => {
+      setHiddenAnnotationIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+      });
+      if (isolatedLabelId !== annotations.find((a) => a.id === id)?.labelId) {
+        clearIsolatedLabel();
+      }
+    },
+    [isolatedLabelId, annotations, clearIsolatedLabel],
+  );
   const [activeLabel, setActiveLabel] = useState<Label | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const canvasState = useCanvasState();
@@ -703,8 +741,13 @@ export const LabelPage = () => {
 
   const isolatedAnnotationId = useMemo(() => {
     if (isolatedLabelId !== null) return null;
-    if (hiddenAnnotationIds.size === annotations.length - 1 && annotations.length > 0) {
-      return annotations.find((a) => !hiddenAnnotationIds.has(a.id))?.id ?? null;
+    if (
+      hiddenAnnotationIds.size === annotations.length - 1 &&
+      annotations.length > 0
+    ) {
+      return (
+        annotations.find((a) => !hiddenAnnotationIds.has(a.id))?.id ?? null
+      );
     }
     return null;
   }, [hiddenAnnotationIds, annotations, isolatedLabelId]);
@@ -808,7 +851,9 @@ export const LabelPage = () => {
           onZoomAtPoint={canvasState.zoomAtPoint}
           onSetPosition={canvasState.setPosition}
           onFitImage={canvasState.fitImage}
-          onImageLoad={(w, h) => { imageDimsRef.current = { width: w, height: h }; }}
+          onImageLoad={(w, h) => {
+            imageDimsRef.current = { width: w, height: h };
+          }}
         />
         <div
           className={cn(
