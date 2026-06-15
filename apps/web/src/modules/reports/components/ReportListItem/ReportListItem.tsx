@@ -4,8 +4,10 @@ import type {
   ReportStatus,
 } from "@/core/cameraApi/schemas/report";
 import { Badge } from "@/modules/shadcn/ui/badge";
-import { Button } from "@/modules/shadcn/ui/button";
+import { Button, buttonVariants } from "@/modules/shadcn/ui/button";
 import { Download, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 const STATUS_STYLES: Record<ReportStatus, { label: string; className: string }> =
   {
@@ -18,9 +20,13 @@ const STATUS_STYLES: Record<ReportStatus, { label: string; className: string }> 
     failed: { label: "Failed", className: "bg-red-100 text-red-600" },
   };
 
+const HAS_TZ = /(Z|[+-]\d{2}:?\d{2})$/;
+const parseAsUtc = (value: string): Date =>
+  new Date(HAS_TZ.test(value) ? value : `${value}Z`);
+
 const formatDateTime = (value: string | null | undefined): string => {
   if (!value) return "—";
-  const date = new Date(value);
+  const date = parseAsUtc(value);
   if (Number.isNaN(date.getTime())) return "—";
   return date.toLocaleString("en-US", {
     month: "short",
@@ -33,22 +39,37 @@ const formatDateTime = (value: string | null | undefined): string => {
 
 export interface ReportListItemProps {
   report: DashboardReportSummary;
-  onDownload: () => void;
+  cameraApiUrl: string;
+  dashboardId: number;
   onDelete: () => void;
-  isDownloading?: boolean;
   isDeleting?: boolean;
 }
 
 export const ReportListItem = ({
   report,
-  onDownload,
+  cameraApiUrl,
+  dashboardId,
   onDelete,
-  isDownloading = false,
   isDeleting = false,
 }: ReportListItemProps) => {
   const status = STATUS_STYLES[report.status];
   const hasFilter = report.filter_start || report.filter_end;
   const canDownload = report.status === "completed";
+  const [cooldown, setCooldown] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current !== null) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  const handleDownloadClick = () => {
+    if (cooldown) return;
+    setCooldown(true);
+    toast.success("Download started");
+    timerRef.current = setTimeout(() => setCooldown(false), 3000);
+  };
 
   return (
     <div className="flex flex-row items-start justify-between gap-4 rounded-md border border-black/10 bg-white p-4">
@@ -81,14 +102,18 @@ export const ReportListItem = ({
       </div>
       <div className="flex shrink-0 flex-row gap-2">
         {canDownload && (
-          <Button
-            size="sm"
-            onClick={onDownload}
-            disabled={isDownloading}
+          <a
+            href={`${cameraApiUrl}/dashboard/${dashboardId}/report/${report.id}`}
+            onClick={handleDownloadClick}
+            className={cn(
+              buttonVariants({ size: "sm" }),
+              cooldown && "pointer-events-none opacity-50",
+            )}
+            aria-disabled={cooldown}
           >
             <Download className="size-4" />
-            {isDownloading ? "Downloading…" : "Download"}
-          </Button>
+            Download
+          </a>
         )}
         <Button
           size="sm"

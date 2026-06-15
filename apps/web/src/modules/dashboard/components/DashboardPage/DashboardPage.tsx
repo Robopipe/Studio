@@ -269,7 +269,7 @@ export const DashboardPage = ({
                 <div className="flex flex-row items-center gap-6">
                   {(
                     [
-                      { key: "custom", label: "Custom dashboard" },
+                      { key: "custom", label: "Dashboard" },
                       { key: "test-cases", label: "Test cases" },
                       { key: "evaluation", label: "Evaluation" },
                       { key: "reports", label: "Reports" },
@@ -295,7 +295,9 @@ export const DashboardPage = ({
                   disabled={!dashboardUrl}
                   onClick={() => {
                     if (!dashboardUrl) return;
-                    navigator.clipboard.writeText(dashboardUrl).then(() => {
+                    const url = new URL(dashboardUrl);
+                    url.search = "";
+                    navigator.clipboard.writeText(url.toString()).then(() => {
                       toast.success("Dashboard link copied to clipboard");
                     });
                   }}

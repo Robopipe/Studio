@@ -455,6 +455,8 @@ export const useRunDeploy = ({
           quantifierType: item.quantifierType,
           quantifierUnit: item.quantifierUnit,
           quantifierValue: item.quantifierValue,
+          targetEdge: item.targetEdge,
+          parentEdge: item.parentEdge,
         })),
       })),
       logicNodes: tc.logicNodes,

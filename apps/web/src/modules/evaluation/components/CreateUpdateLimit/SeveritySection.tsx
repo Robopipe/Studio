@@ -13,13 +13,9 @@ export function SeveritySection() {
 
   return (
     <section className="flex flex-col gap-3">
+      <h6 className="text-sm font-bold">If not fulfilled</h6>
       <form.AppField name="severity">
-        {() => (
-          <ToggleGroupField
-            label="If not fulfilled"
-            options={[...severityOptions]}
-          />
-        )}
+        {() => <ToggleGroupField options={[...severityOptions]} />}
       </form.AppField>
     </section>
   );

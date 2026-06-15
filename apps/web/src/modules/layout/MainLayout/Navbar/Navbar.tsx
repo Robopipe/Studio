@@ -114,8 +114,14 @@ export const Navbar = () => {
                   id: p.id,
                   label: p.name,
                   onClick: () => {
+                    const rest = match?.params["*"] ?? "";
+                    const section = rest.split("/")[0];
                     setActiveProject(p);
-                    navigate(`/projects/${p.id}/label`);
+                    navigate(
+                      section
+                        ? `/projects/${p.id}/${section}`
+                        : `/projects/${p.id}`,
+                    );
                   },
                 })) ?? []
               }

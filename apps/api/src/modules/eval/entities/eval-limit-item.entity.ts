@@ -1,4 +1,4 @@
-import { EvalLimitItem, EvalLimitItemOperatorEnum, EvalLimitItemParameterEnum, EvalLimitItemQuantifierTypeEnum, EvalLimitItemQuantifierUnitEnum } from "@repo/schema";
+import { EvalLimitItem, EvalLimitItemEdgeEnum, EvalLimitItemOperatorEnum, EvalLimitItemParameterEnum, EvalLimitItemQuantifierTypeEnum, EvalLimitItemQuantifierUnitEnum } from "@repo/schema";
 import { EvalLimitItemSelect } from "src/repository/types/eval";
 
 export class EvalLimitItemEntity {
@@ -10,6 +10,8 @@ export class EvalLimitItemEntity {
   readonly quantifierType: EvalLimitItemQuantifierTypeEnum;
   readonly quantifierUnit: EvalLimitItemQuantifierUnitEnum;
   readonly quantifierValue: number;
+  readonly targetEdge: EvalLimitItemEdgeEnum;
+  readonly parentEdge: EvalLimitItemEdgeEnum;
   readonly limitId: string;
   readonly position: number;
   readonly createdAt: Date;
@@ -26,6 +28,8 @@ export class EvalLimitItemEntity {
     this.quantifierType = data.quantifierType;
     this.quantifierUnit = data.quantifierUnit;
     this.quantifierValue = data.quantifierValue;
+    this.targetEdge = data.targetEdge;
+    this.parentEdge = data.parentEdge;
     this.position = data.position;
     this.limitId = data.limitId;
     this.createdAt = data.createdAt;
@@ -42,6 +46,8 @@ export class EvalLimitItemEntity {
       quantifierType: this.quantifierType,
       quantifierUnit: this.quantifierUnit,
       quantifierValue: this.quantifierValue,
+      targetEdge: this.targetEdge,
+      parentEdge: this.parentEdge,
       updatedAt: this.updatedAt.toISOString(),
       createdAt: this.createdAt.toISOString()
     }

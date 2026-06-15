@@ -4,7 +4,6 @@ import { pickDisplayCropRows } from "@/modules/camera-stream/utils/decodeTimesta
 import { useWebRTCStream } from "@/modules/capture/hooks/useWebRTCStream";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import { useState } from "react";
-import { useDetections } from "../../hooks/useDetections";
 import { useSyncedRenderer } from "../../hooks/useSyncedRenderer";
 
 export interface LiveInferenceProps {
@@ -41,11 +40,6 @@ export const LiveInference = ({
     modelId,
     enabled: hasNN,
   });
-  const { isConnected } = useDetections({
-    selectedMxid: selectedCamera,
-    selectedSensorName: selectedStream,
-    enabled: hasNN && !!nnInfo,
-  });
 
   const [videoSourceSize, setVideoSourceSize] = useState<{
     width: number;
@@ -75,7 +69,6 @@ export const LiveInference = ({
         {isStreaming && (
           <StreamStatusBadge variant={isReplay ? "replay" : "live"} />
         )}
-        {hasNN && isConnected && <StreamStatusBadge variant="sync" />}
       </div>
 
       {hasNN ? (

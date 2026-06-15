@@ -1,8 +1,7 @@
 import { EvalLimit } from "@repo/schema";
 import { GripHorizontalIcon } from "lucide-react";
 import { useLogicBuilderContext } from "./LogicBuilderContext";
-
-const DRAG_DATA_KEY = "application/logic-limit-id";
+import { DRAG_DATA_KEY } from "./LogicNodeList";
 
 function DraggableLimitCard({ limit }: { limit: EvalLimit }) {
   const handleDragStart = (e: React.DragEvent) => {

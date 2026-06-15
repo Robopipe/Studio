@@ -2,7 +2,7 @@ import * as p from 'drizzle-orm/pg-core'
 import { check } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 import { createdAt, updatedAt, uuidId } from '../helpers'
-import { EvalLimitItemOperatorEnum, EvalLimitItemParameterEnum, EvalLimitItemQuantifierTypeEnum, EvalLimitItemQuantifierUnitEnum, EvalLogicNode, EvalSeverityEnum, EvalTestCaseTypeEnum } from '@repo/schema'
+import { EvalLimitItemEdgeEnum, EvalLimitItemOperatorEnum, EvalLimitItemParameterEnum, EvalLimitItemQuantifierTypeEnum, EvalLimitItemQuantifierUnitEnum, EvalLogicNode, EvalSeverityEnum, EvalTestCaseTypeEnum } from '@repo/schema'
 import { dashboardConfigurationTable } from './dashboard-configuration'
 import { projectLabelTable } from './project-label'
 import { projectTable } from './project'
@@ -11,11 +11,15 @@ import { projectTable } from './project'
 export const evalLimitItemParameterEnum = p.pgEnum("eval_limit_item_parameter_enum", [
   EvalLimitItemParameterEnum.AREA,
   EvalLimitItemParameterEnum.COUNT,
-  EvalLimitItemParameterEnum.POS_BOTTOM,
-  EvalLimitItemParameterEnum.POS_CENTER,
-  EvalLimitItemParameterEnum.POS_LEFT,
-  EvalLimitItemParameterEnum.POS_RIGHT,
-  EvalLimitItemParameterEnum.POS_TOP,
+  EvalLimitItemParameterEnum.POSITION,
+])
+
+export const evalLimitItemEdgeEnum = p.pgEnum("eval_limit_item_edge_enum", [
+  EvalLimitItemEdgeEnum.LEFT,
+  EvalLimitItemEdgeEnum.RIGHT,
+  EvalLimitItemEdgeEnum.TOP,
+  EvalLimitItemEdgeEnum.BOTTOM,
+  EvalLimitItemEdgeEnum.CENTER,
 ])
 
 export const evalLimitItemOperatorEnum = p.pgEnum("eval_limit_item_operator_enum", [
@@ -54,6 +58,8 @@ export const evalLimitItemTable = p.pgTable("eval_limit_item", {
   quantifierType: evalLimitItemQuantifierTypeEnum("quantifier_type").notNull(),
   quantifierUnit: evalLimitItemQuantifierUnitEnum("quantifier_unit").notNull(),
   quantifierValue: p.doublePrecision("quantifier_value").notNull(),
+  targetEdge: evalLimitItemEdgeEnum("target_edge").notNull().default(EvalLimitItemEdgeEnum.CENTER),
+  parentEdge: evalLimitItemEdgeEnum("parent_edge").notNull().default(EvalLimitItemEdgeEnum.CENTER),
   limitId: p.varchar("limit_id", {length: 128}).notNull().references(() => evalLimitTable.id, {onDelete: 'cascade'}),
   createdAt,
   updatedAt
