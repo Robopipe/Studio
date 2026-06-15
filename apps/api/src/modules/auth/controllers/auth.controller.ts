@@ -200,7 +200,7 @@ export class AuthController {
   refresh(
     @Cookie({ name: 'refreshToken', signed: true }) refreshToken: string | undefined,
     @Res({ passthrough: true }) res: Response,
-  ): Promise<Token> {
+  ): Promise<Token | PreAuthToken> {
     if (!refreshToken) {
       throw new UnauthorizedException('No refresh token cookie');
     }
