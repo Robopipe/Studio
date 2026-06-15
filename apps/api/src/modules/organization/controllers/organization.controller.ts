@@ -1,10 +1,16 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Res, UseGuards } from '@nestjs/common';
+import type { PreAuthToken } from '@repo/schema';
+import type { Invitation, OrganizationMembersResponse } from '@repo/schema';
+import { OrgMemberRoleEnum } from '@repo/schema';
+import type { Response } from 'express';
 import { InviteUserDto } from 'src/modules/auth/dto/auth.dto';
 import { AdminGuard } from 'src/modules/auth/guards/admin.guard';
+import { Roles } from 'src/modules/auth/decorators/roles.decorator';
+import { RolesGuard } from 'src/modules/auth/guards/roles.guard';
 import { User } from 'src/modules/auth/decorators/user.decorator';
+import { AuthService } from 'src/modules/auth/services/auth.service';
 import type { SessionUser } from 'src/modules/auth/strategies/jwt.strategy';
 import { OrganizationService } from '../services/organization.service';
-import type { Invitation, OrganizationMembersResponse } from '@repo/schema';
 import {
   OrganizationResponse,
   OrganizationUpdateRequest,
@@ -13,7 +19,10 @@ import {
 
 @Controller("organizations")
 export class OrganizationController {
-  constructor(private readonly organizationService: OrganizationService) {}
+  constructor(
+    private readonly organizationService: OrganizationService,
+    private readonly authService: AuthService,
+  ) {}
 
   /**
    * @param organizationId - from session JWT
@@ -26,6 +35,23 @@ export class OrganizationController {
     const organization =
       await this.organizationService.getOrganization(organizationId);
     return organization.toDto();
+  }
+
+  /**
+   * Delete the current organization. Only OWNER may perform this action.
+   * Soft-deletes the org and returns a pre-auth token so the owner's session
+   * gracefully drops to org-selection.
+   */
+  @Delete("current")
+  @UseGuards(RolesGuard)
+  @Roles(OrgMemberRoleEnum.OWNER)
+  public async delete(
+    @User("id") userId: number,
+    @User("organizationId") organizationId: number,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<PreAuthToken> {
+    await this.organizationService.delete(organizationId);
+    return this.authService.issuePreAuthAfterOrgDeletion(userId, res);
   }
 
   /**

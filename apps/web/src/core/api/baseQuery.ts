@@ -5,8 +5,8 @@ import {
   fetchBaseQuery,
   FetchBaseQueryError,
 } from "@reduxjs/toolkit/query";
-import { Token } from "@repo/schema";
-import { clearCredentials, setCredentials } from "../auth/services/authActions";
+import { PreAuthToken, Token } from "@repo/schema";
+import { clearCredentials, setCredentials, setPreAuthCredentials } from "../auth/services/authActions";
 import { ACCESS_TOKEN_KEY } from "./constants";
 
 export const baseQuery = fetchBaseQuery({
@@ -47,7 +47,12 @@ export const baseRefreshingQuery: BaseQueryFn<
           extraOptions,
         );
         if (refreshResult.data) {
-          api.dispatch(setCredentials(refreshResult.data as Token));
+          const data = refreshResult.data as Token | PreAuthToken;
+          if ('organization' in data) {
+            api.dispatch(setCredentials(data as Token));
+          } else {
+            api.dispatch(setPreAuthCredentials(data as PreAuthToken));
+          }
           return true;
         } else {
           api.dispatch(clearCredentials());
