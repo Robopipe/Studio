@@ -4,8 +4,13 @@ import { PlusIcon } from "lucide-react";
 import { emptyLimitItem, limitFormOptions } from "./limitForm.options";
 import { LimitItemRow } from "./LimitItemRow";
 import { LogicalOperatorSelect } from "./LogicalOperatorSelect";
+import type { LabelOption } from "./types";
 
-export function LimitsSection() {
+type LimitsSectionProps = {
+  labelOptions: LabelOption[];
+};
+
+export function LimitsSection({ labelOptions }: LimitsSectionProps) {
   const form = useTypedAppFormContext({ ...limitFormOptions });
 
   return (
@@ -35,7 +40,7 @@ export function LimitsSection() {
 
       <form.AppField name="limitItems">
         {(field) => (
-          <div className="-mr-2 flex max-h-[40vh] flex-col gap-3 overflow-y-auto pr-2">
+          <div className="flex flex-col gap-3">
             {field.state.value.map((_, i) => (
               <div key={i} className="flex flex-col gap-1">
                 {i > 0 && (
@@ -45,6 +50,7 @@ export function LimitsSection() {
                 )}
                 <LimitItemRow
                   index={i}
+                  labelOptions={labelOptions}
                   onDelete={() => {
                     const updated = field.state.value.filter(
                       (_, idx) => idx !== i,

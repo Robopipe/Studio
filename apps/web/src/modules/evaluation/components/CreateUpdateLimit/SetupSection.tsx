@@ -32,7 +32,7 @@ export function SetupSection({ labelOptions }: SetupSectionProps) {
             {(field) => (
               <field.Combobox
                 label="Parent Label"
-                placeholder="Select label"
+                placeholder="Scene"
                 options={labelOptions}
                 deselectable
                 parseValue={(v) => Number(v)}
