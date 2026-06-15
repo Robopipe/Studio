@@ -154,6 +154,15 @@ export class OrganizationService {
   }
 
   /**
+   * Soft-deletes the organization and expires all pending invitations.
+   * @param organizationId - organization to delete
+   */
+  public async delete(organizationId: number): Promise<void> {
+    await this.organizationRepository.softDelete(organizationId);
+    await this.invitationRepository.expireAllPendingByOrganizationId(organizationId);
+  }
+
+  /**
    * Only owners can change an admin's role.
    * @param organizationId - organization context
    * @param userId - target member

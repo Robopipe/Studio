@@ -3,6 +3,7 @@ import { createSlice, isAnyOf, PayloadAction } from "@reduxjs/toolkit";
 import { PreAuthToken, Token, User } from "@repo/schema";
 import { AuthState } from "../types";
 import { authApi } from "./authApi";
+import { organizationApi } from "@/modules/account/services/organizationApi";
 
 const initialState: AuthState = {
   isAuthenticated: null,
@@ -23,6 +24,14 @@ export const authSlice = createSlice({
       state.user = payload.user;
       state.organization = payload.organization;
       state.role = payload.role;
+    },
+    setPreAuthCredentials: (state, { payload }: PayloadAction<PreAuthToken>) => {
+      sessionStorage.setItem(ACCESS_TOKEN_KEY, payload.accessToken);
+      state.isAuthenticated = true;
+      state.isPreAuth = true;
+      state.user = payload.user;
+      state.organization = null;
+      state.role = null;
     },
     clearCredentials: (state) => {
       sessionStorage.removeItem(ACCESS_TOKEN_KEY);
@@ -62,13 +71,31 @@ export const authSlice = createSlice({
       )
       .addMatcher(
         authApi.endpoints.refreshTokens.matchFulfilled,
-        (state, { payload }: PayloadAction<Token>) => {
+        (state, { payload }: PayloadAction<Token | PreAuthToken>) => {
           sessionStorage.setItem(ACCESS_TOKEN_KEY, payload.accessToken);
-          state.user = payload.user;
           state.isAuthenticated = true;
-          state.isPreAuth = false;
-          state.organization = payload.organization;
-          state.role = payload.role;
+          if ('organization' in payload) {
+            state.isPreAuth = false;
+            state.user = payload.user;
+            state.organization = payload.organization;
+            state.role = payload.role;
+          } else {
+            state.isPreAuth = true;
+            state.user = payload.user;
+            state.organization = null;
+            state.role = null;
+          }
+        },
+      )
+      .addMatcher(
+        organizationApi.endpoints.deleteOrganization.matchFulfilled,
+        (state, { payload }: PayloadAction<PreAuthToken>) => {
+          sessionStorage.setItem(ACCESS_TOKEN_KEY, payload.accessToken);
+          state.isAuthenticated = true;
+          state.isPreAuth = true;
+          state.user = payload.user;
+          state.organization = null;
+          state.role = null;
         },
       )
       .addMatcher(authApi.endpoints.refreshTokens.matchPending, (state) => {

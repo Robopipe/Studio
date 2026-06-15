@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { AppConfig } from 'src/core/configuration/app.config';
+import { OrganizationRepository } from 'src/repository/services/organization-repository.service';
 import { UserRepository } from 'src/repository/services/user-repository.service';
 
 /** Holds the authenticated user along with their current org context from the JWT */
@@ -21,6 +22,7 @@ export interface SessionUser {
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     private readonly userRepository: UserRepository,
+    private readonly organizationRepository: OrganizationRepository,
     private readonly configService: AppConfig,
   ) {
     super({
@@ -43,6 +45,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     const user = await this.userRepository.getById(payload.sub as number);
     if (!user) {
       throw new UnauthorizedException('User not found');
+    }
+
+    if (payload.orgId) {
+      const org = await this.organizationRepository.getById(payload.orgId as number);
+      if (!org) {
+        throw new UnauthorizedException('Organization not found or has been deleted');
+      }
     }
 
     return {

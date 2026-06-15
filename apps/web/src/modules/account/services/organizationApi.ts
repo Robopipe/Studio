@@ -2,7 +2,7 @@ import { appConfig } from "@/config";
 import { baseRefreshingQuery } from "@/core/api/baseQuery";
 import { HttpMethod } from "@/types";
 import { createApi } from "@reduxjs/toolkit/query/react";
-import { Invitation, InviteUser, OrganizationMember, OrganizationMembersResponse, UpdateMemberRole } from "@repo/schema";
+import { Invitation, InviteUser, OrganizationMember, OrganizationMembersResponse, PreAuthToken, UpdateMemberRole } from "@repo/schema";
 
 const { organizations } = appConfig.studioApi.endpoints;
 
@@ -82,6 +82,12 @@ export const organizationApi = organizationApiBase.injectEndpoints({
       }),
       invalidatesTags: [OrganizationApiTagType.OrganizationMembers],
     }),
+    deleteOrganization: builder.mutation<PreAuthToken, void>({
+      query: () => ({
+        url: organizations.current,
+        method: HttpMethod.DELETE,
+      }),
+    }),
   }),
   overrideExisting: true,
 });
@@ -95,4 +101,5 @@ export const {
   useUpdateMemberRoleMutation,
   useGetInvitationsQuery,
   useRevokeInvitationMutation,
+  useDeleteOrganizationMutation,
 } = organizationApi;
