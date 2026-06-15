@@ -90,7 +90,7 @@ export const authApi = authApiBase.injectEndpoints({
       }),
       invalidatesTags: ["Invitations"],
     }),
-    refreshTokens: builder.mutation<Token, void>({
+    refreshTokens: builder.mutation<Token | PreAuthToken, void>({
       queryFn: async (_, api, extraOptions) => {
         const result = await baseQuery(
           { url: auth.refreshToken, method: HttpMethod.POST },
@@ -100,7 +100,7 @@ export const authApi = authApiBase.injectEndpoints({
         if (result.error) {
           return { error: result.error as FetchBaseQueryError };
         }
-        return { data: result.data as Token };
+        return { data: result.data as Token | PreAuthToken };
       },
     }),
     logout: builder.mutation<void, void>({

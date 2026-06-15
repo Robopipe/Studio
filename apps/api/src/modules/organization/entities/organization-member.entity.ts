@@ -12,6 +12,7 @@ export class OrganizationMemberEntity {
   readonly updatedAt: Date;
   readonly user?: UserEntity;
   readonly organizationName?: string;
+  readonly organizationDeletedAt?: Date | null;
 
   constructor(data: OrganizationMemberSelect) {
     this.id = data.id;
@@ -25,6 +26,7 @@ export class OrganizationMemberEntity {
     }
     if (data.organization) {
       this.organizationName = data.organization.name;
+      this.organizationDeletedAt = data.organization.deletedAt;
     }
   }
 

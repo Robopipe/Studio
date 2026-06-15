@@ -116,7 +116,7 @@ export class AuthService {
     const memberships = await this.organizationMemberRepository.getAllByUserId(userId);
 
     return memberships
-      .filter((m) => m.organizationName)
+      .filter((m) => m.organizationName && !m.organizationDeletedAt)
       .map((m) => ({
         id: m.organizationId,
         name: m.organizationName!,
@@ -144,12 +144,14 @@ export class AuthService {
 
   /**
    * Refresh an existing session — re-validates membership and reissues the token.
+   * If the org was deleted or the membership was revoked, fails soft by returning a pre-auth token
+   * instead of throwing, so the user's browser silently drops to org-selection rather than logging out.
    * @param refreshToken - signed refresh token from cookie
    * @param res - express response for setting the new refresh cookie
-   * @returns refreshed session token
-   * @throws {UnauthorizedException} if the token is invalid, user no longer exists, or membership was revoked
+   * @returns refreshed session token, or pre-auth token when org/membership is gone
+   * @throws {UnauthorizedException} if the token is invalid or user no longer exists
    */
-  public async refreshLogin(refreshToken: string, res: Response): Promise<Token> {
+  public async refreshLogin(refreshToken: string, res: Response): Promise<Token | PreAuthToken> {
     let payload: SessionJwt;
     try {
       payload = this.jwtService.verify<SessionJwt>(refreshToken);
@@ -164,19 +166,36 @@ export class AuthService {
 
     if (payload.orgId && payload.role) {
       const org = await this.organizationRepository.getById(payload.orgId);
-      if (!org) {
-        throw new UnauthorizedException('Organization not found');
+      const membership = org
+        ? await this.organizationMemberRepository.getByUserAndOrg(user.id, payload.orgId)
+        : null;
+
+      if (org && membership) {
+        return this.issueSessionToken(user, org.id, membership.role as OrgMemberRoleEnum, org.toDto(), res);
       }
 
-      const membership = await this.organizationMemberRepository.getByUserAndOrg(user.id, payload.orgId);
-      if (!membership) {
-        throw new UnauthorizedException('No longer a member of this organization');
-      }
-
-      return this.issueSessionToken(user, org.id, membership.role as OrgMemberRoleEnum, org.toDto(), res);
+      // Org deleted or membership revoked — drop to pre-auth so the user lands on org-selection
+      this.setRefreshTokenCookie(res, '', 0);
+      return this.preAuthLogin(user);
     }
 
-    throw new UnauthorizedException('Session expired, please log in again');
+    this.setRefreshTokenCookie(res, '', 0);
+    return this.preAuthLogin(user);
+  }
+
+  /**
+   * Issues a pre-auth token after the user's org has been deleted and clears the refresh cookie.
+   * @param userId - ID of the user who performed the deletion
+   * @param res - express response for clearing the refresh cookie
+   * @returns pre-auth token
+   */
+  public async issuePreAuthAfterOrgDeletion(userId: number, res: Response): Promise<PreAuthToken> {
+    const user = await this.userRepository.getById(userId);
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+    this.setRefreshTokenCookie(res, '', 0);
+    return this.preAuthLogin(user);
   }
 
   /**
