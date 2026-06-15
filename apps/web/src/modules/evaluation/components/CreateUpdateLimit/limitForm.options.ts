@@ -1,4 +1,5 @@
 import {
+  EvalLimitItemEdgeEnum,
   EvalLimitItemOperatorEnum,
   EvalLimitItemParameterEnum,
   EvalLimitItemQuantifierTypeEnum,
@@ -20,6 +21,8 @@ export const emptyLimitItem: LimitItemFormSchema = {
   quantifierType: EvalLimitItemQuantifierTypeEnum.EXACT,
   quantifierUnit: EvalLimitItemQuantifierUnitEnum.PERCENT,
   quantifierValue: 100,
+  targetEdge: EvalLimitItemEdgeEnum.CENTER,
+  parentEdge: EvalLimitItemEdgeEnum.CENTER,
 };
 
 export const limitFormOptions = formOptions({

@@ -8,12 +8,14 @@ import {
   SelectValue,
 } from "@/modules/shadcn/ui/select";
 import {
+  EvalLimitItemEdgeEnum,
   EvalLimitItemParameterEnum,
   EvalLimitItemQuantifierTypeEnum,
   EvalLimitItemQuantifierUnitEnum,
 } from "@repo/schema";
 import { Trash2Icon } from "lucide-react";
 import {
+  edgeLabel,
   parameterLabel,
   parameterUnit,
   quantifierTypeLabel,
@@ -44,7 +46,30 @@ const quantifierUnitOptions = Object.values(
   label: quantifierUnitLabels[u],
 }));
 
-const isPositionParam = (p: string) => p.startsWith("POS_");
+const allEdgeOptions = Object.values(EvalLimitItemEdgeEnum).map((e) => ({
+  value: e,
+  label: edgeLabel[e],
+}));
+
+const horizontal = new Set([EvalLimitItemEdgeEnum.LEFT, EvalLimitItemEdgeEnum.RIGHT]);
+const vertical = new Set([EvalLimitItemEdgeEnum.TOP, EvalLimitItemEdgeEnum.BOTTOM]);
+
+function parentOptionsForTarget(targetEdge: EvalLimitItemEdgeEnum) {
+  if (horizontal.has(targetEdge)) {
+    return allEdgeOptions.filter((o) => horizontal.has(o.value as EvalLimitItemEdgeEnum) || o.value === EvalLimitItemEdgeEnum.CENTER);
+  }
+  if (vertical.has(targetEdge)) {
+    return allEdgeOptions.filter((o) => vertical.has(o.value as EvalLimitItemEdgeEnum) || o.value === EvalLimitItemEdgeEnum.CENTER);
+  }
+  return allEdgeOptions;
+}
+
+function isEdgeCompatible(targetEdge: EvalLimitItemEdgeEnum, parentEdge: EvalLimitItemEdgeEnum): boolean {
+  if (targetEdge === EvalLimitItemEdgeEnum.CENTER || parentEdge === EvalLimitItemEdgeEnum.CENTER) return true;
+  if (horizontal.has(targetEdge) && horizontal.has(parentEdge)) return true;
+  if (vertical.has(targetEdge) && vertical.has(parentEdge)) return true;
+  return false;
+}
 
 type LimitItemRowProps = {
   index: number;
@@ -61,7 +86,8 @@ export function LimitItemRow({ index, onDelete }: LimitItemRowProps) {
         const parameter = paramField.state.value as EvalLimitItemParameterEnum;
         const unit = parameterUnit[parameter] ?? "%";
         const isCount = parameter === EvalLimitItemParameterEnum.COUNT;
-        const verb = isPositionParam(String(parameter)) ? "have" : "has";
+        const isPosition = parameter === EvalLimitItemParameterEnum.POSITION;
+        const verb = isPosition ? "have" : "has";
 
         return (
           <div className="flex items-end gap-8">
@@ -163,6 +189,46 @@ export function LimitItemRow({ index, onDelete }: LimitItemRowProps) {
                 }}
               />
             </div>
+
+            {isPosition && (
+              <>
+                <span className="pb-2 text-sm text-muted-foreground">of</span>
+                <form.AppField name={`limitItems[${index}].targetEdge`}>
+                  {(targetField) => {
+                    const targetEdge = targetField.state.value as EvalLimitItemEdgeEnum;
+                    return (
+                      <>
+                        <div className="min-w-28">
+                          <targetField.SelectInput
+                            label={showLabels ? "Target" : undefined}
+                            options={allEdgeOptions}
+                            parseValue={(v) => {
+                              const newTarget = v as EvalLimitItemEdgeEnum;
+                              const currentParent = form.getFieldValue(`limitItems[${index}].parentEdge`) as EvalLimitItemEdgeEnum;
+                              if (!isEdgeCompatible(newTarget, currentParent)) {
+                                form.setFieldValue(`limitItems[${index}].parentEdge`, EvalLimitItemEdgeEnum.CENTER);
+                              }
+                              return newTarget;
+                            }}
+                          />
+                        </div>
+                        <span className="pb-2 text-sm text-muted-foreground">from</span>
+                        <form.AppField name={`limitItems[${index}].parentEdge`}>
+                          {(parentField) => (
+                            <div className="min-w-28">
+                              <parentField.SelectInput
+                                label={showLabels ? "Parent" : undefined}
+                                options={parentOptionsForTarget(targetEdge)}
+                              />
+                            </div>
+                          )}
+                        </form.AppField>
+                      </>
+                    );
+                  }}
+                </form.AppField>
+              </>
+            )}
 
             <span className="pb-2 text-sm text-muted-foreground">in</span>
 

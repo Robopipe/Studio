@@ -1,4 +1,5 @@
 import {
+  EvalLimitItemEdgeEnum,
   EvalLimitItemOperatorEnum,
   EvalLimitItemParameterEnum,
   EvalLimitItemQuantifierTypeEnum,
@@ -17,6 +18,8 @@ const limitItemFormSchema = z
     quantifierType: z.enum(EvalLimitItemQuantifierTypeEnum),
     quantifierUnit: z.enum(EvalLimitItemQuantifierUnitEnum),
     quantifierValue: z.number(),
+    targetEdge: z.enum(EvalLimitItemEdgeEnum),
+    parentEdge: z.enum(EvalLimitItemEdgeEnum),
   })
   .refine((item) => item.limitFrom !== null || item.limitTo !== null, {
     message: "At least one of From or To must be set",
