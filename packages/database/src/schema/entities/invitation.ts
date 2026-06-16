@@ -1,9 +1,10 @@
 import * as p from "drizzle-orm/pg-core";
-import { InvitationStatusEnum } from "@repo/schema";
+import { InvitationStatusEnum, OrgMemberRoleEnum } from "@repo/schema";
 import { id } from "../helpers/id";
 import { createdAt } from "../helpers/timestamps";
 import { userTable } from "./user";
 import { organizationTable } from "./organization";
+import { orgMemberRoleEnum } from "./organization-member";
 
 export const invitationStatusEnum = p.pgEnum("invitation_status_enum", [
   InvitationStatusEnum.PENDING,
@@ -23,6 +24,7 @@ export const invitationTable = p.pgTable("invitation", {
     .notNull(),
   token: p.text("token").notNull().unique(),
   status: invitationStatusEnum("status").notNull().default(InvitationStatusEnum.PENDING),
+  role: orgMemberRoleEnum("role").notNull().default(OrgMemberRoleEnum.MEMBER),
   expiresAt: p.timestamp("expires_at", { withTimezone: true }).notNull(),
   createdAt,
 });

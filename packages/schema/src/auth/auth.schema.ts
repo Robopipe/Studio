@@ -1,6 +1,6 @@
 import z from "zod";
 import { OrgMemberRoleEnum, userSchema } from "../users";
-import { organizationSchema } from "../organizations";
+import { assignableRoleEnum, organizationSchema } from "../organizations";
 
 export const loginSchema = z.object({
   email: z.email(),
@@ -61,6 +61,7 @@ export const resetPasswordSchema = z.object({
 
 export const inviteUserSchema = z.object({
   email: z.email(),
+  role: assignableRoleEnum,
 });
 
 export const createOrganizationSchema = z.object({

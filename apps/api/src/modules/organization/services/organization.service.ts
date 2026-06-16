@@ -97,7 +97,7 @@ export class OrganizationService {
    * @param invitedById - ID of the user sending the invitation
    * @throws {ConflictException} if a pending invitation already exists or the user is already a member
    */
-  public async inviteUser(organizationId: number, email: string, invitedById: number): Promise<void> {
+  public async inviteUser(organizationId: number, email: string, invitedById: number, role: OrgMemberRoleEnum): Promise<void> {
     const pendingInvitations = await this.invitationRepository.findPendingByEmail(email);
     const alreadyInvited = pendingInvitations.some((inv) => inv.organizationId === organizationId);
     if (alreadyInvited) {
@@ -120,12 +120,13 @@ export class OrganizationService {
       organizationId,
       invitedById,
       token,
+      role,
       expiresAt,
     });
 
     const org = await this.organizationRepository.getById(organizationId);
     const inviteLink = `${this.config.webHost}/${existingUser ? 'login' : 'register'}`;
-    await this.emailService.sendInvitationEmail(email, org?.name ?? 'your organization', inviteLink);
+    await this.emailService.sendInvitationEmail(email, org?.name ?? 'your organization', inviteLink, role);
   }
 
   /**

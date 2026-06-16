@@ -1,5 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import sgMail from "@sendgrid/mail";
+import { OrgMemberRoleEnum } from "@repo/schema";
 import { AppConfig } from "src/core/configuration/app.config";
 
 @Injectable()
@@ -64,10 +65,12 @@ export class EmailService {
     email: string,
     organizationName: string,
     inviteLink: string,
+    role: OrgMemberRoleEnum,
   ): Promise<void> {
+    const roleLabel = role === OrgMemberRoleEnum.ADMIN ? 'Admin' : 'Member';
     const html = `
       <h2>You've Been Invited to Robopipe Studio</h2>
-      <p>You've been invited to join <strong>${organizationName}</strong> on Robopipe Studio.</p>
+      <p>You've been invited to join <strong>${organizationName}</strong> on Robopipe Studio as a <strong>${roleLabel}</strong>.</p>
       <p>Click the link below to accept the invitation:</p>
       <p><a href="${inviteLink}">${inviteLink}</a></p>
       <p>This invitation will expire in 7 days.</p>

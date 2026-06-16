@@ -101,6 +101,7 @@ export class OrganizationController {
       user.organizationId,
       body.email,
       user.id,
+      body.role,
     );
     return { message: "Invitation sent successfully." };
   }
