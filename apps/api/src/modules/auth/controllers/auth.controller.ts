@@ -161,6 +161,7 @@ export class AuthController {
     await this.organizationMemberRepository.create({
       userId: user.id,
       organizationId: invitation.organizationId,
+      role: invitation.role,
     });
 
     await this.invitationRepository.updateStatus(id, InvitationStatusEnum.ACCEPTED);

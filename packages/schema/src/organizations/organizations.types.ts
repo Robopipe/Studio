@@ -1,5 +1,6 @@
 import z from "zod";
 import {
+  assignableRoleEnum,
   invitationSchema,
   organizationListItemSchema,
   organizationMemberSchema,
@@ -16,3 +17,4 @@ export type OrganizationMembersResponse = z.infer<typeof organizationMembersResp
 export type UpdateMemberRole = z.infer<typeof updateMemberRoleSchema>;
 export type OrganizationListItem = z.infer<typeof organizationListItemSchema>;
 export type Invitation = z.infer<typeof invitationSchema>;
+export type AssignableRole = z.infer<typeof assignableRoleEnum>;
