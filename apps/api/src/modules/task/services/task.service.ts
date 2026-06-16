@@ -188,11 +188,13 @@ export class TaskService {
           y: a.y,
           width: a.width,
           height: a.height,
+          groupId: a.groupId ?? null,
         })),
         polygonAnnotations: task.polygonAnnotations.map((a) => ({
           id: a.id,
           labelId: a.label.id,
           value: a.value,
+          groupId: a.groupId ?? null,
         })),
         classificationAnnotations: task.classificationAnnotations.map((a) => ({
           id: a.id,

@@ -10,6 +10,7 @@ export class RectangleAnnotationEntity {
   readonly y: number;
   readonly width: number;
   readonly height: number;
+  readonly groupId: string | null;
   readonly label: ProjectLabelEntity;
 
   constructor(data: RectangleAnnotationSelect) {
@@ -20,6 +21,7 @@ export class RectangleAnnotationEntity {
     this.y = data.y;
     this.width = data.width;
     this.height = data.height;
+    this.groupId = data.groupId ?? null;
     this.label = new ProjectLabelEntity(data.label);
   }
 
@@ -30,7 +32,8 @@ export class RectangleAnnotationEntity {
       y: this.y,
       width: this.width,
       height: this.height,
-      label: this.label.toResponse()
+      label: this.label.toResponse(),
+      groupId: this.groupId,
     }
   }
 }
