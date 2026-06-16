@@ -9,6 +9,7 @@ class RectangleLabel(BaseSchema):
     y: float
     width: float
     height: float
+    group_id: str | None
 
     def __get_normalized_coordinates(
         self, image_width: int, image_height: int

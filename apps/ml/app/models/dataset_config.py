@@ -5,7 +5,6 @@ from typing import Annotated, Union
 from .augmentations.augmentation import AUG_REGISTRY
 from .base_schema import BaseSchema
 
-
 _AugUnion = Annotated[
     Union[
         tuple(
@@ -25,6 +24,7 @@ class DatasetConfig(BaseSchema):
     label_ids: list[int]
     augmentations: list[_AugUnion]
     preprocessings: list[_AugUnion] = []
+    use_groups: bool
 
     @field_validator("dataset_split")
     @classmethod
