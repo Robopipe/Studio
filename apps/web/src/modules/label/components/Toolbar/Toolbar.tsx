@@ -202,7 +202,7 @@ export const Toolbar = ({
           ) : (
             <Sparkles />
           )}
-          <ChevronDown className="absolute bottom-0.5 right-0.5 !size-2.5 opacity-50" />
+          <ChevronDown className="absolute bottom-0.5 right-0.5 size-2.5! opacity-50" />
         </DropdownMenuTrigger>
         <DropdownMenuContent side="right" align="end" sideOffset={6}>
           <DropdownMenuItem
