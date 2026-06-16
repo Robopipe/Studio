@@ -54,6 +54,7 @@ export interface DuplicateModelState {
     taskPreviews?: { id: number; thumbnailUrl: string }[];
     /** Source model's dataset version — lets the new model reuse the exact same version (no duplication) when taskIds are unchanged. */
     datasetVersionId?: number | null;
+    useGroups?: boolean;
   };
 }
 
@@ -140,6 +141,9 @@ const ModelNewPageInner = () => {
   // reuses this version if taskIds are unchanged, or appends a new version
   // under the same dataset if they've been edited.
   const sourceDatasetVersionId = duplicateState?.datasetVersionId ?? undefined;
+  const [useGroups, setUseGroups] = useState<boolean>(
+    duplicateState?.useGroups ?? false,
+  );
 
   // When duplicating, we receive taskIds but no thumbnail URLs. Fetch them
   // so the Source Images card can render the preview row.
@@ -295,6 +299,7 @@ const ModelNewPageInner = () => {
 
   const saveModel = async (train = false) => {
     if (datasetError) return;
+    if (useGroups && trainingType !== ProjectTypeEnum.DETECTION) return;
     setSaveError(null);
     const trimmedName = name.trim();
     const nextNameError = trimmedName ? null : "Version name is required";
@@ -350,6 +355,7 @@ const ModelNewPageInner = () => {
         preprocessings: allPreprocessings,
         customHyperparams: parsedHyperparams,
         train,
+        useGroups,
       }).unwrap();
       navigate(`/projects/${activeProject?.id}/models/${newModel.id}`);
     } catch (err: unknown) {
@@ -428,6 +434,9 @@ const ModelNewPageInner = () => {
           selectedTaskPreviews={selectedTaskPreviews}
           onEditSelection={() => setSelectionDialogOpen(true)}
           datasetError={datasetError}
+          useGroups={useGroups}
+          setUseGroups={setUseGroups}
+          trainingType={trainingType}
         />
         <DatasetSplitSettings
           split={datasetSplit}

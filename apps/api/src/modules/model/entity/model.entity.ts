@@ -35,6 +35,7 @@ export class ModelEntity {
   readonly labels: ProjectLabelEntity[];
   readonly taskIds: number[];
   readonly datasetVersionId: number | null;
+  readonly useGroups: boolean;
   readonly augmentations: ModelAugmentationSelect[];
   readonly preprocessings: ModelPreprocessingSelect[];
   readonly createdAt: Date;
@@ -71,6 +72,7 @@ export class ModelEntity {
     this.labels = data.labels.map((label) => new ProjectLabelEntity(label));
     this.taskIds = data.taskIds ?? [];
     this.datasetVersionId = data.datasetVersionId ?? null;
+    this.useGroups = data.useGroups;
     this.augmentations = data.augmentations;
     this.preprocessings = data.preprocessings;
   }
@@ -103,6 +105,7 @@ export class ModelEntity {
         params: (pp.params ?? {}) as Record<string, unknown>,
         keepOriginal: pp.keepOriginal,
       })),
+      useGroups: this.useGroups,
       errorMessage: this.errorMessage,
       finalAccuracy: this.finalAccuracy,
       finalLoss: this.finalLoss,
