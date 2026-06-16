@@ -191,7 +191,7 @@ export const Toolbar = ({
         <DropdownMenuTrigger
           className={cn(
             toolButtonClass,
-            "w-auto gap-0.5 px-1.5",
+            "relative",
             preAnnotateSegDisabled && preAnnotateDetDisabled && "cursor-not-allowed opacity-[0.35]",
           )}
           title="Pre-annotate with model"
@@ -202,7 +202,7 @@ export const Toolbar = ({
           ) : (
             <Sparkles />
           )}
-          <ChevronDown className="!size-3 opacity-60" />
+          <ChevronDown className="absolute bottom-0.5 right-0.5 !size-2.5 opacity-50" />
         </DropdownMenuTrigger>
         <DropdownMenuContent side="right" align="end" sideOffset={6}>
           <DropdownMenuItem
