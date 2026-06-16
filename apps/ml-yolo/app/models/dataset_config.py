@@ -25,6 +25,7 @@ class DatasetConfig(BaseSchema):
     label_ids: list[int]
     augmentations: list[_AugUnion]
     preprocessings: list[_AugUnion] = []
+    use_groups: bool = False
 
     @field_validator("dataset_split")
     @classmethod

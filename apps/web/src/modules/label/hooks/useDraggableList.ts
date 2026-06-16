@@ -22,6 +22,15 @@ export interface DraggableItemProps {
   showDropAbove: boolean;
   /** True when the cursor is hovering this item from below (i.e. moving down). */
   showDropBelow: boolean;
+  /** True when the cursor is hovering directly on this item (for group header drop zones). */
+  showDropOnto: boolean;
+}
+
+export interface MoveEvent {
+  fromIndex: number;
+  toIndex: number;
+  /** Non-null when the drop target belongs to a group (drop into group). */
+  targetGroupId: string | null;
 }
 
 /**
@@ -29,23 +38,30 @@ export interface DraggableItemProps {
  * drag-and-drop, gated on a grip handle so the row's regular click handler
  * still works elsewhere.
  *
- * Returns `getItemProps(index)` which provides every prop the row needs;
+ * Returns `getItemProps(index, groupId?)` which provides every prop the row needs;
  * `containerProps` go on the outer element and `handleProps` go on the grip.
+ *
+ * When `onMove` is provided it replaces `onReorder` and receives a richer event
+ * including the target's groupId.
  */
 export const useDraggableList = (
   onReorder: (fromIndex: number, toIndex: number) => void,
+  onMove?: (event: MoveEvent) => void,
 ) => {
   const [draggableIndex, setDraggableIndex] = useState<number | null>(null);
   const [dragFromIndex, setDragFromIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  // Track whether the current hover target is a group header (onto) rather than above/below
+  const [dragOntoGroupId, setDragOntoGroupId] = useState<string | null>(null);
 
   const reset = () => {
     setDragFromIndex(null);
     setDragOverIndex(null);
     setDraggableIndex(null);
+    setDragOntoGroupId(null);
   };
 
-  const getItemProps = (index: number): DraggableItemProps => ({
+  const getItemProps = (index: number, groupId?: string | null): DraggableItemProps => ({
     containerProps: {
       draggable: draggableIndex === index,
       onDragStart: (e) => {
@@ -54,7 +70,11 @@ export const useDraggableList = (
         e.dataTransfer.setData("text/plain", String(index));
       },
       onDragEnter: () => {
-        if (dragFromIndex !== null) setDragOverIndex(index);
+        if (dragFromIndex !== null) {
+          setDragOverIndex(index);
+          // dragOntoGroupId is managed externally via signalDropOnto /
+          // signalDropTopLevel — do not reset it here.
+        }
       },
       onDragOver: (e) => {
         if (dragFromIndex === null) return;
@@ -64,7 +84,11 @@ export const useDraggableList = (
       onDrop: (e) => {
         e.preventDefault();
         if (dragFromIndex !== null && dragFromIndex !== index) {
-          onReorder(dragFromIndex, index);
+          if (onMove) {
+            onMove({ fromIndex: dragFromIndex, toIndex: index, targetGroupId: dragOntoGroupId });
+          } else {
+            onReorder(dragFromIndex, index);
+          }
         }
         reset();
       },
@@ -82,12 +106,25 @@ export const useDraggableList = (
     showDropAbove:
       dragOverIndex === index &&
       dragFromIndex !== null &&
-      dragFromIndex > index,
+      dragFromIndex > index &&
+      dragOntoGroupId === null,
     showDropBelow:
       dragOverIndex === index &&
       dragFromIndex !== null &&
-      dragFromIndex < index,
+      dragFromIndex < index &&
+      dragOntoGroupId === null,
+    showDropOnto: dragOverIndex === index && dragOntoGroupId === (groupId ?? null) && dragOntoGroupId !== null,
   });
 
-  return { getItemProps };
+  /** Call from a group header row to signal a "drop onto group" intent. */
+  const signalDropOnto = (groupId: string) => {
+    setDragOntoGroupId(groupId);
+  };
+
+  /** Call from a top-level row to clear the onto-group state. */
+  const signalDropTopLevel = () => {
+    setDragOntoGroupId(null);
+  };
+
+  return { getItemProps, signalDropOnto, signalDropTopLevel };
 };

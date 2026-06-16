@@ -86,6 +86,7 @@ export const trainingClassificationLabelSchema = z.object({
 
 export const trainingPolygonLabelSchema = z.object({
   points: z.tuple([z.number(), z.number()]).array(),
+  group_id: z.string().nullable(),
   ...trainingSharedLabelSchema,
 });
 
@@ -94,6 +95,7 @@ export const trainingRectangleLabelSchema = z.object({
   y: z.number(),
   width: z.number(),
   height: z.number(),
+  group_id: z.string().nullable(),
   ...trainingSharedLabelSchema,
 });
 
@@ -121,6 +123,7 @@ export const trainingConfigSchema = z.object({
         keep_original: z.boolean(),
       })
       .array(),
+    use_groups: z.boolean(),
   }),
   custom_hyperparams: z.record(z.string(), z.unknown()).default({}),
 });

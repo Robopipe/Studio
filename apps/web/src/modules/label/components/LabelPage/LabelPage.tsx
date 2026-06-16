@@ -36,6 +36,14 @@ import {
   annotationsToUpdatePayload,
   taskDetailToAnnotations,
 } from "../../utils/mapAnnotations";
+import {
+  addToGroup,
+  assignPasteGroups,
+  canGroupSelection,
+  groupSelected,
+  removeFromGroup,
+  ungroupAnnotations,
+} from "../../utils/groupAnnotations";
 import { AnnotationPanel } from "../AnnotationPanel";
 import { Canvas, CanvasHandle } from "../Canvas";
 import { ClassSelect } from "../ClassSelect";
@@ -483,6 +491,102 @@ export const LabelPage = () => {
     [setAnnotationsAndDirty],
   );
 
+  const canGroup = useMemo(
+    () => canGroupSelection(annotations, selectedAnnotationIds),
+    [annotations, selectedAnnotationIds],
+  );
+
+  const handleGroupSelected = useCallback(() => {
+    if (!canGroup) return;
+    const after = groupSelected(annotations, selectedAnnotationIds);
+    // Apply the full reordered array in one shot (groupSelected moves members
+    // to be contiguous — updateAnnotation can't express a reorder).
+    setAnnotationsAndDirty(after);
+    // Record for undo: only the annotations whose groupId changed.
+    const changes = annotations
+      .map((orig) => {
+        const updated = after.find((a) => a.id === orig.id);
+        if (!updated || updated.groupId === orig.groupId) return null;
+        return { before: orig, after: updated };
+      })
+      .filter(Boolean) as { before: Annotation; after: Annotation }[];
+    if (changes.length > 0) history.pushBatchEntry({ label: "group", changes });
+  }, [annotations, selectedAnnotationIds, canGroup, history, setAnnotationsAndDirty]);
+
+  const handleUngroupAnnotations = useCallback(
+    (groupIds: Set<string>) => {
+      const before = annotations.filter(
+        (a) => a.groupId && groupIds.has(a.groupId),
+      );
+      history.runBatch("ungroup", () => {
+        for (const a of before) {
+          history.updateAnnotation(a.id, { groupId: null });
+        }
+        // auto-dissolve any remaining singletons (silently clears their groupId)
+        // This runs implicitly via autoDissolve in the utilities — we replicate
+        // it here for annotations that are NOT in the explicitly ungrouped set
+        // but might become singletons after this batch.
+        const afterUngroup = ungroupAnnotations(annotations, groupIds);
+        for (const a of annotations) {
+          if (a.groupId && !groupIds.has(a.groupId)) {
+            const afterA = afterUngroup.find((x) => x.id === a.id);
+            if (afterA && afterA.groupId !== a.groupId) {
+              history.updateAnnotation(a.id, { groupId: afterA.groupId });
+            }
+          }
+        }
+      });
+    },
+    [annotations, history],
+  );
+
+  const handleMoveAnnotationInSidebar = useCallback(
+    (fromIndex: number, toIndex: number, targetGroupId: string | null) => {
+      const movedAnnotation = annotations[fromIndex];
+      if (!movedAnnotation) return;
+
+      if (targetGroupId) {
+        // Joining a group — addToGroup handles the groupId assignment,
+        // compaction (makeGroupContiguous), and dissolving the old group.
+        const groupMember = annotations.find((a) => a.groupId === targetGroupId);
+        if (groupMember && movedAnnotation.labelId !== groupMember.labelId) {
+          toast.error("Cannot add to group: labels must match");
+          return;
+        }
+        if (movedAnnotation.groupId === targetGroupId) {
+          handleReorderAnnotations(fromIndex, toIndex);
+          return;
+        }
+        const after = addToGroup(annotations, movedAnnotation.id, targetGroupId);
+        const changes = annotations
+          .map((orig) => {
+            const updated = after.find((a) => a.id === orig.id);
+            if (!updated || updated.groupId === orig.groupId) return null;
+            return { before: orig, after: updated };
+          })
+          .filter(Boolean) as { before: Annotation; after: Annotation }[];
+        setAnnotationsAndDirty(after);
+        if (changes.length > 0) history.pushBatchEntry({ label: "group", changes });
+      } else if (movedAnnotation.groupId) {
+        // Leaving a group — removeFromGroup handles the groupId clear,
+        // compaction of the remaining members, and auto-dissolve.
+        const after = removeFromGroup(annotations, movedAnnotation.id);
+        const changes = annotations
+          .map((orig) => {
+            const updated = after.find((a) => a.id === orig.id);
+            if (!updated || updated.groupId === orig.groupId) return null;
+            return { before: orig, after: updated };
+          })
+          .filter(Boolean) as { before: Annotation; after: Annotation }[];
+        setAnnotationsAndDirty(after);
+        if (changes.length > 0) history.pushBatchEntry({ label: "ungroup", changes });
+      } else {
+        handleReorderAnnotations(fromIndex, toIndex);
+      }
+    },
+    [annotations, history, handleReorderAnnotations, setAnnotationsAndDirty],
+  );
+
   const handleClear = useCallback(() => {
     if (selectedAnnotationIds.size === 0) return;
     const ids = Array.from(selectedAnnotationIds);
@@ -538,10 +642,27 @@ export const LabelPage = () => {
       return;
     }
     const stamp = Date.now();
-    const pasted: Annotation[] = clip.annotations.map((a, idx) => {
+    const rawPasted: Annotation[] = clip.annotations.map((a, idx) => {
       const cloned = cloneAnnotation(a);
       return { ...cloned, id: `ann-${stamp}-${idx}`, apiId: undefined };
     });
+    // Preserve group structure: build a map from original id to new pasted annotation
+    // so assignPasteGroups can find the source groupIds
+    const sourceMap = clip.annotations.map((original, idx) => ({
+      ...rawPasted[idx],
+      // carry original id temporarily so assignPasteGroups can look up the groupId
+      _originalId: original.id,
+    }));
+    const pastedWithSrcIds = rawPasted.map((a, idx) => ({
+      ...a,
+      id: sourceMap[idx]._originalId,
+    }));
+    const withGroups = assignPasteGroups(pastedWithSrcIds, clip.annotations);
+    // Re-assign the new pasted ids
+    const pasted: Annotation[] = rawPasted.map((a, idx) => ({
+      ...a,
+      groupId: withGroups[idx]?.groupId,
+    }));
     history.runBatch("paste", () => {
       for (const ann of pasted) history.addAnnotation(ann);
     });
@@ -562,15 +683,38 @@ export const LabelPage = () => {
 
       if (selectedAnnotationIds.size > 0) {
         const ids = Array.from(selectedAnnotationIds);
+        const newLabelId = String(label.id);
         history.runBatch("relabel", () => {
           for (const id of ids) {
+            const a = annotations.find((x) => x.id === id);
             history.updateAnnotation(id, {
-              labelId: String(label.id),
+              labelId: newLabelId,
               labelName: label.name,
               color: label.color,
             });
+            // Auto-eject from group if label changes while in a group
+            if (a?.groupId && a.labelId !== newLabelId) {
+              const groupSiblings = annotations.filter(
+                (x) => x.id !== id && x.groupId === a.groupId,
+              );
+              history.updateAnnotation(id, { groupId: null });
+              // Auto-dissolve the group if it becomes a singleton
+              if (groupSiblings.length === 1) {
+                history.updateAnnotation(groupSiblings[0].id, { groupId: null });
+              }
+            }
           }
         });
+        // Notify user if any grouped regions were ejected
+        const ejectedCount = ids.filter((id) => {
+          const a = annotations.find((x) => x.id === id);
+          return a?.groupId && a.labelId !== newLabelId;
+        }).length;
+        if (ejectedCount > 0) {
+          toast.info(
+            `${ejectedCount} region${ejectedCount === 1 ? "" : "s"} removed from group (label changed)`,
+          );
+        }
       }
 
       setActiveLabel(label);
@@ -579,7 +723,7 @@ export const LabelPage = () => {
         setIsolatedLabelId(null);
       }
     },
-    [labels, activeLabel?.id, selectedAnnotationIds, history, isolatedLabelId],
+    [labels, activeLabel?.id, selectedAnnotationIds, annotations, history, isolatedLabelId],
   );
 
   const canMarkEmpty = true;
@@ -804,6 +948,8 @@ export const LabelPage = () => {
         onSelectAnnotation={handleSelectFromSidebar}
         onDeleteAnnotation={deleteAnnotationWithSelection}
         onReorderAnnotations={handleReorderAnnotations}
+        onMoveAnnotation={handleMoveAnnotationInSidebar}
+        onUngroupAnnotations={handleUngroupAnnotations}
         hiddenAnnotationIds={hiddenAnnotationIds}
         onToggleAnnotationVisibility={toggleAnnotationVisibility}
         onToggleAllAnnotationsVisibility={toggleAllAnnotationsVisibility}
@@ -845,6 +991,16 @@ export const LabelPage = () => {
           onDeleteSelected={handleClear}
           onCopySelection={handleCopySelection}
           onPasteClipboard={handlePasteClipboard}
+          onGroupSelected={handleGroupSelected}
+          onUngroupSelected={() => {
+            const groupIds = new Set(
+              Array.from(selectedAnnotationIds)
+                .map((id) => annotations.find((a) => a.id === id)?.groupId)
+                .filter(Boolean) as string[],
+            );
+            if (groupIds.size > 0) handleUngroupAnnotations(groupIds);
+          }}
+          canGroup={canGroup}
           onGroupTranslate={handleGroupTranslate}
           onUndo={history.undo}
           onRedo={history.redo}
@@ -894,6 +1050,8 @@ export const LabelPage = () => {
                   ? "Only owners and admins can edit pre-annotation settings"
                   : undefined
               }
+              canGroup={canGroup}
+              onGroupSelected={handleGroupSelected}
             />
           </div>
         </div>

@@ -15,6 +15,7 @@ import {
   Crosshair,
   Eye,
   EyeOff,
+  FolderPlus,
   Hand,
   Keyboard,
   Maximize2,
@@ -26,6 +27,7 @@ import {
   Tag,
   Trash2,
   Undo2,
+  Ungroup,
 } from "lucide-react";
 import { ReactNode } from "react";
 
@@ -166,6 +168,16 @@ const groups: ShortcutGroup[] = [
         icon: <ClipboardPaste />,
         label: "Paste (same project)",
         keys: <KeyCombo keys={["Ctrl", "V"]} />,
+      },
+      {
+        icon: <FolderPlus />,
+        label: "Group selected regions",
+        keys: <KeyCombo keys={["Ctrl", "G"]} />,
+      },
+      {
+        icon: <Ungroup />,
+        label: "Ungroup selected group",
+        keys: <KeyCombo keys={["Ctrl", "Shift", "G"]} />,
       },
     ],
   },

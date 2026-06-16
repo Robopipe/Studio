@@ -13,6 +13,7 @@ export function taskDetailToAnnotations(detail: TaskDetail): Annotation[] {
       color: rect.label.color,
       type: "bbox",
       bbox: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+      groupId: rect.groupId ?? null,
     });
   }
 
@@ -25,6 +26,7 @@ export function taskDetailToAnnotations(detail: TaskDetail): Annotation[] {
       color: poly.label.color,
       type: "polygon",
       points: poly.value,
+      groupId: poly.groupId ?? null,
     });
   }
 
@@ -61,12 +63,14 @@ export function annotationsToUpdatePayload(annotations: Annotation[]): {
         y: a.bbox.y,
         width: a.bbox.width,
         height: a.bbox.height,
+        ...(a.groupId != null && { groupId: a.groupId }),
       });
     } else if (a.type === "polygon" && a.points) {
       polygonAnnotations.push({
         ...(a.apiId != null && { id: a.apiId }),
         labelId,
         value: a.points,
+        ...(a.groupId != null && { groupId: a.groupId }),
       });
     } else if (a.type === "class" && a.labelId) {
       classificationAnnotations.push({

@@ -116,6 +116,7 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
             : "",
         taskIds: model.taskIds ?? [],
         datasetVersionId: model.datasetVersionId ?? null,
+        useGroups: model.useGroups,
       },
     };
 
