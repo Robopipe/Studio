@@ -147,6 +147,89 @@ def decode_yolo_seg(
     return polygons
 
 
+def decode_yolo_det(
+    output0: np.ndarray,
+    n_classes: int,
+    img_shape: tuple[int, int],
+    input_shape: tuple[int, int],
+    letterbox_meta: LetterboxMeta,
+    conf_threshold: float = 0.25,
+    iou_threshold: float = 0.45,
+    max_det: int = 300,
+    min_area_px: float = 4.0,
+) -> list[dict]:
+    """Decode Ultralytics YOLOv8/v11 detection outputs into image-space boxes.
+
+    output0: (1, 4 + n_classes, anchors) — boxes (xywh, model-input pixel
+             coords) and per-class scores. No prototype/mask outputs.
+    Returns a list of dicts with keys: classIndex, score, x, y, width, height
+    (all in original-image pixel coordinates, top-left origin).
+    """
+    preds = output0[0].T
+    boxes_xywh = preds[:, :4]
+    class_scores = preds[:, 4 : 4 + n_classes]
+
+    scores = class_scores.max(axis=1)
+    class_ids = class_scores.argmax(axis=1)
+
+    keep = scores >= conf_threshold
+    if not keep.any():
+        return []
+
+    boxes_xywh = boxes_xywh[keep]
+    scores = scores[keep]
+    class_ids = class_ids[keep]
+
+    cx, cy, w, h = boxes_xywh.T
+    nms_boxes = np.stack([cx - w / 2, cy - h / 2, w, h], axis=1).tolist()
+    indices = cv2.dnn.NMSBoxes(
+        nms_boxes, scores.tolist(), conf_threshold, iou_threshold
+    )
+    if len(indices) == 0:
+        return []
+    indices = np.array(indices).flatten()[:max_det]
+
+    boxes_xywh = boxes_xywh[indices]
+    scores = scores[indices]
+    class_ids = class_ids[indices]
+
+    in_h, in_w = input_shape
+    orig_h, orig_w = img_shape
+    pad_x = letterbox_meta.pad_x
+    pad_y = letterbox_meta.pad_y
+    scale_x = (in_w - 2 * pad_x) / orig_w
+    scale_y = (in_h - 2 * pad_y) / orig_h
+
+    results: list[dict] = []
+    for i in range(len(boxes_xywh)):
+        cx_i, cy_i, bw_i, bh_i = boxes_xywh[i]
+        x1 = (cx_i - bw_i / 2 - pad_x) / scale_x
+        y1 = (cy_i - bh_i / 2 - pad_y) / scale_y
+        bw_orig = bw_i / scale_x
+        bh_orig = bh_i / scale_y
+
+        x1 = max(0.0, float(x1))
+        y1 = max(0.0, float(y1))
+        bw_orig = min(float(bw_orig), orig_w - x1)
+        bh_orig = min(float(bh_orig), orig_h - y1)
+
+        if bw_orig * bh_orig < min_area_px:
+            continue
+
+        results.append(
+            {
+                "classIndex": int(class_ids[i]),
+                "score": float(scores[i]),
+                "x": x1,
+                "y": y1,
+                "width": bw_orig,
+                "height": bh_orig,
+            }
+        )
+
+    return results
+
+
 def _sigmoid(x: np.ndarray) -> np.ndarray:
     return 1.0 / (1.0 + np.exp(-x))
 

@@ -1,6 +1,14 @@
 import { PolygonIcon, RectBboxIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/modules/shadcn/ui/dropdown-menu";
+import { PreAnnotateModelTypeEnum } from "@repo/schema";
+import {
+  ChevronDown,
   Crosshair,
   FolderPlus,
   Hand,
@@ -35,11 +43,13 @@ export interface ToolbarProps {
   showCrosshair: boolean;
   onToggleCrosshair: () => void;
   onResetView: () => void;
-  onPreAnnotate: () => void;
+  onPreAnnotate: (modelType: PreAnnotateModelTypeEnum) => void;
   onOpenPreAnnotateSettings: () => void;
-  preAnnotateDisabled: boolean;
+  preAnnotateSegDisabled: boolean;
+  preAnnotateDetDisabled: boolean;
   preAnnotatePending: boolean;
-  preAnnotateDisabledReason?: string;
+  preAnnotateSegDisabledReason?: string;
+  preAnnotateDetDisabledReason?: string;
   preAnnotateSettingsDisabled?: boolean;
   preAnnotateSettingsDisabledReason?: string;
   canGroup?: boolean;
@@ -66,9 +76,11 @@ export const Toolbar = ({
   onResetView,
   onPreAnnotate,
   onOpenPreAnnotateSettings,
-  preAnnotateDisabled,
+  preAnnotateSegDisabled,
+  preAnnotateDetDisabled,
   preAnnotatePending,
-  preAnnotateDisabledReason,
+  preAnnotateSegDisabledReason,
+  preAnnotateDetDisabledReason,
   preAnnotateSettingsDisabled,
   preAnnotateSettingsDisabledReason,
   canGroup = false,
@@ -175,18 +187,40 @@ export const Toolbar = ({
         </button>
       ))}
       <div className="my-1 h-px bg-black/10" />
-      <button
-        type="button"
-        className={cn(
-          toolButtonClass,
-          preAnnotateDisabled && "cursor-not-allowed opacity-[0.35]",
-        )}
-        title={preAnnotateDisabledReason ?? "Pre-annotate with model"}
-        onClick={onPreAnnotate}
-        disabled={preAnnotateDisabled}
-      >
-        {preAnnotatePending ? <Loader2 className="animate-spin" /> : <Sparkles />}
-      </button>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          className={cn(
+            toolButtonClass,
+            "w-auto gap-0.5 px-1.5",
+            preAnnotateSegDisabled && preAnnotateDetDisabled && "cursor-not-allowed opacity-[0.35]",
+          )}
+          title="Pre-annotate with model"
+          disabled={preAnnotatePending}
+        >
+          {preAnnotatePending ? (
+            <Loader2 className="animate-spin" />
+          ) : (
+            <Sparkles />
+          )}
+          <ChevronDown className="!size-3 opacity-60" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent side="right" align="end" sideOffset={6}>
+          <DropdownMenuItem
+            disabled={preAnnotateSegDisabled}
+            onClick={() => onPreAnnotate(PreAnnotateModelTypeEnum.SEGMENTATION)}
+            title={preAnnotateSegDisabledReason}
+          >
+            Segmentation
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            disabled={preAnnotateDetDisabled}
+            onClick={() => onPreAnnotate(PreAnnotateModelTypeEnum.DETECTION)}
+            title={preAnnotateDetDisabledReason}
+          >
+            Detection
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
       <button
         type="button"
         className={cn(
