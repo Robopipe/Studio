@@ -25,6 +25,7 @@ import {
 import {
   DetectionPreAnnotateSettings,
   Model,
+  ModelBackendEnum,
   ModelStatusEnum,
   PRE_ANNOTATE_DEFAULTS,
   PreAnnotateModelTypeEnum,
@@ -111,12 +112,20 @@ export const PreAnnotateSettingsDialog = ({
   }, [open, segSettings, detSettings, defaultTab]);
 
   const segModels = models.filter(
-    (m) => m.status === ModelStatusEnum.DONE && m.trainingType === ProjectTypeEnum.SEGMENTATION,
+    (m) =>
+      m.status === ModelStatusEnum.DONE &&
+      m.trainingType === ProjectTypeEnum.SEGMENTATION &&
+      m.backend === ModelBackendEnum.ULTRALYTICS,
   );
   const detModels = models.filter(
-    (m) => m.status === ModelStatusEnum.DONE && m.trainingType === ProjectTypeEnum.DETECTION,
+    (m) =>
+      m.status === ModelStatusEnum.DONE &&
+      m.trainingType === ProjectTypeEnum.DETECTION &&
+      m.backend === ModelBackendEnum.ULTRALYTICS,
   );
-  const hasAnyTrainedModel = models.some((m) => m.status === ModelStatusEnum.DONE);
+  const hasAnyTrainedModel = models.some(
+    (m) => m.status === ModelStatusEnum.DONE && m.backend === ModelBackendEnum.ULTRALYTICS,
+  );
 
   const selectedSegModel = segModels.find((m) => m.id === segModelId) ?? null;
 
@@ -228,8 +237,8 @@ export const PreAnnotateSettingsDialog = ({
               {segModels.length === 0 ? (
                 <p className="rounded-md border border-dashed border-black/10 bg-black/[0.03] px-3 py-2 text-sm text-muted-foreground">
                   {hasAnyTrainedModel
-                    ? "None of your trained models are segmentation models. Train a segmentation model to enable pre-annotation."
-                    : "No trained models in this project yet. Train a segmentation model first."}
+                    ? "None of your trained models are Ultra Vision segmentation models. Pre-annotation requires an Ultra Vision segmentation model."
+                    : "No trained models in this project yet. Train an Ultra Vision segmentation model first."}
                 </p>
               ) : (
                 <>
@@ -367,8 +376,8 @@ export const PreAnnotateSettingsDialog = ({
               {detModels.length === 0 ? (
                 <p className="rounded-md border border-dashed border-black/10 bg-black/[0.03] px-3 py-2 text-sm text-muted-foreground">
                   {hasAnyTrainedModel
-                    ? "None of your trained models are detection models. Train a detection model to enable pre-annotation."
-                    : "No trained models in this project yet. Train a detection model first."}
+                    ? "None of your trained models are Ultra Vision detection models. Pre-annotation requires an Ultra Vision detection model."
+                    : "No trained models in this project yet. Train an Ultra Vision detection model first."}
                 </p>
               ) : (
                 <>
