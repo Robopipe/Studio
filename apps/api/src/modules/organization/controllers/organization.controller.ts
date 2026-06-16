@@ -165,7 +165,7 @@ export class OrganizationController {
     @Param("userId", ParseIntPipe) userId: number,
     @Body() body: UpdateMemberRoleDto,
   ): Promise<{ message: string }> {
-    await this.organizationService.updateMemberRole(user.organizationId, userId, body.role, user.role);
+    await this.organizationService.updateMemberRole(user.organizationId, userId, body.role);
     return { message: "Role updated." };
   }
 }

@@ -175,7 +175,6 @@ export class OrganizationService {
     organizationId: number,
     userId: number,
     role: OrgMemberRoleEnum,
-    requestingUserRole: string,
   ): Promise<void> {
     const membership = await this.organizationMemberRepository.getByUserAndOrg(userId, organizationId);
     if (!membership) {
@@ -184,10 +183,6 @@ export class OrganizationService {
 
     if (membership.role === OrgMemberRoleEnum.OWNER) {
       throw new ForbiddenException('Cannot change the owner role');
-    }
-
-    if (membership.role === OrgMemberRoleEnum.ADMIN && requestingUserRole !== OrgMemberRoleEnum.OWNER) {
-      throw new ForbiddenException('Only the owner can change admin roles');
     }
 
     await this.organizationMemberRepository.updateRole(userId, organizationId, role);
