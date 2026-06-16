@@ -215,6 +215,10 @@ export const createModelSchema = modelSchema
       }
     },
     { message: "annotationsUsed is invalid for the selected trainingType" },
+  )
+  .refine(
+    (data) => !data.useGroups || data.trainingType === ProjectTypeEnum.DETECTION,
+    { message: "useGroups is only supported for detection models" },
   );
 
 export const updateModelSchema = createModelSchema;
