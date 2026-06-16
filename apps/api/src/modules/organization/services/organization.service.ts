@@ -124,7 +124,7 @@ export class OrganizationService {
     });
 
     const org = await this.organizationRepository.getById(organizationId);
-    const inviteLink = `${this.config.webHost}/login`;
+    const inviteLink = `${this.config.webHost}/${existingUser ? 'login' : 'register'}`;
     await this.emailService.sendInvitationEmail(email, org?.name ?? 'your organization', inviteLink);
   }
 
