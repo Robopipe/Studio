@@ -6,6 +6,7 @@ from .label import Label
 class PolygonLabel(BaseSchema):
     label: Label
     points: list[tuple[float, float]]
+    group_id: str | None
 
     def __get_normalized_points(
         self, width: int, height: int
