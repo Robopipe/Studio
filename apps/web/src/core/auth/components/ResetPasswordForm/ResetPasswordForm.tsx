@@ -1,8 +1,8 @@
 import { Button } from "@/modules/shadcn/ui/button";
 import { Input } from "@/modules/shadcn/ui/input";
 import { Label } from "@/modules/shadcn/ui/label";
-import { FormEvent, useState } from "react";
-import { Link, Navigate, useSearchParams } from "react-router";
+import { FormEvent, useEffect, useState } from "react";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router";
 import { useResetPasswordMutation } from "../../services";
 import { FormError } from "../FormError";
 
@@ -13,6 +13,13 @@ export const ResetPasswordForm = () => {
   const [resetPassword, { isLoading }] = useResetPasswordMutation();
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!success) return;
+    const id = setTimeout(() => navigate("/login", { replace: true }), 5000);
+    return () => clearTimeout(id);
+  }, [success, navigate]);
 
   if (!token) {
     return <Navigate to="/login" replace />;
@@ -53,8 +60,8 @@ export const ResetPasswordForm = () => {
             </h2>
             <p className="text-muted-foreground">
               {isWelcome
-                ? "Your password has been set. You can now log in to your account."
-                : "Your password has been reset successfully. You can now log in with your new password."}
+                ? "Your password has been set. Redirecting you to the login page in 5 seconds."
+                : "Your password has been reset successfully. Redirecting you to the login page in 5 seconds."}
             </p>
           </div>
           <div className="mt-8 flex flex-col items-center gap-4">
