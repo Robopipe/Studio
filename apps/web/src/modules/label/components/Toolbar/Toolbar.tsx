@@ -2,6 +2,7 @@ import { PolygonIcon, RectBboxIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import {
   Crosshair,
+  FolderPlus,
   Hand,
   Info,
   Loader2,
@@ -41,6 +42,8 @@ export interface ToolbarProps {
   preAnnotateDisabledReason?: string;
   preAnnotateSettingsDisabled?: boolean;
   preAnnotateSettingsDisabledReason?: string;
+  canGroup?: boolean;
+  onGroupSelected?: () => void;
 }
 
 const toolButtonClass =
@@ -68,6 +71,8 @@ export const Toolbar = ({
   preAnnotateDisabledReason,
   preAnnotateSettingsDisabled,
   preAnnotateSettingsDisabledReason,
+  canGroup = false,
+  onGroupSelected,
 }: ToolbarProps) => {
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
@@ -97,6 +102,12 @@ export const Toolbar = ({
   }[] = [
     { icon: <Undo2 />, title: "Undo (Ctrl+Z)", onClick: onUndo, disabled: !canUndo },
     { icon: <Redo2 />, title: "Redo (Ctrl+Shift+Z)", onClick: onRedo, disabled: !canRedo },
+    {
+      icon: <FolderPlus />,
+      title: canGroup ? "Group regions (Ctrl+G)" : "Select ≥2 same-label regions to group",
+      onClick: () => onGroupSelected?.(),
+      disabled: !canGroup,
+    },
     { icon: <ZoomIn />, title: "Zoom in", onClick: onZoomIn },
     { icon: <ZoomOut />, title: "Zoom out", onClick: onZoomOut },
     { icon: <Maximize2 />, title: "Fit to screen (F)", onClick: onResetView },

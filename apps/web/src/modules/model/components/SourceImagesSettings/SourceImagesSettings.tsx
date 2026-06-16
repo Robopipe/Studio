@@ -2,8 +2,15 @@ import { cn } from "@/lib/utils";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import { useGetProjectLabelsQuery } from "@/modules/project/services/projectApi";
 import { Button } from "@/modules/shadcn/ui/button";
-import { Label } from "@repo/schema";
-import { Pencil } from "lucide-react";
+import { Switch } from "@/modules/shadcn/ui/switch";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/modules/shadcn/ui/tooltip";
+import { Label, ProjectTypeEnum } from "@repo/schema";
+import { Info, Pencil } from "lucide-react";
 import { CSSProperties, useEffect, useMemo } from "react";
 import { SettingsCard } from "../SettingsCard";
 
@@ -16,6 +23,9 @@ export interface SourceImagesSettingsProps {
   selectedTaskPreviews: { id: number; thumbnailUrl: string }[];
   onEditSelection: () => void;
   datasetError?: string | null;
+  useGroups: boolean;
+  setUseGroups: (v: boolean) => void;
+  trainingType: ProjectTypeEnum;
 }
 
 export const SourceImagesSettings = (props: SourceImagesSettingsProps) => {
@@ -26,7 +36,14 @@ export const SourceImagesSettings = (props: SourceImagesSettingsProps) => {
     selectedTaskPreviews,
     onEditSelection,
     datasetError,
+    useGroups,
+    setUseGroups,
+    trainingType,
   } = props;
+  const groupsError =
+    useGroups && trainingType !== ProjectTypeEnum.DETECTION
+      ? "Only available for detection models."
+      : null;
   const [project] = useActiveProject();
   const { data: labels } = useGetProjectLabelsQuery(
     { projectId: project?.id! },
@@ -79,7 +96,10 @@ export const SourceImagesSettings = (props: SourceImagesSettingsProps) => {
                     <div className="relative size-9 shrink-0 overflow-hidden rounded-lg">
                       {visiblePreviews.length > 0 && (
                         <img
-                          src={visiblePreviews[visiblePreviews.length - 1]?.thumbnailUrl}
+                          src={
+                            visiblePreviews[visiblePreviews.length - 1]
+                              ?.thumbnailUrl
+                          }
                           alt=""
                           className="size-full object-cover"
                         />
@@ -102,6 +122,28 @@ export const SourceImagesSettings = (props: SourceImagesSettingsProps) => {
             <Pencil className="mr-1.5 size-4" />
             Edit
           </Button>
+        </div>
+
+        {/* Use groups row */}
+        <div className="flex items-center gap-4 py-1">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-foreground/90">Use groups</span>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <Info className="size-4 shrink-0 cursor-default text-foreground/40" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  When enabled, regions belonging to the same group will be
+                  merged into one single region during training.
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <Switch checked={useGroups} onCheckedChange={setUseGroups} />
+          {groupsError && (
+            <span className="text-xs text-red-600">{groupsError}</span>
+          )}
         </div>
 
         {/* Labels row */}

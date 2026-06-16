@@ -23,6 +23,7 @@ export const rectangleAnnotationSchema = z.object({
   y: z.number(),
   width: z.number(),
   height: z.number(),
+  groupId: z.string().uuid().nullish(),
 })
 
 export const createRectangleAnnotationSchema = z.object({
@@ -32,6 +33,7 @@ export const createRectangleAnnotationSchema = z.object({
   y: z.number(),
   width: z.number(),
   height: z.number(),
+  groupId: z.string().uuid().nullish(),
 })
 
 /**
@@ -41,12 +43,14 @@ export const polygonAnnotationSchema = z.object({
   id: z.number(),
   label: labelSchema,
   value: z.tuple([z.number(), z.number()]).array(),
+  groupId: z.string().uuid().nullish(),
 })
 
 export const createPolygonAnnotationSchema = z.object({
   id: z.number().int().positive().optional(),
   labelId: z.number(),
   value: z.tuple([z.number(), z.number()]).array(),
+  groupId: z.string().uuid().nullish(),
 });
 
 /**
@@ -183,12 +187,14 @@ export const taskExportRectangleAnnotationSchema = z.object({
   y: z.number(),
   width: z.number(),
   height: z.number(),
+  groupId: z.string().uuid().nullish(),
 });
 
 export const taskExportPolygonAnnotationSchema = z.object({
   id: z.number(),
   labelId: z.number(),
   value: z.tuple([z.number(), z.number()]).array(),
+  groupId: z.string().uuid().nullish(),
 });
 
 export const taskExportClassificationAnnotationSchema = z.object({
@@ -291,11 +297,13 @@ export const rectangleHistorySnapshotSchema = z.object({
   y: z.number(),
   width: z.number(),
   height: z.number(),
+  groupId: z.string().uuid().nullish(),
 });
 
 export const polygonHistorySnapshotSchema = z.object({
   labelId: z.number(),
   value: z.tuple([z.number(), z.number()]).array(),
+  groupId: z.string().uuid().nullish(),
 });
 
 export const classificationHistorySnapshotSchema = z.object({

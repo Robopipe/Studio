@@ -1,4 +1,4 @@
-import { Inject, Injectable } from "@nestjs/common";
+import { BadRequestException, Inject, Injectable } from "@nestjs/common";
 import { DB_CONNECTION } from "../../../core/database/database.constant";
 import type { DbConnection, DbTransaction } from "../../../core/database/types/database.types";
 import {
@@ -23,6 +23,7 @@ export class AnnotationService {
    * writing history events for each insert/update. Returns the total annotation count.
    */
   async upsertAnnotations(tx: DbTransaction, taskId: number, data: TaskUpdateRequest, userId: number): Promise<number> {
+    this.validateGroupLabelInvariant(data);
     await this.upsertRectangles(tx, taskId, data.rectangleAnnotations ?? [], userId);
     await this.upsertPolygons(tx, taskId, data.polygonAnnotations ?? [], userId);
     await this.upsertClassifications(tx, taskId, data.classificationAnnotations ?? [], userId);
@@ -103,24 +104,24 @@ export class AnnotationService {
     }
     if (toInsert.length > 0) {
       const inserted = await tx.insert(rectangleAnnotationTable).values(
-        toInsert.map(a => ({ taskId, labelId: a.labelId, x: a.x!, y: a.y!, width: a.width!, height: a.height! }))
+        toInsert.map(a => ({ taskId, labelId: a.labelId, x: a.x!, y: a.y!, width: a.width!, height: a.height!, groupId: a.groupId ?? null }))
       ).returning();
       await tx.insert(rectangleAnnotationHistoryTable).values(
         inserted.map(r => ({
           taskId, annotationId: r.id, userId, action: 'created' as const,
-          snapshot: { labelId: r.labelId, x: r.x, y: r.y, width: r.width, height: r.height },
+          snapshot: { labelId: r.labelId, x: r.x, y: r.y, width: r.width, height: r.height, groupId: r.groupId ?? null },
         }))
       );
     }
     for (const a of toUpdate) {
       const existing = existingById.get(a.id)!;
-      if (existing.labelId !== a.labelId || existing.x !== a.x || existing.y !== a.y || existing.width !== a.width || existing.height !== a.height) {
+      if (existing.labelId !== a.labelId || existing.x !== a.x || existing.y !== a.y || existing.width !== a.width || existing.height !== a.height || existing.groupId !== (a.groupId ?? null)) {
         await tx.update(rectangleAnnotationTable)
-          .set({ labelId: a.labelId, x: a.x!, y: a.y!, width: a.width!, height: a.height! })
+          .set({ labelId: a.labelId, x: a.x!, y: a.y!, width: a.width!, height: a.height!, groupId: a.groupId ?? null })
           .where(eq(rectangleAnnotationTable.id, a.id));
         await tx.insert(rectangleAnnotationHistoryTable).values({
           taskId, annotationId: a.id, userId, action: 'updated' as const,
-          snapshot: { labelId: a.labelId, x: a.x!, y: a.y!, width: a.width!, height: a.height! },
+          snapshot: { labelId: a.labelId, x: a.x!, y: a.y!, width: a.width!, height: a.height!, groupId: a.groupId ?? null },
         });
       }
     }
@@ -144,24 +145,24 @@ export class AnnotationService {
     }
     if (toInsert.length > 0) {
       const inserted = await tx.insert(polygonAnnotationTable).values(
-        toInsert.map(a => ({ taskId, labelId: a.labelId, value: a.value! }))
+        toInsert.map(a => ({ taskId, labelId: a.labelId, value: a.value!, groupId: a.groupId ?? null }))
       ).returning();
       await tx.insert(polygonAnnotationHistoryTable).values(
         inserted.map(p => ({
           taskId, annotationId: p.id, userId, action: 'created' as const,
-          snapshot: { labelId: p.labelId, value: p.value },
+          snapshot: { labelId: p.labelId, value: p.value, groupId: p.groupId ?? null },
         }))
       );
     }
     for (const a of toUpdate) {
       const existing = existingById.get(a.id)!;
-      if (existing.labelId !== a.labelId || JSON.stringify(existing.value) !== JSON.stringify(a.value)) {
+      if (existing.labelId !== a.labelId || JSON.stringify(existing.value) !== JSON.stringify(a.value) || existing.groupId !== (a.groupId ?? null)) {
         await tx.update(polygonAnnotationTable)
-          .set({ labelId: a.labelId, value: a.value! })
+          .set({ labelId: a.labelId, value: a.value!, groupId: a.groupId ?? null })
           .where(eq(polygonAnnotationTable.id, a.id));
         await tx.insert(polygonAnnotationHistoryTable).values({
           taskId, annotationId: a.id, userId, action: 'updated' as const,
-          snapshot: { labelId: a.labelId, value: a.value! },
+          snapshot: { labelId: a.labelId, value: a.value!, groupId: a.groupId ?? null },
         });
       }
     }
@@ -197,6 +198,19 @@ export class AnnotationService {
           snapshot: { labelId: c.labelId },
         }))
       );
+    }
+  }
+
+  private validateGroupLabelInvariant(data: TaskUpdateRequest): void {
+    const groupLabelMap = new Map<string, number>();
+    for (const a of [...(data.rectangleAnnotations ?? []), ...(data.polygonAnnotations ?? [])]) {
+      if (!a.groupId) continue;
+      const existing = groupLabelMap.get(a.groupId);
+      if (existing == null) {
+        groupLabelMap.set(a.groupId, a.labelId);
+      } else if (existing !== a.labelId) {
+        throw new BadRequestException('All annotations in a group must share the same labelId');
+      }
     }
   }
 
