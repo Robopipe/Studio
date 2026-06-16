@@ -6,6 +6,7 @@ import { projectTable } from "./project";
 
 export const preAnnotateModelTypeEnum = p.pgEnum("pre_annotate_model_type", [
   PreAnnotateModelTypeEnum.SEGMENTATION,
+  PreAnnotateModelTypeEnum.DETECTION,
 ]);
 
 export const projectPreAnnotateSettingsTable = p.pgTable(
