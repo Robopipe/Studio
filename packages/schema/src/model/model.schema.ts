@@ -95,6 +95,7 @@ export const modelSchema = z.object({
   customHyperparams: z.record(z.string(), z.unknown()),
   augmentations: modelAugmentationSchema.pick({ type: true, params: true }).array(),
   preprocessings: modelPreprocessingSchema.pick({ type: true, params: true, keepOriginal: true }).array(),
+  useGroups: z.boolean(),
   errorMessage: z.string().nullable(),
   finalAccuracy: z.number().nullable(),
   finalLoss: z.number().nullable(),
@@ -193,6 +194,7 @@ export const createModelSchema = modelSchema
     // Original: customHyperparams: hyperparamsConfigSchema.default({}),
     customHyperparams: z.record(z.string(), z.unknown()).default({}),
     train: z.boolean().default(false),
+    useGroups: z.boolean().default(false),
   })
   .refine(
     (data) => {
