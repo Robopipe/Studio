@@ -12,11 +12,13 @@ import {
   useUpdatePreAnnotateSettingsMutation,
 } from "@/modules/project/services/projectApi";
 import {
+  DetectionPreAnnotateSettings,
   Label,
   OrgMemberRoleEnum,
   PRE_ANNOTATE_DEFAULTS,
   PreAnnotateModelTypeEnum,
   PreAnnotateSettings,
+  SegmentationPreAnnotateSettings,
 } from "@repo/schema";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -150,16 +152,22 @@ export const LabelPage = () => {
     { isLoading: isDeletingPreAnnotateSettings },
   ] = useDeletePreAnnotateSettingsMutation();
 
-  // Only segmentation pre-annotation is supported today.
-  const activeModelType = PreAnnotateModelTypeEnum.SEGMENTATION;
-
-  const { data: savedPreAnnotateSettings } = useGetPreAnnotateSettingsQuery(
-    { projectId: projectId!, modelType: activeModelType },
+  const { data: savedSegSettings } = useGetPreAnnotateSettingsQuery(
+    { projectId: projectId!, modelType: PreAnnotateModelTypeEnum.SEGMENTATION },
+    { skip: !projectId },
+  );
+  const { data: savedDetSettings } = useGetPreAnnotateSettingsQuery(
+    { projectId: projectId!, modelType: PreAnnotateModelTypeEnum.DETECTION },
     { skip: !projectId },
   );
 
-  const preAnnotateSettings: PreAnnotateSettings =
-    savedPreAnnotateSettings ?? PRE_ANNOTATE_DEFAULTS[activeModelType];
+  const segSettings: SegmentationPreAnnotateSettings =
+    (savedSegSettings as SegmentationPreAnnotateSettings | undefined) ??
+    PRE_ANNOTATE_DEFAULTS[PreAnnotateModelTypeEnum.SEGMENTATION];
+  const detSettings: DetectionPreAnnotateSettings =
+    (savedDetSettings as DetectionPreAnnotateSettings | undefined) ??
+    PRE_ANNOTATE_DEFAULTS[PreAnnotateModelTypeEnum.DETECTION];
+
 
   // One-time cleanup: remove old per-user localStorage keys from before
   // settings were centralised in the DB.
@@ -177,20 +185,23 @@ export const LabelPage = () => {
       if (!projectId) return;
       await updatePreAnnotateSettingsMutation({
         projectId,
-        modelType: activeModelType,
+        modelType: next.modelType,
         body: next,
       }).unwrap();
     },
-    [projectId, activeModelType, updatePreAnnotateSettingsMutation],
+    [projectId, updatePreAnnotateSettingsMutation],
   );
 
-  const deletePreAnnotateSettings = useCallback(async (): Promise<void> => {
-    if (!projectId) return;
-    await deletePreAnnotateSettingsMutation({
-      projectId,
-      modelType: activeModelType,
-    }).unwrap();
-  }, [projectId, activeModelType, deletePreAnnotateSettingsMutation]);
+  const deletePreAnnotateSettings = useCallback(
+    async (modelType: PreAnnotateModelTypeEnum): Promise<void> => {
+      if (!projectId) return;
+      await deletePreAnnotateSettingsMutation({
+        projectId,
+        modelType,
+      }).unwrap();
+    },
+    [projectId, deletePreAnnotateSettingsMutation],
+  );
 
   const { toolMode, setToolMode } = useToolMode();
   const [showCrosshair, setShowCrosshair] = useState<boolean>(() => {
@@ -752,100 +763,156 @@ export const LabelPage = () => {
     handleSave({ reviewed: true });
   }, [handleSave]);
 
-  const handlePreAnnotate = useCallback(() => {
-    if (
-      !projectId ||
-      selectedTaskId === null ||
-      preAnnotateSettings.modelId === null ||
-      annotations.length > 0
-    ) {
-      return;
-    }
+  const handlePreAnnotate = useCallback(
+    (modelType: PreAnnotateModelTypeEnum) => {
+      if (!projectId || selectedTaskId === null) return;
 
-    const labelById = new Map(labels.map((l) => [l.id, l]));
-    const stamp = Date.now();
-    const toastId = toast.loading("Pre-annotating...");
+      const modelId =
+        modelType === PreAnnotateModelTypeEnum.DETECTION
+          ? detSettings.modelId
+          : segSettings.modelId;
+      if (modelId === null) return;
 
-    predictAnnotations({
+      const isDetection = modelType === PreAnnotateModelTypeEnum.DETECTION;
+      const conflictingAnnotations = isDetection
+        ? annotations.filter((a) => a.type === "bbox")
+        : annotations.filter((a) => a.type === "polygon");
+      if (conflictingAnnotations.length > 0) return;
+
+      const labelById = new Map(labels.map((l) => [l.id, l]));
+      const stamp = Date.now();
+      const toastId = toast.loading("Pre-annotating...");
+
+      const body =
+        modelType === PreAnnotateModelTypeEnum.DETECTION
+          ? {
+              modelType: PreAnnotateModelTypeEnum.DETECTION as const,
+              modelId: modelId,
+              conf: detSettings.conf,
+              iou: detSettings.iou,
+              minAreaPx: detSettings.minAreaPx,
+            }
+          : {
+              modelType: PreAnnotateModelTypeEnum.SEGMENTATION as const,
+              modelId: modelId,
+              conf: segSettings.conf,
+              iou: segSettings.iou,
+              polyEpsilon: segSettings.polyEpsilon,
+              maskThreshold: segSettings.maskThreshold,
+              minAreaPx: segSettings.minAreaPx,
+              fillConcavityLabelIds: segSettings.fillConcavityLabelIds,
+            };
+
+      predictAnnotations({ projectId, taskId: selectedTaskId, body })
+        .unwrap()
+        .then((result) => {
+          let predicted: Annotation[] = [];
+
+          if (result.modelType === PreAnnotateModelTypeEnum.DETECTION) {
+            predicted = result.rectangles.flatMap((r, idx) => {
+              const label = labelById.get(r.labelId);
+              if (!label) return [];
+              return [
+                {
+                  id: `pred-${stamp}-${idx}`,
+                  apiId: undefined,
+                  labelId: String(label.id),
+                  labelName: label.name,
+                  color: label.color,
+                  type: "bbox" as const,
+                  bbox: { x: r.x, y: r.y, width: r.width, height: r.height },
+                },
+              ];
+            });
+          } else {
+            predicted = result.polygons.flatMap((p, idx) => {
+              const label = labelById.get(p.labelId);
+              if (!label) return [];
+              return [
+                {
+                  id: `pred-${stamp}-${idx}`,
+                  apiId: undefined,
+                  labelId: String(label.id),
+                  labelName: label.name,
+                  color: label.color,
+                  type: "polygon" as const,
+                  points: p.value,
+                },
+              ];
+            });
+          }
+
+          // Replace annotations of the predicted geometry type; keep the other type.
+          const kept = isDetection
+            ? annotations.filter((a) => a.type !== "bbox")
+            : annotations.filter((a) => a.type !== "polygon");
+          const next = [...kept, ...predicted];
+
+          setAnnotations(next);
+          setIsDirty(true);
+          history.reset();
+          setSelectedAnnotationIds(new Set());
+          setPrimarySelectedId(null);
+
+          const noun = isDetection ? "box" : "polygon";
+          const plural = isDetection ? "boxes" : "polygons";
+          if (predicted.length === 0) {
+            toast.info("No predictions above the confidence threshold", {
+              id: toastId,
+              description: "Try lowering Confidence in the pre-annotate settings.",
+            });
+          } else {
+            toast.success(
+              `Pre-annotated ${predicted.length} ${predicted.length === 1 ? noun : plural}`,
+              { id: toastId },
+            );
+          }
+        })
+        .catch((err: unknown) => {
+          const message =
+            (err as { data?: { message?: string } })?.data?.message ??
+            "Pre-annotation failed";
+          toast.error(message, { id: toastId });
+        });
+    },
+    [
       projectId,
-      taskId: selectedTaskId,
-      body: {
-        modelId: preAnnotateSettings.modelId,
-        conf: preAnnotateSettings.conf,
-        iou: preAnnotateSettings.iou,
-        polyEpsilon: preAnnotateSettings.polyEpsilon,
-        maskThreshold: preAnnotateSettings.maskThreshold,
-        minAreaPx: preAnnotateSettings.minAreaPx,
-        fillConcavityLabelIds: preAnnotateSettings.fillConcavityLabelIds,
-      },
-    })
-      .unwrap()
-      .then((result) => {
-        const newAnnotations: Annotation[] = result.polygons.flatMap(
-          (p, idx) => {
-            const label = labelById.get(p.labelId);
-            if (!label) return [];
-            return [
-              {
-                id: `pred-${stamp}-${idx}`,
-                apiId: undefined,
-                labelId: String(label.id),
-                labelName: label.name,
-                color: label.color,
-                type: "polygon",
-                points: p.value,
-              },
-            ];
-          },
-        );
+      selectedTaskId,
+      segSettings,
+      detSettings,
+      annotations,
+      predictAnnotations,
+      labels,
+      history,
+    ],
+  );
 
-        // Pre-annotate is "load a starting state" rather than a per-action
-        // edit. Replace annotations wholesale, mark the task dirty so the
-        // Save button lights up, and reset history so Undo/Redo only
-        // tracks corrections the user makes from here.
-        setAnnotations(newAnnotations);
-        setIsDirty(true);
-        history.reset();
-        setSelectedAnnotationIds(new Set());
-        setPrimarySelectedId(null);
+  const rectangleAnnotations = useMemo(
+    () => annotations.filter((a) => a.type === "bbox"),
+    [annotations],
+  );
+  const polygonAnnotations = useMemo(
+    () => annotations.filter((a) => a.type === "polygon"),
+    [annotations],
+  );
 
-        if (newAnnotations.length === 0) {
-          toast.info("No predictions above the confidence threshold", {
-            id: toastId,
-            description:
-              "Try lowering Confidence in the pre-annotate settings.",
-          });
-        } else {
-          toast.success(
-            `Pre-annotated ${newAnnotations.length} polygon${newAnnotations.length === 1 ? "" : "s"}`,
-            { id: toastId },
-          );
-        }
-      })
-      .catch((err: unknown) => {
-        const message =
-          (err as { data?: { message?: string } })?.data?.message ??
-          "Pre-annotation failed";
-        toast.error(message, { id: toastId });
-      });
-  }, [
-    projectId,
-    selectedTaskId,
-    preAnnotateSettings,
-    annotations.length,
-    predictAnnotations,
-    labels,
-    history,
-  ]);
-
-  const preAnnotateDisabledReason = useMemo(() => {
+  const preAnnotateSegDisabledReason = useMemo(() => {
     if (selectedTaskId === null) return "Select a task first";
-    if (annotations.length > 0)
-      return "Pre-annotate is only available on empty tasks";
-    if (preAnnotateSettings.modelId === null)
-      return "Choose a model in pre-annotate settings";
+    if (polygonAnnotations.length > 0)
+      return "Segmentation pre-annotate is only available when no polygons exist";
+    if (segSettings.modelId === null)
+      return "Choose a segmentation model in pre-annotate settings";
     return undefined;
-  }, [selectedTaskId, annotations.length, preAnnotateSettings.modelId]);
+  }, [selectedTaskId, polygonAnnotations.length, segSettings.modelId]);
+
+  const preAnnotateDetDisabledReason = useMemo(() => {
+    if (selectedTaskId === null) return "Select a task first";
+    if (rectangleAnnotations.length > 0)
+      return "Detection pre-annotate is only available when no boxes exist";
+    if (detSettings.modelId === null)
+      return "Choose a detection model in pre-annotate settings";
+    return undefined;
+  }, [selectedTaskId, rectangleAnnotations.length, detSettings.modelId]);
 
   useLabelShortcuts({
     tasks,
@@ -1039,11 +1106,15 @@ export const LabelPage = () => {
               onResetView={handleResetView}
               onPreAnnotate={handlePreAnnotate}
               onOpenPreAnnotateSettings={() => setPreAnnotateOpen(true)}
-              preAnnotateDisabled={
-                preAnnotateDisabledReason !== undefined || isPredicting
+              preAnnotateSegDisabled={
+                preAnnotateSegDisabledReason !== undefined || isPredicting
+              }
+              preAnnotateDetDisabled={
+                preAnnotateDetDisabledReason !== undefined || isPredicting
               }
               preAnnotatePending={isPredicting}
-              preAnnotateDisabledReason={preAnnotateDisabledReason}
+              preAnnotateSegDisabledReason={preAnnotateSegDisabledReason}
+              preAnnotateDetDisabledReason={preAnnotateDetDisabledReason}
               preAnnotateSettingsDisabled={!canManagePreAnnotateSettings}
               preAnnotateSettingsDisabledReason={
                 !canManagePreAnnotateSettings
@@ -1089,8 +1160,10 @@ export const LabelPage = () => {
         open={preAnnotateOpen}
         onOpenChange={setPreAnnotateOpen}
         models={models}
-        settings={preAnnotateSettings}
-        hasSavedSettings={savedPreAnnotateSettings != null}
+        segSettings={segSettings}
+        detSettings={detSettings}
+        segHasSavedSettings={savedSegSettings != null}
+        detHasSavedSettings={savedDetSettings != null}
         onApply={updatePreAnnotateSettings}
         onDelete={deletePreAnnotateSettings}
         isSaving={isSavingPreAnnotateSettings || isDeletingPreAnnotateSettings}

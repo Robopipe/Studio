@@ -6,9 +6,10 @@ import {
   Post,
   UseGuards,
 } from "@nestjs/common";
+import { PredictRequest, PredictResponse } from "@repo/schema";
 import { ProjectGuard } from "../../auth/guards/project-guard";
 import { ProjectId } from "../../auth/decorators/project-id.decorator";
-import { PredictRequestDto, PredictResponseDto } from "../dto/predict.dto";
+import { PredictRequestDto } from "../dto/predict.dto";
 import { PredictService } from "../services/predict.service";
 
 @Controller("predict/:projectId")
@@ -21,7 +22,7 @@ export class PredictController {
     @ProjectId() projectId: number,
     @Param("taskId", ParseIntPipe) taskId: number,
     @Body() body: PredictRequestDto,
-  ): Promise<PredictResponseDto> {
-    return this.predictService.predict(projectId, taskId, body);
+  ): Promise<PredictResponse> {
+    return this.predictService.predict(projectId, taskId, body as PredictRequest);
   }
 }
