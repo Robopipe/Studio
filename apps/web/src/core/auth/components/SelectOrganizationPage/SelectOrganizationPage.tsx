@@ -116,7 +116,7 @@ export const SelectOrganizationPage = () => {
                   <div>
                     <p className="font-medium">{inv.organizationName}</p>
                     <p className="text-xs text-muted-foreground">
-                      Invited to join
+                      Invited as {inv.role === "ADMIN" ? "Admin" : "Member"}
                     </p>
                   </div>
                   <div className="flex flex-row gap-2">

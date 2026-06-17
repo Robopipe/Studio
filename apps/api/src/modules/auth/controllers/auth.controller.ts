@@ -30,7 +30,7 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { LocalAuthGuard } from '../guards/local-auth.guard';
 import { PreAuthGuard } from '../guards/pre-auth.guard';
 import { AuthService } from '../services/auth.service';
-import { CreateOrganizationDto, ForgotPasswordDto, RegisterDto, ResetPasswordDto, SelectOrganizationDto, UserUpdateRequest } from "../dto/auth.dto";
+import { CreateOrganizationDto, ForgotPasswordDto, RegisterDto, ResendVerificationDto, ResetPasswordDto, SelectOrganizationDto, UserUpdateRequest, VerifyEmailDto } from "../dto/auth.dto";
 import type { SessionUser } from '../strategies/jwt.strategy';
 
 @Controller('auth')
@@ -161,6 +161,7 @@ export class AuthController {
     await this.organizationMemberRepository.create({
       userId: user.id,
       organizationId: invitation.organizationId,
+      role: invitation.role,
     });
 
     await this.invitationRepository.updateStatus(id, InvitationStatusEnum.ACCEPTED);
@@ -249,13 +250,33 @@ export class AuthController {
   }
 
   /**
-   * Register a new account. Sends a welcome email with a set-password link.
-   * @param data - registration payload (email, fullName)
+   * Register a new account. Sends a verification email.
+   * @param data - registration payload (email, fullName, password)
    * @returns success message
    */
   @Post("register")
   public register(@Body() data: RegisterDto): Promise<{ message: string }> {
     return this.authService.register(data);
+  }
+
+  /**
+   * Verify an email address using a token from the verification email.
+   * @param data - contains the verification token
+   * @returns success message
+   */
+  @Post("verify-email")
+  public async verifyEmail(@Body() data: VerifyEmailDto): Promise<{ message: string }> {
+    return this.authService.verifyEmail(data.token);
+  }
+
+  /**
+   * Resend a verification email if the account exists and is unverified.
+   * @param data - contains the email address
+   * @returns generic success message (doesn't reveal if email exists)
+   */
+  @Post("resend-verification")
+  public async resendVerification(@Body() data: ResendVerificationDto): Promise<{ message: string }> {
+    return this.authService.resendVerification(data.email);
   }
 
   /**

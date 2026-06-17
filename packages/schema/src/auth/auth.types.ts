@@ -7,11 +7,13 @@ import {
   preAuthJwtSchema,
   preAuthTokenSchema,
   registerSchema,
+  resendVerificationSchema,
   resetPasswordSchema,
   selectOrganizationSchema,
   sessionJwtSchema,
   tokenSchema,
   updateUserSchema,
+  verifyEmailSchema,
 } from "./auth.schema";
 
 export type Login = z.infer<typeof loginSchema>;
@@ -28,3 +30,5 @@ export type ForgotPassword = z.infer<typeof forgotPasswordSchema>;
 export type ResetPassword = z.infer<typeof resetPasswordSchema>;
 export type InviteUser = z.infer<typeof inviteUserSchema>;
 export type CreateOrganization = z.infer<typeof createOrganizationSchema>;
+export type VerifyEmail = z.infer<typeof verifyEmailSchema>;
+export type ResendVerification = z.infer<typeof resendVerificationSchema>;

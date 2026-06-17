@@ -7,6 +7,7 @@ export const projectSchema = z.object({
   description: z.string(),
   cameraApiUrl: z.url().nullable(),
   multipleDashboardConfigs: z.boolean(),
+  hasLicense: z.boolean(),
   organizationId: z.number(),
   taskCount: z.number(),
   annotatedTaskCount: z.number(),
