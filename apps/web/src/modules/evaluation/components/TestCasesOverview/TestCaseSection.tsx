@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils";
 import { DeleteLimitDialog } from "@/modules/dashboard/components/DeleteLimitDialog";
 import { Button } from "@/modules/shadcn/ui/button";
 import { Card, CardContent, CardHeader } from "@/modules/shadcn/ui/card";
@@ -29,6 +30,8 @@ type DeleteState =
   | { type: "blocked"; limitId: string }
   | null;
 
+type ViewMode = "table" | "graph";
+
 export function TestCaseSection({ testCase, projectId, configId }: TestCaseSectionProps) {
   const { data: limits = [] } = useGetEvalLimitsQuery({
     projectId,
@@ -40,6 +43,7 @@ export function TestCaseSection({ testCase, projectId, configId }: TestCaseSecti
   const [deleteState, setDeleteState] = useState<DeleteState>(null);
   const [isEditTestCaseOpen, setIsEditTestCaseOpen] = useState(false);
   const [isDeleteTestCaseOpen, setIsDeleteTestCaseOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
 
   const { data: limitToEdit } = useGetEvalLimitQuery(
     { projectId, configId, testCaseId: testCase.id, limitId: limitToEditId! },
@@ -109,7 +113,25 @@ export function TestCaseSection({ testCase, projectId, configId }: TestCaseSecti
           <PlusIcon />
           Add limit
         </Button>
-        <div className="ml-auto flex shrink-0 items-center gap-2">
+        <div className="mx-auto flex shrink-0 items-center gap-1 rounded-md bg-muted p-0.5">
+          {(["table", "graph"] as const).map((mode) => (
+            <Button
+              key={mode}
+              variant="ghost"
+              size="sm"
+              aria-pressed={viewMode === mode}
+              className={cn(
+                "capitalize text-muted-foreground hover:bg-transparent hover:text-foreground",
+                viewMode === mode &&
+                  "bg-background text-foreground shadow-xs hover:bg-background",
+              )}
+              onClick={() => setViewMode(mode)}
+            >
+              {mode}
+            </Button>
+          ))}
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
           <TestCaseEnabledSwitch
             testCase={testCase}
             projectId={projectId}
@@ -138,7 +160,13 @@ export function TestCaseSection({ testCase, projectId, configId }: TestCaseSecti
       </CardHeader>
 
       <CardContent>
-        <DataTable data={limits} columns={columns} enableRowSelection />
+        {viewMode === "table" ? (
+          <DataTable data={limits} columns={columns} enableRowSelection />
+        ) : (
+          <div className="flex h-24 items-center justify-center text-sm text-muted-foreground">
+            Graph view coming soon
+          </div>
+        )}
       </CardContent>
 
       {isCreateLimitOpen && (
