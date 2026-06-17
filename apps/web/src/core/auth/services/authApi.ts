@@ -9,11 +9,13 @@ import {
   OrganizationListItem,
   PreAuthToken,
   Register,
+  ResendVerification,
   ResetPassword,
   SelectOrganization,
   Token,
   UpdateUserRequest,
   User,
+  VerifyEmail,
 } from "@repo/schema";
 
 const { auth } = appConfig.studioApi.endpoints;
@@ -138,6 +140,20 @@ export const authApi = authApiBase.injectEndpoints({
         body: data,
       }),
     }),
+    verifyEmail: builder.mutation<{ message: string }, VerifyEmail>({
+      query: (data) => ({
+        url: auth.verifyEmail,
+        method: HttpMethod.POST,
+        body: data,
+      }),
+    }),
+    resendVerification: builder.mutation<{ message: string }, ResendVerification>({
+      query: (data) => ({
+        url: auth.resendVerification,
+        method: HttpMethod.POST,
+        body: data,
+      }),
+    }),
   }),
   overrideExisting: true,
 });
@@ -158,4 +174,6 @@ export const {
   useUpdateProfileMutation,
   useForgotPasswordMutation,
   useResetPasswordMutation,
+  useVerifyEmailMutation,
+  useResendVerificationMutation,
 } = authApi;

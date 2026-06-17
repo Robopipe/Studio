@@ -44,6 +44,15 @@ export const selectOrganizationSchema = z.object({
 export const registerSchema = z.object({
   email: z.email("Enter a valid email address"),
   fullName: z.string().nonempty("Enter your full name"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+});
+
+export const verifyEmailSchema = z.object({
+  token: z.string().nonempty("Verification token is missing"),
+});
+
+export const resendVerificationSchema = z.object({
+  email: z.email("Enter a valid email address"),
 });
 
 export const updateUserSchema = z.object({

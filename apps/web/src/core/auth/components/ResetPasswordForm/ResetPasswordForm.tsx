@@ -13,7 +13,6 @@ type ResetFieldErrors = Partial<Record<"password" | "confirmPassword", string>>;
 export const ResetPasswordForm = () => {
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token");
-  const isWelcome = searchParams.get("welcome") === "1";
   const [resetPassword, { isLoading }] = useResetPasswordMutation();
   const [success, setSuccess] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<ResetFieldErrors>({});
@@ -72,15 +71,14 @@ export const ResetPasswordForm = () => {
   if (success) {
     return (
       <div className="relative flex h-full w-full flex-col items-center justify-center px-8 py-16">
-        <div className="flex w-full max-w-[400px] flex-col">
+        <div className="flex w-full max-w-100 flex-col">
           <div className="mb-10 flex flex-col items-center gap-2 text-center">
             <h2 className="text-4xl font-semibold tracking-tight text-gray-900">
-              {isWelcome ? "You're all set" : "Password reset"}
+              Password reset
             </h2>
             <p className="text-muted-foreground">
-              {isWelcome
-                ? "Your password has been set. Redirecting you to the login page in 5 seconds."
-                : "Your password has been reset successfully. Redirecting you to the login page in 5 seconds."}
+              Your password has been reset successfully. Redirecting you to the
+              login page in 5 seconds.
             </p>
           </div>
           <div className="mt-8 flex flex-col items-center gap-4">
@@ -101,15 +99,13 @@ export const ResetPasswordForm = () => {
 
   return (
     <div className="relative flex h-full w-full flex-col items-center justify-center px-8 py-16">
-      <div className="flex w-full max-w-[400px] flex-col">
+      <div className="flex w-full max-w-100 flex-col">
         <div className="mb-10 flex flex-col items-center gap-2 text-center">
           <h2 className="text-4xl font-semibold tracking-tight text-gray-900">
-            {isWelcome ? "Set your password" : "Set new password"}
+            Set new password
           </h2>
           <p className="text-muted-foreground">
-            {isWelcome
-              ? "Choose a password for your Robopipe Studio account"
-              : "Enter your new password below"}
+            Enter your new password below
           </p>
         </div>
 
@@ -123,7 +119,7 @@ export const ResetPasswordForm = () => {
                 id="password"
                 name="password"
                 type="password"
-                placeholder={isWelcome ? "Choose a password" : "New password"}
+                placeholder="New password"
                 aria-invalid={!!fieldErrors.password || undefined}
                 aria-describedby={
                   fieldErrors.password ? "password-error" : undefined
