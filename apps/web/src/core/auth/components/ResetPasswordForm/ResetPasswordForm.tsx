@@ -1,10 +1,14 @@
 import { Button } from "@/modules/shadcn/ui/button";
 import { Input } from "@/modules/shadcn/ui/input";
 import { Label } from "@/modules/shadcn/ui/label";
-import { FormEvent, useEffect, useState } from "react";
+import { resetPasswordSchema } from "@repo/schema";
+import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router";
 import { useResetPasswordMutation } from "../../services";
+import { fieldErrorsFromZod, mapAuthError, MappedAuthError } from "../../utils";
 import { FormError } from "../FormError";
+
+type ResetFieldErrors = Partial<Record<"password" | "confirmPassword", string>>;
 
 export const ResetPasswordForm = () => {
   const [searchParams] = useSearchParams();
@@ -12,7 +16,8 @@ export const ResetPasswordForm = () => {
   const isWelcome = searchParams.get("welcome") === "1";
   const [resetPassword, { isLoading }] = useResetPasswordMutation();
   const [success, setSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<ResetFieldErrors>({});
+  const [formError, setFormError] = useState<MappedAuthError | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -25,28 +30,42 @@ export const ResetPasswordForm = () => {
     return <Navigate to="/login" replace />;
   }
 
+  const handleFieldChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const name = e.target.name as keyof ResetFieldErrors;
+    setFieldErrors((prev) => ({ ...prev, [name]: undefined }));
+  };
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError(null);
+    setFormError(null);
     const formData = new FormData(e.currentTarget);
     const password = formData.get("password") as string;
     const confirmPassword = formData.get("confirmPassword") as string;
 
+    // Collect all field errors before deciding whether to abort
+    const errors: ResetFieldErrors = {};
+
+    const parsed = resetPasswordSchema.safeParse({ token, password });
+    if (!parsed.success) {
+      const zodErrors = fieldErrorsFromZod(parsed.error);
+      if (zodErrors.password) errors.password = zodErrors.password;
+    }
+
     if (password !== confirmPassword) {
-      setError("Passwords do not match.");
+      errors.confirmPassword = "Passwords do not match.";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
       return;
     }
 
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
-      return;
-    }
-
+    setFieldErrors({});
     try {
       await resetPassword({ token, password }).unwrap();
       setSuccess(true);
-    } catch {
-      setError("Invalid or expired link. Please request a new one.");
+    } catch (error) {
+      setFormError(mapAuthError(error, "resetPassword"));
     }
   };
 
@@ -94,9 +113,9 @@ export const ResetPasswordForm = () => {
           </p>
         </div>
 
-        {error && <FormError message={error} />}
+        {formError && <FormError message={formError.message} />}
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="password">Password</Label>
@@ -105,11 +124,21 @@ export const ResetPasswordForm = () => {
                 name="password"
                 type="password"
                 placeholder={isWelcome ? "Choose a password" : "New password"}
-                required
+                aria-invalid={!!fieldErrors.password || undefined}
+                aria-describedby={
+                  fieldErrors.password ? "password-error" : undefined
+                }
+                onChange={handleFieldChange}
               />
-              <p className="text-xs text-muted-foreground">
-                At least 8 characters
-              </p>
+              {fieldErrors.password ? (
+                <p id="password-error" className="text-xs text-destructive">
+                  {fieldErrors.password}
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  At least 8 characters
+                </p>
+              )}
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="confirmPassword">Confirm Password</Label>
@@ -118,11 +147,26 @@ export const ResetPasswordForm = () => {
                 name="confirmPassword"
                 type="password"
                 placeholder="Confirm password"
-                required
+                aria-invalid={!!fieldErrors.confirmPassword || undefined}
+                aria-describedby={
+                  fieldErrors.confirmPassword
+                    ? "confirmPassword-error"
+                    : undefined
+                }
+                onChange={handleFieldChange}
               />
-              <p className="text-xs text-muted-foreground">
-                Re-enter your password
-              </p>
+              {fieldErrors.confirmPassword ? (
+                <p
+                  id="confirmPassword-error"
+                  className="text-xs text-destructive"
+                >
+                  {fieldErrors.confirmPassword}
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Re-enter your password
+                </p>
+              )}
             </div>
             <Button
               type="submit"
