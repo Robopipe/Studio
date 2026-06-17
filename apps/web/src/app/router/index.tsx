@@ -7,6 +7,7 @@ import {
   SelectOrganizationPage,
 } from "@/core/auth/components";
 import { Authenticated } from "@/core/auth/components/Authenticated/Authenticated";
+import { Guest } from "@/core/auth/components/Guest/Guest";
 import { RegisterForm } from "@/core/auth/components/RegisterForm/RegisterForm";
 import { AccountPage, OrganizationSettingsPage } from "@/modules/account/components";
 import { CapturePage } from "@/modules/capture/components/CapturePage";
@@ -19,29 +20,19 @@ import { RunPage } from "@/modules/run";
 import { createBrowserRouter, Navigate, RouteObject } from "react-router";
 
 const { auth } = appConfig.web.routes;
-const publicRoutes: RouteObject = {
+const unguardedPublicRoutes: RouteObject = {
   element: <AuthLayout />,
   children: [
-    {
-      path: auth.login,
-      element: <LoginForm />,
-    },
-    {
-      path: auth.register,
-      element: <RegisterForm />,
-    },
-    {
-      path: auth.forgotPassword,
-      element: <ForgotPasswordForm />,
-    },
-    {
-      path: auth.resetPassword,
-      element: <ResetPasswordForm />,
-    },
-    {
-      path: auth.selectOrganization,
-      element: <SelectOrganizationPage />,
-    },
+    { path: auth.resetPassword, element: <ResetPasswordForm /> },
+    { path: auth.selectOrganization, element: <SelectOrganizationPage /> },
+  ],
+};
+const guestRoutes: RouteObject = {
+  element: <Guest />,
+  children: [
+    { path: auth.login, element: <LoginForm /> },
+    { path: auth.register, element: <RegisterForm /> },
+    { path: auth.forgotPassword, element: <ForgotPasswordForm /> },
   ],
 };
 const authenticatedRoutes: RouteObject = {
@@ -69,4 +60,4 @@ const authenticatedRoutes: RouteObject = {
   ],
 };
 
-export const router = createBrowserRouter([publicRoutes, authenticatedRoutes]);
+export const router = createBrowserRouter([unguardedPublicRoutes, guestRoutes, authenticatedRoutes]);

@@ -1,16 +1,13 @@
-import { appConfig } from "@/config";
 import { Button } from "@/modules/shadcn/ui/button";
 import { Input } from "@/modules/shadcn/ui/input";
 import { Label } from "@/modules/shadcn/ui/label";
 import { FormEvent, useState } from "react";
-import { Link, Navigate } from "react-router";
-import { useAuth } from "../../hooks";
+import { Link } from "react-router";
 import { useForgotPasswordMutation } from "../../services";
 import { FormError } from "../FormError";
 
 export const ForgotPasswordForm = () => {
   const [forgotPassword, { isLoading }] = useForgotPasswordMutation();
-  const { isAuthenticated } = useAuth();
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,10 +24,6 @@ export const ForgotPasswordForm = () => {
       setError("Something went wrong. Please try again.");
     }
   };
-
-  if (isAuthenticated) {
-    return <Navigate to={appConfig.web.routes.main.projects} replace />;
-  }
 
   if (submitted) {
     return (

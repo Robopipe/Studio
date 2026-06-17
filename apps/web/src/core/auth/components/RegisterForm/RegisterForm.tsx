@@ -1,16 +1,13 @@
-import { appConfig } from "@/config";
 import { Button } from "@/modules/shadcn/ui/button";
 import { Input } from "@/modules/shadcn/ui/input";
 import { Label } from "@/modules/shadcn/ui/label";
 import { FormEvent, useState } from "react";
-import { Link, Navigate } from "react-router";
-import { useAuth } from "../../hooks";
+import { Link } from "react-router";
 import { useRegisterMutation } from "../../services";
 import { FormError } from "../FormError";
 
 export const RegisterForm = () => {
   const [register, { isError, isLoading }] = useRegisterMutation();
-  const { isAuthenticated, isPreAuth } = useAuth();
   const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -25,14 +22,6 @@ export const RegisterForm = () => {
       console.error("Registration failed:", error);
     }
   };
-
-  if (isPreAuth) {
-    return <Navigate to={appConfig.web.routes.auth.selectOrganization} replace />;
-  }
-
-  if (isAuthenticated) {
-    return <Navigate to={appConfig.web.routes.main.projects} replace />;
-  }
 
   if (success) {
     return (
