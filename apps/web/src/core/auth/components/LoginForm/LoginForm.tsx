@@ -1,17 +1,14 @@
-import { appConfig } from "@/config";
 import { Button } from "@/modules/shadcn/ui/button";
 import { Input } from "@/modules/shadcn/ui/input";
 import { Label } from "@/modules/shadcn/ui/label";
 import { Login } from "@repo/schema";
 import { FormEvent } from "react";
-import { Link, Navigate } from "react-router";
-import { useAuth } from "../../hooks";
+import { Link } from "react-router";
 import { useLoginMutation } from "../../services";
 import { FormError } from "../FormError";
 
 export const LoginForm = () => {
   const [login, { isError, isLoading }] = useLoginMutation();
-  const { isAuthenticated, isPreAuth } = useAuth();
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -24,14 +21,6 @@ export const LoginForm = () => {
       console.error("Login failed:", error);
     }
   };
-
-  if (isPreAuth) {
-    return <Navigate to={appConfig.web.routes.auth.selectOrganization} replace />;
-  }
-
-  if (isAuthenticated) {
-    return <Navigate to={appConfig.web.routes.main.projects} replace />;
-  }
 
   return (
     <div className="relative flex h-full w-full flex-col items-center justify-center px-8 py-16">
