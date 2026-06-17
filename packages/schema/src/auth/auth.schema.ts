@@ -1,10 +1,10 @@
 import z from "zod";
 import { OrgMemberRoleEnum, userSchema } from "../users";
-import { organizationSchema } from "../organizations";
+import { assignableRoleEnum, organizationSchema } from "../organizations";
 
 export const loginSchema = z.object({
-  email: z.email(),
-  password: z.string().nonempty(),
+  email: z.email("Enter a valid email address"),
+  password: z.string().nonempty("Enter your password"),
 });
 
 export const preAuthTokenSchema = z.object({
@@ -42,8 +42,17 @@ export const selectOrganizationSchema = z.object({
 });
 
 export const registerSchema = z.object({
-  email: z.email(),
-  fullName: z.string().nonempty(),
+  email: z.email("Enter a valid email address"),
+  fullName: z.string().nonempty("Enter your full name"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+});
+
+export const verifyEmailSchema = z.object({
+  token: z.string().nonempty("Verification token is missing"),
+});
+
+export const resendVerificationSchema = z.object({
+  email: z.email("Enter a valid email address"),
 });
 
 export const updateUserSchema = z.object({
@@ -51,16 +60,17 @@ export const updateUserSchema = z.object({
 });
 
 export const forgotPasswordSchema = z.object({
-  email: z.email(),
+  email: z.email("Enter a valid email address"),
 });
 
 export const resetPasswordSchema = z.object({
-  token: z.string().nonempty(),
-  password: z.string().min(8),
+  token: z.string().nonempty("Reset token is missing"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
 export const inviteUserSchema = z.object({
   email: z.email(),
+  role: assignableRoleEnum,
 });
 
 export const createOrganizationSchema = z.object({

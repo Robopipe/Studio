@@ -1,41 +1,45 @@
-import { appConfig } from "@/config";
 import { Button } from "@/modules/shadcn/ui/button";
 import { Input } from "@/modules/shadcn/ui/input";
 import { Label } from "@/modules/shadcn/ui/label";
+import { forgotPasswordSchema } from "@repo/schema";
 import { FormEvent, useState } from "react";
-import { Link, Navigate } from "react-router";
-import { useAuth } from "../../hooks";
+import { Link } from "react-router";
 import { useForgotPasswordMutation } from "../../services";
+import { fieldErrorsFromZod, mapAuthError, MappedAuthError } from "../../utils";
 import { FormError } from "../FormError";
 
 export const ForgotPasswordForm = () => {
   const [forgotPassword, { isLoading }] = useForgotPasswordMutation();
-  const { isAuthenticated } = useAuth();
   const [submitted, setSubmitted] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | undefined>();
+  const [formError, setFormError] = useState<MappedAuthError | null>(null);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError(null);
+    setFormError(null);
     const formData = new FormData(e.currentTarget);
-    const email = formData.get("email") as string;
+    const values = { email: formData.get("email") as string };
 
+    const parsed = forgotPasswordSchema.safeParse(values);
+    if (!parsed.success) {
+      const errors = fieldErrorsFromZod(parsed.error);
+      setEmailError(errors.email);
+      return;
+    }
+
+    setEmailError(undefined);
     try {
-      await forgotPassword({ email }).unwrap();
+      await forgotPassword(parsed.data).unwrap();
       setSubmitted(true);
-    } catch {
-      setError("Something went wrong. Please try again.");
+    } catch (error) {
+      setFormError(mapAuthError(error, "forgotPassword"));
     }
   };
-
-  if (isAuthenticated) {
-    return <Navigate to={appConfig.web.routes.main.projects} replace />;
-  }
 
   if (submitted) {
     return (
       <div className="relative flex h-full w-full flex-col items-center justify-center px-8 py-16">
-        <div className="flex w-full max-w-[400px] flex-col">
+        <div className="flex w-full max-w-100 flex-col">
           <div className="mb-10 flex flex-col items-center gap-2 text-center">
             <h2 className="text-4xl font-semibold tracking-tight text-gray-900">
               Check your email
@@ -63,7 +67,7 @@ export const ForgotPasswordForm = () => {
 
   return (
     <div className="relative flex h-full w-full flex-col items-center justify-center px-8 py-16">
-      <div className="flex w-full max-w-[400px] flex-col">
+      <div className="flex w-full max-w-100 flex-col">
         <div className="mb-10 flex flex-col items-center gap-2 text-center">
           <h2 className="text-4xl font-semibold tracking-tight text-gray-900">
             Forgot password
@@ -73,9 +77,9 @@ export const ForgotPasswordForm = () => {
           </p>
         </div>
 
-        {error && <FormError message={error} />}
+        {formError && <FormError message={formError.message} />}
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="email">Email</Label>
@@ -84,11 +88,19 @@ export const ForgotPasswordForm = () => {
                 name="email"
                 type="email"
                 placeholder="Email"
-                required
+                aria-invalid={!!emailError || undefined}
+                aria-describedby={emailError ? "email-error" : undefined}
+                onChange={() => setEmailError(undefined)}
               />
-              <p className="text-xs text-muted-foreground">
-                Enter your email address
-              </p>
+              {emailError ? (
+                <p id="email-error" className="text-xs text-destructive">
+                  {emailError}
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Enter your email address
+                </p>
+              )}
             </div>
             <Button
               type="submit"

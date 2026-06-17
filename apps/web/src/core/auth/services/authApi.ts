@@ -9,18 +9,20 @@ import {
   OrganizationListItem,
   PreAuthToken,
   Register,
+  ResendVerification,
   ResetPassword,
   SelectOrganization,
   Token,
   UpdateUserRequest,
   User,
+  VerifyEmail,
 } from "@repo/schema";
 
 const { auth } = appConfig.studioApi.endpoints;
 const authApiBase = createApi({
   reducerPath: "authApi",
   baseQuery: baseRefreshingQuery,
-  tagTypes: ["Organizations", "Invitations"],
+  tagTypes: ["Organizations", "Invitations", "Profile"],
   endpoints: () => ({}),
 });
 
@@ -114,6 +116,7 @@ export const authApi = authApiBase.injectEndpoints({
         url: auth.profile,
         method: HttpMethod.GET,
       }),
+      providesTags: ["Profile"],
     }),
     updateProfile: builder.mutation<User, UpdateUserRequest>({
       query: (data) => ({
@@ -121,6 +124,7 @@ export const authApi = authApiBase.injectEndpoints({
         method: HttpMethod.PUT,
         body: data,
       }),
+      invalidatesTags: ["Profile"],
     }),
     forgotPassword: builder.mutation<{ message: string }, ForgotPassword>({
       query: (data) => ({
@@ -132,6 +136,20 @@ export const authApi = authApiBase.injectEndpoints({
     resetPassword: builder.mutation<{ message: string }, ResetPassword>({
       query: (data) => ({
         url: auth.resetPassword,
+        method: HttpMethod.POST,
+        body: data,
+      }),
+    }),
+    verifyEmail: builder.mutation<{ message: string }, VerifyEmail>({
+      query: (data) => ({
+        url: auth.verifyEmail,
+        method: HttpMethod.POST,
+        body: data,
+      }),
+    }),
+    resendVerification: builder.mutation<{ message: string }, ResendVerification>({
+      query: (data) => ({
+        url: auth.resendVerification,
         method: HttpMethod.POST,
         body: data,
       }),
@@ -156,4 +174,6 @@ export const {
   useUpdateProfileMutation,
   useForgotPasswordMutation,
   useResetPasswordMutation,
+  useVerifyEmailMutation,
+  useResendVerificationMutation,
 } = authApi;
