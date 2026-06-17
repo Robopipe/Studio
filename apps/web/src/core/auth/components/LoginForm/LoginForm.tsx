@@ -1,24 +1,45 @@
 import { Button } from "@/modules/shadcn/ui/button";
 import { Input } from "@/modules/shadcn/ui/input";
 import { Label } from "@/modules/shadcn/ui/label";
-import { Login } from "@repo/schema";
-import { FormEvent } from "react";
+import { loginSchema } from "@repo/schema";
+import { ChangeEvent, FormEvent, useState } from "react";
 import { Link } from "react-router";
 import { useLoginMutation } from "../../services";
+import { fieldErrorsFromZod, mapAuthError, MappedAuthError } from "../../utils";
 import { FormError } from "../FormError";
 
+type LoginFieldErrors = Partial<Record<"email" | "password", string>>;
+
 export const LoginForm = () => {
-  const [login, { isError, isLoading }] = useLoginMutation();
+  const [login, { isLoading }] = useLoginMutation();
+  const [fieldErrors, setFieldErrors] = useState<LoginFieldErrors>({});
+  const [formError, setFormError] = useState<MappedAuthError | null>(null);
+
+  const handleFieldChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const name = e.target.name as keyof LoginFieldErrors;
+    setFieldErrors((prev) => ({ ...prev, [name]: undefined }));
+  };
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setFormError(null);
     const formData = new FormData(e.currentTarget);
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
+    const values = {
+      email: formData.get("email") as string,
+      password: formData.get("password") as string,
+    };
 
+    const parsed = loginSchema.safeParse(values);
+    if (!parsed.success) {
+      setFieldErrors(fieldErrorsFromZod(parsed.error) as LoginFieldErrors);
+      return;
+    }
+
+    setFieldErrors({});
     try {
-      await login({ email, password } as Login).unwrap();
+      await login(parsed.data).unwrap();
     } catch (error) {
-      console.error("Login failed:", error);
+      setFormError(mapAuthError(error, "login"));
     }
   };
 
@@ -32,11 +53,9 @@ export const LoginForm = () => {
           <p className="text-muted-foreground">Log in to the Robopipe app</p>
         </div>
 
-        {isError && (
-          <FormError message="The username or password you entered is incorrect. Please check your credentials and try again." />
-        )}
+        {formError && <FormError message={formError.message} />}
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="email">Email</Label>
@@ -45,12 +64,19 @@ export const LoginForm = () => {
                 name="email"
                 type="email"
                 placeholder="Email"
-                aria-invalid={isError || undefined}
-                required
+                aria-invalid={!!fieldErrors.email || undefined}
+                aria-describedby={fieldErrors.email ? "email-error" : undefined}
+                onChange={handleFieldChange}
               />
-              <p className="text-xs text-muted-foreground">
-                Enter your email address
-              </p>
+              {fieldErrors.email ? (
+                <p id="email-error" className="text-xs text-destructive">
+                  {fieldErrors.email}
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Enter your email address
+                </p>
+              )}
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="password">Password</Label>
@@ -59,19 +85,28 @@ export const LoginForm = () => {
                 name="password"
                 type="password"
                 placeholder="Password"
-                aria-invalid={isError || undefined}
-                required
+                aria-invalid={!!fieldErrors.password || undefined}
+                aria-describedby={
+                  fieldErrors.password ? "password-error" : undefined
+                }
+                onChange={handleFieldChange}
               />
-              <p className="text-xs text-muted-foreground">
-                Enter your password
-              </p>
+              {fieldErrors.password ? (
+                <p id="password-error" className="text-xs text-destructive">
+                  {fieldErrors.password}
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Enter your password
+                </p>
+              )}
             </div>
             <Button
               type="submit"
               disabled={isLoading}
               className="mt-2 h-12 w-full text-base font-semibold"
             >
-              Log In
+              {isLoading ? "Logging In..." : "Log In"}
             </Button>
           </div>
         </form>

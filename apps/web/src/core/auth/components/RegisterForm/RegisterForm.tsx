@@ -1,25 +1,47 @@
 import { Button } from "@/modules/shadcn/ui/button";
 import { Input } from "@/modules/shadcn/ui/input";
 import { Label } from "@/modules/shadcn/ui/label";
-import { FormEvent, useState } from "react";
+import { registerSchema } from "@repo/schema";
+import { ChangeEvent, FormEvent, useState } from "react";
 import { Link } from "react-router";
 import { useRegisterMutation } from "../../services";
+import { fieldErrorsFromZod, mapAuthError, MappedAuthError } from "../../utils";
 import { FormError } from "../FormError";
 
+type RegisterFieldErrors = Partial<Record<"email" | "fullName", string>>;
+
 export const RegisterForm = () => {
-  const [register, { isError, isLoading }] = useRegisterMutation();
+  const [register, { isLoading }] = useRegisterMutation();
   const [success, setSuccess] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<RegisterFieldErrors>({});
+  const [formError, setFormError] = useState<MappedAuthError | null>(null);
+
+  const handleFieldChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const name = e.target.name as keyof RegisterFieldErrors;
+    setFieldErrors((prev) => ({ ...prev, [name]: undefined }));
+  };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setFormError(null);
     const formData = new FormData(e.currentTarget);
-    const email = formData.get("email") as string;
-    const fullName = formData.get("fullName") as string;
+    const values = {
+      email: formData.get("email") as string,
+      fullName: formData.get("fullName") as string,
+    };
+
+    const parsed = registerSchema.safeParse(values);
+    if (!parsed.success) {
+      setFieldErrors(fieldErrorsFromZod(parsed.error) as RegisterFieldErrors);
+      return;
+    }
+
+    setFieldErrors({});
     try {
-      await register({ email, fullName }).unwrap();
+      await register(parsed.data).unwrap();
       setSuccess(true);
     } catch (error) {
-      console.error("Registration failed:", error);
+      setFormError(mapAuthError(error, "register"));
     }
   };
 
@@ -63,11 +85,23 @@ export const RegisterForm = () => {
           <p className="text-muted-foreground">Sign up for the Robopipe app</p>
         </div>
 
-        {isError && (
-          <FormError message="Registration failed. Please check your details and try again." />
+        {formError && (
+          <FormError
+            message={formError.message}
+            action={
+              formError.action ? (
+                <Link
+                  to={formError.action.to}
+                  className="font-semibold underline"
+                >
+                  {formError.action.label}
+                </Link>
+              ) : undefined
+            }
+          />
         )}
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="email">Email</Label>
@@ -76,12 +110,19 @@ export const RegisterForm = () => {
                 name="email"
                 type="email"
                 placeholder="Email"
-                aria-invalid={isError || undefined}
-                required
+                aria-invalid={!!fieldErrors.email || undefined}
+                aria-describedby={fieldErrors.email ? "email-error" : undefined}
+                onChange={handleFieldChange}
               />
-              <p className="text-xs text-muted-foreground">
-                Enter your email address
-              </p>
+              {fieldErrors.email ? (
+                <p id="email-error" className="text-xs text-destructive">
+                  {fieldErrors.email}
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Enter your email address
+                </p>
+              )}
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="fullName">Full Name</Label>
@@ -90,12 +131,21 @@ export const RegisterForm = () => {
                 name="fullName"
                 type="text"
                 placeholder="Full Name"
-                aria-invalid={isError || undefined}
-                required
+                aria-invalid={!!fieldErrors.fullName || undefined}
+                aria-describedby={
+                  fieldErrors.fullName ? "fullName-error" : undefined
+                }
+                onChange={handleFieldChange}
               />
-              <p className="text-xs text-muted-foreground">
-                Enter your full name
-              </p>
+              {fieldErrors.fullName ? (
+                <p id="fullName-error" className="text-xs text-destructive">
+                  {fieldErrors.fullName}
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Enter your full name
+                </p>
+              )}
             </div>
             <Button
               type="submit"
