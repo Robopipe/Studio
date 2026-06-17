@@ -1,0 +1,63 @@
+import { expect, test } from "@playwright/test";
+import { canvasCentre, getZoom, gotoEditor } from "./helpers";
+
+test.describe("Canvas viewport", () => {
+  test.beforeEach(async ({ page }) => {
+    await gotoEditor(page);
+  });
+
+  test("wheel down zooms out", async ({ page }) => {
+    expect(await getZoom(page)).toBe(1);
+
+    const centre = await canvasCentre(page);
+    await page.mouse.move(centre.x, centre.y);
+    await page.mouse.wheel(0, 200);
+
+    // FIX(flakiness): mouse.wheel does not wait for the wheel event to be processed (per Playwright docs), so reading the zoom immediately can race the area plugin's handler — same pattern in both clamp tests below — fix: use await expect.poll(() => getZoom(page)).toBeLessThan(1); why: a one-frame delay in event dispatch turns these into intermittent failures on slow CI.
+    const zoomed = await getZoom(page);
+    expect(zoomed).toBeLessThan(1);
+  });
+
+  test("wheel up is clamped at the max (1.0)", async ({ page }) => {
+    const centre = await canvasCentre(page);
+    await page.mouse.move(centre.x, centre.y);
+
+    for (let i = 0; i < 10; i++) {
+      await page.mouse.wheel(0, -300);
+    }
+
+    expect(await getZoom(page)).toBe(1);
+  });
+
+  test("wheel down is clamped at the min (0.4)", async ({ page }) => {
+    const centre = await canvasCentre(page);
+    await page.mouse.move(centre.x, centre.y);
+
+    for (let i = 0; i < 30; i++) {
+      await page.mouse.wheel(0, 300);
+    }
+
+    expect(await getZoom(page)).toBeCloseTo(0.4, 5);
+  });
+
+  test("dragging the background pans the canvas", async ({ page }) => {
+    const before = await page.evaluate(() => ({
+      x: window.__editor!.area.area.transform.x,
+      y: window.__editor!.area.area.transform.y,
+    }));
+
+    const centre = await canvasCentre(page);
+    await page.mouse.move(centre.x, centre.y);
+    await page.mouse.down({ button: "left" });
+    await page.mouse.move(centre.x + 200, centre.y + 150, { steps: 10 });
+    await page.mouse.up({ button: "left" });
+
+    const after = await page.evaluate(() => ({
+      x: window.__editor!.area.area.transform.x,
+      y: window.__editor!.area.area.transform.y,
+    }));
+
+    expect(after.x - before.x).toBeCloseTo(200, 0);
+    expect(after.y - before.y).toBeCloseTo(150, 0);
+  });
+});

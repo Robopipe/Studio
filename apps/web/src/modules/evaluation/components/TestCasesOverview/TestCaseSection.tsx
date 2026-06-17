@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { DeleteLimitDialog } from "@/modules/dashboard/components/DeleteLimitDialog";
+import { GraphEditor } from "@/modules/evaluation/components/GraphEditor/GraphEditor";
 import { Button } from "@/modules/shadcn/ui/button";
 import { Card, CardContent, CardHeader } from "@/modules/shadcn/ui/card";
 import { Separator } from "@/modules/shadcn/ui/separator";
@@ -32,7 +33,11 @@ type DeleteState =
 
 type ViewMode = "table" | "graph";
 
-export function TestCaseSection({ testCase, projectId, configId }: TestCaseSectionProps) {
+export function TestCaseSection({
+  testCase,
+  projectId,
+  configId,
+}: TestCaseSectionProps) {
   const { data: limits = [] } = useGetEvalLimitsQuery({
     projectId,
     configId,
@@ -101,19 +106,26 @@ export function TestCaseSection({ testCase, projectId, configId }: TestCaseSecti
 
   return (
     <Card size="sm">
-      <CardHeader className="flex flex-row items-center gap-3">
+      <CardHeader className="relative flex flex-row items-center gap-3">
         <p className="text-sm font-semibold shrink-0">{testCase.name}</p>
-        <Separator orientation="vertical" className="h-4 my-auto" />
-        <Button
-          variant="link"
-          size="sm"
-          className="gap-1 p-0 text-sm w-fit"
-          onClick={() => setIsCreateLimitOpen(true)}
-        >
-          <PlusIcon />
-          Add limit
-        </Button>
-        <div className="mx-auto flex shrink-0 items-center gap-1 rounded-md bg-muted p-0.5">
+        {viewMode === "table" && (
+          <>
+            <Separator orientation="vertical" className="h-4 my-auto" />
+            <Button
+              variant="link"
+              size="sm"
+              className="gap-1 p-0 text-sm w-fit"
+              onClick={() => setIsCreateLimitOpen(true)}
+            >
+              <PlusIcon />
+              Add limit
+            </Button>
+          </>
+        )}
+
+        {/* Centered independently of the side groups so it never shifts when the
+            left/right buttons change between table and graph view. */}
+        <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1 rounded-md bg-muted p-0.5">
           {(["table", "graph"] as const).map((mode) => (
             <Button
               key={mode}
@@ -131,22 +143,27 @@ export function TestCaseSection({ testCase, projectId, configId }: TestCaseSecti
             </Button>
           ))}
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <TestCaseEnabledSwitch
-            testCase={testCase}
-            projectId={projectId}
-            configId={configId}
-          />
-          <Separator orientation="vertical" className="h-4 my-auto" />
-          <Button
-            variant="secondary"
-            size="icon-sm"
-            className=""
-            aria-label="Edit test case"
-            onClick={() => setIsEditTestCaseOpen(true)}
-          >
-            <PencilIcon className="size-4" />
-          </Button>
+
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          {viewMode === "table" && (
+            <>
+              <TestCaseEnabledSwitch
+                testCase={testCase}
+                projectId={projectId}
+                configId={configId}
+              />
+              <Separator orientation="vertical" className="h-4 my-auto" />
+              <Button
+                variant="secondary"
+                size="icon-sm"
+                className=""
+                aria-label="Edit test case"
+                onClick={() => setIsEditTestCaseOpen(true)}
+              >
+                <PencilIcon className="size-4" />
+              </Button>
+            </>
+          )}
           <Button
             variant="destructive"
             size="icon-sm"
@@ -163,9 +180,7 @@ export function TestCaseSection({ testCase, projectId, configId }: TestCaseSecti
         {viewMode === "table" ? (
           <DataTable data={limits} columns={columns} enableRowSelection />
         ) : (
-          <div className="flex h-24 items-center justify-center text-sm text-muted-foreground">
-            Graph view coming soon
-          </div>
+          <GraphEditor projectId={projectId} />
         )}
       </CardContent>
 
