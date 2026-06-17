@@ -39,7 +39,7 @@ export const ForgotPasswordForm = () => {
   if (submitted) {
     return (
       <div className="relative flex h-full w-full flex-col items-center justify-center px-8 py-16">
-        <div className="flex w-full max-w-[400px] flex-col">
+        <div className="flex w-full max-w-100 flex-col">
           <div className="mb-10 flex flex-col items-center gap-2 text-center">
             <h2 className="text-4xl font-semibold tracking-tight text-gray-900">
               Check your email
@@ -67,7 +67,7 @@ export const ForgotPasswordForm = () => {
 
   return (
     <div className="relative flex h-full w-full flex-col items-center justify-center px-8 py-16">
-      <div className="flex w-full max-w-[400px] flex-col">
+      <div className="flex w-full max-w-100 flex-col">
         <div className="mb-10 flex flex-col items-center gap-2 text-center">
           <h2 className="text-4xl font-semibold tracking-tight text-gray-900">
             Forgot password

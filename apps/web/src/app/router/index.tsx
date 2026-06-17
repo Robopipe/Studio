@@ -5,6 +5,7 @@ import {
   LoginForm,
   ResetPasswordForm,
   SelectOrganizationPage,
+  VerifyEmailPage,
 } from "@/core/auth/components";
 import { Authenticated } from "@/core/auth/components/Authenticated/Authenticated";
 import { Guest } from "@/core/auth/components/Guest/Guest";
@@ -24,6 +25,7 @@ const unguardedPublicRoutes: RouteObject = {
   element: <AuthLayout />,
   children: [
     { path: auth.resetPassword, element: <ResetPasswordForm /> },
+    { path: auth.verifyEmail, element: <VerifyEmailPage /> },
     { path: auth.selectOrganization, element: <SelectOrganizationPage /> },
   ],
 };

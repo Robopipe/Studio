@@ -13,6 +13,7 @@ import { ModelLogRepository } from "./services/model-log-repository.service";
 import { DashboardConfigurationRepository } from "./services/dashboard-configuration.service";
 import { DashboardEvaluationRepository } from "./services/dashboard-evaluation.service";
 import { PasswordResetRepository } from "./services/password-reset-repository.service";
+import { EmailVerificationRepository } from "./services/email-verification-repository.service";
 import { OrganizationMemberRepository } from "./services/organization-member-repository.service";
 import { InvitationRepository } from "./services/invitation-repository.service";
 import { EvalLimitRepository } from './services/eval-limit.service';
@@ -30,6 +31,7 @@ import { ProjectPreAnnotateSettingsRepository } from './services/project-pre-ann
     OrganizationMemberRepository,
     InvitationRepository,
     PasswordResetRepository,
+    EmailVerificationRepository,
     ProjectRepository,
     TaskRepository,
     PendingTaskRepository,
@@ -52,6 +54,7 @@ import { ProjectPreAnnotateSettingsRepository } from './services/project-pre-ann
     OrganizationMemberRepository,
     InvitationRepository,
     PasswordResetRepository,
+    EmailVerificationRepository,
     ProjectRepository,
     TaskRepository,
     PendingTaskRepository,

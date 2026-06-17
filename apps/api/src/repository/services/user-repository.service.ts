@@ -67,6 +67,30 @@ export class UserRepository {
   }
 
   /**
+   * Update user password and full name (used when re-registering an unverified account)
+   * @param id
+   * @param hashedPassword - bcrypt hashed password
+   * @param fullName - new full name
+   */
+  public async updatePasswordAndName(id: number, hashedPassword: string, fullName: string): Promise<void> {
+    await this.db
+      .update(userTable)
+      .set({ password: hashedPassword, fullName })
+      .where(eq(userTable.id, id));
+  }
+
+  /**
+   * Mark a user's email as verified by setting emailVerifiedAt to now
+   * @param id
+   */
+  public async markEmailVerified(id: number): Promise<void> {
+    await this.db
+      .update(userTable)
+      .set({ emailVerifiedAt: new Date() })
+      .where(eq(userTable.id, id));
+  }
+
+  /**
    * Update user
    * @param id
    * @param data - UserUpdate
