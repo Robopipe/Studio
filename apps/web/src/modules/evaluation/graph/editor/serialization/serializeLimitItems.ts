@@ -3,16 +3,16 @@ import type {
   LimitItemProps,
   Schemes,
 } from "@/modules/evaluation/graph/editor/types";
+import { EvalLimitItemOperatorEnum } from "@repo/schema";
 import type { NodeEditor } from "rete";
-import type {
-  EvalLimitItemCreateOrUpdatePayload,
-  EvalLimitItemOperator,
-} from "./backendTypes";
+import type { FullLimit } from "./serializeLimits";
+
+export type FullLimitItem = FullLimit["limitItems"][number];
 
 export function serializeLimitItemNode(
   editor: NodeEditor<Schemes>,
   node: LimitItemProps,
-): EvalLimitItemCreateOrUpdatePayload {
+): FullLimitItem {
   return {
     id: node.id,
     limitFrom: node.limitFrom,
@@ -30,7 +30,7 @@ export function serializeLimitItemNode(
 function getLimitItemOperator(
   editor: NodeEditor<Schemes>,
   nodeId: string,
-): EvalLimitItemOperator {
+): EvalLimitItemOperatorEnum {
   const connection = editor
     .getConnections()
     .find(
@@ -39,5 +39,5 @@ function getLimitItemOperator(
         connection instanceof LimitItemConnection,
     ) as LimitItemConnection | undefined;
 
-  return connection?.limitItemOperator ?? "AND";
+  return connection?.limitItemOperator ?? EvalLimitItemOperatorEnum.AND;
 }

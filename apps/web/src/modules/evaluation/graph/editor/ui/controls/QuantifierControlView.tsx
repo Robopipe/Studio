@@ -1,6 +1,6 @@
 // FIX(naming): file is named QuantifierControlView.tsx but exports QuantifierTypeControlView for QuantifierTypeControl — fix: rename the file to QuantifierTypeControlView.tsx so file and export match; why: the folder already has QuantifierValueControlView.tsx exporting QuantifierUnitsControlView, and two near-identically named files that both mismatch their exports make the quantifier controls easy to confuse.
 import type { QuantifierTypeControl } from "@/modules/evaluation/graph/editor/controls/quantifierType";
-import type { EvalLimitItemQuantifierType } from "@/modules/evaluation/graph/editor/serialization/backendTypes";
+import { EvalLimitItemQuantifierTypeEnum } from "@repo/schema";
 import {
   Select,
   SelectContent,
@@ -22,7 +22,7 @@ export const QuantifierTypeControlView = ({ data }: Props) => {
       <Select
         value={value}
         onValueChange={(next) =>
-          data.setValue(next as EvalLimitItemQuantifierType)
+          data.setValue(next as EvalLimitItemQuantifierTypeEnum)
         }
       >
         <SelectTrigger size="sm" className="w-full">

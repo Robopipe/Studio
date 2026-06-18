@@ -3,13 +3,13 @@ import {
   type BooleanOperator,
 } from "@/modules/evaluation/graph/editor/connections/booleanConnection";
 import { LimitItemConnection } from "@/modules/evaluation/graph/editor/connections/limitItemConnection";
-import type { EvalLimitItemOperator } from "@/modules/evaluation/graph/editor/serialization/backendTypes";
 import type { AreaExtra } from "@/modules/evaluation/graph/editor/setup/createEditor";
 import type {
   LimitItemProps,
   LogicalProps,
   Schemes,
 } from "@/modules/evaluation/graph/editor/types";
+import type { EvalLimitItemOperatorEnum } from "@repo/schema";
 import type { NodeEditor } from "rete";
 import type { AreaPlugin } from "rete-area-plugin";
 
@@ -28,7 +28,7 @@ export type TestHookHandle = {
   addLimitItemConnection: (
     sourceId: string,
     targetId: string,
-    operator: EvalLimitItemOperator,
+    operator: EvalLimitItemOperatorEnum,
   ) => Promise<void>;
 };
 

@@ -1,5 +1,5 @@
 import { AppNode } from "@/modules/evaluation/graph/editor/nodes/appNode";
-import type { EvalSeverity } from "@/modules/evaluation/graph/editor/serialization/backendTypes";
+import type { EvalSeverityEnum } from "@repo/schema";
 import { BooleanSocket } from "@/modules/evaluation/graph/editor/sockets/booleanSocket";
 import type {
   NoControls,
@@ -9,7 +9,7 @@ import { ClassicPreset } from "rete";
 
 type Props = {
   label: string;
-  evalSeverity: EvalSeverity;
+  evalSeverity: EvalSeverityEnum;
   id?: string;
 };
 export abstract class ActionNodeBase extends AppNode<
@@ -26,7 +26,7 @@ export abstract class ActionNodeBase extends AppNode<
 
   nodeGroup = "action" as const;
 
-  evalSeverity: EvalSeverity;
+  evalSeverity: EvalSeverityEnum;
 
   constructor(props: Props) {
     const { label, evalSeverity, id } = props;

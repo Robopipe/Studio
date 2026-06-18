@@ -1,21 +1,20 @@
 import { AreaNode } from "@/modules/evaluation/graph/editor/nodes/limitItem/area";
 import { CountNode } from "@/modules/evaluation/graph/editor/nodes/limitItem/count";
 import { PositionNode } from "@/modules/evaluation/graph/editor/nodes/limitItem/position";
-import type { EvalLimitItemCreateOrUpdatePayload } from "@/modules/evaluation/graph/editor/serialization/backendTypes";
+import type { FullLimitItem } from "@/modules/evaluation/graph/editor/serialization/serializeLimitItems";
 import type { LimitItemProps } from "@/modules/evaluation/graph/editor/types";
+import { EvalLimitItemParameterEnum } from "@repo/schema";
 
-export function createLimitItemNode(
-  item: EvalLimitItemCreateOrUpdatePayload,
-): LimitItemProps {
+export function createLimitItemNode(item: FullLimitItem): LimitItemProps {
   switch (item.parameter) {
-    case "COUNT":
+    case EvalLimitItemParameterEnum.COUNT:
       return new CountNode({
         id: item.id ?? undefined,
         limitFrom: item.limitFrom,
         limitTo: item.limitTo,
       });
 
-    case "AREA":
+    case EvalLimitItemParameterEnum.AREA:
       return new AreaNode({
         id: item.id ?? undefined,
         limitFrom: item.limitFrom ?? undefined,
@@ -25,7 +24,7 @@ export function createLimitItemNode(
         quantifierValue: item.quantifierValue,
       });
 
-    case "POSITION":
+    case EvalLimitItemParameterEnum.POSITION:
       return new PositionNode({
         id: item.id ?? undefined,
         limitFrom: item.limitFrom ?? undefined,

@@ -2,40 +2,62 @@ import { createLimitItemNode } from "@/modules/evaluation/graph/editor/deseriali
 import { AreaNode } from "@/modules/evaluation/graph/editor/nodes/limitItem/area";
 import { CountNode } from "@/modules/evaluation/graph/editor/nodes/limitItem/count";
 import { PositionNode } from "@/modules/evaluation/graph/editor/nodes/limitItem/position";
-import type { EvalLimitItemCreateOrUpdatePayload } from "@/modules/evaluation/graph/editor/serialization/backendTypes";
+import type { FullLimitItem } from "@/modules/evaluation/graph/editor/serialization/serializeLimitItems";
+import {
+  EvalLimitItemEdgeEnum,
+  EvalLimitItemOperatorEnum,
+  EvalLimitItemParameterEnum,
+  EvalLimitItemQuantifierTypeEnum,
+  EvalLimitItemQuantifierUnitEnum,
+} from "@repo/schema";
 import { describe, expect, it } from "vitest";
 
-const baseItem: EvalLimitItemCreateOrUpdatePayload = {
+const baseItem: FullLimitItem = {
   id: "item-1",
   limitFrom: 0,
   limitTo: 10,
-  parameter: "COUNT",
-  operator: "AND",
-  quantifierType: "EXACT",
-  quantifierUnit: "PERCENT",
+  parameter: EvalLimitItemParameterEnum.COUNT,
+  operator: EvalLimitItemOperatorEnum.AND,
+  quantifierType: EvalLimitItemQuantifierTypeEnum.EXACT,
+  quantifierUnit: EvalLimitItemQuantifierUnitEnum.PERCENT,
   quantifierValue: 100,
-  targetEdge: "CENTER",
-  parentEdge: "CENTER",
+  targetEdge: EvalLimitItemEdgeEnum.CENTER,
+  parentEdge: EvalLimitItemEdgeEnum.CENTER,
 };
 
 describe("createLimitItemNode — node type", () => {
   it("creates a CountNode for COUNT", () => {
     expect(
-      createLimitItemNode({ ...baseItem, parameter: "COUNT" }),
+      createLimitItemNode({
+        ...baseItem,
+        parameter: EvalLimitItemParameterEnum.COUNT,
+      }),
     ).toBeInstanceOf(CountNode);
   });
 
   it("creates an AreaNode for AREA", () => {
     expect(
-      createLimitItemNode({ ...baseItem, parameter: "AREA" }),
+      createLimitItemNode({
+        ...baseItem,
+        parameter: EvalLimitItemParameterEnum.AREA,
+      }),
     ).toBeInstanceOf(AreaNode);
   });
 
-  it.each(["TOP", "LEFT", "BOTTOM", "RIGHT"] as const)(
+  it.each([
+    EvalLimitItemEdgeEnum.TOP,
+    EvalLimitItemEdgeEnum.LEFT,
+    EvalLimitItemEdgeEnum.BOTTOM,
+    EvalLimitItemEdgeEnum.RIGHT,
+  ])(
     "creates a PositionNode for POSITION with targetEdge %s",
     (targetEdge) => {
       expect(
-        createLimitItemNode({ ...baseItem, parameter: "POSITION", targetEdge }),
+        createLimitItemNode({
+          ...baseItem,
+          parameter: EvalLimitItemParameterEnum.POSITION,
+          targetEdge,
+        }),
       ).toBeInstanceOf(PositionNode);
     },
   );
@@ -44,8 +66,8 @@ describe("createLimitItemNode — node type", () => {
     expect(
       createLimitItemNode({
         ...baseItem,
-        parameter: "POSITION",
-        targetEdge: "CENTER",
+        parameter: EvalLimitItemParameterEnum.POSITION,
+        targetEdge: EvalLimitItemEdgeEnum.CENTER,
       }),
     ).toBeInstanceOf(PositionNode);
   });
@@ -67,7 +89,7 @@ describe("createLimitItemNode — field preservation", () => {
   it("passes limitFrom and limitTo to CountNode", () => {
     const node = createLimitItemNode({
       ...baseItem,
-      parameter: "COUNT",
+      parameter: EvalLimitItemParameterEnum.COUNT,
       limitFrom: 3,
       limitTo: 7,
     });
@@ -78,7 +100,7 @@ describe("createLimitItemNode — field preservation", () => {
   it("passes limitFrom and limitTo to AreaNode", () => {
     const node = createLimitItemNode({
       ...baseItem,
-      parameter: "AREA",
+      parameter: EvalLimitItemParameterEnum.AREA,
       limitFrom: 10,
       limitTo: 90,
     });
@@ -89,9 +111,9 @@ describe("createLimitItemNode — field preservation", () => {
   it("passes quantifier fields to AreaNode", () => {
     const node = createLimitItemNode({
       ...baseItem,
-      parameter: "AREA",
-      quantifierType: "MIN",
-      quantifierUnit: "PCS",
+      parameter: EvalLimitItemParameterEnum.AREA,
+      quantifierType: EvalLimitItemQuantifierTypeEnum.MIN,
+      quantifierUnit: EvalLimitItemQuantifierUnitEnum.PCS,
       quantifierValue: 5,
     });
     expect(node.quantifierType).toBe("MIN");
@@ -102,9 +124,9 @@ describe("createLimitItemNode — field preservation", () => {
   it("stores the target and parent edges on a PositionNode", () => {
     const node = createLimitItemNode({
       ...baseItem,
-      parameter: "POSITION",
-      targetEdge: "LEFT",
-      parentEdge: "RIGHT",
+      parameter: EvalLimitItemParameterEnum.POSITION,
+      targetEdge: EvalLimitItemEdgeEnum.LEFT,
+      parentEdge: EvalLimitItemEdgeEnum.RIGHT,
     });
     expect(node.parameter).toBe("POSITION");
     expect(node.targetEdge).toBe("LEFT");

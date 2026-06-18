@@ -1,10 +1,10 @@
 import { AppNode } from "@/modules/evaluation/graph/editor/nodes/appNode";
 import type {
-  EvalLimitItemEdge,
-  EvalLimitItemParameter,
-  EvalLimitItemQuantifierType,
-  EvalLimitItemQuantifierUnit,
-} from "@/modules/evaluation/graph/editor/serialization/backendTypes";
+  EvalLimitItemEdgeEnum,
+  EvalLimitItemParameterEnum,
+  EvalLimitItemQuantifierTypeEnum,
+  EvalLimitItemQuantifierUnitEnum,
+} from "@repo/schema";
 import { ClassicPreset } from "rete";
 
 type Props = {
@@ -27,11 +27,11 @@ export abstract class LimitItemBase<
 
   abstract get limitFrom(): number | null;
   abstract get limitTo(): number | null;
-  abstract get parameter(): EvalLimitItemParameter;
+  abstract get parameter(): EvalLimitItemParameterEnum;
   // Edges are only meaningful for POSITION; AREA/COUNT report CENTER.
-  abstract get targetEdge(): EvalLimitItemEdge;
-  abstract get parentEdge(): EvalLimitItemEdge;
-  abstract get quantifierType(): EvalLimitItemQuantifierType;
-  abstract get quantifierUnit(): EvalLimitItemQuantifierUnit;
+  abstract get targetEdge(): EvalLimitItemEdgeEnum;
+  abstract get parentEdge(): EvalLimitItemEdgeEnum;
+  abstract get quantifierType(): EvalLimitItemQuantifierTypeEnum;
+  abstract get quantifierUnit(): EvalLimitItemQuantifierUnitEnum;
   abstract get quantifierValue(): number;
 }

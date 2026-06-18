@@ -2,12 +2,13 @@ import { PercentageRangeControl } from "@/modules/evaluation/graph/editor/contro
 import { PositionControl } from "@/modules/evaluation/graph/editor/controls/position";
 import { QuantifierTypeControl } from "@/modules/evaluation/graph/editor/controls/quantifierType";
 import { QuantifierUnitsControl } from "@/modules/evaluation/graph/editor/controls/quantifierUnits";
-import type {
-  EvalLimitItemEdge,
-  EvalLimitItemQuantifierType,
-  EvalLimitItemQuantifierUnit,
-} from "@/modules/evaluation/graph/editor/serialization/backendTypes";
 import { RuleSocket } from "@/modules/evaluation/graph/editor/sockets/ruleSocket";
+import {
+  EvalLimitItemEdgeEnum,
+  EvalLimitItemParameterEnum,
+  EvalLimitItemQuantifierTypeEnum,
+  EvalLimitItemQuantifierUnitEnum,
+} from "@repo/schema";
 import { ClassicPreset } from "rete";
 import { LimitItemBase } from "./limitItemBase";
 
@@ -15,10 +16,10 @@ type Props = {
   id?: string;
   limitFrom?: number;
   limitTo?: number;
-  targetEdge?: EvalLimitItemEdge;
-  parentEdge?: EvalLimitItemEdge;
-  quantifierType?: EvalLimitItemQuantifierType;
-  quantifierUnit?: EvalLimitItemQuantifierUnit;
+  targetEdge?: EvalLimitItemEdgeEnum;
+  parentEdge?: EvalLimitItemEdgeEnum;
+  quantifierType?: EvalLimitItemQuantifierTypeEnum;
+  quantifierUnit?: EvalLimitItemQuantifierUnitEnum;
   quantifierValue?: number;
 };
 
@@ -40,10 +41,10 @@ export class PositionNode extends LimitItemBase<{
       id,
       limitFrom = 0,
       limitTo = 100,
-      targetEdge = "TOP",
-      parentEdge = "CENTER",
-      quantifierType = "EXACT",
-      quantifierUnit = "PCS",
+      targetEdge = EvalLimitItemEdgeEnum.TOP,
+      parentEdge = EvalLimitItemEdgeEnum.CENTER,
+      quantifierType = EvalLimitItemQuantifierTypeEnum.EXACT,
+      quantifierUnit = EvalLimitItemQuantifierUnitEnum.PCS,
       quantifierValue = 0,
     } = props;
 
@@ -73,7 +74,7 @@ export class PositionNode extends LimitItemBase<{
   }
 
   get parameter() {
-    return "POSITION" as const;
+    return EvalLimitItemParameterEnum.POSITION;
   }
 
   get targetEdge() {

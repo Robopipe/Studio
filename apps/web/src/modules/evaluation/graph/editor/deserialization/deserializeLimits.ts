@@ -4,15 +4,13 @@ import type { LabelOption } from "@/modules/evaluation/graph/editor/controls/lab
 import { AlertNode } from "@/modules/evaluation/graph/editor/nodes/action/alert";
 import { WarningNode } from "@/modules/evaluation/graph/editor/nodes/action/warning";
 import { LimitNode } from "@/modules/evaluation/graph/editor/nodes/limit/limit";
-import type {
-  EvalLimitCreateOrUpdatePayload,
-  EvalSeverity,
-} from "@/modules/evaluation/graph/editor/serialization/backendTypes";
+import type { FullLimit } from "@/modules/evaluation/graph/editor/serialization/serializeLimits";
 import type { AreaExtra } from "@/modules/evaluation/graph/editor/setup/createEditor";
 import type {
   LimitItemProps,
   Schemes,
 } from "@/modules/evaluation/graph/editor/types";
+import { EvalSeverityEnum } from "@repo/schema";
 import type { NodeEditor } from "rete";
 import type { AreaPlugin } from "rete-area-plugin";
 import { createLimitItemNode } from "./deserializeLimitItems";
@@ -29,11 +27,11 @@ export type DeserializedLimit = {
 export async function addLimitToEditor(
   editor: NodeEditor<Schemes>,
   area: AreaPlugin<Schemes, AreaExtra>,
-  limit: EvalLimitCreateOrUpdatePayload,
+  limit: FullLimit,
   labels: LabelOption[] = [],
 ): Promise<DeserializedLimit> {
   const limitNode = new LimitNode({
-    id: limit.id,
+    id: limit.id ?? undefined,
     name: limit.name,
     label: limit.targetLabelId,
     parentLabel: limit.targetParentLabelId,
@@ -77,7 +75,7 @@ export async function addLimitToEditor(
 async function addLimitItemConnections(
   editor: NodeEditor<Schemes>,
   nodes: LimitItemProps[],
-  limit: EvalLimitCreateOrUpdatePayload,
+  limit: FullLimit,
 ) {
   for (let index = 0; index < nodes.length - 1; index += 1) {
     const sourceNode = nodes[index];
@@ -101,7 +99,7 @@ async function addLimitItemConnections(
 async function addDirectLimitActionIfNeeded(
   editor: NodeEditor<Schemes>,
   limitNode: LimitNode,
-  severity: EvalSeverity | null,
+  severity: EvalSeverityEnum | null,
 ) {
   if (!severity) return;
 
@@ -120,6 +118,8 @@ async function addDirectLimitActionIfNeeded(
   await editor.addConnection(connection);
 }
 
-function createActionNode(severity: EvalSeverity) {
-  return severity === "ALERT" ? new AlertNode() : new WarningNode();
+function createActionNode(severity: EvalSeverityEnum) {
+  return severity === EvalSeverityEnum.ALERT
+    ? new AlertNode()
+    : new WarningNode();
 }

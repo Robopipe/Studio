@@ -1,11 +1,13 @@
 import { PercentageRangeControl } from "@/modules/evaluation/graph/editor/controls/percentageRange";
 import { QuantifierTypeControl } from "@/modules/evaluation/graph/editor/controls/quantifierType";
 import { QuantifierUnitsControl } from "@/modules/evaluation/graph/editor/controls/quantifierUnits";
-import type {
-  EvalLimitItemQuantifierType,
-  EvalLimitItemQuantifierUnit,
-} from "@/modules/evaluation/graph/editor/serialization/backendTypes";
 import { RuleSocket } from "@/modules/evaluation/graph/editor/sockets/ruleSocket";
+import {
+  EvalLimitItemEdgeEnum,
+  EvalLimitItemParameterEnum,
+  EvalLimitItemQuantifierTypeEnum,
+  EvalLimitItemQuantifierUnitEnum,
+} from "@repo/schema";
 import { ClassicPreset } from "rete";
 import { LimitItemBase } from "./limitItemBase";
 
@@ -13,8 +15,8 @@ type Props = {
   id?: string;
   limitFrom?: number;
   limitTo?: number;
-  quantifierUnit?: EvalLimitItemQuantifierUnit;
-  quantifierType?: EvalLimitItemQuantifierType;
+  quantifierUnit?: EvalLimitItemQuantifierUnitEnum;
+  quantifierType?: EvalLimitItemQuantifierTypeEnum;
   quantifierValue?: number;
 };
 
@@ -36,8 +38,8 @@ export class AreaNode extends LimitItemBase<{
       limitFrom = 0,
       limitTo = 100,
       quantifierValue = 0,
-      quantifierUnit = "PCS",
-      quantifierType = "EXACT",
+      quantifierUnit = EvalLimitItemQuantifierUnitEnum.PCS,
+      quantifierType = EvalLimitItemQuantifierTypeEnum.EXACT,
     } = props;
     super({ label: "Area", id });
 
@@ -61,15 +63,15 @@ export class AreaNode extends LimitItemBase<{
   }
 
   get parameter() {
-    return "AREA" as const;
+    return EvalLimitItemParameterEnum.AREA;
   }
 
   get targetEdge() {
-    return "CENTER" as const;
+    return EvalLimitItemEdgeEnum.CENTER;
   }
 
   get parentEdge() {
-    return "CENTER" as const;
+    return EvalLimitItemEdgeEnum.CENTER;
   }
 
   get quantifierType() {

@@ -1,5 +1,11 @@
 import { IntegerRangeControl } from "@/modules/evaluation/graph/editor/controls/integerRange";
 import { RuleSocket } from "@/modules/evaluation/graph/editor/sockets/ruleSocket";
+import {
+  EvalLimitItemEdgeEnum,
+  EvalLimitItemParameterEnum,
+  EvalLimitItemQuantifierTypeEnum,
+  EvalLimitItemQuantifierUnitEnum,
+} from "@repo/schema";
 import { ClassicPreset } from "rete";
 import { LimitItemBase } from "./limitItemBase";
 
@@ -36,23 +42,23 @@ export class CountNode extends LimitItemBase<{ count: IntegerRangeControl }> {
   }
 
   get parameter() {
-    return "COUNT" as const;
+    return EvalLimitItemParameterEnum.COUNT;
   }
 
   get targetEdge() {
-    return "CENTER" as const;
+    return EvalLimitItemEdgeEnum.CENTER;
   }
 
   get parentEdge() {
-    return "CENTER" as const;
+    return EvalLimitItemEdgeEnum.CENTER;
   }
 
   get quantifierType() {
-    return "EXACT" as const;
+    return EvalLimitItemQuantifierTypeEnum.EXACT;
   }
 
   get quantifierUnit() {
-    return "PERCENT" as const;
+    return EvalLimitItemQuantifierUnitEnum.PERCENT;
   }
 
   get quantifierValue() {

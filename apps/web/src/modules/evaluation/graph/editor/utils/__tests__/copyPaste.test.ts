@@ -11,6 +11,7 @@ import {
   pasteNodes,
   type Clipboard,
 } from "@/modules/evaluation/graph/editor/utils/copyPaste";
+import { EvalLimitItemOperatorEnum } from "@repo/schema";
 import type { AreaPlugin } from "rete-area-plugin";
 import { describe, expect, it, vi } from "vitest";
 import { createTestEditor } from "./testEditor";
@@ -145,7 +146,7 @@ describe("copyNodes", () => {
     await editor.addNode(a);
     await editor.addNode(b);
     await editor.addConnection(
-      new LimitItemConnection(a, "out", b, "in", "OR"),
+      new LimitItemConnection(a, "out", b, "in", EvalLimitItemOperatorEnum.OR),
     );
     a.selected = true;
     b.selected = true;
@@ -259,7 +260,7 @@ describe("pasteNodes", () => {
           sourceOutput: "out",
           targetIndex: 1,
           targetInput: "in",
-          operator: "OR",
+          operator: EvalLimitItemOperatorEnum.OR,
         },
       ],
       center: { x: 25, y: 0 },

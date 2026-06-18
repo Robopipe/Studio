@@ -12,26 +12,26 @@ import { OrNode } from "@/modules/evaluation/graph/editor/nodes/logical/or";
 import { ResultNode } from "@/modules/evaluation/graph/editor/nodes/result/result";
 
 import { BooleanConnection } from "@/modules/evaluation/graph/editor/connections/booleanConnection";
+import {
+  EvalLogicNodeOperatorValueEnum,
+  EvalLogicNodeTypeEnum,
+  EvalSeverityEnum,
+  EvalTestCaseTypeEnum,
+  type EvalLogicNode,
+} from "@repo/schema";
 import { v7 as uuidv7 } from "uuid";
 
-import type {
-  EvalLogicNodeOperatorValue,
-  EvalLogicNodePayload,
-  EvalSeverity,
-  EvalTestCaseType,
-} from "./backendTypes";
-
 export type LogicSerializationResult = {
-  type: EvalTestCaseType;
-  severity: EvalSeverity | null;
-  logicNodes: EvalLogicNodePayload[];
+  type: EvalTestCaseTypeEnum;
+  severity: EvalSeverityEnum | null;
+  logicNodes: EvalLogicNode[];
 };
 
 type LogicalNode = AndNode | OrNode;
 
 type SerializedExpression = {
-  operatorValue: EvalLogicNodeOperatorValue | null;
-  nodes: EvalLogicNodePayload[];
+  operatorValue: EvalLogicNodeOperatorValueEnum | null;
+  nodes: EvalLogicNode[];
 };
 
 export function serializeLogicNodes(
@@ -43,7 +43,7 @@ export function serializeLogicNodes(
 
   if (!resultNode) {
     return {
-      type: "CHECK",
+      type: EvalTestCaseTypeEnum.CHECK,
       severity: null,
       logicNodes: [],
     };
@@ -58,7 +58,7 @@ export function serializeLogicNodes(
 
   if (!resultInputConnection) {
     return {
-      type: "CHECK",
+      type: EvalTestCaseTypeEnum.CHECK,
       severity: getActionSeverity(resultActionNode),
       logicNodes: [],
     };
@@ -68,7 +68,7 @@ export function serializeLogicNodes(
 
   if (!resultInputSourceNode) {
     return {
-      type: "CHECK",
+      type: EvalTestCaseTypeEnum.CHECK,
       severity: getActionSeverity(resultActionNode),
       logicNodes: [],
     };
@@ -82,7 +82,7 @@ export function serializeLogicNodes(
   const logicNodes = applyNotIfNeeded(resultInputConnection, expression.nodes);
 
   return {
-    type: "CHECK",
+    type: EvalTestCaseTypeEnum.CHECK,
     severity: getActionSeverity(resultActionNode),
     logicNodes,
   };
@@ -113,7 +113,7 @@ function findResultActionConnection(
 function serializeExpression(
   editor: NodeEditor<Schemes>,
   node: NodeProps,
-  parentOperatorValue: EvalLogicNodeOperatorValue | null = null,
+  parentOperatorValue: EvalLogicNodeOperatorValueEnum | null = null,
 ): SerializedExpression {
   if (node instanceof LimitNode) {
     return {
@@ -121,7 +121,7 @@ function serializeExpression(
       nodes: [
         {
           id: node.id,
-          type: "LIMIT",
+          type: EvalLogicNodeTypeEnum.LIMIT,
         },
       ],
     };
@@ -137,7 +137,7 @@ function serializeExpression(
 function serializeLogicalExpression(
   editor: NodeEditor<Schemes>,
   node: LogicalNode,
-  parentOperatorValue: EvalLogicNodeOperatorValue | null,
+  parentOperatorValue: EvalLogicNodeOperatorValueEnum | null,
 ): SerializedExpression {
   const operatorValue = getLogicalNodeOperatorValue(node);
 
@@ -146,7 +146,7 @@ function serializeLogicalExpression(
     .filter((connection) => connection.target === node.id)
     .sort((a, b) => a.source.localeCompare(b.source));
 
-  const children: EvalLogicNodePayload[] = [];
+  const children: EvalLogicNode[] = [];
 
   for (const connection of incomingConnections) {
     const sourceNode = editor.getNode(connection.source);
@@ -164,7 +164,7 @@ function serializeLogicalExpression(
     if (children.length > 0) {
       children.push({
         id: uuidv7(),
-        type: "OPERATOR",
+        type: EvalLogicNodeTypeEnum.OPERATOR,
         operatorValue,
       });
     }
@@ -183,7 +183,7 @@ function serializeLogicalExpression(
       nodes: [
         {
           id: node.id,
-          type: "GROUP",
+          type: EvalLogicNodeTypeEnum.GROUP,
           children,
         },
       ],
@@ -206,8 +206,8 @@ function serializeLogicalExpression(
 // divergence on future edits.
 function maybeWrapChildExpression(
   childExpression: SerializedExpression,
-  parentOperatorValue: EvalLogicNodeOperatorValue,
-): EvalLogicNodePayload[] {
+  parentOperatorValue: EvalLogicNodeOperatorValueEnum,
+): EvalLogicNode[] {
   const childOperatorValue = childExpression.operatorValue;
 
   if (childOperatorValue === null) {
@@ -225,7 +225,7 @@ function maybeWrapChildExpression(
   return [
     {
       id: uuidv7(),
-      type: "GROUP",
+      type: EvalLogicNodeTypeEnum.GROUP,
       children: childExpression.nodes,
     },
   ];
@@ -233,8 +233,8 @@ function maybeWrapChildExpression(
 
 function applyNotIfNeeded(
   connection: Schemes["Connection"],
-  childNodes: EvalLogicNodePayload[],
-): EvalLogicNodePayload[] {
+  childNodes: EvalLogicNode[],
+): EvalLogicNode[] {
   if (!(connection instanceof BooleanConnection)) return childNodes;
   if (connection.booleanOperator !== "NOT") return childNodes;
   if (childNodes.length === 0) return childNodes;
@@ -246,8 +246,8 @@ function applyNotIfNeeded(
     return [
       {
         id: uuidv7(),
-        type: "OPERATOR",
-        operatorValue: "NOT",
+        type: EvalLogicNodeTypeEnum.OPERATOR,
+        operatorValue: EvalLogicNodeOperatorValueEnum.NOT,
       },
       child,
     ];
@@ -256,12 +256,12 @@ function applyNotIfNeeded(
   return [
     {
       id: uuidv7(),
-      type: "OPERATOR",
-      operatorValue: "NOT",
+      type: EvalLogicNodeTypeEnum.OPERATOR,
+      operatorValue: EvalLogicNodeOperatorValueEnum.NOT,
     },
     {
       id: uuidv7(),
-      type: "GROUP",
+      type: EvalLogicNodeTypeEnum.GROUP,
       children: childNodes,
     },
   ];
@@ -269,11 +269,15 @@ function applyNotIfNeeded(
 
 function getLogicalNodeOperatorValue(
   node: LogicalNode,
-): EvalLogicNodeOperatorValue {
-  return node instanceof AndNode ? "AND" : "OR";
+): EvalLogicNodeOperatorValueEnum {
+  return node instanceof AndNode
+    ? EvalLogicNodeOperatorValueEnum.AND
+    : EvalLogicNodeOperatorValueEnum.OR;
 }
 
-function getActionSeverity(node: NodeProps | undefined): EvalSeverity | null {
+function getActionSeverity(
+  node: NodeProps | undefined,
+): EvalSeverityEnum | null {
   if (node instanceof ActionNodeBase) {
     return node.evalSeverity;
   }

@@ -1,16 +1,18 @@
-import type { EvalLimitItemQuantifierType } from "@/modules/evaluation/graph/editor/serialization/backendTypes";
+import { EvalLimitItemQuantifierTypeEnum } from "@repo/schema";
 import { ObservableControl } from "./core/observableControl";
 
 export class QuantifierTypeControl extends ObservableControl {
-  value: EvalLimitItemQuantifierType;
+  value: EvalLimitItemQuantifierTypeEnum;
 
-  constructor(initial: EvalLimitItemQuantifierType = "EXACT") {
+  constructor(
+    initial: EvalLimitItemQuantifierTypeEnum = EvalLimitItemQuantifierTypeEnum.EXACT,
+  ) {
     super();
 
     this.value = this.normalizeQuantifier(initial);
   }
 
-  setValue(value: EvalLimitItemQuantifierType) {
+  setValue(value: EvalLimitItemQuantifierTypeEnum) {
     const next = this.normalizeQuantifier(value);
 
     if (next === this.value) return;
@@ -23,11 +25,17 @@ export class QuantifierTypeControl extends ObservableControl {
     return this.value;
   };
 
-  private normalizeQuantifier(value: string): EvalLimitItemQuantifierType {
-    if (value === "MIN" || value === "MAX" || value === "EXACT") {
+  private normalizeQuantifier(
+    value: string,
+  ): EvalLimitItemQuantifierTypeEnum {
+    if (
+      value === EvalLimitItemQuantifierTypeEnum.MIN ||
+      value === EvalLimitItemQuantifierTypeEnum.MAX ||
+      value === EvalLimitItemQuantifierTypeEnum.EXACT
+    ) {
       return value;
     }
 
-    return "EXACT";
+    return EvalLimitItemQuantifierTypeEnum.EXACT;
   }
 }

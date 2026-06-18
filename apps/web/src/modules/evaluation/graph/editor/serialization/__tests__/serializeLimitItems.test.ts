@@ -2,6 +2,7 @@ import { LimitItemConnection } from "@/modules/evaluation/graph/editor/connectio
 import { CountNode } from "@/modules/evaluation/graph/editor/nodes/limitItem/count";
 import { serializeLimitItemNode } from "@/modules/evaluation/graph/editor/serialization/serializeLimitItems";
 import { createTestEditor } from "@/modules/evaluation/graph/editor/utils/__tests__/testEditor";
+import { EvalLimitItemOperatorEnum } from "@repo/schema";
 import { describe, expect, it } from "vitest";
 
 describe("serializeLimitItemNode", () => {
@@ -22,7 +23,7 @@ describe("serializeLimitItemNode", () => {
     await editor.addNode(a);
     await editor.addNode(b);
     await editor.addConnection(
-      new LimitItemConnection(a, "out", b, "in", "OR"),
+      new LimitItemConnection(a, "out", b, "in", EvalLimitItemOperatorEnum.OR),
     );
 
     const result = serializeLimitItemNode(editor, a);
@@ -38,7 +39,7 @@ describe("serializeLimitItemNode", () => {
     await editor.addNode(a);
     await editor.addNode(b);
     await editor.addConnection(
-      new LimitItemConnection(a, "out", b, "in", "AND"),
+      new LimitItemConnection(a, "out", b, "in", EvalLimitItemOperatorEnum.AND),
     );
 
     const result = serializeLimitItemNode(editor, a);
@@ -84,10 +85,10 @@ describe("serializeLimitItemNode", () => {
     await editor.addNode(b);
     await editor.addNode(c);
     await editor.addConnection(
-      new LimitItemConnection(a, "out", b, "in", "OR"),
+      new LimitItemConnection(a, "out", b, "in", EvalLimitItemOperatorEnum.OR),
     );
     await editor.addConnection(
-      new LimitItemConnection(b, "out", c, "in", "AND"),
+      new LimitItemConnection(b, "out", c, "in", EvalLimitItemOperatorEnum.AND),
     );
 
     expect(serializeLimitItemNode(editor, a).operator).toBe("OR");

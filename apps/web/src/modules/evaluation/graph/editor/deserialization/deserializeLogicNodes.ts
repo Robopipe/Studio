@@ -7,19 +7,21 @@ import { AndNode } from "@/modules/evaluation/graph/editor/nodes/logical/and";
 import { OrNode } from "@/modules/evaluation/graph/editor/nodes/logical/or";
 import { ResultNode } from "@/modules/evaluation/graph/editor/nodes/result/result";
 import type {
-  EvalLogicNodePayload,
-  EvalSeverity,
-  EvalTestCaseType,
-} from "@/modules/evaluation/graph/editor/serialization/backendTypes";
-import type {
   LogicalProps,
   Schemes,
 } from "@/modules/evaluation/graph/editor/types";
+import {
+  EvalLogicNodeOperatorValueEnum,
+  EvalLogicNodeTypeEnum,
+  EvalSeverityEnum,
+  type EvalLogicNode,
+  type EvalTestCaseTypeEnum,
+} from "@repo/schema";
 import type { NodeEditor } from "rete";
 
 type LogicOptions = {
-  severity: EvalSeverity | null;
-  type: EvalTestCaseType;
+  severity: EvalSeverityEnum | null;
+  type: EvalTestCaseTypeEnum;
 };
 
 type ExpressionNode =
@@ -44,7 +46,7 @@ type BuildContext = {
 
 export async function addLogicToEditor(
   editor: NodeEditor<Schemes>,
-  logicNodes: EvalLogicNodePayload[],
+  logicNodes: EvalLogicNode[],
   limitNodesById: Map<string, LimitNode>,
   options: LogicOptions,
 ): Promise<ResultNode> {
@@ -93,7 +95,7 @@ export async function addLogicToEditor(
 }
 
 function parseLogicExpression(
-  nodes: EvalLogicNodePayload[],
+  nodes: EvalLogicNode[],
 ): ExpressionNode | null {
   if (nodes.length === 0) return null;
 
@@ -101,13 +103,15 @@ function parseLogicExpression(
   let pendingNot = false;
 
   for (const node of nodes) {
-    if (node.type === "OPERATOR") {
-      if (node.operatorValue === "NOT") {
+    if (node.type === EvalLogicNodeTypeEnum.OPERATOR) {
+      if (node.operatorValue === EvalLogicNodeOperatorValueEnum.NOT) {
         pendingNot = true;
         continue;
       }
-      if (node.operatorValue === "AND" || node.operatorValue === "OR") {
-        parts.push(node.operatorValue);
+      if (node.operatorValue === EvalLogicNodeOperatorValueEnum.AND) {
+        parts.push("AND");
+      } else if (node.operatorValue === EvalLogicNodeOperatorValueEnum.OR) {
+        parts.push("OR");
       }
       continue;
     }
@@ -148,16 +152,19 @@ function buildDefaultExpression(
   };
 }
 
-function parseOperand(node: EvalLogicNodePayload): ExpressionNode {
-  if (node.type === "LIMIT") {
+function parseOperand(node: EvalLogicNode): ExpressionNode {
+  if (node.type === EvalLogicNodeTypeEnum.LIMIT) {
     return {
       kind: "limit",
       limitId: node.id,
     };
   }
 
-  if (node.type === "GROUP") {
-    const expression = parseLogicExpression(node.children);
+  if (node.type === EvalLogicNodeTypeEnum.GROUP) {
+    // Zod's recursive `get children()` widens the element type; it is an EvalLogicNode[].
+    const expression = parseLogicExpression(
+      node.children as EvalLogicNode[],
+    );
 
     if (!expression) throw new Error(`Empty logic group "${node.id}".`);
     return expression;
@@ -279,7 +286,9 @@ async function addFinalActionIfNeeded(
 ) {
   if (!options.severity) return;
   const actionNode =
-    options.severity === "ALERT" ? new AlertNode() : new WarningNode();
+    options.severity === EvalSeverityEnum.ALERT
+      ? new AlertNode()
+      : new WarningNode();
   await editor.addNode(actionNode);
   const connection = new BooleanConnection(
     resultNode,

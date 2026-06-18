@@ -1,18 +1,23 @@
-import type { EvalLimitItemQuantifierUnit } from "@/modules/evaluation/graph/editor/serialization/backendTypes";
+import { EvalLimitItemQuantifierUnitEnum } from "@repo/schema";
 import { ObservableControl } from "./core/observableControl";
 
 type Props = {
   quantifierValue: number;
-  quantifierUnit: EvalLimitItemQuantifierUnit;
+  quantifierUnit: EvalLimitItemQuantifierUnitEnum;
 };
 
 export class QuantifierUnitsControl extends ObservableControl {
   value: number;
-  quantifierUnit: EvalLimitItemQuantifierUnit;
+  quantifierUnit: EvalLimitItemQuantifierUnitEnum;
 
   private snapshot: Props;
 
-  constructor(initial: Props = { quantifierValue: 0, quantifierUnit: "PCS" }) {
+  constructor(
+    initial: Props = {
+      quantifierValue: 0,
+      quantifierUnit: EvalLimitItemQuantifierUnitEnum.PCS,
+    },
+  ) {
     super();
 
     this.quantifierUnit = initial.quantifierUnit;
@@ -34,7 +39,7 @@ export class QuantifierUnitsControl extends ObservableControl {
     this.updateSnapshot();
   }
 
-  setMode(mode: EvalLimitItemQuantifierUnit) {
+  setMode(mode: EvalLimitItemQuantifierUnitEnum) {
     const nextValue = this.normalizeUnitsValue(this.value, mode);
 
     if (mode === this.quantifierUnit && nextValue === this.value) return;
@@ -45,7 +50,11 @@ export class QuantifierUnitsControl extends ObservableControl {
   }
 
   toggleMode() {
-    this.setMode(this.quantifierUnit === "PCS" ? "PERCENT" : "PCS");
+    this.setMode(
+      this.quantifierUnit === EvalLimitItemQuantifierUnitEnum.PCS
+        ? EvalLimitItemQuantifierUnitEnum.PERCENT
+        : EvalLimitItemQuantifierUnitEnum.PCS,
+    );
   }
 
   getSnapshot = () => {
@@ -63,12 +72,12 @@ export class QuantifierUnitsControl extends ObservableControl {
 
   private normalizeUnitsValue(
     value: number,
-    mode: EvalLimitItemQuantifierUnit,
+    mode: EvalLimitItemQuantifierUnitEnum,
   ) {
     if (!Number.isFinite(value)) return 0;
     const rounded = Math.round(value);
 
-    if (mode === "PERCENT") {
+    if (mode === EvalLimitItemQuantifierUnitEnum.PERCENT) {
       return Math.max(0, Math.min(100, rounded));
     }
 

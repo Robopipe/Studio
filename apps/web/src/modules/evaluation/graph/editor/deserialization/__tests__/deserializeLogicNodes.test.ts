@@ -6,8 +6,14 @@ import { LimitNode } from "@/modules/evaluation/graph/editor/nodes/limit/limit";
 import { AndNode } from "@/modules/evaluation/graph/editor/nodes/logical/and";
 import { OrNode } from "@/modules/evaluation/graph/editor/nodes/logical/or";
 import { ResultNode } from "@/modules/evaluation/graph/editor/nodes/result/result";
-import type { EvalLogicNodePayload } from "@/modules/evaluation/graph/editor/serialization/backendTypes";
 import { createTestEditor } from "@/modules/evaluation/graph/editor/utils/__tests__/testEditor";
+import {
+  EvalLogicNodeOperatorValueEnum,
+  EvalLogicNodeTypeEnum,
+  EvalSeverityEnum,
+  EvalTestCaseTypeEnum,
+  type EvalLogicNode,
+} from "@repo/schema";
 import { describe, expect, it } from "vitest";
 
 type TestEditor = ReturnType<typeof createTestEditor>;
@@ -33,7 +39,7 @@ describe("addLogicToEditor — ResultNode", () => {
   it("always creates a ResultNode", async () => {
     const editor = createTestEditor();
     await addLogicToEditor(editor, [], new Map(), {
-      type: "CHECK",
+      type: EvalTestCaseTypeEnum.CHECK,
       severity: null,
     });
 
@@ -45,7 +51,7 @@ describe("addLogicToEditor — ResultNode", () => {
   it("returns the ResultNode", async () => {
     const editor = createTestEditor();
     const result = await addLogicToEditor(editor, [], new Map(), {
-      type: "CHECK",
+      type: EvalTestCaseTypeEnum.CHECK,
       severity: null,
     });
 
@@ -55,7 +61,7 @@ describe("addLogicToEditor — ResultNode", () => {
   it("adds no connections when logicNodes is empty", async () => {
     const editor = createTestEditor();
     await addLogicToEditor(editor, [], new Map(), {
-      type: "CHECK",
+      type: EvalTestCaseTypeEnum.CHECK,
       severity: null,
     });
 
@@ -67,8 +73,8 @@ describe("addLogicToEditor — top-level NOT drives the result connection", () =
   it("uses TRUE on the result connection for a plain limit", async () => {
     const editor = createTestEditor();
     const [limit] = await addLimits(editor, 1);
-    const logicNodes: EvalLogicNodePayload[] = [
-      { id: limit!.id, type: "LIMIT" },
+    const logicNodes: EvalLogicNode[] = [
+      { id: limit!.id, type: EvalLogicNodeTypeEnum.LIMIT },
     ];
 
     const resultNode = await addLogicToEditor(
@@ -76,7 +82,7 @@ describe("addLogicToEditor — top-level NOT drives the result connection", () =
       logicNodes,
       limitMap([limit!]),
       {
-        type: "CHECK",
+        type: EvalTestCaseTypeEnum.CHECK,
         severity: null,
       },
     );
@@ -93,9 +99,9 @@ describe("addLogicToEditor — top-level NOT drives the result connection", () =
   it("uses NOT on the result connection for a top-level [NOT, LIMIT]", async () => {
     const editor = createTestEditor();
     const [limit] = await addLimits(editor, 1);
-    const logicNodes: EvalLogicNodePayload[] = [
-      { id: "", type: "OPERATOR", operatorValue: "NOT" },
-      { id: limit!.id, type: "LIMIT" },
+    const logicNodes: EvalLogicNode[] = [
+      { id: "", type: EvalLogicNodeTypeEnum.OPERATOR, operatorValue: EvalLogicNodeOperatorValueEnum.NOT },
+      { id: limit!.id, type: EvalLogicNodeTypeEnum.LIMIT },
     ];
 
     const resultNode = await addLogicToEditor(
@@ -103,7 +109,7 @@ describe("addLogicToEditor — top-level NOT drives the result connection", () =
       logicNodes,
       limitMap([limit!]),
       {
-        type: "CHECK",
+        type: EvalTestCaseTypeEnum.CHECK,
         severity: null,
       },
     );
@@ -124,8 +130,8 @@ describe("addLogicToEditor — single limit", () => {
   it("connects the limit directly to the ResultNode", async () => {
     const editor = createTestEditor();
     const [limit] = await addLimits(editor, 1);
-    const logicNodes: EvalLogicNodePayload[] = [
-      { id: limit!.id, type: "LIMIT" },
+    const logicNodes: EvalLogicNode[] = [
+      { id: limit!.id, type: EvalLogicNodeTypeEnum.LIMIT },
     ];
 
     const resultNode = await addLogicToEditor(
@@ -133,7 +139,7 @@ describe("addLogicToEditor — single limit", () => {
       logicNodes,
       limitMap([limit!]),
       {
-        type: "CHECK",
+        type: EvalTestCaseTypeEnum.CHECK,
         severity: null,
       },
     );
@@ -148,14 +154,14 @@ describe("addLogicToEditor — logical operators", () => {
   it("creates an AndNode for AND operator", async () => {
     const editor = createTestEditor();
     const [limitA, limitB] = await addLimits(editor, 2);
-    const logicNodes: EvalLogicNodePayload[] = [
-      { id: limitA!.id, type: "LIMIT" },
-      { id: "", type: "OPERATOR", operatorValue: "AND" },
-      { id: limitB!.id, type: "LIMIT" },
+    const logicNodes: EvalLogicNode[] = [
+      { id: limitA!.id, type: EvalLogicNodeTypeEnum.LIMIT },
+      { id: "", type: EvalLogicNodeTypeEnum.OPERATOR, operatorValue: EvalLogicNodeOperatorValueEnum.AND },
+      { id: limitB!.id, type: EvalLogicNodeTypeEnum.LIMIT },
     ];
 
     await addLogicToEditor(editor, logicNodes, limitMap([limitA!, limitB!]), {
-      type: "CHECK",
+      type: EvalTestCaseTypeEnum.CHECK,
       severity: null,
     });
 
@@ -165,14 +171,14 @@ describe("addLogicToEditor — logical operators", () => {
   it("creates an OrNode for OR operator", async () => {
     const editor = createTestEditor();
     const [limitA, limitB] = await addLimits(editor, 2);
-    const logicNodes: EvalLogicNodePayload[] = [
-      { id: limitA!.id, type: "LIMIT" },
-      { id: "", type: "OPERATOR", operatorValue: "OR" },
-      { id: limitB!.id, type: "LIMIT" },
+    const logicNodes: EvalLogicNode[] = [
+      { id: limitA!.id, type: EvalLogicNodeTypeEnum.LIMIT },
+      { id: "", type: EvalLogicNodeTypeEnum.OPERATOR, operatorValue: EvalLogicNodeOperatorValueEnum.OR },
+      { id: limitB!.id, type: EvalLogicNodeTypeEnum.LIMIT },
     ];
 
     await addLogicToEditor(editor, logicNodes, limitMap([limitA!, limitB!]), {
-      type: "CHECK",
+      type: EvalTestCaseTypeEnum.CHECK,
       severity: null,
     });
 
@@ -182,14 +188,14 @@ describe("addLogicToEditor — logical operators", () => {
   it("connects both limits to the logical node", async () => {
     const editor = createTestEditor();
     const [limitA, limitB] = await addLimits(editor, 2);
-    const logicNodes: EvalLogicNodePayload[] = [
-      { id: limitA!.id, type: "LIMIT" },
-      { id: "", type: "OPERATOR", operatorValue: "AND" },
-      { id: limitB!.id, type: "LIMIT" },
+    const logicNodes: EvalLogicNode[] = [
+      { id: limitA!.id, type: EvalLogicNodeTypeEnum.LIMIT },
+      { id: "", type: EvalLogicNodeTypeEnum.OPERATOR, operatorValue: EvalLogicNodeOperatorValueEnum.AND },
+      { id: limitB!.id, type: EvalLogicNodeTypeEnum.LIMIT },
     ];
 
     await addLogicToEditor(editor, logicNodes, limitMap([limitA!, limitB!]), {
-      type: "CHECK",
+      type: EvalTestCaseTypeEnum.CHECK,
       severity: null,
     });
 
@@ -205,15 +211,15 @@ describe("addLogicToEditor — NOT operator", () => {
   it("applies NOT on the connection for the negated child", async () => {
     const editor = createTestEditor();
     const [limitA, limitB] = await addLimits(editor, 2);
-    const logicNodes: EvalLogicNodePayload[] = [
-      { id: "", type: "OPERATOR", operatorValue: "NOT" },
-      { id: limitA!.id, type: "LIMIT" },
-      { id: "", type: "OPERATOR", operatorValue: "AND" },
-      { id: limitB!.id, type: "LIMIT" },
+    const logicNodes: EvalLogicNode[] = [
+      { id: "", type: EvalLogicNodeTypeEnum.OPERATOR, operatorValue: EvalLogicNodeOperatorValueEnum.NOT },
+      { id: limitA!.id, type: EvalLogicNodeTypeEnum.LIMIT },
+      { id: "", type: EvalLogicNodeTypeEnum.OPERATOR, operatorValue: EvalLogicNodeOperatorValueEnum.AND },
+      { id: limitB!.id, type: EvalLogicNodeTypeEnum.LIMIT },
     ];
 
     await addLogicToEditor(editor, logicNodes, limitMap([limitA!, limitB!]), {
-      type: "CHECK",
+      type: EvalTestCaseTypeEnum.CHECK,
       severity: null,
     });
 
@@ -232,18 +238,18 @@ describe("addLogicToEditor — GROUP", () => {
   it("creates both AND and OR nodes for a nested (A OR B) AND C expression", async () => {
     const editor = createTestEditor();
     const [limitA, limitB, limitC] = await addLimits(editor, 3);
-    const logicNodes: EvalLogicNodePayload[] = [
+    const logicNodes: EvalLogicNode[] = [
       {
         id: "group-1",
-        type: "GROUP",
+        type: EvalLogicNodeTypeEnum.GROUP,
         children: [
-          { id: limitA!.id, type: "LIMIT" },
-          { id: "", type: "OPERATOR", operatorValue: "OR" },
-          { id: limitB!.id, type: "LIMIT" },
+          { id: limitA!.id, type: EvalLogicNodeTypeEnum.LIMIT },
+          { id: "", type: EvalLogicNodeTypeEnum.OPERATOR, operatorValue: EvalLogicNodeOperatorValueEnum.OR },
+          { id: limitB!.id, type: EvalLogicNodeTypeEnum.LIMIT },
         ],
       },
-      { id: "", type: "OPERATOR", operatorValue: "AND" },
-      { id: limitC!.id, type: "LIMIT" },
+      { id: "", type: EvalLogicNodeTypeEnum.OPERATOR, operatorValue: EvalLogicNodeOperatorValueEnum.AND },
+      { id: limitC!.id, type: EvalLogicNodeTypeEnum.LIMIT },
     ];
 
     await addLogicToEditor(
@@ -251,7 +257,7 @@ describe("addLogicToEditor — GROUP", () => {
       logicNodes,
       limitMap([limitA!, limitB!, limitC!]),
       {
-        type: "CHECK",
+        type: EvalTestCaseTypeEnum.CHECK,
         severity: null,
       },
     );
@@ -266,18 +272,18 @@ describe("addLogicToEditor — GROUP", () => {
     // Flat list as the table-view LogicBuilder emits it: each operand carries its
     // own connector, nesting only via GROUP. Read left-to-right this is
     // ((A OR B) AND (C AND D)).
-    const logicNodes: EvalLogicNodePayload[] = [
-      { id: limitA!.id, type: "LIMIT" },
-      { id: "", type: "OPERATOR", operatorValue: "OR" },
-      { id: limitB!.id, type: "LIMIT" },
-      { id: "", type: "OPERATOR", operatorValue: "AND" },
+    const logicNodes: EvalLogicNode[] = [
+      { id: limitA!.id, type: EvalLogicNodeTypeEnum.LIMIT },
+      { id: "", type: EvalLogicNodeTypeEnum.OPERATOR, operatorValue: EvalLogicNodeOperatorValueEnum.OR },
+      { id: limitB!.id, type: EvalLogicNodeTypeEnum.LIMIT },
+      { id: "", type: EvalLogicNodeTypeEnum.OPERATOR, operatorValue: EvalLogicNodeOperatorValueEnum.AND },
       {
         id: "group-1",
-        type: "GROUP",
+        type: EvalLogicNodeTypeEnum.GROUP,
         children: [
-          { id: limitC!.id, type: "LIMIT" },
-          { id: "", type: "OPERATOR", operatorValue: "AND" },
-          { id: limitD!.id, type: "LIMIT" },
+          { id: limitC!.id, type: EvalLogicNodeTypeEnum.LIMIT },
+          { id: "", type: EvalLogicNodeTypeEnum.OPERATOR, operatorValue: EvalLogicNodeOperatorValueEnum.AND },
+          { id: limitD!.id, type: EvalLogicNodeTypeEnum.LIMIT },
         ],
       },
     ];
@@ -286,7 +292,7 @@ describe("addLogicToEditor — GROUP", () => {
       editor,
       logicNodes,
       limitMap([limitA!, limitB!, limitC!, limitD!]),
-      { type: "CHECK", severity: null },
+      { type: EvalTestCaseTypeEnum.CHECK, severity: null },
     );
 
     const orNodes = editor.getNodes().filter((n) => n instanceof OrNode);
@@ -322,13 +328,13 @@ describe("addLogicToEditor — GROUP", () => {
 
   it("throws for an empty GROUP", async () => {
     const editor = createTestEditor();
-    const logicNodes: EvalLogicNodePayload[] = [
-      { id: "g1", type: "GROUP", children: [] },
+    const logicNodes: EvalLogicNode[] = [
+      { id: "g1", type: EvalLogicNodeTypeEnum.GROUP, children: [] },
     ];
 
     await expect(
       addLogicToEditor(editor, logicNodes, new Map(), {
-        type: "CHECK",
+        type: EvalTestCaseTypeEnum.CHECK,
         severity: null,
       }),
     ).rejects.toThrow("Empty logic group");
@@ -338,13 +344,13 @@ describe("addLogicToEditor — GROUP", () => {
 describe("addLogicToEditor — error cases", () => {
   it("throws when a LIMIT id is not in the limitNodesById map", async () => {
     const editor = createTestEditor();
-    const logicNodes: EvalLogicNodePayload[] = [
-      { id: "missing", type: "LIMIT" },
+    const logicNodes: EvalLogicNode[] = [
+      { id: "missing", type: EvalLogicNodeTypeEnum.LIMIT },
     ];
 
     await expect(
       addLogicToEditor(editor, logicNodes, new Map(), {
-        type: "CHECK",
+        type: EvalTestCaseTypeEnum.CHECK,
         severity: null,
       }),
     ).rejects.toThrow("Missing limit node");
@@ -353,14 +359,14 @@ describe("addLogicToEditor — error cases", () => {
   it("throws when operands do not alternate with operators", async () => {
     const editor = createTestEditor();
     const [limitA, limitB] = await addLimits(editor, 2);
-    const logicNodes: EvalLogicNodePayload[] = [
-      { id: limitA!.id, type: "LIMIT" },
-      { id: limitB!.id, type: "LIMIT" },
+    const logicNodes: EvalLogicNode[] = [
+      { id: limitA!.id, type: EvalLogicNodeTypeEnum.LIMIT },
+      { id: limitB!.id, type: EvalLogicNodeTypeEnum.LIMIT },
     ];
 
     await expect(
       addLogicToEditor(editor, logicNodes, limitMap([limitA!, limitB!]), {
-        type: "CHECK",
+        type: EvalTestCaseTypeEnum.CHECK,
         severity: null,
       }),
     ).rejects.toThrow("alternate");
@@ -373,7 +379,7 @@ describe("addLogicToEditor — empty logicNodes fallback", () => {
     const [limit] = await addLimits(editor, 1);
 
     const resultNode = await addLogicToEditor(editor, [], limitMap([limit!]), {
-      type: "CHECK",
+      type: EvalTestCaseTypeEnum.CHECK,
       severity: null,
     });
 
@@ -387,7 +393,7 @@ describe("addLogicToEditor — empty logicNodes fallback", () => {
     const [limitA, limitB] = await addLimits(editor, 2);
 
     await addLogicToEditor(editor, [], limitMap([limitA!, limitB!]), {
-      type: "CHECK",
+      type: EvalTestCaseTypeEnum.CHECK,
       severity: null,
     });
 
@@ -399,8 +405,8 @@ describe("addLogicToEditor — severity", () => {
   it("creates an AlertNode when severity is ALERT", async () => {
     const editor = createTestEditor();
     await addLogicToEditor(editor, [], new Map(), {
-      type: "CHECK",
-      severity: "ALERT",
+      type: EvalTestCaseTypeEnum.CHECK,
+      severity: EvalSeverityEnum.ALERT,
     });
 
     expect(editor.getNodes().some((n) => n instanceof AlertNode)).toBe(true);
@@ -409,8 +415,8 @@ describe("addLogicToEditor — severity", () => {
   it("creates a WarningNode when severity is WARNING", async () => {
     const editor = createTestEditor();
     await addLogicToEditor(editor, [], new Map(), {
-      type: "CHECK",
-      severity: "WARNING",
+      type: EvalTestCaseTypeEnum.CHECK,
+      severity: EvalSeverityEnum.WARNING,
     });
 
     expect(editor.getNodes().some((n) => n instanceof WarningNode)).toBe(true);
@@ -419,8 +425,8 @@ describe("addLogicToEditor — severity", () => {
   it("connects the ResultNode to the action node", async () => {
     const editor = createTestEditor();
     const resultNode = await addLogicToEditor(editor, [], new Map(), {
-      type: "CHECK",
-      severity: "ALERT",
+      type: EvalTestCaseTypeEnum.CHECK,
+      severity: EvalSeverityEnum.ALERT,
     });
 
     const conn = editor
@@ -433,7 +439,7 @@ describe("addLogicToEditor — severity", () => {
   it("adds no action node when severity is null", async () => {
     const editor = createTestEditor();
     await addLogicToEditor(editor, [], new Map(), {
-      type: "CHECK",
+      type: EvalTestCaseTypeEnum.CHECK,
       severity: null,
     });
 

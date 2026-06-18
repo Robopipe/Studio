@@ -3,12 +3,12 @@ import {
   type BooleanOperator,
 } from "@/modules/evaluation/graph/editor/connections/booleanConnection";
 import { LimitItemConnection } from "@/modules/evaluation/graph/editor/connections/limitItemConnection";
-import type { EvalLimitItemOperator } from "@/modules/evaluation/graph/editor/serialization/backendTypes";
 import type {
   LimitItemProps,
   LogicalProps,
   Schemes,
 } from "@/modules/evaluation/graph/editor/types";
+import type { EvalLimitItemOperatorEnum } from "@repo/schema";
 import type { NodeEditor } from "rete";
 import type { AreaPlugin } from "rete-area-plugin";
 import { deselectAllNodes, type SelectableNodes } from "./nodeSelection";
@@ -35,7 +35,7 @@ export type ClipboardConnectionEntry =
       sourceOutput: string;
       targetIndex: number;
       targetInput: string;
-      operator: EvalLimitItemOperator;
+      operator: EvalLimitItemOperatorEnum;
     };
 
 export type Clipboard = {

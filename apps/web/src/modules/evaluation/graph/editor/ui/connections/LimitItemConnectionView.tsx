@@ -1,19 +1,20 @@
 import type { LimitItemConnection } from "@/modules/evaluation/graph/editor/connections/limitItemConnection";
-import type { EvalLimitItemOperator } from "@/modules/evaluation/graph/editor/serialization/backendTypes";
+import { EvalLimitItemOperatorEnum } from "@repo/schema";
 import { createToggleConnectionView } from "./ToggleConnectionView";
 
 export function createLimitItemConnectionView(
   refreshConnection: (id: string) => void,
 ) {
-  return createToggleConnectionView<EvalLimitItemOperator, LimitItemConnection>(
-    {
-      refreshConnection,
-      options: ["AND", "OR"],
-      fallback: "AND",
-      getValue: (connection) => connection.limitItemOperator,
-      setValue: (connection, value) => {
-        connection.limitItemOperator = value;
-      },
+  return createToggleConnectionView<
+    EvalLimitItemOperatorEnum,
+    LimitItemConnection
+  >({
+    refreshConnection,
+    options: [EvalLimitItemOperatorEnum.AND, EvalLimitItemOperatorEnum.OR],
+    fallback: EvalLimitItemOperatorEnum.AND,
+    getValue: (connection) => connection.limitItemOperator,
+    setValue: (connection, value) => {
+      connection.limitItemOperator = value;
     },
-  );
+  });
 }

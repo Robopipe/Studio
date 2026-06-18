@@ -5,7 +5,6 @@
 // wipes the user's graph.
 import type { LabelOption } from "@/modules/evaluation/graph/editor/controls/label";
 import { LimitNode } from "@/modules/evaluation/graph/editor/nodes/limit/limit";
-import type { EvalTestCaseCreateOrUpdatePayload } from "@/modules/evaluation/graph/editor/serialization/backendTypes";
 import type { AreaExtra } from "@/modules/evaluation/graph/editor/setup/createEditor";
 import type { Schemes } from "@/modules/evaluation/graph/editor/types";
 import {
@@ -13,6 +12,7 @@ import {
   type SelectableNodes,
 } from "@/modules/evaluation/graph/editor/utils/nodeSelection";
 import { removeAllNodes } from "@/modules/evaluation/graph/editor/utils/removeNodes";
+import type { EvalTestCaseFullCreateOrUpdate } from "@repo/schema";
 import type { NodeEditor } from "rete";
 import type { AreaPlugin } from "rete-area-plugin";
 import { addLimitToEditor } from "./deserializeLimits";
@@ -21,7 +21,7 @@ import { addLogicToEditor } from "./deserializeLogicNodes";
 export async function deserializeTestCase(
   editor: NodeEditor<Schemes>,
   area: AreaPlugin<Schemes, AreaExtra>,
-  testCase: EvalTestCaseCreateOrUpdatePayload,
+  testCase: EvalTestCaseFullCreateOrUpdate,
   labels: LabelOption[] = [],
   selectableNodes?: SelectableNodes,
 ) {
@@ -38,7 +38,7 @@ export async function deserializeTestCase(
 
   const limitNodesById = new Map<string, LimitNode>();
 
-  for (const limit of testCase.limits) {
+  for (const limit of testCase.limits ?? []) {
     const { limitNode } = await addLimitToEditor(editor, area, limit, labels);
 
     limitNodesById.set(limitNode.id, limitNode);
@@ -51,7 +51,7 @@ export async function deserializeTestCase(
   // the arrange plugin here as the final step or drop the manual translate in deserializeLimits
   // and document that callers must arrange; why: an implicit caller contract that, if missed,
   // renders every top-level node stacked at the origin.
-  await addLogicToEditor(editor, testCase.logicNodes, limitNodesById, {
+  await addLogicToEditor(editor, testCase.logicNodes ?? [], limitNodesById, {
     severity: testCase.severity,
     type: testCase.type,
   });

@@ -5,16 +5,20 @@ import { LimitNode } from "@/modules/evaluation/graph/editor/nodes/limit/limit";
 import { AndNode } from "@/modules/evaluation/graph/editor/nodes/logical/and";
 import { OrNode } from "@/modules/evaluation/graph/editor/nodes/logical/or";
 import { ResultNode } from "@/modules/evaluation/graph/editor/nodes/result/result";
-import type { EvalLogicNodePayload } from "@/modules/evaluation/graph/editor/serialization/backendTypes";
 import { serializeLogicNodes } from "@/modules/evaluation/graph/editor/serialization/serializeLogicNodes";
 import { createTestEditor } from "@/modules/evaluation/graph/editor/utils/__tests__/testEditor";
+import { EvalLogicNodeTypeEnum, type EvalLogicNode } from "@repo/schema";
 import { describe, expect, it } from "vitest";
 
-function operatorValues(nodes: EvalLogicNodePayload[]) {
+function operatorValues(nodes: EvalLogicNode[]) {
   return nodes
     .filter(
-      (n): n is Extract<EvalLogicNodePayload, { type: "OPERATOR" }> =>
-        n.type === "OPERATOR",
+      (
+        n,
+      ): n is Extract<
+        EvalLogicNode,
+        { type: EvalLogicNodeTypeEnum.OPERATOR }
+      > => n.type === EvalLogicNodeTypeEnum.OPERATOR,
     )
     .map((n) => n.operatorValue);
 }

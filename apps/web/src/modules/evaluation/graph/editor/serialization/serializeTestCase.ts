@@ -5,24 +5,22 @@
 // nested groups); why: every leaf module is unit-tested but the composition is not, and a
 // round-trip test would have caught the top-level NOT loss in deserializeLogicNodes.
 import type { Schemes } from "@/modules/evaluation/graph/editor/types";
+import type { EvalTestCaseFullCreateOrUpdate } from "@repo/schema";
 import type { NodeEditor } from "rete";
-import type { EvalTestCaseCreateOrUpdatePayload } from "./backendTypes";
 import { serializeLimits } from "./serializeLimits";
 import { serializeLogicNodes } from "./serializeLogicNodes";
 
 type SerializeTestCaseOptions = {
-  id?: string;
   name?: string;
 };
 
 export function serializeTestCase(
   editor: NodeEditor<Schemes>,
   options: SerializeTestCaseOptions = {},
-): EvalTestCaseCreateOrUpdatePayload {
+): EvalTestCaseFullCreateOrUpdate {
   const logic = serializeLogicNodes(editor);
 
   return {
-    id: options.id ?? "",
     name: options.name ?? "",
     type: logic.type,
     severity: logic.severity,

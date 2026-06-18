@@ -5,32 +5,38 @@ import { AlertNode } from "@/modules/evaluation/graph/editor/nodes/action/alert"
 import { WarningNode } from "@/modules/evaluation/graph/editor/nodes/action/warning";
 import { LimitNode } from "@/modules/evaluation/graph/editor/nodes/limit/limit";
 import { CountNode } from "@/modules/evaluation/graph/editor/nodes/limitItem/count";
-import type {
-  EvalLimitCreateOrUpdatePayload,
-  EvalLimitItemCreateOrUpdatePayload,
-} from "@/modules/evaluation/graph/editor/serialization/backendTypes";
+import type { FullLimitItem } from "@/modules/evaluation/graph/editor/serialization/serializeLimitItems";
+import type { FullLimit } from "@/modules/evaluation/graph/editor/serialization/serializeLimits";
 import {
   createTestArea,
   createTestEditor,
 } from "@/modules/evaluation/graph/editor/utils/__tests__/testEditor";
+import {
+  EvalLimitItemEdgeEnum,
+  EvalLimitItemOperatorEnum,
+  EvalLimitItemParameterEnum,
+  EvalLimitItemQuantifierTypeEnum,
+  EvalLimitItemQuantifierUnitEnum,
+  EvalSeverityEnum,
+} from "@repo/schema";
 import { describe, expect, it } from "vitest";
 
 const countItem = (
-  operator: "AND" | "OR" = "AND",
-): EvalLimitItemCreateOrUpdatePayload => ({
+  operator: EvalLimitItemOperatorEnum = EvalLimitItemOperatorEnum.AND,
+): FullLimitItem => ({
   id: null,
-  parameter: "COUNT",
+  parameter: EvalLimitItemParameterEnum.COUNT,
   limitFrom: 1,
   limitTo: 5,
   operator,
-  quantifierType: "EXACT",
-  quantifierUnit: "PERCENT",
+  quantifierType: EvalLimitItemQuantifierTypeEnum.EXACT,
+  quantifierUnit: EvalLimitItemQuantifierUnitEnum.PERCENT,
   quantifierValue: 100,
-  targetEdge: "CENTER",
-  parentEdge: "CENTER",
+  targetEdge: EvalLimitItemEdgeEnum.CENTER,
+  parentEdge: EvalLimitItemEdgeEnum.CENTER,
 });
 
-const baseLimit: EvalLimitCreateOrUpdatePayload = {
+const baseLimit: FullLimit = {
   id: "limit-1",
   name: "My Limit",
   severity: null,
@@ -103,7 +109,7 @@ describe("addLimitToEditor — limit item connections", () => {
     const editor = createTestEditor();
     await addLimitToEditor(editor, createTestArea(), {
       ...baseLimit,
-      limitItems: [countItem("OR"), countItem("AND")],
+      limitItems: [countItem(EvalLimitItemOperatorEnum.OR), countItem(EvalLimitItemOperatorEnum.AND)],
     });
 
     const limitItemConns = editor
@@ -116,7 +122,7 @@ describe("addLimitToEditor — limit item connections", () => {
     const editor = createTestEditor();
     await addLimitToEditor(editor, createTestArea(), {
       ...baseLimit,
-      limitItems: [countItem("OR"), countItem("AND")],
+      limitItems: [countItem(EvalLimitItemOperatorEnum.OR), countItem(EvalLimitItemOperatorEnum.AND)],
     });
 
     const conn = editor
@@ -144,7 +150,7 @@ describe("addLimitToEditor — severity", () => {
     const editor = createTestEditor();
     await addLimitToEditor(editor, createTestArea(), {
       ...baseLimit,
-      severity: "ALERT",
+      severity: EvalSeverityEnum.ALERT,
     });
 
     expect(editor.getNodes().some((n) => n instanceof AlertNode)).toBe(true);
@@ -154,7 +160,7 @@ describe("addLimitToEditor — severity", () => {
     const editor = createTestEditor();
     await addLimitToEditor(editor, createTestArea(), {
       ...baseLimit,
-      severity: "WARNING",
+      severity: EvalSeverityEnum.WARNING,
     });
 
     expect(editor.getNodes().some((n) => n instanceof WarningNode)).toBe(true);
@@ -164,7 +170,7 @@ describe("addLimitToEditor — severity", () => {
     const editor = createTestEditor();
     const { limitNode } = await addLimitToEditor(editor, createTestArea(), {
       ...baseLimit,
-      severity: "ALERT",
+      severity: EvalSeverityEnum.ALERT,
     });
 
     const conn = editor

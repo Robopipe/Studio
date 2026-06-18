@@ -1,3 +1,4 @@
+import { EvalSeverityEnum } from "@repo/schema";
 import { ActionNodeBase } from "./actionBase";
 
 type Props = {
@@ -6,7 +7,11 @@ type Props = {
 
 export class AlertNode extends ActionNodeBase {
   constructor(props: Props = {}) {
-    super({ label: "Alert", evalSeverity: "ALERT", id: props.id });
+    super({
+      label: "Alert",
+      evalSeverity: EvalSeverityEnum.ALERT,
+      id: props.id,
+    });
   }
 
   clone() {

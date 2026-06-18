@@ -6,14 +6,15 @@ import {
   useUpdateEvalTestCaseFullMutation,
 } from "@/modules/evaluation/api/evaluationApi";
 import { deserializeTestCase } from "@/modules/evaluation/graph/editor/deserialization/deserializeTestCase";
-import type { EvalTestCaseCreateOrUpdatePayload } from "@/modules/evaluation/graph/editor/serialization/backendTypes";
-import {
-  fromFullTestCase,
-  toSchemaTestCase,
-} from "@/modules/evaluation/graph/editor/serialization/schemaAdapters";
 import { serializeTestCase } from "@/modules/evaluation/graph/editor/serialization/serializeTestCase";
+import { toFullCreateOrUpdate } from "@/modules/evaluation/graph/editor/serialization/toFullCreateOrUpdate";
 import { createEditor } from "@/modules/evaluation/graph/editor/setup/createEditor";
 import type { Schemes } from "@/modules/evaluation/graph/editor/types";
+import {
+  EvalLogicNodeTypeEnum,
+  type EvalLogicNode,
+  type EvalTestCaseFullCreateOrUpdate,
+} from "@repo/schema";
 import { installTestHook } from "@/modules/evaluation/graph/workspace/testHook";
 import { useGetProjectLabelsQuery } from "@/modules/project/services/projectApi";
 import { Button } from "@/modules/shadcn/ui/button";
@@ -152,7 +153,7 @@ export const GraphEditor = ({ projectId, configId, testCaseId }: Props) => {
 
     void (async () => {
       try {
-        const payload = fromFullTestCase(testCaseData);
+        const payload = toFullCreateOrUpdate(testCaseData);
 
         await deserializeTestCase(
           instance.editor,
@@ -221,15 +222,10 @@ export const GraphEditor = ({ projectId, configId, testCaseId }: Props) => {
 
     // The graph owns only the flow (limits, items, logic, severity, type). name and
     // enabled are owned by the table-view UI, so carry them over from the loaded data.
-    const serialized = serializeTestCase(instance.editor, {
-      id: testCaseId,
+    const body = serializeTestCase(instance.editor, {
       name: testCaseData.name,
     });
-
-    const body = toSchemaTestCase({
-      ...serialized,
-      enabled: testCaseData.enabled,
-    });
+    body.enabled = testCaseData.enabled;
 
     try {
       await updateTestCaseFull({
@@ -269,7 +265,6 @@ export const GraphEditor = ({ projectId, configId, testCaseId }: Props) => {
       return;
     }
     const serialized = serializeTestCase(instance.editor, {
-      id: "",
       name: "",
     });
     const payload = withAssignedIds(serialized);
@@ -361,13 +356,12 @@ function createTemporaryId(prefix: string) {
 }
 
 function withAssignedIds(
-  payload: EvalTestCaseCreateOrUpdatePayload,
-): EvalTestCaseCreateOrUpdatePayload {
+  payload: EvalTestCaseFullCreateOrUpdate,
+): EvalTestCaseFullCreateOrUpdate {
   return {
     ...payload,
-    id: payload.id || createTemporaryId("test-case"),
 
-    limits: payload.limits.map((limit) => ({
+    limits: (payload.limits ?? []).map((limit) => ({
       ...limit,
       id: limit.id || createTemporaryId("limit"),
 
@@ -377,41 +371,22 @@ function withAssignedIds(
       })),
     })),
 
-    // FIX(duplication): this map body is an exact inline copy of assignLogicNodeIds below — fix: replace with `logicNodes: assignLogicNodeIds(payload.logicNodes)`; why: the helper already handles the top level, and the duplicate GROUP/OPERATOR branches will silently diverge.
-    logicNodes: payload.logicNodes.map((node) => {
-      if (node.type === "GROUP") {
-        return {
-          ...node,
-          id: node.id || createTemporaryId("logic-group"),
-          children: assignLogicNodeIds(node.children),
-        };
-      }
-
-      if (node.type === "OPERATOR") {
-        return {
-          ...node,
-          id: node.id || createTemporaryId("logic-operator"),
-        };
-      }
-
-      return node;
-    }),
+    logicNodes: assignLogicNodeIds(payload.logicNodes ?? []),
   };
 }
 
-function assignLogicNodeIds(
-  nodes: EvalTestCaseCreateOrUpdatePayload["logicNodes"],
-): EvalTestCaseCreateOrUpdatePayload["logicNodes"] {
+function assignLogicNodeIds(nodes: EvalLogicNode[]): EvalLogicNode[] {
   return nodes.map((node) => {
-    if (node.type === "GROUP") {
+    if (node.type === EvalLogicNodeTypeEnum.GROUP) {
       return {
         ...node,
         id: node.id || createTemporaryId("logic-group"),
-        children: assignLogicNodeIds(node.children),
+        // Zod's recursive `get children()` widens the element type; it is an EvalLogicNode[].
+        children: assignLogicNodeIds(node.children as EvalLogicNode[]),
       };
     }
 
-    if (node.type === "OPERATOR") {
+    if (node.type === EvalLogicNodeTypeEnum.OPERATOR) {
       return {
         ...node,
         id: node.id || createTemporaryId("logic-operator"),

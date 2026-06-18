@@ -8,17 +8,21 @@ import {
   isLimitItemNode,
   isLimitNode,
 } from "@/modules/evaluation/graph/editor/utils/guards";
-import type { NodeEditor } from "rete";
 import type {
-  EvalLimitCreateOrUpdatePayload,
-  EvalSeverity,
-} from "./backendTypes";
+  EvalSeverityEnum,
+  EvalTestCaseFullCreateOrUpdate,
+} from "@repo/schema";
+import type { NodeEditor } from "rete";
 import { serializeLimitItemNode } from "./serializeLimitItems";
 import { parseNullableNumber, parseRequiredNumber } from "./utils";
 
+export type FullLimit = NonNullable<
+  EvalTestCaseFullCreateOrUpdate["limits"]
+>[number];
+
 export function serializeLimits(
   editor: NodeEditor<Schemes>,
-): EvalLimitCreateOrUpdatePayload[] {
+): FullLimit[] {
   return editor
     .getNodes()
     .filter(isLimitNode)
@@ -28,7 +32,7 @@ export function serializeLimits(
 export function serializeLimitNode(
   editor: NodeEditor<Schemes>,
   limitNode: LimitNode,
-): EvalLimitCreateOrUpdatePayload {
+): FullLimit {
   const limitItems = getLimitItemChildren(editor, limitNode).map((node) =>
     serializeLimitItemNode(editor, node),
   );
@@ -62,7 +66,7 @@ function getLimitItemChildren(
 function getLimitSeverity(
   editor: NodeEditor<Schemes>,
   limitNode: LimitNode,
-): EvalSeverity | null {
+): EvalSeverityEnum | null {
   const actionNode = editor
     .getConnections()
     .filter((connection) => connection.source === limitNode.id)
