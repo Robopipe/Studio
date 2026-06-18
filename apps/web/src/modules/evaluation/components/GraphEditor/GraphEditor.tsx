@@ -1,8 +1,16 @@
 import { cn } from "@/lib/utils";
 import type { LabelOption } from "@/modules/evaluation/graph/editor/controls/label";
 import { EditorDebugOverlay } from "@/modules/evaluation/graph/editor/debug/EditorDebugOverlay";
+import {
+  useGetEvalTestCaseFullQuery,
+  useUpdateEvalTestCaseFullMutation,
+} from "@/modules/evaluation/api/evaluationApi";
 import { deserializeTestCase } from "@/modules/evaluation/graph/editor/deserialization/deserializeTestCase";
 import type { EvalTestCaseCreateOrUpdatePayload } from "@/modules/evaluation/graph/editor/serialization/backendTypes";
+import {
+  fromFullTestCase,
+  toSchemaTestCase,
+} from "@/modules/evaluation/graph/editor/serialization/schemaAdapters";
 import { serializeTestCase } from "@/modules/evaluation/graph/editor/serialization/serializeTestCase";
 import { createEditor } from "@/modules/evaluation/graph/editor/setup/createEditor";
 import type { Schemes } from "@/modules/evaluation/graph/editor/types";
@@ -19,7 +27,7 @@ import {
   RotateCcw,
   Save,
 } from "lucide-react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { NodeEditor } from "rete";
 import { useRete } from "rete-react-plugin";
 import { toast } from "sonner";
@@ -35,9 +43,11 @@ const clamp = (value: number, min: number, max: number) =>
 
 type Props = {
   projectId: number;
+  configId: number;
+  testCaseId: string;
 };
 
-export const GraphEditor = ({ projectId }: Props) => {
+export const GraphEditor = ({ projectId, configId, testCaseId }: Props) => {
   const editorRef = useRef<Awaited<ReturnType<typeof createEditor>> | null>(
     null,
   );
@@ -117,6 +127,59 @@ export const GraphEditor = ({ projectId }: Props) => {
 
   const [ref] = useRete(create);
 
+  // Loads the saved test case into the editor once both the editor instance and the
+  // fetched data are ready. `editor` (state) flips non-null in the same tick the full
+  // instance lands in editorRef, so it's a safe readiness trigger. projectLabels is a
+  // dep so a late labels response re-runs the load and the limit nodes resolve names.
+  // GraphEditor mounts fresh each time the graph view opens, so refetch on mount to
+  // pick up anything the table view changed while the graph was hidden.
+  const { data: testCaseData } = useGetEvalTestCaseFullQuery(
+    {
+      projectId,
+      configId,
+      testCaseId,
+    },
+    { refetchOnMountOrArgChange: true },
+  );
+  const [updateTestCaseFull, { isLoading: isSaving }] =
+    useUpdateEvalTestCaseFullMutation();
+
+  useEffect(() => {
+    const instance = editorRef.current;
+    if (!instance || !editor || !testCaseData) return;
+
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const payload = fromFullTestCase(testCaseData);
+
+        await deserializeTestCase(
+          instance.editor,
+          instance.area,
+          payload,
+          labelsRef.current,
+          instance.selectableNodes,
+        );
+        if (cancelled) return;
+
+        await instance.arrange.layout();
+      } catch (error) {
+        if (cancelled) return;
+        toast.error(
+          error instanceof Error
+            ? `Failed to load test case: ${error.message}`
+            : "Failed to load test case.",
+        );
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editor, testCaseData, projectLabels]);
+
   const toggleValidation = async () => {
     const instance = editorRef.current;
     if (!instance) return;
@@ -135,10 +198,14 @@ export const GraphEditor = ({ projectId }: Props) => {
     setAutoValidationEnabled(false);
   };
 
-  // FIX(naming): handleSave does not save anything — it serializes, console.logs the payload and toasts "serialized successfully" — fix: rename to handleSerialize (or wire the real persistence call) and drop the console.log from the production path; why: a Save button that only logs misleads users and reviewers about what state is persisted.
   const handleSave = async () => {
     const instance = editorRef.current;
     if (!instance) return;
+
+    if (!testCaseData) {
+      toast.error("Test case is still loading. Try again in a moment.");
+      return;
+    }
 
     const validationResult = await instance.validation.validateNow();
 
@@ -152,14 +219,29 @@ export const GraphEditor = ({ projectId }: Props) => {
       return;
     }
 
-    const payload = serializeTestCase(instance.editor, {
-      id: "",
-      name: "",
+    // The graph owns only the flow (limits, items, logic, severity, type). name and
+    // enabled are owned by the table-view UI, so carry them over from the loaded data.
+    const serialized = serializeTestCase(instance.editor, {
+      id: testCaseId,
+      name: testCaseData.name,
     });
 
-    console.log(JSON.stringify(payload, null, 2));
+    const body = toSchemaTestCase({
+      ...serialized,
+      enabled: testCaseData.enabled,
+    });
 
-    toast.success("Graph serialized successfully.");
+    try {
+      await updateTestCaseFull({
+        projectId,
+        configId,
+        testCaseId,
+        body,
+      }).unwrap();
+      toast.success("Test case saved.");
+    } catch {
+      toast.error("Failed to save test case.");
+    }
   };
 
   const handleArrange = async () => {
@@ -239,7 +321,12 @@ export const GraphEditor = ({ projectId }: Props) => {
         >
           {autoValidationEnabled ? <RefreshCw /> : <RefreshCwOff />}
         </Button>
-        <Button variant="outline" size="icon" onClick={handleSave}>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleSave}
+          disabled={isSaving}
+        >
           <Save />
         </Button>
         <Button

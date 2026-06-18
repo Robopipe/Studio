@@ -155,6 +155,14 @@ export const evalTestCaseDetailSchema = evalTestCaseSchema.extend({
   logicNodes: evalLogicNodeSchema.array(), // [] by default
 });
 
+/* Eval test case full -> detail with limit items inlined on each limit.
+   This is the shape the graph editor needs (limits WITH their items + logicNodes)
+   and the single source of truth shared with the table view. The dedicated GET
+   endpoint does not exist yet; the web assembles it from detail + per-limit detail. */
+export const evalTestCaseFullSchema = evalTestCaseDetailSchema.extend({
+  limits: z.array(evalLimitDetailSchema),
+});
+
 export const evalThresholdSchema = z.object({
   id: z.string(),
   name: z.string(),

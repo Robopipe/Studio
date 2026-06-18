@@ -12,6 +12,7 @@ import { OrNode } from "@/modules/evaluation/graph/editor/nodes/logical/or";
 import { ResultNode } from "@/modules/evaluation/graph/editor/nodes/result/result";
 
 import { BooleanConnection } from "@/modules/evaluation/graph/editor/connections/booleanConnection";
+import { v7 as uuidv7 } from "uuid";
 
 import type {
   EvalLogicNodeOperatorValue,
@@ -67,7 +68,7 @@ export function serializeLogicNodes(
 
   if (!resultInputSourceNode) {
     return {
-      type: getTestCaseTypeFromResultInputConnection(resultInputConnection),
+      type: "CHECK",
       severity: getActionSeverity(resultActionNode),
       logicNodes: [],
     };
@@ -75,10 +76,15 @@ export function serializeLogicNodes(
 
   const expression = serializeExpression(editor, resultInputSourceNode);
 
+  // The test-case type is always CHECK (the table view has no DEFECT). A NOT on the
+  // result-input connection negates the whole expression and is emitted as a top-level
+  // NOT operator — only producible for a single Limit -> Result edge (see setupRender).
+  const logicNodes = applyNotIfNeeded(resultInputConnection, expression.nodes);
+
   return {
-    type: getTestCaseTypeFromResultInputConnection(resultInputConnection),
+    type: "CHECK",
     severity: getActionSeverity(resultActionNode),
-    logicNodes: expression.nodes,
+    logicNodes,
   };
 }
 
@@ -157,7 +163,7 @@ function serializeLogicalExpression(
 
     if (children.length > 0) {
       children.push({
-        id: "",
+        id: uuidv7(),
         type: "OPERATOR",
         operatorValue,
       });
@@ -218,7 +224,7 @@ function maybeWrapChildExpression(
 
   return [
     {
-      id: "",
+      id: uuidv7(),
       type: "GROUP",
       children: childExpression.nodes,
     },
@@ -239,7 +245,7 @@ function applyNotIfNeeded(
 
     return [
       {
-        id: "",
+        id: uuidv7(),
         type: "OPERATOR",
         operatorValue: "NOT",
       },
@@ -249,12 +255,12 @@ function applyNotIfNeeded(
 
   return [
     {
-      id: "",
+      id: uuidv7(),
       type: "OPERATOR",
       operatorValue: "NOT",
     },
     {
-      id: "",
+      id: uuidv7(),
       type: "GROUP",
       children: childNodes,
     },
@@ -275,12 +281,3 @@ function getActionSeverity(node: NodeProps | undefined): EvalSeverity | null {
   return null;
 }
 
-function getTestCaseTypeFromResultInputConnection(
-  connection: Schemes["Connection"],
-): EvalTestCaseType {
-  if (connection instanceof BooleanConnection) {
-    return connection.booleanOperator === "NOT" ? "DEFECT" : "CHECK";
-  }
-
-  return "CHECK";
-}

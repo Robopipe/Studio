@@ -129,6 +129,16 @@ export function setupRender(props: Props): ReactPlugin<Schemes, AreaExtra> {
             if (targetNode instanceof ActionNodeBase)
               return CustomConnectionView;
 
+            // An And/Or node feeding the Result is a plain edge: the whole result
+            // can't be negated (no DEFECT, no group-NOT in the table view). Only a
+            // single Limit -> Result may carry NOT, so it keeps the toggle.
+            if (
+              targetNode instanceof ResultNode &&
+              (sourceNode instanceof AndNode || sourceNode instanceof OrNode)
+            ) {
+              return CustomConnectionView;
+            }
+
             return createBooleanConnectionView((id) => {
               void area.update("connection", id);
             });

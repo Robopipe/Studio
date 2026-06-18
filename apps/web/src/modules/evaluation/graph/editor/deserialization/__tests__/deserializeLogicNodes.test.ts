@@ -63,8 +63,8 @@ describe("addLogicToEditor — ResultNode", () => {
   });
 });
 
-describe("addLogicToEditor — type determines result connection operator", () => {
-  it("uses TRUE on the result connection for CHECK type", async () => {
+describe("addLogicToEditor — top-level NOT drives the result connection", () => {
+  it("uses TRUE on the result connection for a plain limit", async () => {
     const editor = createTestEditor();
     const [limit] = await addLimits(editor, 1);
     const logicNodes: EvalLogicNodePayload[] = [
@@ -90,10 +90,11 @@ describe("addLogicToEditor — type determines result connection operator", () =
     expect(conn?.booleanOperator).toBe("TRUE");
   });
 
-  it("uses NOT on the result connection for DEFECT type", async () => {
+  it("uses NOT on the result connection for a top-level [NOT, LIMIT]", async () => {
     const editor = createTestEditor();
     const [limit] = await addLimits(editor, 1);
     const logicNodes: EvalLogicNodePayload[] = [
+      { id: "", type: "OPERATOR", operatorValue: "NOT" },
       { id: limit!.id, type: "LIMIT" },
     ];
 
@@ -102,11 +103,12 @@ describe("addLogicToEditor — type determines result connection operator", () =
       logicNodes,
       limitMap([limit!]),
       {
-        type: "DEFECT",
+        type: "CHECK",
         severity: null,
       },
     );
 
+    // The NOT rides on the result-input connection, and the limit feeds it directly.
     const conn = editor
       .getConnections()
       .find(
@@ -114,6 +116,7 @@ describe("addLogicToEditor — type determines result connection operator", () =
           c instanceof BooleanConnection && c.target === resultNode.id,
       );
     expect(conn?.booleanOperator).toBe("NOT");
+    expect(conn?.source).toBe(limit!.id);
   });
 });
 
@@ -257,6 +260,66 @@ describe("addLogicToEditor — GROUP", () => {
     expect(editor.getNodes().some((n) => n instanceof AndNode)).toBe(true);
   });
 
+  it("parses a mixed-operator level left-associatively: A OR B AND (C AND D)", async () => {
+    const editor = createTestEditor();
+    const [limitA, limitB, limitC, limitD] = await addLimits(editor, 4);
+    // Flat list as the table-view LogicBuilder emits it: each operand carries its
+    // own connector, nesting only via GROUP. Read left-to-right this is
+    // ((A OR B) AND (C AND D)).
+    const logicNodes: EvalLogicNodePayload[] = [
+      { id: limitA!.id, type: "LIMIT" },
+      { id: "", type: "OPERATOR", operatorValue: "OR" },
+      { id: limitB!.id, type: "LIMIT" },
+      { id: "", type: "OPERATOR", operatorValue: "AND" },
+      {
+        id: "group-1",
+        type: "GROUP",
+        children: [
+          { id: limitC!.id, type: "LIMIT" },
+          { id: "", type: "OPERATOR", operatorValue: "AND" },
+          { id: limitD!.id, type: "LIMIT" },
+        ],
+      },
+    ];
+
+    const resultNode = await addLogicToEditor(
+      editor,
+      logicNodes,
+      limitMap([limitA!, limitB!, limitC!, limitD!]),
+      { type: "CHECK", severity: null },
+    );
+
+    const orNodes = editor.getNodes().filter((n) => n instanceof OrNode);
+    const andNodes = editor.getNodes().filter((n) => n instanceof AndNode);
+    expect(orNodes).toHaveLength(1);
+    expect(andNodes).toHaveLength(2); // top-level AND + the group's AND
+
+    // The ResultNode is fed by the top-level AND.
+    const resultInput = editor
+      .getConnections()
+      .find((c) => c.target === resultNode.id);
+    const topAnd = andNodes.find((n) => n.id === resultInput!.source);
+    expect(topAnd).toBeDefined();
+
+    // The top-level AND combines the OR node and the group's AND node.
+    const groupAnd = andNodes.find((n) => n.id !== topAnd!.id)!;
+    const topAndSources = editor
+      .getConnections()
+      .filter((c) => c.target === topAnd!.id)
+      .map((c) => c.source);
+    expect(topAndSources).toContain(orNodes[0]!.id);
+    expect(topAndSources).toContain(groupAnd.id);
+
+    // The OR node combines limits A and B (not C/D).
+    const orSources = editor
+      .getConnections()
+      .filter((c) => c.target === orNodes[0]!.id)
+      .map((c) => c.source);
+    expect(orSources).toEqual(
+      expect.arrayContaining([limitA!.id, limitB!.id]),
+    );
+  });
+
   it("throws for an empty GROUP", async () => {
     const editor = createTestEditor();
     const logicNodes: EvalLogicNodePayload[] = [
@@ -285,6 +348,50 @@ describe("addLogicToEditor — error cases", () => {
         severity: null,
       }),
     ).rejects.toThrow("Missing limit node");
+  });
+
+  it("throws when operands do not alternate with operators", async () => {
+    const editor = createTestEditor();
+    const [limitA, limitB] = await addLimits(editor, 2);
+    const logicNodes: EvalLogicNodePayload[] = [
+      { id: limitA!.id, type: "LIMIT" },
+      { id: limitB!.id, type: "LIMIT" },
+    ];
+
+    await expect(
+      addLogicToEditor(editor, logicNodes, limitMap([limitA!, limitB!]), {
+        type: "CHECK",
+        severity: null,
+      }),
+    ).rejects.toThrow("alternate");
+  });
+});
+
+describe("addLogicToEditor — empty logicNodes fallback", () => {
+  it("connects a lone limit to the ResultNode when logicNodes is empty", async () => {
+    const editor = createTestEditor();
+    const [limit] = await addLimits(editor, 1);
+
+    const resultNode = await addLogicToEditor(editor, [], limitMap([limit!]), {
+      type: "CHECK",
+      severity: null,
+    });
+
+    const conn = editor.getConnections().find((c) => c.source === limit!.id);
+    expect(conn).toBeDefined();
+    expect(conn!.target).toBe(resultNode.id);
+  });
+
+  it("AND-joins multiple limits into the ResultNode when logicNodes is empty", async () => {
+    const editor = createTestEditor();
+    const [limitA, limitB] = await addLimits(editor, 2);
+
+    await addLogicToEditor(editor, [], limitMap([limitA!, limitB!]), {
+      type: "CHECK",
+      severity: null,
+    });
+
+    expect(editor.getNodes().some((n) => n instanceof AndNode)).toBe(true);
   });
 });
 

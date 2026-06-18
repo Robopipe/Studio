@@ -52,15 +52,28 @@ export async function addLogicToEditor(
 
   await editor.addNode(resultNode);
 
-  const expression = parseLogicExpression(logicNodes);
+  // A test case built from the table view persists no logic tree (`logicNodes: []`),
+  // yet its limits must still feed the ResultNode. Fall back to a default expression
+  // synthesized from the limits present: a single limit connects directly, multiple
+  // limits are AND-ed (the implicit conjunction the table view represents).
+  const expression =
+    parseLogicExpression(logicNodes) ??
+    buildDefaultExpression(limitNodesById);
 
   if (expression) {
+    // A top-level NOT negates the whole expression. The test-case type no longer drives
+    // the result edge (DEFECT is unsupported); the NOT rides on the result-input
+    // connection instead. In the table view this is only producible for a single limit
+    // (-> a Limit -> Result edge carrying NOT), but a negated group is preserved too.
+    const negateResult = expression.kind === "not";
+    const rootExpression = negateResult ? expression.child : expression;
+
     const finalSourceNode = await createLogicGraphFromExpression(
       {
         editor,
         limitNodesById,
       },
-      expression,
+      rootExpression,
     );
 
     const resultInputConnection = new BooleanConnection(
@@ -68,7 +81,7 @@ export async function addLogicToEditor(
       "out",
       resultNode,
       "in",
-      getResultInputBooleanOperator(options.type),
+      negateResult ? "NOT" : "TRUE",
     );
 
     await editor.addConnection(resultInputConnection);
@@ -114,6 +127,27 @@ function parseLogicExpression(
   return collapseExpressionParts(parts);
 }
 
+function buildDefaultExpression(
+  limitNodesById: Map<string, LimitNode>,
+): ExpressionNode | null {
+  const limitIds = [...limitNodesById.keys()];
+
+  if (limitIds.length === 0) return null;
+
+  const operands: ExpressionNode[] = limitIds.map((limitId) => ({
+    kind: "limit",
+    limitId,
+  }));
+
+  if (operands.length === 1) return operands[0]!;
+
+  return {
+    kind: "operator",
+    operator: "AND",
+    children: operands,
+  };
+}
+
 function parseOperand(node: EvalLogicNodePayload): ExpressionNode {
   if (node.type === "LIMIT") {
     return {
@@ -132,34 +166,64 @@ function parseOperand(node: EvalLogicNodePayload): ExpressionNode {
   throw new Error("Unexpected operator where operand was expected.");
 }
 
-// FIX(error-handling): malformed or mixed-operator payloads are silently misparsed — `find`
-// picks the first AND/OR token and treats ALL operands as its children, so "A AND B OR C"
-// collapses to AND(A, B, C) with the OR dropped, and two adjacent operands with no operator
-// ([A, B]) silently discard B via `return first` — fix: validate that parts strictly alternate
-// operand/operator and that every operator token at one level is identical, throwing on
-// violation; why: backend payloads that break the serializer's uniform-operator-per-level
-// invariant get silently reinterpreted into different logic instead of being rejected.
+// Mirrors the table-view LogicBuilder, which is the canonical producer of `logicNodes`:
+// a flat ordered list where each operand carries its own connector and nesting happens
+// ONLY through explicit GROUP nodes. There is no operator precedence anywhere in the
+// product, so a level is read left-to-right (left-associative): each operator combines
+// the accumulated left expression with the next operand. Consecutive identical operators
+// are coalesced into one n-ary node (e.g. A OR B OR C -> a single OR), which is
+// semantically identical for associative boolean ops and keeps the graph tidy.
+//
+// Parts must still strictly alternate operand/operator (starting and ending on an
+// operand); a level with two operands or two operators in a row is genuine corruption
+// the LogicBuilder cannot emit, so it throws rather than guessing.
 function collapseExpressionParts(
   parts: Array<ExpressionNode | "AND" | "OR">,
 ): ExpressionNode {
+  const isOperator = (part: ExpressionNode | "AND" | "OR") =>
+    part === "AND" || part === "OR";
+
+  parts.forEach((part, index) => {
+    const operatorPosition = index % 2 === 1;
+    if (operatorPosition !== isOperator(part)) {
+      throw new Error(
+        "Malformed logic expression: operands and operators must alternate.",
+      );
+    }
+  });
+
   const first = parts[0];
   if (!first || typeof first === "string")
     throw new Error("Invalid logic expression.");
 
-  const operator = parts.find((part): part is "AND" | "OR" => {
-    return part === "AND" || part === "OR";
-  });
+  let accumulator: ExpressionNode = first;
 
-  if (!operator) return first;
+  for (let index = 1; index < parts.length; index += 2) {
+    const operator = parts[index];
+    const operand = parts[index + 1];
 
-  const children = parts.filter(
-    (part): part is ExpressionNode => typeof part !== "string",
-  );
-  return {
-    kind: "operator",
-    operator,
-    children,
-  };
+    if (operator !== "AND" && operator !== "OR")
+      throw new Error("Invalid logic expression: operator expected.");
+    if (!operand || typeof operand === "string")
+      throw new Error("Invalid logic expression: operand expected.");
+
+    // Coalesce a run of the same operator into the existing n-ary node; otherwise
+    // nest the accumulated expression as the left child of the new operator.
+    accumulator =
+      accumulator.kind === "operator" && accumulator.operator === operator
+        ? {
+            kind: "operator",
+            operator,
+            children: [...accumulator.children, operand],
+          }
+        : {
+            kind: "operator",
+            operator,
+            children: [accumulator, operand],
+          };
+  }
+
+  return accumulator;
 }
 
 async function createLogicGraphFromExpression(
@@ -173,15 +237,10 @@ async function createLogicGraphFromExpression(
     return limitNode;
   }
 
-  // FIX(bug): a top-level 'not' expression is silently dropped — this branch returns the child
-  // node without applying the negation; the 'NOT' boolean operator is only applied when the
-  // 'not' is a direct child of an operator expression (see the loop below). A payload like
-  // [{type:'OPERATOR',operatorValue:'NOT'}, {type:'LIMIT',id}] — which serializeLogicNodes emits
-  // for an AND/OR node with a single negated input — deserializes into a plain TRUE connection
-  // to the ResultNode — fix: detect a top-level 'not' in addLogicToEditor and apply 'NOT' to the
-  // result input connection (combined with the CHECK/DEFECT operator), or throw if that
-  // combination is unrepresentable; why: silent round-trip data loss that inverts the test case
-  // logic with no error.
+  // A nested 'not' returns the inner node; the caller (the operator loop below) applies
+  // the 'NOT' on the connection into the logical node. A TOP-LEVEL 'not' is handled in
+  // addLogicToEditor, which strips it and sets 'NOT' on the result-input connection — so
+  // it never reaches here unwrapped.
   if (expression.kind === "not")
     return createLogicGraphFromExpression(context, expression.child);
 
@@ -230,8 +289,4 @@ async function addFinalActionIfNeeded(
     "TRUE",
   );
   await editor.addConnection(connection);
-}
-
-function getResultInputBooleanOperator(type: EvalTestCaseType) {
-  return type === "DEFECT" ? "NOT" : "TRUE";
 }

@@ -15,6 +15,7 @@ import {
   EvalTestCaseTypeEnum,
   type EvalLimitCreateOrUpdate,
   type EvalLogicNode,
+  type EvalTestCaseFull,
   type EvalTestCaseFullCreateOrUpdate,
 } from "@repo/schema";
 import type {
@@ -105,6 +106,45 @@ export function fromSchemaTestCase(
     limits: (testCase.limits ?? []).map(fromSchemaLimit),
     logicNodes: (testCase.logicNodes ?? []).map(fromSchemaLogicNode),
   };
+}
+
+/**
+ * Reshapes a full test case (the SSOT shape: meta + logicNodes + limits WITH their
+ * items) into the editor payload, reusing `fromSchemaTestCase` so the literal<->enum
+ * mapping stays in one place.
+ */
+export function fromFullTestCase(
+  testCase: EvalTestCaseFull,
+): EvalTestCaseCreateOrUpdatePayload {
+  const full: EvalTestCaseFullCreateOrUpdate = {
+    name: testCase.name,
+    type: testCase.type,
+    severity: testCase.severity,
+    enabled: testCase.enabled,
+    logicNodes: testCase.logicNodes,
+    limits: testCase.limits.map((limit) => ({
+      id: limit.id,
+      name: limit.name,
+      severity: limit.severity,
+      enabled: limit.enabled,
+      targetLabelId: limit.targetLabel.id,
+      targetParentLabelId: limit.targetParentLabel?.id ?? null,
+      limitItems: limit.limitItems.map((item) => ({
+        id: item.id,
+        limitFrom: item.limitFrom,
+        limitTo: item.limitTo,
+        parameter: item.parameter,
+        operator: item.operator,
+        quantifierType: item.quantifierType,
+        quantifierUnit: item.quantifierUnit,
+        quantifierValue: item.quantifierValue,
+        targetEdge: item.targetEdge,
+        parentEdge: item.parentEdge,
+      })),
+    })),
+  };
+
+  return fromSchemaTestCase(full, { id: testCase.id });
 }
 
 function fromSchemaLimit(

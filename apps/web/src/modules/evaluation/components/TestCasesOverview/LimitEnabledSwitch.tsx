@@ -3,6 +3,7 @@ import { Badge } from "@/modules/shadcn/ui/badge";
 import { Switch } from "@/modules/shadcn/ui/switch";
 import { EvalLimit, EvalLimitDetail } from "@repo/schema";
 import { useState } from "react";
+import { useLimitDetail } from "../../api/evalSelectors";
 import {
   evaluationApi,
   useLazyGetEvalLimitQuery,
@@ -49,24 +50,47 @@ export function LimitEnabledSwitch({
   const [updateLimit] = useUpdateEvalLimitMutation();
   const [pending, setPending] = useState(false);
 
+  // Reuse the SSOT detail when the graph already loaded it — skips the detail fetch.
+  const cachedDetail = useLimitDetail(
+    { projectId, configId, testCaseId },
+    limit.id,
+  );
+
   const handleToggle = async (next: boolean) => {
     setPending(true);
-    const patchResult = dispatch(
+
+    // Optimistically flip the row in both sources the table reads from (SSOT + list).
+    // Either patch is a no-op if that entry isn't cached.
+    const patchFull = dispatch(
       evaluationApi.util.updateQueryData(
-        "getEvalLimits",
+        "getEvalTestCaseFull",
         { projectId, configId, testCaseId },
         (draft) => {
-          const cached = draft.find((entry) => entry.id === limit.id);
+          const cached = draft.limits.find((entry) => entry.id === limit.id);
+          if (cached) cached.enabled = next;
+        },
+      ),
+    );
+    const patchList = dispatch(
+      evaluationApi.util.updateQueryData(
+        "getEvalTestCases",
+        { projectId, configId },
+        (draft) => {
+          const cached = draft
+            .find((tc) => tc.id === testCaseId)
+            ?.limits.find((entry) => entry.id === limit.id);
           if (cached) cached.enabled = next;
         },
       ),
     );
 
     try {
-      const detail = await fetchDetail(
-        { projectId, configId, testCaseId, limitId: limit.id },
-        false,
-      ).unwrap();
+      const detail =
+        cachedDetail ??
+        (await fetchDetail(
+          { projectId, configId, testCaseId, limitId: limit.id },
+          false,
+        ).unwrap());
 
       await updateLimit({
         projectId,
@@ -76,7 +100,8 @@ export function LimitEnabledSwitch({
         body: detailToUpdateBody(detail, next),
       }).unwrap();
     } catch {
-      patchResult.undo();
+      patchFull.undo();
+      patchList.undo();
     } finally {
       setPending(false);
     }

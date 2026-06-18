@@ -8,11 +8,11 @@ import { DataTable } from "@/modules/ui/components/Table";
 import { EvalLimit, EvalTestCase } from "@repo/schema";
 import { PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
+import { useLimitDetail, useLimitRows } from "../../api/evalSelectors";
 import {
   useDeleteEvalLimitMutation,
   useDeleteEvalTestCaseMutation,
   useGetEvalLimitQuery,
-  useGetEvalLimitsQuery,
   useGetEvalTestCaseQuery,
 } from "../../api/evaluationApi";
 import { CreateLimitModal, UpdateLimitModal } from "../CreateUpdateLimit";
@@ -38,11 +38,6 @@ export function TestCaseSection({
   projectId,
   configId,
 }: TestCaseSectionProps) {
-  const { data: limits = [] } = useGetEvalLimitsQuery({
-    projectId,
-    configId,
-    testCaseId: testCase.id,
-  });
   const [isCreateLimitOpen, setIsCreateLimitOpen] = useState(false);
   const [limitToEditId, setLimitToEditId] = useState<string | null>(null);
   const [deleteState, setDeleteState] = useState<DeleteState>(null);
@@ -50,10 +45,20 @@ export function TestCaseSection({
   const [isDeleteTestCaseOpen, setIsDeleteTestCaseOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("table");
 
-  const { data: limitToEdit } = useGetEvalLimitQuery(
-    { projectId, configId, testCaseId: testCase.id, limitId: limitToEditId! },
-    { skip: !limitToEditId },
+  const args = { projectId, configId, testCaseId: testCase.id };
+
+  // Rows come from the SSOT (full cache) when the graph has loaded it, otherwise from
+  // the limits already embedded in the overview list — no per-section request either way.
+  const limits = useLimitRows(args, testCase.limits);
+
+  // Limit detail (with items) for the edit modal: prefer the SSOT if the graph loaded
+  // it; otherwise lazily fetch just that limit (table-only session).
+  const cachedLimit = useLimitDetail(args, limitToEditId);
+  const { data: fetchedLimit } = useGetEvalLimitQuery(
+    { ...args, limitId: limitToEditId! },
+    { skip: !limitToEditId || Boolean(cachedLimit) },
   );
+  const limitToEdit = cachedLimit ?? fetchedLimit;
   const { data: testCaseDetail } = useGetEvalTestCaseQuery(
     { projectId, configId, testCaseId: testCase.id },
     { skip: !isEditTestCaseOpen },
@@ -180,7 +185,11 @@ export function TestCaseSection({
         {viewMode === "table" ? (
           <DataTable data={limits} columns={columns} enableRowSelection />
         ) : (
-          <GraphEditor projectId={projectId} />
+          <GraphEditor
+            projectId={projectId}
+            configId={configId}
+            testCaseId={testCase.id}
+          />
         )}
       </CardContent>
 

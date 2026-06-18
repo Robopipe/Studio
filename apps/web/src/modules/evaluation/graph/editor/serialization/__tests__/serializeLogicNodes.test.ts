@@ -40,7 +40,7 @@ describe("serializeLogicNodes — no graph", () => {
 });
 
 describe("serializeLogicNodes — type resolution", () => {
-  it("returns CHECK when the result connection has no NOT modifier", async () => {
+  it("always returns CHECK regardless of the result connection modifier", async () => {
     const editor = createTestEditor();
     const limit = new LimitNode({ label: 1 });
     const resultNode = new ResultNode();
@@ -54,7 +54,7 @@ describe("serializeLogicNodes — type resolution", () => {
     expect(serializeLogicNodes(editor).type).toBe("CHECK");
   });
 
-  it("returns DEFECT when the result connection uses NOT modifier", async () => {
+  it("still returns CHECK when the result connection uses NOT (NOT becomes a logic operator, not DEFECT)", async () => {
     const editor = createTestEditor();
     const limit = new LimitNode({ label: 1 });
     const resultNode = new ResultNode();
@@ -65,7 +65,7 @@ describe("serializeLogicNodes — type resolution", () => {
       new BooleanConnection(limit, "out", resultNode, "in", "NOT"),
     );
 
-    expect(serializeLogicNodes(editor).type).toBe("DEFECT");
+    expect(serializeLogicNodes(editor).type).toBe("CHECK");
   });
 });
 
@@ -272,9 +272,16 @@ describe("serializeLogicNodes — NOT modifier on child connections", () => {
       new BooleanConnection(limit, "out", resultNode, "in", "NOT"),
     );
 
-    // type is DEFECT but logicNodes still contain the limit
-    const { logicNodes } = serializeLogicNodes(editor);
-    expect(logicNodes).toEqual([{ id: limit.id, type: "LIMIT" }]);
+    // A NOT on the result-input connection negates the single limit: type stays CHECK
+    // and the negation is emitted as a top-level NOT operator before the limit.
+    const { type, logicNodes } = serializeLogicNodes(editor);
+    expect(type).toBe("CHECK");
+    expect(logicNodes).toEqual([
+      expect.objectContaining({ type: "OPERATOR", operatorValue: "NOT" }),
+      { id: limit.id, type: "LIMIT" },
+    ]);
+    // Operator nodes must carry a valid uuid (the BE schema requires uuidv7), not "".
+    expect(logicNodes[0]!.id).not.toBe("");
   });
 
   it("inserts a NOT OPERATOR before a negated child inside an AND group", async () => {
