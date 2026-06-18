@@ -23,6 +23,9 @@ describe("findShortcut", () => {
     expect(findShortcut(event({ key: "c", ctrlKey: true }))?.action).toBe(
       "copy",
     );
+    expect(findShortcut(event({ key: "s", metaKey: true }))?.action).toBe(
+      "save",
+    );
   });
 
   it("disambiguates undo and redo by Shift", () => {
@@ -35,15 +38,17 @@ describe("findShortcut", () => {
   });
 
   it("matches plain letter shortcuts case-insensitively and ignores Shift", () => {
-    expect(findShortcut(event({ key: "q" }))?.action).toBe("addAnd");
-    expect(findShortcut(event({ key: "Q", shiftKey: true }))?.action).toBe(
-      "addAnd",
+    expect(findShortcut(event({ key: "o" }))?.action).toBe("addOr");
+    expect(findShortcut(event({ key: "O", shiftKey: true }))?.action).toBe(
+      "addOr",
     );
     expect(findShortcut(event({ key: "f" }))?.action).toBe("toggleFullscreen");
   });
 
   it("does not match mod-requiring shortcuts without the modifier", () => {
-    expect(findShortcut(event({ key: "a" }))).toBeUndefined();
+    // "c" (copy) and "s" (save) require the modifier and have no plain counterpart.
+    expect(findShortcut(event({ key: "c" }))).toBeUndefined();
+    expect(findShortcut(event({ key: "s" }))).toBeUndefined();
   });
 
   it("does not hijack browser combos like Ctrl/Cmd+R", () => {

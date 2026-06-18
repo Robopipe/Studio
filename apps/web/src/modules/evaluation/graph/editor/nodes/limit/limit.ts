@@ -1,3 +1,4 @@
+import { EnabledControl } from "@/modules/evaluation/graph/editor/controls/enabled";
 import {
   LabelControl,
   type LabelOption,
@@ -20,6 +21,7 @@ type Props = {
   name?: string;
   label?: number | string | null;
   parentLabel?: number | string | null;
+  enabled?: boolean;
   /** Selectable label options, sourced from the project (see GraphEditor). */
   labels?: LabelOption[];
 };
@@ -27,7 +29,12 @@ type Props = {
 export class LimitNode extends AppNode<
   NoSockets,
   { out: ClassicPreset.Socket },
-  { name: NameControl; label: LabelControl; parentLabel: LabelControl }
+  {
+    name: NameControl;
+    label: LabelControl;
+    parentLabel: LabelControl;
+    enabled: EnabledControl;
+  }
 > {
   controlsHeight = 7;
   initialWidth = 15;
@@ -42,7 +49,14 @@ export class LimitNode extends AppNode<
   allowedChildGroups = ["rule"] as NodeGroup[];
 
   constructor(props: Props = {}) {
-    const { id, name, label = null, parentLabel = null, labels = [] } = props;
+    const {
+      id,
+      name,
+      label = null,
+      parentLabel = null,
+      enabled = true,
+      labels = [],
+    } = props;
     super({ label: "Limit", id });
 
     this.addControl("name", new NameControl({ initialValue: name }));
@@ -54,12 +68,17 @@ export class LimitNode extends AppNode<
       "parentLabel",
       new LabelControl(labels, { required: false, initialValue: parentLabel }),
     );
+    this.addControl("enabled", new EnabledControl({ initialValue: enabled }));
 
     this.addOutput("out", new ClassicPreset.Output(new BooleanSocket(), "OUT"));
   }
 
   get name() {
     return this.controls.name.value;
+  }
+
+  get enabledValue() {
+    return this.controls.enabled.value;
   }
 
   get labelValue() {
@@ -95,6 +114,7 @@ export class LimitNode extends AppNode<
       name: "",
       label: this.labelValue,
       parentLabel: this.parentLabelValue,
+      enabled: this.enabledValue,
     });
   }
 }

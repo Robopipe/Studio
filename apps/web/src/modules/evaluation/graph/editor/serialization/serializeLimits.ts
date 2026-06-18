@@ -41,9 +41,7 @@ export function serializeLimitNode(
     id: limitNode.id,
     name: limitNode.name,
     severity: getLimitSeverity(editor, limitNode),
-    // The editor does not model per-limit enablement; that flag is owned by the web UI.
-    // Default to enabled so freshly serialized limits are active.
-    enabled: true,
+    enabled: limitNode.enabledValue,
     targetLabelId: parseRequiredNumber(
       limitNode.labelValue,
       "Limit label is required.",

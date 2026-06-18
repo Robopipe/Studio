@@ -150,25 +150,32 @@ export function TestCaseSection({
         </div>
 
         <div className="ml-auto flex shrink-0 items-center gap-2">
-          {viewMode === "table" && (
-            <>
-              <TestCaseEnabledSwitch
-                testCase={testCase}
-                projectId={projectId}
-                configId={configId}
-              />
-              <Separator orientation="vertical" className="h-4 my-auto" />
-              <Button
-                variant="secondary"
-                size="icon-sm"
-                className=""
-                aria-label="Edit test case"
-                onClick={() => setIsEditTestCaseOpen(true)}
-              >
-                <PencilIcon className="size-4" />
-              </Button>
-            </>
-          )}
+          <TestCaseEnabledSwitch
+            testCase={testCase}
+            projectId={projectId}
+            configId={configId}
+          />
+          <Separator orientation="vertical" className="h-4 my-auto" />
+          <div
+            aria-hidden={viewMode !== "table"}
+            className={cn(
+              "flex items-center gap-2 overflow-hidden transition-all duration-200",
+              viewMode === "table"
+                ? "max-w-32 opacity-100"
+                : "pointer-events-none -mx-1 max-w-0 opacity-0",
+            )}
+          >
+            
+            <Button
+              variant="secondary"
+              size="icon-sm"
+              tabIndex={viewMode === "table" ? undefined : -1}
+              aria-label="Edit test case"
+              onClick={() => setIsEditTestCaseOpen(true)}
+            >
+              <PencilIcon className="size-4" />
+            </Button>
+          </div>
           <Button
             variant="destructive"
             size="icon-sm"

@@ -41,6 +41,8 @@ type Props = {
   getLabels: () => LabelOption[];
   /** Toggles the host's full-screen state (bound to the `f` shortcut). */
   toggleFullscreen?: () => void;
+  /** Saves the test case (bound to the `mod+s` shortcut). */
+  save?: () => void;
 };
 
 type MousePosition = {
@@ -110,6 +112,7 @@ export const setupKeyListeners = (props: Props) => {
     connection,
     getLabels,
     toggleFullscreen,
+    save,
   } = props;
 
   let mousePosition: MousePosition | null = null;
@@ -176,6 +179,7 @@ export const setupKeyListeners = (props: Props) => {
     addCount: (event) => addNode(event, () => new CountNode()),
     addArea: (event) => addNode(event, () => new AreaNode()),
     addPosition: (event) => addNode(event, () => new PositionNode()),
+    save: () => save?.(),
     toggleFullscreen: () => toggleFullscreen?.(),
   };
 

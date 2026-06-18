@@ -1,3 +1,4 @@
+import { EnabledControl } from "@/modules/evaluation/graph/editor/controls/enabled";
 import { IntegerRangeControl } from "@/modules/evaluation/graph/editor/controls/integerRange";
 import { LabelControl } from "@/modules/evaluation/graph/editor/controls/label";
 import { NameControl } from "@/modules/evaluation/graph/editor/controls/name";
@@ -27,6 +28,7 @@ import { NameControlView } from "@/modules/evaluation/graph/editor/ui/controls/N
 import { PositionControlView } from "@/modules/evaluation/graph/editor/ui/controls/PositionControlView";
 import { QuantifierTypeControlView } from "@/modules/evaluation/graph/editor/ui/controls/QuantifierControlView";
 import { QuantifierUnitsControlView } from "@/modules/evaluation/graph/editor/ui/controls/QuantifierValueControlView";
+import { EnabledControlView } from "@/modules/evaluation/graph/editor/ui/controls/EnabledControlView";
 import { PercentageRangeControlView } from "@/modules/evaluation/graph/editor/ui/controls/RangeControlView";
 import { ActionNodeView } from "@/modules/evaluation/graph/editor/ui/nodes/ActionNodeView";
 import { AreaNodeView } from "@/modules/evaluation/graph/editor/ui/nodes/AreaNodeView";
@@ -88,6 +90,9 @@ export function setupRender(props: Props): ReactPlugin<Schemes, AreaExtra> {
           }
           if (context.payload instanceof LabelControl) {
             return LabelControlView;
+          }
+          if (context.payload instanceof EnabledControl) {
+            return EnabledControlView;
           }
           return null;
         },

@@ -22,13 +22,14 @@ export type ShortcutAction =
   | "addCount"
   | "addArea"
   | "addPosition"
+  | "save"
   | "toggleFullscreen";
 
 export type ShortcutGroup =
   | "Selection & clipboard"
   | "History"
   | "Add node at cursor"
-  | "View";
+  | "Actions";
 
 export type ShortcutDefinition = {
   action: ShortcutAction;
@@ -47,10 +48,10 @@ export type ShortcutDefinition = {
 };
 
 export const GROUP_ORDER: ShortcutGroup[] = [
+  "Add node at cursor",
   "Selection & clipboard",
   "History",
-  "Add node at cursor",
-  "View",
+  "Actions",
 ];
 
 export const SHORTCUTS: ShortcutDefinition[] = [
@@ -81,7 +82,7 @@ export const SHORTCUTS: ShortcutDefinition[] = [
     key: "x",
     mod: true,
     group: "Selection & clipboard",
-    description: "Cut (copy then delete)",
+    description: "Cut",
   },
   {
     action: "deleteSelection",
@@ -117,11 +118,11 @@ export const SHORTCUTS: ShortcutDefinition[] = [
   // Add node at cursor
   {
     action: "addAnd",
-    key: "q",
+    key: "a",
     group: "Add node at cursor",
     description: "And",
   },
-  { action: "addOr", key: "w", group: "Add node at cursor", description: "Or" },
+  { action: "addOr", key: "o", group: "Add node at cursor", description: "Or" },
   {
     action: "addLimit",
     key: "l",
@@ -153,11 +154,18 @@ export const SHORTCUTS: ShortcutDefinition[] = [
     description: "Position",
   },
 
-  // View
+  // Actions
+  {
+    action: "save",
+    key: "s",
+    mod: true,
+    group: "Actions",
+    description: "Save test case",
+  },
   {
     action: "toggleFullscreen",
     key: "f",
-    group: "View",
+    group: "Actions",
     description: "Toggle full screen",
   },
 ];

@@ -10,11 +10,6 @@ import { serializeTestCase } from "@/modules/evaluation/graph/editor/serializati
 import { toFullCreateOrUpdate } from "@/modules/evaluation/graph/editor/serialization/toFullCreateOrUpdate";
 import { createEditor } from "@/modules/evaluation/graph/editor/setup/createEditor";
 import type { Schemes } from "@/modules/evaluation/graph/editor/types";
-import {
-  EvalLogicNodeTypeEnum,
-  type EvalLogicNode,
-  type EvalTestCaseFullCreateOrUpdate,
-} from "@repo/schema";
 import { installTestHook } from "@/modules/evaluation/graph/workspace/testHook";
 import { useGetProjectLabelsQuery } from "@/modules/project/services/projectApi";
 import { Button } from "@/modules/shadcn/ui/button";
@@ -25,7 +20,6 @@ import {
   Minimize2,
   RefreshCw,
   RefreshCwOff,
-  RotateCcw,
   Save,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -59,10 +53,15 @@ export const GraphEditor = ({ projectId, configId, testCaseId }: Props) => {
   const [maximized, setMaximized] = useState(false);
   const dragStart = useRef<{ y: number; height: number } | null>(null);
 
+  // Read lazily by the `mod+s` shortcut so it always runs the latest handleSave
+  // (which closes over testCaseData) without recreating the editor.
+  const saveRef = useRef<() => void>(() => {});
+
   // Project labels feed the Limit-node selectors. They're read lazily via a ref so
   // node-creation sites (context menu, shortcut, deserialize) always see the latest
   // set — the editor mounts immediately and doesn't need to wait for the query.
-  const { data: projectLabels } = useGetProjectLabelsQuery({ projectId });
+  const { data: projectLabels, isSuccess: labelsLoaded } =
+    useGetProjectLabelsQuery({ projectId });
   const labelsRef = useRef<LabelOption[]>([]);
   labelsRef.current = useMemo<LabelOption[]>(
     () =>
@@ -112,6 +111,7 @@ export const GraphEditor = ({ projectId, configId, testCaseId }: Props) => {
       {
         toggleFullscreen: () => setMaximized((value) => !value),
         getLabels: () => labelsRef.current,
+        save: () => saveRef.current(),
       },
     );
 
@@ -145,11 +145,28 @@ export const GraphEditor = ({ projectId, configId, testCaseId }: Props) => {
   const [updateTestCaseFull, { isLoading: isSaving }] =
     useUpdateEvalTestCaseFullMutation();
 
+  // Hides the deserialize + auto-arrange "jump" behind an opaque overlay that fades
+  // out once the layout has settled (see the overlay in the JSX). Starts hidden so the
+  // overlay covers the canvas from mount until the first load finishes.
+  const [ready, setReady] = useState(false);
+
+  // Deserialize ONCE per mount. The graph only mounts in graph view, so every later
+  // testCaseData change is self-induced by our own save (the cache patch + refetch) —
+  // re-deserializing then would needlessly rebuild + re-arrange the canvas (the "jump"
+  // on save). External edits (made in the table view, with the graph unmounted) are
+  // picked up on remount via refetchOnMountOrArgChange.
+  const hasLoadedRef = useRef(false);
+
   useEffect(() => {
     const instance = editorRef.current;
+    if (hasLoadedRef.current) return;
     if (!instance || !editor || !testCaseData) return;
+    // Wait for labels so limit nodes resolve their names on the first (only) load.
+    if (!labelsLoaded) return;
 
+    hasLoadedRef.current = true;
     let cancelled = false;
+    setReady(false);
 
     void (async () => {
       try {
@@ -172,6 +189,9 @@ export const GraphEditor = ({ projectId, configId, testCaseId }: Props) => {
             ? `Failed to load test case: ${error.message}`
             : "Failed to load test case.",
         );
+      } finally {
+        // Reveal once the layout settled (or load failed — don't trap the canvas).
+        if (!cancelled) setReady(true);
       }
     })();
 
@@ -179,7 +199,7 @@ export const GraphEditor = ({ projectId, configId, testCaseId }: Props) => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editor, testCaseData, projectLabels]);
+  }, [editor, testCaseData, labelsLoaded]);
 
   const toggleValidation = async () => {
     const instance = editorRef.current;
@@ -228,17 +248,36 @@ export const GraphEditor = ({ projectId, configId, testCaseId }: Props) => {
     body.enabled = testCaseData.enabled;
 
     try {
-      await updateTestCaseFull({
+      const saved = await updateTestCaseFull({
         projectId,
         configId,
         testCaseId,
         body,
       }).unwrap();
-      toast.success("Test case saved.");
+
+      // Surface a silent partial save: compare what the server stored against what we
+      // sent (same-origin ids). Catches fields the /full endpoint may drop (e.g. limit
+      // `enabled`) instead of failing silently.
+      const diverged = (body.limits ?? []).some((sent) => {
+        if (!sent.id) return false;
+        const persisted = saved.limits.find((limit) => limit.id === sent.id);
+        return persisted ? persisted.enabled !== sent.enabled : false;
+      });
+
+      if (diverged) {
+        toast.warning(
+          "Saved, but some changes didn't persist on the server.",
+        );
+      } else {
+        toast.success("Test case saved.");
+      }
     } catch {
       toast.error("Failed to save test case.");
     }
   };
+
+  // Keep the mod+s shortcut pointed at the current handleSave.
+  saveRef.current = handleSave;
 
   const handleArrange = async () => {
     const instance = editorRef.current;
@@ -246,41 +285,6 @@ export const GraphEditor = ({ projectId, configId, testCaseId }: Props) => {
 
     await instance.arrange.layout();
     toast.success("Arranged layout.");
-  };
-
-  // FIX(duplication): the validateNow + enableLiveValidation + error-toast + serializeTestCase block below is copy-pasted from handleSave — fix: extract a shared validateAndSerialize() helper that returns the payload or null; why: the copies differ only in toast text and every validation-flow fix must now be applied twice.
-  const handleRoundTripTestCase = async () => {
-    const instance = editorRef.current;
-    if (!instance) return;
-
-    const validationResult = await instance.validation.validateNow();
-
-    if (!instance.validation.isLiveValidationEnabled()) {
-      instance.validation.enableLiveValidation();
-      setAutoValidationEnabled(true);
-    }
-
-    if (!validationResult.valid) {
-      toast.error("Graph contains errors. Fix them before round-trip testing.");
-      return;
-    }
-    const serialized = serializeTestCase(instance.editor, {
-      name: "",
-    });
-    const payload = withAssignedIds(serialized);
-    console.log("Round-trip payload:", JSON.stringify(payload, null, 2));
-    await instance.validation.clearValidation();
-    await deserializeTestCase(
-      instance.editor,
-      instance.area,
-      payload,
-      labelsRef.current,
-      instance.selectableNodes,
-    );
-    await instance.arrange.layout();
-
-    await instance.validation.validateNow();
-    toast.success("Serialized and loaded back into editor.");
   };
 
   return (
@@ -295,35 +299,17 @@ export const GraphEditor = ({ projectId, configId, testCaseId }: Props) => {
     >
       <div ref={ref} className="h-full w-full" data-testid="editor-canvas" />
       {editor && <EditorDebugOverlay editor={editor} />}
-      <div className="absolute right-4 top-4 z-50 flex gap-2">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => setKeybindsOpen(true)}
-        >
-          <Keyboard />
-        </Button>
-        <Button variant="outline" size="icon" onClick={handleArrange}>
-          <LayoutGrid />
-        </Button>
-        <Button variant="outline" size="icon" onClick={handleRoundTripTestCase}>
-          <RotateCcw />
-        </Button>
-        <Button
-          variant={autoValidationEnabled ? "default" : "outline"}
-          size="icon"
-          onClick={toggleValidation}
-        >
-          {autoValidationEnabled ? <RefreshCw /> : <RefreshCwOff />}
-        </Button>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={handleSave}
-          disabled={isSaving}
-        >
-          <Save />
-        </Button>
+      {/* Masks the deserialize + auto-arrange jump until the layout settles, then
+          fades out. `pointer-events-none` so it never intercepts clicks (even
+          mid-fade); z-40 keeps it under the z-50 toolbar so the buttons stay visible. */}
+      <div
+        aria-hidden
+        className={cn(
+          "pointer-events-none absolute inset-0 z-40 bg-background transition-opacity duration-700 ease-out",
+          ready ? "opacity-0" : "opacity-100",
+        )}
+      />
+      <div className="absolute inset-x-4 top-4 z-50 flex justify-between gap-2">
         <Button
           variant="outline"
           size="icon"
@@ -332,6 +318,33 @@ export const GraphEditor = ({ projectId, configId, testCaseId }: Props) => {
         >
           {maximized ? <Minimize2 /> : <Maximize2 />}
         </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setKeybindsOpen(true)}
+          >
+            <Keyboard />
+          </Button>
+          <Button variant="outline" size="icon" onClick={handleArrange}>
+            <LayoutGrid />
+          </Button>
+          <Button
+            variant={autoValidationEnabled ? "default" : "outline"}
+            size="icon"
+            onClick={toggleValidation}
+          >
+            {autoValidationEnabled ? <RefreshCw /> : <RefreshCwOff />}
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleSave}
+            disabled={isSaving}
+          >
+            <Save />
+          </Button>
+        </div>
       </div>
       {!maximized && (
         <div
@@ -350,49 +363,3 @@ export const GraphEditor = ({ projectId, configId, testCaseId }: Props) => {
     </div>
   );
 };
-
-function createTemporaryId(prefix: string) {
-  return `${prefix}-${crypto.randomUUID()}`;
-}
-
-function withAssignedIds(
-  payload: EvalTestCaseFullCreateOrUpdate,
-): EvalTestCaseFullCreateOrUpdate {
-  return {
-    ...payload,
-
-    limits: (payload.limits ?? []).map((limit) => ({
-      ...limit,
-      id: limit.id || createTemporaryId("limit"),
-
-      limitItems: limit.limitItems.map((item) => ({
-        ...item,
-        id: item.id || createTemporaryId("limit-item"),
-      })),
-    })),
-
-    logicNodes: assignLogicNodeIds(payload.logicNodes ?? []),
-  };
-}
-
-function assignLogicNodeIds(nodes: EvalLogicNode[]): EvalLogicNode[] {
-  return nodes.map((node) => {
-    if (node.type === EvalLogicNodeTypeEnum.GROUP) {
-      return {
-        ...node,
-        id: node.id || createTemporaryId("logic-group"),
-        // Zod's recursive `get children()` widens the element type; it is an EvalLogicNode[].
-        children: assignLogicNodeIds(node.children as EvalLogicNode[]),
-      };
-    }
-
-    if (node.type === EvalLogicNodeTypeEnum.OPERATOR) {
-      return {
-        ...node,
-        id: node.id || createTemporaryId("logic-operator"),
-      };
-    }
-
-    return node;
-  });
-}

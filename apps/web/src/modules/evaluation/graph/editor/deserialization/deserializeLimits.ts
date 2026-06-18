@@ -35,6 +35,7 @@ export async function addLimitToEditor(
     name: limit.name,
     label: limit.targetLabelId,
     parentLabel: limit.targetParentLabelId,
+    enabled: limit.enabled,
     labels,
   });
 

@@ -33,6 +33,8 @@ export type AreaExtra = ReactArea2D<Schemes> | ContextMenuExtra;
 export type CreateEditorOptions = {
   /** Toggles the host's full-screen state; bound to the `f` keyboard shortcut. */
   toggleFullscreen?: () => void;
+  /** Saves the test case; bound to the `mod+s` keyboard shortcut. */
+  save?: () => void;
   /**
    * Returns the current selectable label options for Limit nodes. Read lazily
    * (not snapshotted) so async-loaded project labels are picked up without
@@ -97,6 +99,7 @@ export async function createEditor(
     connection,
     getLabels,
     toggleFullscreen: options.toggleFullscreen,
+    save: options.save,
   });
 
   window.addEventListener("keydown", keyListeners.handler);

@@ -10,11 +10,13 @@ type Props = {
   // FIX(structure): a generic layout container is coupled to the concrete LimitNode class while its sibling RegularNodeContainer accepts the generic NodeProps — fix: accept NodeProps (the only fields used are shared layout props) like RegularNodeContainer does; why: the dependency on a specific node class inverts the layering (shared component -> feature node) and blocks reuse for any future parent-style node.
   data: LimitNode;
   outputSocket?: ReactNode;
+  /** Rendered on the right of the title row (e.g. the enable switch). */
+  headerRight?: ReactNode;
   children: ReactNode;
 };
 
 export const ParentNodeContainer = (props: Props) => {
-  const { data, outputSocket, children } = props;
+  const { data, outputSocket, headerRight, children } = props;
 
   const {
     id,
@@ -41,12 +43,15 @@ export const ParentNodeContainer = (props: Props) => {
           className="flex items-center border-zinc-200 border-b-2"
           style={{ height: `${labelHeight * GRID}px` }}
         >
-          <span className="flex flex-1 px-2">
+          <span className="flex flex-1 items-center px-2">
             <Label>{label}</Label>
             <div className="flex flex-grow" />
-            <div className="flex flex-row gap-1">
-              <IssueTooltip issues={issues} level="warning" />
-              <IssueTooltip issues={issues} level="error" />
+            <div className="flex flex-row items-center gap-2">
+              {headerRight}
+              <div className="flex flex-row gap-1">
+                <IssueTooltip issues={issues} level="warning" />
+                <IssueTooltip issues={issues} level="error" />
+              </div>
             </div>
           </span>
         </div>
