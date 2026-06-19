@@ -2,8 +2,8 @@ import { Separator } from "@/modules/shadcn/ui/separator";
 import { EvalLimit, EvalTestCaseDetail } from "@repo/schema";
 import { GroupIcon } from "lucide-react";
 import { useLayoutEffect } from "react";
-import { LogicBuilderProvider } from "./LogicBuilderContext";
 import { LimitsPanel } from "./LimitsPanel";
+import { LogicBuilderProvider } from "./LogicBuilderContext";
 import { LogicNodeList } from "./LogicNodeList";
 import { LogicBuilderState, useLogicBuilder } from "./useLogicBuilder.hook";
 
@@ -14,7 +14,11 @@ interface LogicBuilderProps {
   builderRef?: (state: LogicBuilderState) => void;
 }
 
-export function LogicBuilder({ testCase, availableLimits, builderRef }: LogicBuilderProps) {
+export function LogicBuilder({
+  testCase,
+  availableLimits,
+  builderRef,
+}: LogicBuilderProps) {
   const builder = useLogicBuilder(testCase.logicNodes, testCase);
 
   useLayoutEffect(() => {
@@ -30,7 +34,9 @@ export function LogicBuilder({ testCase, availableLimits, builderRef }: LogicBui
       <div className="flex flex-col rounded-lg border border-border overflow-hidden">
         {/* Toolbar */}
         <div className="flex items-center gap-2 border-b border-border bg-muted/30 px-3 py-2">
-          <span className="text-xs font-semibold text-muted-foreground">Logic</span>
+          <span className="text-xs font-semibold text-muted-foreground">
+            Logic
+          </span>
 
           <div className="ml-auto flex items-center gap-1.5">
             {builder.selectedIds.size > 0 && (
@@ -63,7 +69,7 @@ export function LogicBuilder({ testCase, availableLimits, builderRef }: LogicBui
         {/* Limits panel */}
         <div className="p-3">
           <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Available limits
+            Available checks
           </p>
           <LimitsPanel />
         </div>

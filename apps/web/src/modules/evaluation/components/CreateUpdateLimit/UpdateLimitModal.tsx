@@ -1,3 +1,4 @@
+import { useGetProjectLabelsQuery } from "@/modules/project/services/projectApi";
 import { Button } from "@/modules/shadcn/ui/button";
 import {
   Dialog,
@@ -8,7 +9,6 @@ import {
   DialogTitle,
 } from "@/modules/shadcn/ui/dialog";
 import { EvalLimitDetail } from "@repo/schema";
-import { useGetProjectLabelsQuery } from "@/modules/project/services/projectApi";
 import { GeneralSection } from "./GeneralSection";
 import { LimitsSection } from "./LimitsSection";
 import { SetupSection } from "./SetupSection";
@@ -42,13 +42,18 @@ export const UpdateLimitModal = ({
   });
 
   const { data: labels = [] } = useGetProjectLabelsQuery({ projectId });
-  const labelOptions = labels.map((l) => ({ label: l.name, value: String(l.id) }));
+  const labelOptions = labels.map((l) => ({
+    label: l.name,
+    value: String(l.id),
+  }));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[calc(100vh-4rem)] overflow-y-auto sm:max-w-6xl">
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold">Edit Limit</DialogTitle>
+          <DialogTitle className="text-xl font-semibold">
+            Edit Check
+          </DialogTitle>
         </DialogHeader>
 
         <form.AppForm>
