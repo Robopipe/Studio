@@ -1,4 +1,5 @@
 import { BooleanConnection } from "@/modules/evaluation/graph/editor/connections/booleanConnection";
+import { LimitItemConnection } from "@/modules/evaluation/graph/editor/connections/limitItemConnection";
 import { AlertNode } from "@/modules/evaluation/graph/editor/nodes/action/alert";
 import { WarningNode } from "@/modules/evaluation/graph/editor/nodes/action/warning";
 import { LimitNode } from "@/modules/evaluation/graph/editor/nodes/limit/limit";
@@ -85,6 +86,52 @@ describe("serializeLimitNode", () => {
     await editor.addNode(item);
 
     expect(serializeLimitNode(editor, limitA).limitItems).toHaveLength(0);
+  });
+
+  it("orders limit items by their connection chain, not insertion order", async () => {
+    const editor = createTestEditor();
+    const limit = new LimitNode({ label: 1 });
+    const itemA = new CountNode({ limitFrom: 0, limitTo: 10 });
+    const itemB = new CountNode({ limitFrom: 11, limitTo: 20 });
+    const itemC = new CountNode({ limitFrom: 21, limitTo: 30 });
+    itemA.parent = limit.id;
+    itemB.parent = limit.id;
+    itemC.parent = limit.id;
+
+    await editor.addNode(limit);
+    // Add nodes out of chain order to prove insertion order is not used.
+    await editor.addNode(itemC);
+    await editor.addNode(itemA);
+    await editor.addNode(itemB);
+
+    // Chain: A -> B -> C
+    await editor.addConnection(
+      new LimitItemConnection(itemA, "out", itemB, "in"),
+    );
+    await editor.addConnection(
+      new LimitItemConnection(itemB, "out", itemC, "in"),
+    );
+
+    const ids = serializeLimitNode(editor, limit).limitItems.map(
+      (item) => item.id,
+    );
+    expect(ids).toEqual([itemA.id, itemB.id, itemC.id]);
+  });
+
+  it("keeps disconnected limit items rather than dropping them", async () => {
+    const editor = createTestEditor();
+    const limit = new LimitNode({ label: 1 });
+    const itemA = new CountNode({ limitFrom: 0, limitTo: 10 });
+    const itemB = new CountNode({ limitFrom: 11, limitTo: 20 });
+    itemA.parent = limit.id;
+    itemB.parent = limit.id;
+
+    await editor.addNode(limit);
+    await editor.addNode(itemA);
+    await editor.addNode(itemB);
+
+    // No connection between them — both must survive serialization.
+    expect(serializeLimitNode(editor, limit).limitItems).toHaveLength(2);
   });
 
   it("resolves ALERT severity from a connected AlertNode", async () => {

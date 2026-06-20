@@ -1,3 +1,4 @@
+import { LimitItemConnection } from "@/modules/evaluation/graph/editor/connections/limitItemConnection";
 import { ActionNodeBase } from "@/modules/evaluation/graph/editor/nodes/action/actionBase";
 import { LimitNode } from "@/modules/evaluation/graph/editor/nodes/limit/limit";
 import type {
@@ -55,10 +56,59 @@ function getLimitItemChildren(
   editor: NodeEditor<Schemes>,
   limitNode: LimitNode,
 ): LimitItemProps[] {
-  return editor
+  const children = editor
     .getNodes()
     .filter((node) => node.parent === limitNode.id)
     .filter(isLimitItemNode);
+
+  return orderByConnectionChain(editor, children);
+}
+
+// LimitItems form a single 1:1 chain (no loops, no branching — both
+// guaranteed by graph validation). editor.getNodes() returns insertion order,
+// which goes stale after a reorder, so we recover the real order by walking
+// the chain: start at the node with no incoming connection (the head) and
+// follow each outgoing connection to its target until the tail.
+function orderByConnectionChain(
+  editor: NodeEditor<Schemes>,
+  nodes: LimitItemProps[],
+): LimitItemProps[] {
+  if (nodes.length <= 1) return nodes;
+
+  const nodeById = new Map(nodes.map((node) => [node.id, node]));
+  const nextById = new Map<string, string>();
+  const targets = new Set<string>();
+
+  for (const connection of editor.getConnections()) {
+    if (!(connection instanceof LimitItemConnection)) continue;
+    if (!nodeById.has(connection.source) || !nodeById.has(connection.target))
+      continue;
+
+    nextById.set(connection.source, connection.target);
+    targets.add(connection.target);
+  }
+
+  const head = nodes.find((node) => !targets.has(node.id));
+  if (!head) return nodes;
+
+  const ordered: LimitItemProps[] = [];
+  const visited = new Set<string>();
+
+  let currentId: string | undefined = head.id;
+  while (currentId && !visited.has(currentId)) {
+    const node = nodeById.get(currentId);
+    if (!node) break;
+
+    ordered.push(node);
+    visited.add(currentId);
+    currentId = nextById.get(currentId);
+  }
+
+  // Fallback: if some children weren't reachable through the chain (e.g.
+  // disconnected mid-edit), keep them rather than dropping them on save.
+  return ordered.length === nodes.length
+    ? ordered
+    : [...ordered, ...nodes.filter((node) => !visited.has(node.id))];
 }
 
 function getLimitSeverity(
