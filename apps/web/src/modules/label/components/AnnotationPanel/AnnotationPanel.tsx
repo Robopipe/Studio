@@ -67,20 +67,21 @@ type DisplayRow =
 
 function buildDisplayRows(annotations: Annotation[]): DisplayRow[] {
   const rows: DisplayRow[] = [];
-  let i = 0;
-  while (i < annotations.length) {
-    const a = annotations[i];
+  // Track the index in `rows` where each groupId's entry was inserted so we
+  // can append late-arriving members regardless of array order (e.g. after a
+  // server refetch returns group members non-contiguously).
+  const groupRowIndex = new Map<string, number>();
+  for (const a of annotations) {
     if (a.groupId) {
-      const groupId = a.groupId;
-      const members: Annotation[] = [];
-      while (i < annotations.length && annotations[i].groupId === groupId) {
-        members.push(annotations[i]);
-        i++;
+      const at = groupRowIndex.get(a.groupId);
+      if (at != null) {
+        (rows[at] as Extract<DisplayRow, { type: "group" }>).members.push(a);
+      } else {
+        groupRowIndex.set(a.groupId, rows.length);
+        rows.push({ type: "group", groupId: a.groupId, color: a.color, labelName: a.labelName, members: [a] });
       }
-      rows.push({ type: "group", groupId, color: members[0].color, labelName: members[0].labelName, members });
     } else {
       rows.push({ type: "single", annotation: a });
-      i++;
     }
   }
   return rows;
