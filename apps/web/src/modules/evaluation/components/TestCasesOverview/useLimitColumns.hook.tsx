@@ -55,19 +55,18 @@ export function useLimitColumns({
       {
         id: "parentLabel",
         header: "Parent",
-        accessorFn: (row: EvalLimit) =>
-          row.targetParentLabel?.name ?? "—",
+        accessorFn: (row: EvalLimit) => row.targetParentLabel?.name ?? "—",
       },
       createActionsColumn<EvalLimit>([
         {
           icon: <PencilIcon className="size-4" />,
           onClick: onEdit,
-          label: "Edit limit",
+          label: "Edit check",
         },
         {
           icon: <Trash2Icon className="size-4 text-destructive" />,
           onClick: onDelete,
-          label: "Delete limit",
+          label: "Delete check",
         },
       ]),
     ],
