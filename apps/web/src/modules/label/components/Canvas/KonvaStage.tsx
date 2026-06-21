@@ -188,6 +188,8 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
     if (!draggedNode || !draggedStart) return;
     const dx = draggedNode.x() - draggedStart.x;
     const dy = draggedNode.y() - draggedStart.y;
+    const iw = imgWRef.current;
+    const ih = imgHRef.current;
     let layer: Konva.Layer | null = null;
     for (const [id, start] of state.startPositions) {
       if (id === draggedId) continue;
@@ -196,6 +198,15 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
       otherNode.x(start.x + dx);
       otherNode.y(start.y + dy);
       layer = otherNode.getLayer();
+      // Sync vertex circles for non-dragged polygons — they are independent
+      // Konva nodes and don't follow the Line when it's repositioned imperatively.
+      const ann = annotationsRef.current.find((a) => a.id === id);
+      if (ann?.type === "polygon" && ann.points) {
+        ann.points.forEach(([px, py], i) => {
+          const c = layer?.findOne<Konva.Circle>(`#vertex-${id}-${i}`);
+          if (c) { c.x((px / 100) * iw + dx); c.y((py / 100) * ih + dy); }
+        });
+      }
     }
     layer?.batchDraw();
   }, []);
@@ -701,7 +712,7 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
           )
           .map((ann) => {
             const isSelected = selectedAnnotationIds.has(ann.id);
-            const showHandles = isSelected && selectedAnnotationIds.size === 1;
+            const showHandles = isSelected;
             return ann.type === "bbox" && ann.bbox ? (
               <BoundingBox
                 key={ann.id}
