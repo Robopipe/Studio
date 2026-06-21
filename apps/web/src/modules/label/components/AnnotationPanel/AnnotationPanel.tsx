@@ -342,7 +342,7 @@ export const AnnotationPanel = ({
                     {/* Group header row */}
                     <div
                       className={cn(
-                        "group relative flex cursor-pointer select-none items-center gap-1.5 rounded-md px-2 py-1 transition-colors hover:bg-black/5",
+                        "group relative flex cursor-pointer select-none items-center gap-1.5 rounded-md pl-7 pr-2 py-1 transition-colors hover:bg-black/5",
                         (allMembersSelected || someMembersSelected) &&
                           "bg-primary/15 ring-1 ring-inset ring-primary/40 hover:bg-primary/15",
                         headerDnd.showDropOnto &&
@@ -369,7 +369,7 @@ export const AnnotationPanel = ({
                           e.stopPropagation();
                           toggleGroupCollapse(groupId);
                         }}
-                        className="flex shrink-0 items-center justify-center rounded text-muted-foreground/60 hover:text-foreground [&_svg]:size-3"
+                        className="flex shrink-0 items-center justify-center rounded text-muted-foreground/60 hover:text-foreground [&_svg]:size-3 cursor-pointer"
                       >
                         {isCollapsed ? <ChevronRight /> : <ChevronDown />}
                       </button>
