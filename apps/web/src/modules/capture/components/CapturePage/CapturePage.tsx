@@ -84,7 +84,7 @@ export const CapturePage = ({}: CapturePageProps) => {
     isError: isModelError,
   } = useGetNNQuery(
     { mxid: selectedCamera!, streamName: selectedStream! },
-    { skip: !selectedCamera || !selectedStream || isSwitchingProject },
+    { skip: !selectedCamera || !selectedStream || isSwitchingProject, refetchOnMountOrArgChange: true },
   );
   useEffect(() => {
     if (isModelRunning || isModelError)
