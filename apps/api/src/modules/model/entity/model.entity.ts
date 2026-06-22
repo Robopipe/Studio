@@ -9,6 +9,7 @@ import {
 } from "@repo/schema";
 import { ModelAugmentationSelect, ModelPreprocessingSelect, ModelSelect } from "../../../repository/types/model";
 import { ProjectLabelEntity } from "../../project/entities/project-label.entity";
+import { ModelOutputEntity } from "./model-output.entity";
 import { ModelResponse } from "../dto/model.dto";
 
 export class ModelEntity {
@@ -33,6 +34,7 @@ export class ModelEntity {
   readonly finalLoss: number | null;
   readonly bestMap50: number | null;
   readonly labels: ProjectLabelEntity[];
+  readonly outputs: ModelOutputEntity[];
   readonly taskIds: number[];
   readonly datasetVersionId: number | null;
   readonly useGroups: boolean;
@@ -70,6 +72,7 @@ export class ModelEntity {
     this.finalLoss = data.finalLoss;
     this.bestMap50 = data.bestMap50;
     this.labels = data.labels.map((label) => new ProjectLabelEntity(label));
+    this.outputs = (data.outputs ?? []).map((o) => new ModelOutputEntity(o));
     this.taskIds = data.taskIds ?? [];
     this.datasetVersionId = data.datasetVersionId ?? null;
     this.useGroups = data.useGroups;
@@ -83,6 +86,7 @@ export class ModelEntity {
       name: this.name,
       epochs: this.epochs,
       labels: this.labels.map((label) => label.toResponse()),
+      outputs: this.outputs.map((o) => o.toResponse()),
       taskIds: this.taskIds,
       datasetVersionId: this.datasetVersionId,
       status: this.status,

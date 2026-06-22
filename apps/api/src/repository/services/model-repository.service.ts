@@ -3,7 +3,7 @@ import {
   Injectable,
   InternalServerErrorException,
 } from "@nestjs/common";
-import { modelTable } from '@repo/database';
+import { modelOutputTable, modelTable } from '@repo/database';
 import { and, asc, eq } from "drizzle-orm";
 import { DB_CONNECTION } from 'src/core/database/database.constant';
 import type { DbConnection } from 'src/core/database/types/database.types';
@@ -33,6 +33,7 @@ export class ModelRepository {
         },
         augmentations: true,
         preprocessings: true,
+        outputs: true,
       },
       orderBy: (m) => asc(m.createdAt)
     });
@@ -59,6 +60,7 @@ export class ModelRepository {
         },
         augmentations: true,
         preprocessings: true,
+        outputs: true,
       },
     });
 
@@ -85,6 +87,7 @@ export class ModelRepository {
         },
         augmentations: true,
         preprocessings: true,
+        outputs: true,
       }
     })
 
@@ -105,7 +108,7 @@ export class ModelRepository {
       throw new InternalServerErrorException("Failed creating model")
     }
 
-    return new ModelEntity({...createdModel, labels: [], augmentations: [], preprocessings: [], taskIds: []})
+    return new ModelEntity({...createdModel, labels: [], augmentations: [], preprocessings: [], outputs: [], taskIds: []})
   }
 
 
@@ -141,9 +144,13 @@ export class ModelRepository {
       where: { modelId: id },
     })
 
+    const outputs = await this.db.query.modelOutputTable.findMany({
+      where: { modelId: id },
+    })
+
     const taskIds = await this.getVersionTaskIds(updatedModel.datasetVersionId);
 
-    return new ModelEntity({...updatedModel, labels, augmentations, preprocessings, taskIds})
+    return new ModelEntity({...updatedModel, labels, augmentations, preprocessings, outputs, taskIds})
   }
 
   /**

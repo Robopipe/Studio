@@ -74,12 +74,20 @@ export const modelPreprocessingSchema = z.object({
   keepOriginal: z.boolean(),
 });
 
+export const modelOutputSchema = z.object({
+  id: z.number(),
+  type: z.enum(ModelOutputTypeEnum),
+  filePath: z.string(),
+  fileType: z.enum(TaskFileTypeEnum),
+});
+
 export const modelSchema = z.object({
   id: z.number(),
   name: z.string(),
   status: z.enum(ModelStatusEnum),
   epochs: z.number(),
   labels: labelSchema.array(),
+  outputs: modelOutputSchema.array(),
   taskIds: z.number().array(),
   datasetVersionId: z.number().nullable(),
   outputTypes: z.enum(ModelOutputTypeEnum).array(),
@@ -233,11 +241,4 @@ export const datasetStatsResponseSchema = z.object({
   labeledCount: z.number(),
   totalCandidateCount: z.number(),
   valid: z.boolean(),
-});
-
-export const modelOutputSchema = z.object({
-  id: z.number(),
-  type: z.enum(ModelOutputTypeEnum),
-  filePath: z.string(),
-  fileType: z.enum(TaskFileTypeEnum),
 });

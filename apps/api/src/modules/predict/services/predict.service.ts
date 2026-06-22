@@ -12,18 +12,16 @@ import {
   MlInferPredictRequest,
   MlInferPredictResponse,
   ModelOutputTypeEnum,
-  ModelStatusEnum,
   PreAnnotateModelTypeEnum,
   PredictRequest,
-  ProjectTypeEnum,
   PredictResponse,
 } from "@repo/schema";
 import { firstValueFrom } from "rxjs";
 import { AppConfig } from "../../../core/configuration/app.config";
 import { AssetsService } from "../../assets/services/assets.service";
-import { ModelOutputRepository } from "../../../repository/services/model-output-repository.service";
 import { ModelRepository } from "../../../repository/services/model-repository.service";
 import { TaskRepository } from "../../../repository/services/task-repository.service";
+import { assertModelUsableForPreAnnotation } from "../pre-annotate-model.validator";
 
 @Injectable()
 export class PredictService {
@@ -32,7 +30,6 @@ export class PredictService {
     private readonly config: AppConfig,
     private readonly assetsService: AssetsService,
     private readonly modelRepository: ModelRepository,
-    private readonly modelOutputRepository: ModelOutputRepository,
     private readonly taskRepository: TaskRepository,
   ) {}
 
@@ -74,50 +71,16 @@ export class PredictService {
     if (!model) {
       throw new NotFoundException("model not found in this project");
     }
-    if (model.status !== ModelStatusEnum.DONE) {
-      throw new BadRequestException(
-        `model status must be DONE, got ${model.status}`,
-      );
-    }
-    if (model.labels.length === 0) {
-      throw new BadRequestException(
-        "model has no labels recorded; cannot map predictions",
-      );
-    }
-    if (model.trainingType === ProjectTypeEnum.CLASSIFICATION) {
-      throw new BadRequestException(
-        "classification models cannot be used for pre-annotation",
-      );
-    }
-    if (
-      isDetection &&
-      model.trainingType !== ProjectTypeEnum.DETECTION
-    ) {
-      throw new BadRequestException(
-        "detection pre-annotation requires a detection model",
-      );
-    }
-    if (
-      !isDetection &&
-      model.trainingType !== ProjectTypeEnum.SEGMENTATION
-    ) {
-      throw new BadRequestException(
-        "segmentation pre-annotation requires a segmentation model",
-      );
-    }
+
+    assertModelUsableForPreAnnotation(model, body.modelType);
 
     // ModelOutputTypeEnum.RAW is the onnx.tar.xz buffer (despite the
     // name — see packages/database/src/schema/entities/model-output.ts).
     // ml-infer's loader handles both raw ONNX and the NN-archive form.
-    const outputs = await this.modelOutputRepository.getAllByModelId(model.id);
-    const rawOutput = outputs.find(
+    // assertModelUsableForPreAnnotation already guarantees RAW exists.
+    const rawOutput = model.outputs.find(
       (o) => o.type === ModelOutputTypeEnum.RAW,
-    );
-    if (!rawOutput) {
-      throw new NotFoundException(
-        "model has no RAW output; retrain or wait for export to finish",
-      );
-    }
+    )!;
 
     const [imageUrl, modelUrl] = await Promise.all([
       this.assetsService.generateSignedDownloadUrl(task.filePath),
