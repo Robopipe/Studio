@@ -26,6 +26,7 @@ import {
   DetectionPreAnnotateSettings,
   Model,
   ModelBackendEnum,
+  ModelOutputTypeEnum,
   ModelStatusEnum,
   PRE_ANNOTATE_DEFAULTS,
   PreAnnotateModelTypeEnum,
@@ -94,38 +95,55 @@ export const PreAnnotateSettingsDialog = ({
 
   const [saveError, setSaveError] = useState<string | null>(null);
 
+  // Compute valid model lists before the open-reset effect so it can reconcile
+  // stale saved ids (e.g. a model exported RVC-only after being saved here).
+  const segModels = models.filter(
+    (m) =>
+      m.status === ModelStatusEnum.DONE &&
+      m.trainingType === ProjectTypeEnum.SEGMENTATION &&
+      m.backend === ModelBackendEnum.ULTRALYTICS &&
+      m.outputs.some((o) => o.type === ModelOutputTypeEnum.RAW),
+  );
+  const detModels = models.filter(
+    (m) =>
+      m.status === ModelStatusEnum.DONE &&
+      m.trainingType === ProjectTypeEnum.DETECTION &&
+      m.backend === ModelBackendEnum.ULTRALYTICS &&
+      m.outputs.some((o) => o.type === ModelOutputTypeEnum.RAW),
+  );
+  const hasAnyTrainedModel = models.some(
+    (m) =>
+      m.status === ModelStatusEnum.DONE &&
+      m.backend === ModelBackendEnum.ULTRALYTICS &&
+      m.outputs.some((o) => o.type === ModelOutputTypeEnum.RAW),
+  );
+
   useEffect(() => {
     if (!open) return;
-    setSegModelId(segSettings.modelId);
+    // Reconcile: if the saved modelId is no longer in the valid filtered list
+    // (e.g. the model was re-exported without RAW), reset the selection so the
+    // user must pick a valid model before Save becomes enabled again.
+    const validSegId = segModels.some((m) => m.id === segSettings.modelId)
+      ? segSettings.modelId
+      : null;
+    const validDetId = detModels.some((m) => m.id === detSettings.modelId)
+      ? detSettings.modelId
+      : null;
+    setSegModelId(validSegId);
     setSegConf(segSettings.conf);
     setSegIou(segSettings.iou);
     setSegPolyEpsilon(segSettings.polyEpsilon);
     setSegMaskThreshold(segSettings.maskThreshold);
     setSegMinAreaPx(segSettings.minAreaPx);
     setSegFillConcavityLabelIds(segSettings.fillConcavityLabelIds);
-    setDetModelId(detSettings.modelId);
+    setDetModelId(validDetId);
     setDetConf(detSettings.conf);
     setDetIou(detSettings.iou);
     setDetMinAreaPx(detSettings.minAreaPx);
     setSaveError(null);
     if (defaultTab) setActiveTab(defaultTab);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, segSettings, detSettings, defaultTab]);
-
-  const segModels = models.filter(
-    (m) =>
-      m.status === ModelStatusEnum.DONE &&
-      m.trainingType === ProjectTypeEnum.SEGMENTATION &&
-      m.backend === ModelBackendEnum.ULTRALYTICS,
-  );
-  const detModels = models.filter(
-    (m) =>
-      m.status === ModelStatusEnum.DONE &&
-      m.trainingType === ProjectTypeEnum.DETECTION &&
-      m.backend === ModelBackendEnum.ULTRALYTICS,
-  );
-  const hasAnyTrainedModel = models.some(
-    (m) => m.status === ModelStatusEnum.DONE && m.backend === ModelBackendEnum.ULTRALYTICS,
-  );
 
   const selectedSegModel = segModels.find((m) => m.id === segModelId) ?? null;
 
@@ -237,8 +255,8 @@ export const PreAnnotateSettingsDialog = ({
               {segModels.length === 0 ? (
                 <p className="rounded-md border border-dashed border-black/10 bg-black/[0.03] px-3 py-2 text-sm text-muted-foreground">
                   {hasAnyTrainedModel
-                    ? "None of your trained models are Ultra Vision segmentation models. Pre-annotation requires an Ultra Vision segmentation model."
-                    : "No trained models in this project yet. Train an Ultra Vision segmentation model first."}
+                    ? "None of your trained models qualify. Pre-annotation requires an Ultra Vision segmentation model exported with a RAW (ONNX) output."
+                    : "No qualifying models in this project yet. Train an Ultra Vision segmentation model and export it with the RAW output enabled."}
                 </p>
               ) : (
                 <>
@@ -376,8 +394,8 @@ export const PreAnnotateSettingsDialog = ({
               {detModels.length === 0 ? (
                 <p className="rounded-md border border-dashed border-black/10 bg-black/[0.03] px-3 py-2 text-sm text-muted-foreground">
                   {hasAnyTrainedModel
-                    ? "None of your trained models are Ultra Vision detection models. Pre-annotation requires an Ultra Vision detection model."
-                    : "No trained models in this project yet. Train an Ultra Vision detection model first."}
+                    ? "None of your trained models qualify. Pre-annotation requires an Ultra Vision detection model exported with a RAW (ONNX) output."
+                    : "No qualifying models in this project yet. Train an Ultra Vision detection model and export it with the RAW output enabled."}
                 </p>
               ) : (
                 <>
