@@ -1,5 +1,6 @@
 import { TaskDetail, CreateRectangleAnnotation, CreatePolygonAnnotation, CreateClassificationAnnotation } from "@repo/schema";
 import { Annotation } from "../types/annotations";
+import { normalizeGroupOrder } from "./groupAnnotations";
 
 export function taskDetailToAnnotations(detail: TaskDetail): Annotation[] {
   const annotations: Annotation[] = [];
@@ -41,7 +42,11 @@ export function taskDetailToAnnotations(detail: TaskDetail): Annotation[] {
     });
   }
 
-  return annotations;
+  // Ensure group members are always contiguous in the local array regardless
+  // of the order the server returns rows in (no order column exists in the DB).
+  // This keeps the rest of the editing logic (drag-reorder, makeGroupContiguous)
+  // consistent and prevents the sidebar from fracturing a group into singletons.
+  return normalizeGroupOrder(annotations);
 }
 
 export function annotationsToUpdatePayload(annotations: Annotation[]): {
