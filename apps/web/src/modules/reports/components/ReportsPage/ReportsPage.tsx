@@ -33,7 +33,7 @@ export const ReportsPage = ({ dashboardId, projectId }: ReportsPageProps) => {
     useSelectedCameraStream(cameras);
   const { data: isModelRunning } = useGetNNQuery(
     { mxid: selectedCamera!, streamName: selectedStream! },
-    { skip: !selectedCamera || !selectedStream },
+    { skip: !selectedCamera || !selectedStream, refetchOnMountOrArgChange: true },
   );
 
   const {
