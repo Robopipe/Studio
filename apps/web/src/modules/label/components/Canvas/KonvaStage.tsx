@@ -323,13 +323,8 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
   interface NudgeStartInfo {
     x: number;
     y: number;
-    /** Original flat-points for polygon Line nodes. Storing these lets applyNudge
-     *  offset the points array directly instead of using x/y, which avoids the
-     *  double-translation that would occur when setAnnotations commits new points
-     *  atop a non-zero x/y offset. */
-    flatPoints?: number[];
     /** Vertex circle nodes for the polygon, with their base positions.
-     *  Moved in lockstep with the Line's points so handles track the body. */
+     *  Moved in lockstep with the Line via x/y offset so handles track the body. */
     circles?: Array<{ node: Konva.Circle; baseX: number; baseY: number }>;
   }
   const nudgeStartRef = useRef<Map<string, NudgeStartInfo>>(new Map());
@@ -340,9 +335,9 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
       const node = regionNodesRef.current.get(id);
       if (!node) continue;
       const info: NudgeStartInfo = { x: node.x(), y: node.y() };
+      // Pre-cache vertex circles for polygon Lines (lockstep movement).
       if (node.getClassName() === "Line") {
-        const flatPoints = (node as Konva.Line).points().slice();
-        info.flatPoints = flatPoints;
+        const flatPoints = (node as Konva.Line).points();
         const layer = node.getLayer();
         const circles: NudgeStartInfo["circles"] = [];
         for (let i = 0; i < flatPoints.length / 2; i++) {
@@ -352,6 +347,9 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
         if (circles.length > 0) info.circles = circles;
       }
       nudgeStartRef.current.set(id, info);
+      // Rasterise node (shadow included) so draw() blits the bitmap each
+      // animation frame instead of recomputing the Gaussian blur.
+      node.cache();
     }
   }, []);
 
@@ -360,22 +358,15 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
     for (const [id, start] of nudgeStartRef.current) {
       const node = regionNodesRef.current.get(id);
       if (!node) continue;
-      if (start.flatPoints) {
-        // Polygon Line: shift the points array directly so x/y stays 0.
-        // setAnnotations will commit nearly-identical points — no visible jump.
-        (node as Konva.Line).points(
-          start.flatPoints.map((v, i) => (i % 2 === 0 ? v + dxPx : v + dyPx)),
-        );
-        // Move vertex handles in lockstep so they track the polygon body.
-        start.circles?.forEach(({ node: circle, baseX, baseY }) => {
-          circle.x(baseX + dxPx);
-          circle.y(baseY + dyPx);
-        });
-      } else {
-        // Rect: shift via x/y. setAnnotations commits finalX ≈ currentX — no jump.
-        node.x(start.x + dxPx);
-        node.y(start.y + dyPx);
-      }
+      // Both Rects and Lines move via x/y offset — the cached bitmap (baked
+      // with shadow) is translated by Konva without recomputing the blur.
+      node.x(start.x + dxPx);
+      node.y(start.y + dyPx);
+      // Move vertex handles in lockstep (polygon Lines only).
+      start.circles?.forEach(({ node: circle, baseX, baseY }) => {
+        circle.x(baseX + dxPx);
+        circle.y(baseY + dyPx);
+      });
       layer = node.getLayer();
     }
     // Use draw() (synchronous) rather than batchDraw() (deferred rAF) so the
@@ -385,10 +376,15 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
     layer?.draw();
   }, []);
 
-  // clearNudge no longer moves nodes — react-konva's reconciliation on the
-  // final setAnnotations commit lands on the same positions already in place.
-  // We only clear the nudgeStartRef bookkeeping.
   const clearNudge = useCallback(() => {
+    for (const [id] of nudgeStartRef.current) {
+      const node = regionNodesRef.current.get(id);
+      if (!node) continue;
+      node.clearCache();
+      // Polygon Lines were nudged via x/y offset; reset to (0,0) before
+      // react-konva reconciles the final points array (which is at x=0, y=0 base).
+      if (node.getClassName() === "Line") node.position({ x: 0, y: 0 });
+    }
     nudgeStartRef.current.clear();
   }, []);
 
