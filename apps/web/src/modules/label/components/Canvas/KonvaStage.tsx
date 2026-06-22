@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Image as KonvaImage, Layer, Line, Stage } from "react-konva";
 import Konva from "konva";
 import { Annotation, ToolMode } from "../../types/annotations";
@@ -152,7 +152,12 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
   );
   // Captured at drag start. Null when not in a group drag.
   const groupDragRef = useRef<{
-    startPositions: Map<string, { x: number; y: number }>;
+    startPositions: Map<string, {
+      x: number;
+      y: number;
+      /** Pre-cached vertex circles for polygon nodes — avoids per-frame findOne() walks. */
+      circles?: Array<{ node: Konva.Circle; baseX: number; baseY: number }>;
+    }>;
   } | null>(null);
 
   // Keep these as refs so the drag handlers given to children stay stable
@@ -172,12 +177,42 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
       groupDragRef.current = null;
       return;
     }
-    const startPositions = new Map<string, { x: number; y: number }>();
+    const iw = imgWRef.current;
+    const ih = imgHRef.current;
+    const startPositions = new Map<string, {
+      x: number;
+      y: number;
+      circles?: Array<{ node: Konva.Circle; baseX: number; baseY: number }>;
+    }>();
     for (const id of selected) {
       const node = regionNodesRef.current.get(id);
-      if (node) startPositions.set(id, { x: node.x(), y: node.y() });
+      if (!node) continue;
+      const info: { x: number; y: number; circles?: Array<{ node: Konva.Circle; baseX: number; baseY: number }> } = {
+        x: node.x(),
+        y: node.y(),
+      };
+      // Pre-cache vertex circles for polygon nodes so handleGroupDragMove can
+      // move them in O(1) without per-frame findOne() selector walks.
+      if (node.getClassName() === "Line") {
+        const ann = annotationsRef.current.find((a) => a.id === id);
+        if (ann?.type === "polygon" && ann.points) {
+          const layer = node.getLayer();
+          const circles: Array<{ node: Konva.Circle; baseX: number; baseY: number }> = [];
+          ann.points.forEach(([px, py], i) => {
+            const c = layer?.findOne<Konva.Circle>(`#vertex-${id}-${i}`);
+            if (c) circles.push({ node: c, baseX: (px / 100) * iw, baseY: (py / 100) * ih });
+          });
+          if (circles.length > 0) info.circles = circles;
+        }
+      }
+      startPositions.set(id, info);
     }
     groupDragRef.current = { startPositions };
+    // Rasterise each selected node into a bitmap (shadow included) so
+    // batchDraw blits it per frame instead of recomputing the Gaussian blur.
+    for (const id of startPositions.keys()) {
+      regionNodesRef.current.get(id)?.cache();
+    }
   }, []);
 
   const handleGroupDragMove = useCallback((draggedId: string) => {
@@ -188,8 +223,6 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
     if (!draggedNode || !draggedStart) return;
     const dx = draggedNode.x() - draggedStart.x;
     const dy = draggedNode.y() - draggedStart.y;
-    const iw = imgWRef.current;
-    const ih = imgHRef.current;
     let layer: Konva.Layer | null = null;
     for (const [id, start] of state.startPositions) {
       if (id === draggedId) continue;
@@ -198,15 +231,11 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
       otherNode.x(start.x + dx);
       otherNode.y(start.y + dy);
       layer = otherNode.getLayer();
-      // Sync vertex circles for non-dragged polygons — they are independent
-      // Konva nodes and don't follow the Line when it's repositioned imperatively.
-      const ann = annotationsRef.current.find((a) => a.id === id);
-      if (ann?.type === "polygon" && ann.points) {
-        ann.points.forEach(([px, py], i) => {
-          const c = layer?.findOne<Konva.Circle>(`#vertex-${id}-${i}`);
-          if (c) { c.x((px / 100) * iw + dx); c.y((py / 100) * ih + dy); }
-        });
-      }
+      // Move pre-cached vertex circles — avoids per-frame findOne() selector walks.
+      start.circles?.forEach(({ node: c, baseX, baseY }) => {
+        c.x(baseX + dx);
+        c.y(baseY + dy);
+      });
     }
     layer?.batchDraw();
   }, []);
@@ -215,6 +244,10 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
     (draggedId: string) => {
       const state = groupDragRef.current;
       if (!state) return false;
+      // Restore live rendering before react-konva reconciles final positions.
+      for (const id of state.startPositions.keys()) {
+        regionNodesRef.current.get(id)?.clearCache();
+      }
       groupDragRef.current = null;
       const draggedNode = regionNodesRef.current.get(draggedId);
       const draggedStart = state.startPositions.get(draggedId);
@@ -258,12 +291,17 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
     [onGroupTranslate],
   );
 
-  const groupDragApi: GroupDragApi = {
-    registerNode,
-    onDragStart: handleGroupDragStart,
-    onDragMove: handleGroupDragMove,
-    onDragEnd: handleGroupDragEnd,
-  };
+  // Memoised so children's registerNode effect ([annotation.id, groupDrag])
+  // doesn't re-run on every render — all four callbacks are useCallback-stable.
+  const groupDragApi = useMemo<GroupDragApi>(
+    () => ({
+      registerNode,
+      onDragStart: handleGroupDragStart,
+      onDragMove: handleGroupDragMove,
+      onDragEnd: handleGroupDragEnd,
+    }),
+    [registerNode, handleGroupDragStart, handleGroupDragMove, handleGroupDragEnd],
+  );
 
   const [drawingBBox, setDrawingBBox] = useState<{
     startX: number;
