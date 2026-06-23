@@ -558,6 +558,7 @@ export const useRunDeploy = ({
         .catch(() => {});
       // Tag invalidation in the mutations drops dashboardUrl to null via the
       // query refetch — no local state to reset.
+      setDashboardReloadNonce((n) => n + 1);
     } finally {
       setDeployPhase("idle");
     }
