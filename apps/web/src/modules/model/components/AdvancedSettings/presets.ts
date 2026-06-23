@@ -1,60 +1,9 @@
-import { ModelBackendEnum } from "@repo/schema";
-
 export interface HyperparamsPreset {
   id: string;
   name: string;
   description: string;
   config: Record<string, unknown>;
 }
-
-const LUXONIS_PRESETS: HyperparamsPreset[] = [
-  {
-    id: "fast-training",
-    name: "Fast Training",
-    description: "Light model variant, small batch for quick iteration",
-    config: {
-      model: { predefined_model: { variant: "light" } },
-      trainer: {
-        batch_size: 4,
-        optimizer: { name: "Adam", params: { lr: 0.001 } },
-      },
-    },
-  },
-  {
-    id: "high-accuracy",
-    name: "High Accuracy",
-    description:
-      "Heavy variant with AdamW + cosine LR for best convergence",
-    config: {
-      model: { predefined_model: { variant: "heavy" } },
-      trainer: {
-        batch_size: 16,
-        optimizer: {
-          name: "AdamW",
-          params: { lr: 0.001, weight_decay: 0.0005 },
-        },
-        scheduler: {
-          name: "CosineAnnealingLR",
-          params: { eta_min: 1e-6 },
-        },
-      },
-    },
-  },
-  {
-    id: "low-memory",
-    name: "Low Memory",
-    description:
-      "Light variant, tiny batch with gradient accumulation for constrained GPUs",
-    config: {
-      model: { predefined_model: { variant: "light" } },
-      trainer: {
-        batch_size: 2,
-        accumulate_grad_batches: 4,
-        optimizer: { name: "Adam", params: { lr: 0.001 } },
-      },
-    },
-  },
-];
 
 // Distilled from training-configs/ultralytics-hyperparams*.json runs.
 // `batch` and `epochs` are intentionally omitted — they're controlled by the
@@ -123,14 +72,5 @@ const ULTRALYTICS_PRESETS: HyperparamsPreset[] = [
   },
 ];
 
-export const getHyperparamsPresets = (
-  backend: ModelBackendEnum,
-): HyperparamsPreset[] => {
-  switch (backend) {
-    case ModelBackendEnum.ULTRALYTICS:
-      return ULTRALYTICS_PRESETS;
-    case ModelBackendEnum.LUXONIS:
-    default:
-      return LUXONIS_PRESETS;
-  }
-};
+export const getHyperparamsPresets = (): HyperparamsPreset[] =>
+  ULTRALYTICS_PRESETS;
