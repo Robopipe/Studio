@@ -1,13 +1,16 @@
-// FIX(bug): a whitespace-only string passes validation as 0 — Number('  ') === 0 and is finite,
-// and only the exact empty string '' is rejected by the guard below — fix: treat strings with
-// value.trim() === '' the same as '' (here and in parseNullableNumber, which returns 0 instead
-// of null for the same input); why: the "required" check (e.g. 'Limit label is required.') is
-// silently satisfied with a bogus 0 for blank input.
+function isBlank(value: string | number | null | undefined): boolean {
+  return (
+    value === null ||
+    value === undefined ||
+    (typeof value === "string" && value.trim() === "")
+  );
+}
+
 export function parseRequiredNumber(
   value: string | number | null | undefined,
   message: string,
 ): number {
-  if (value === null || value === undefined || value === "") {
+  if (isBlank(value)) {
     throw new Error(message);
   }
 
@@ -23,7 +26,7 @@ export function parseRequiredNumber(
 export function parseNullableNumber(
   value: string | number | null | undefined,
 ): number | null {
-  if (value === null || value === undefined || value === "") {
+  if (isBlank(value)) {
     return null;
   }
 

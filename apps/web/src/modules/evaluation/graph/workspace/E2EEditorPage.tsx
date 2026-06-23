@@ -1,7 +1,7 @@
 import { createEditor } from "@/modules/evaluation/graph/editor/setup/createEditor";
 import { focusContainer } from "@/modules/evaluation/graph/editor/setup/focusManager";
 import { installTestHook } from "@/modules/evaluation/graph/workspace/testHook";
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useRete } from "rete-react-plugin";
 
 /**
@@ -12,10 +12,15 @@ import { useRete } from "rete-react-plugin";
  * reachable in dev or production builds.
  */
 export const E2EEditorPage = () => {
+  const disposeHookRef = useRef<(() => void) | undefined>(undefined);
+
   const create = useCallback((el: HTMLElement) => {
     const instance = createEditor(el, () => {});
     Promise.resolve(instance).then((result) => {
-      installTestHook({ editor: result.editor, area: result.area });
+      disposeHookRef.current = installTestHook({
+        editor: result.editor,
+        area: result.area,
+      });
       // Single editor in E2E: focus it on mount so keyboard shortcuts work
       // without first clicking the canvas (the specs press shortcuts directly).
       focusContainer(el);
@@ -24,6 +29,7 @@ export const E2EEditorPage = () => {
   }, []);
 
   const [ref] = useRete(create);
+  useEffect(() => () => disposeHookRef.current?.(), []);
 
   return (
     <div className="h-screen w-screen">

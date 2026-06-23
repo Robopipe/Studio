@@ -1,5 +1,5 @@
 import type { Schemes } from "@/modules/evaluation/graph/editor/types";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { NodeEditor } from "rete";
 import { isDebugEnabled } from "./isDebugEnabled";
 
@@ -16,20 +16,25 @@ const WATCHED_EVENTS = new Set([
 
 export const EditorDebugOverlay = ({ editor }: Props) => {
   const [, setTick] = useState(0);
-  const subscribedRef = useRef(false);
 
   useEffect(() => {
-    // FIX(react): the subscribedRef guard means a new `editor` prop instance is never subscribed (the effect re-runs but bails), and the pipe added to the old editor is never disabled on unmount, so setTick keeps firing on an unmounted component — fix: drop the ref, subscribe unconditionally in the effect, and return a cleanup that flips a `disposed` flag making the pipe a no-op (rete has no removePipe); why: editor swaps show stale counts and every mount/unmount cycle leaks one more live pipe.
-    if (subscribedRef.current) return;
-    subscribedRef.current = true;
+    // Debug-only: skip entirely when disabled so the pipe never runs in prod
+    // (Vite statically replaces import.meta.env, dropping this branch).
+    if (!isDebugEnabled()) return;
 
-    // FIX(perf): the pipe is registered and setTick re-renders fire on every node/connection event even when VITE_DEBUG is off, i.e. in production builds where the component just renders null — fix: guard the effect body with isDebugEnabled() (Vite statically replaces import.meta.env, so the dead branch is dropped from prod bundles); why: debug-only bookkeeping runs on the hot editor event pipeline in production.
+    // rete has no removePipe, so the cleanup flips a flag making the pipe a no-op
+    // after unmount (or when the editor prop changes), instead of leaking a live pipe.
+    let disposed = false;
     editor.addPipe((context) => {
-      if (WATCHED_EVENTS.has(context.type)) {
+      if (!disposed && WATCHED_EVENTS.has(context.type)) {
         setTick((prev) => prev + 1);
       }
       return context;
     });
+
+    return () => {
+      disposed = true;
+    };
   }, [editor]);
 
   if (!isDebugEnabled()) return null;

@@ -309,8 +309,9 @@ export const GraphEditor = ({ projectId, configId, testCaseId }: Props) => {
           ready ? "opacity-0" : "opacity-100",
         )}
       />
-      <div className="absolute inset-x-4 top-4 z-50 flex justify-between gap-2">
+      <div className="pointer-events-none absolute inset-x-4 top-4 z-50 flex justify-between gap-2">
         <Button
+          className="pointer-events-auto"
           variant="outline"
           size="icon"
           aria-label={maximized ? "Exit full screen" : "Full screen"}
@@ -318,7 +319,7 @@ export const GraphEditor = ({ projectId, configId, testCaseId }: Props) => {
         >
           {maximized ? <Minimize2 /> : <Maximize2 />}
         </Button>
-        <div className="flex gap-2">
+        <div className="pointer-events-auto flex gap-2">
           <Button
             variant="outline"
             size="icon"

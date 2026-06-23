@@ -1,3 +1,4 @@
+import { pushIssue } from "@/modules/evaluation/graph/editor/validation/issues";
 import type { NodeProps } from "@/modules/evaluation/graph/editor/types";
 import { findConnectedComponents } from "@/modules/evaluation/graph/editor/utils/graph";
 import {
@@ -8,7 +9,6 @@ import {
   isResultNode,
 } from "@/modules/evaluation/graph/editor/utils/guards";
 import {
-  pushIssue,
   type ValidationContext,
 } from "@/modules/evaluation/graph/editor/validation/types";
 
@@ -28,24 +28,7 @@ export function findNodesOutsideResultIsland(context: ValidationContext) {
 
   if (graphNodes.length === 0) return;
 
-  // FIX(duplication): this whole island-with-Result computation duplicates getResultIslandNodeIds() defined below, and runs findConnectedComponents a second time on every validation pass — fix: replace this block with `const nodeIdsWithResult = getResultIslandNodeIds(context);`; why: two copies of the same traversal will diverge over time and double the work on every editor change.
-  const nodeIds = graphNodes.map((node) => node.id);
-  const nodeIdsWithResult = new Set<string>();
-
-  const islands = findConnectedComponents(nodeIds, graph.connections);
-
-  for (const island of islands) {
-    const islandHasResult = island.some((nodeId) => {
-      const node = graph.getNode(nodeId);
-      return node && isResultNode(node);
-    });
-
-    if (!islandHasResult) continue;
-
-    for (const nodeId of island) {
-      nodeIdsWithResult.add(nodeId);
-    }
-  }
+  const nodeIdsWithResult = getResultIslandNodeIds(context);
 
   for (const node of graphNodes) {
     if (nodeIdsWithResult.has(node.id)) continue;
@@ -105,11 +88,6 @@ export function findBranchesNotLeadingToResult(context: ValidationContext) {
 }
 
 function canProduceGraphOutput(node: NodeProps) {
-  // FIX(dead-code): the three early returns are unreachable in effect — the last line already returns true only for Limit/Logical nodes, and a node can never be both Limit/Logical and LimitItem/Action/Result (guards are disjoint instanceof checks) — fix: reduce the body to `return isLimitNode(node) || isLogicalOperator(node);`; why: redundant guards suggest node categories can overlap and obscure the actual rule.
-  if (isLimitItemNode(node)) return false;
-  if (isActionNode(node)) return false;
-  if (isResultNode(node)) return false;
-
   return isLimitNode(node) || isLogicalOperator(node);
 }
 

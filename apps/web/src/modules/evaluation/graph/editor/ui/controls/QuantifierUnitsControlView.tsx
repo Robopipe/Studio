@@ -16,10 +16,10 @@ export const QuantifierUnitsControlView = ({ data }: Props) => {
     setDraft(String(snapshot.quantifierValue));
   }, [snapshot.quantifierValue]);
 
-  // FIX(bug): QuantifierUnitsControl.setValue clamps via normalizeUnitsValue and early-returns when the clamped value equals the stored one, so the resync effect never fires and the stale raw text stays in the input (e.g. value is 100 in PERCENT mode, user types "150" -> clamps to 100 -> no emit -> field still shows "150") — fix: resync the draft from data.getSnapshot() after committing (or on blur) regardless of whether the store emitted; why: the displayed quantity silently diverges from the committed model value.
   const commitValue = (raw: string) => {
     const parsed = Number(raw);
     data.setValue(Number.isFinite(parsed) ? parsed : 0);
+    setDraft(String(data.getSnapshot().quantifierValue));
   };
 
   return (

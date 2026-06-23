@@ -37,11 +37,8 @@ type Props = {
   selectableNodes: SelectableNodes;
   history: HistoryPlugin<Schemes>;
   connection: ConnectionPlugin<Schemes, AreaExtra>;
-  /** Returns the current selectable label options for new Limit nodes. */
   getLabels: () => LabelOption[];
-  /** Toggles the host's full-screen state (bound to the `f` shortcut). */
   toggleFullscreen?: () => void;
-  /** Saves the test case (bound to the `mod+s` shortcut). */
   save?: () => void;
 };
 
@@ -122,7 +119,6 @@ export const setupKeyListeners = (props: Props) => {
     mousePosition = { clientX: event.clientX, clientY: event.clientY };
   };
 
-  // Capture phase so a node/control calling stopPropagation still focuses the graph.
   const handleFocusPointerDown = () => focusContainer(container);
 
   container.addEventListener("pointermove", handlePointerMove);
@@ -145,9 +141,8 @@ export const setupKeyListeners = (props: Props) => {
     (event: KeyboardEvent) => void | Promise<void>
   > = {
     selectAll: () => selectAllNodes(selectableNodes, editor),
-    // FIX(bug): copyNodes returns null when nothing is selected, so copy/cut with an empty selection wipes the clipboard — fix: clipboard = copyNodes(editor, area) ?? clipboard; why: copying nothing should keep the previous contents, and losing the clipboard on a stray keypress is destructive.
     copy: () => {
-      clipboard = copyNodes(editor, area);
+      clipboard = copyNodes(editor, area) ?? clipboard;
     },
     paste: async () => {
       if (!clipboard) return;
@@ -161,7 +156,7 @@ export const setupKeyListeners = (props: Props) => {
       );
     },
     cut: async () => {
-      clipboard = copyNodes(editor, area);
+      clipboard = copyNodes(editor, area) ?? clipboard;
       await deleteSelectedNodes(editor, area, history);
     },
     deleteSelection: () => deleteSelectedNodes(editor, area, history),

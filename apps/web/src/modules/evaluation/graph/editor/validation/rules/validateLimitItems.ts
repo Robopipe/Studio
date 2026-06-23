@@ -1,6 +1,6 @@
+import { pushIssue } from "@/modules/evaluation/graph/editor/validation/issues";
 import { isLimitItemNode } from "@/modules/evaluation/graph/editor/utils/guards";
 import {
-  pushIssue,
   type ValidationContext,
 } from "@/modules/evaluation/graph/editor/validation/types";
 
@@ -40,7 +40,7 @@ export function findCrossScopeConnections(context: ValidationContext) {
     const targetNode = graph.getNode(connection.target);
 
     if (!sourceNode || !targetNode) continue;
-    if (sourceNode.parent === targetNode.parent) continue;
+    if (graph.haveSameScope(sourceNode, targetNode)) continue;
 
     pushIssue(nodeIssues, targetNode.id, {
       level: "error",

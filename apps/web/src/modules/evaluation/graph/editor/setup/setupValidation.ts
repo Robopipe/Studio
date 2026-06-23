@@ -175,8 +175,10 @@ export function setupValidation(props: Props): ValidationController {
   }
 
   area.addPipe((context) => {
-    if (context.type === "nodecreated" || context.type === "noderemoved") {
-      // FIX(consistency): this re-subscribes to every control on each node change even while live validation is disabled, undoing the unsubscribe performed by disableLiveValidation — fix: guard with liveValidationEnabled (enableLiveValidation already resubscribes on toggle); why: dead listeners accumulate on every control after the user explicitly turned live validation off.
+    if (
+      liveValidationEnabled &&
+      (context.type === "nodecreated" || context.type === "noderemoved")
+    ) {
       refreshControlSubscriptions();
     }
 

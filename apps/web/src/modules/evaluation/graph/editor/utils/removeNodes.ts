@@ -31,8 +31,6 @@ class CascadeRemoveAction {
   ) {}
 
   async undo() {
-    // Parents before children so the scopes plugin's nodecreate validator
-    // finds the parent already in the editor.
     const ascending = [...this.snapshots].sort((a, b) => a.depth - b.depth);
 
     for (const snap of ascending) {
@@ -41,11 +39,7 @@ class CascadeRemoveAction {
       await this.editor.addNode(snap.node);
       await this.area.translate(snap.node.id, snap.position);
     }
-
-    // Each child translate triggers the scopes plugin to resize/translate its
-    // parent. After the last child is restored the parent's bounding box
-    // matches the original, but force-set width/height to be exact in case
-    // padding/min-size clamping rounded differently.
+    
     for (const snap of ascending) {
       if (snap.node.width !== snap.width || snap.node.height !== snap.height) {
         snap.node.width = snap.width;
@@ -133,11 +127,9 @@ export async function removeNodeWithDescendants(
   const snapshots: NodeSnapshot[] = [];
   for (const node of nodesInRemovalOrder) {
     const view = area.nodeViews.get(node.id);
-    // FIX(bug): a node without a view is silently dropped from the snapshot but is still removed below, so undo restores the cascade minus this node while its connections are re-added pointing at a missing endpoint — fix: snapshot it with a fallback position (e.g. { x: 0, y: 0 }) instead of skipping; why: a partial undo silently corrupts the graph.
-    if (!view) continue;
     snapshots.push({
       node,
-      position: { x: view.position.x, y: view.position.y },
+      position: view ? { x: view.position.x, y: view.position.y } : { x: 0, y: 0 },
       width: node.width,
       height: node.height,
       depth: getNodeDepth(editor, node.id),

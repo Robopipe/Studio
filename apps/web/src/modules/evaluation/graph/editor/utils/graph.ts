@@ -42,14 +42,7 @@ export function findConnectedComponents(
 
       component.push(current);
 
-      // FIX(perf): sorting neighbours before pushing onto the DFS stack has no effect on the result — component membership is order-independent and each component is re-sorted by original index below anyway — fix: iterate adjacency.get(current) directly; why: O(E log E) of wasted work and it implies traversal order matters when it does not.
-      const neighbours = [...(adjacency.get(current) ?? [])].sort((a, b) => {
-        const indexA = originalIndexByNodeId.get(a) ?? Number.MAX_SAFE_INTEGER;
-        const indexB = originalIndexByNodeId.get(b) ?? Number.MAX_SAFE_INTEGER;
-        return indexA - indexB;
-      });
-
-      for (const next of neighbours) {
+      for (const next of adjacency.get(current) ?? []) {
         if (visited.has(next)) continue;
 
         visited.add(next);
@@ -84,49 +77,12 @@ function getOldestNodeIndex(
   }, Number.MAX_SAFE_INTEGER);
 }
 
-// FIX(duplication): re-implements the adjacency build + undirected traversal of findConnectedComponents above — fix: return findConnectedComponents(nodes.map((n) => n.id), connections).length (or extract one shared traversal); why: two hand-written copies of the same algorithm drift independently and double the test/maintenance surface.
 export function countConnectedComponents(
   nodes: NodeProps[],
   connections: ConnProps[],
 ) {
-  if (nodes.length === 0) return 0;
-
-  const nodeIds = new Set(nodes.map((node) => node.id));
-  const adjacency = new Map<string, Set<string>>();
-
-  for (const node of nodes) {
-    adjacency.set(node.id, new Set());
-  }
-
-  for (const connection of connections) {
-    if (!nodeIds.has(connection.source)) continue;
-    if (!nodeIds.has(connection.target)) continue;
-
-    adjacency.get(connection.source)?.add(connection.target);
-    adjacency.get(connection.target)?.add(connection.source);
-  }
-
-  let count = 0;
-  const visited = new Set<string>();
-
-  for (const node of nodes) {
-    if (visited.has(node.id)) continue;
-
-    count += 1;
-    const stack = [node.id];
-    visited.add(node.id);
-
-    while (stack.length > 0) {
-      const current = stack.pop();
-      if (!current) continue;
-
-      for (const next of adjacency.get(current) ?? []) {
-        if (visited.has(next)) continue;
-        visited.add(next);
-        stack.push(next);
-      }
-    }
-  }
-
-  return count;
+  return findConnectedComponents(
+    nodes.map((node) => node.id),
+    connections,
+  ).length;
 }

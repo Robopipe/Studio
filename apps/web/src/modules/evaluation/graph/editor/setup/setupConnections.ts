@@ -3,6 +3,7 @@ import { LimitItemConnection } from "@/modules/evaluation/graph/editor/connectio
 import { ActionNodeBase } from "@/modules/evaluation/graph/editor/nodes/action/actionBase";
 import { LimitNode } from "@/modules/evaluation/graph/editor/nodes/limit/limit";
 import { ResultNode } from "@/modules/evaluation/graph/editor/nodes/result/result";
+import { AppSocket } from "@/modules/evaluation/graph/editor/sockets/appSocket";
 import { BooleanSocket } from "@/modules/evaluation/graph/editor/sockets/booleanSocket";
 import { RuleSocket } from "@/modules/evaluation/graph/editor/sockets/ruleSocket";
 import type {
@@ -256,20 +257,13 @@ export function setupConnection(
           if (!sourceSocket || !targetSocket) return false;
 
           if (
-            typeof (
-              sourceSocket as {
-                isCompatibleWith?: (socket: unknown) => boolean;
-              }
-            ).isCompatibleWith !== "function"
+            !(sourceSocket instanceof AppSocket) ||
+            !(targetSocket instanceof AppSocket)
           ) {
             return false;
           }
 
-          if (
-            !(
-              sourceSocket as { isCompatibleWith: (socket: unknown) => boolean }
-            ).isCompatibleWith(targetSocket)
-          ) {
+          if (!sourceSocket.isCompatibleWith(targetSocket)) {
             log("Sockets are not compatible", "error");
             connection.drop();
             return false;

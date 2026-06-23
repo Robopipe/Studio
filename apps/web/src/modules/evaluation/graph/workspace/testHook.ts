@@ -16,10 +16,6 @@ import type { AreaPlugin } from "rete-area-plugin";
 export type TestHookHandle = {
   editor: NodeEditor<Schemes>;
   area: AreaPlugin<Schemes, AreaExtra>;
-  /**
-   *  Programmatically create a connection - bypasses UI drag for tests that
-   *  need a pre-built graph as a fixture.
-   */
   addBooleanConnection: (
     sourceId: string,
     targetId: string,
@@ -48,26 +44,37 @@ declare global {
 export function installTestHook(handle: {
   editor: NodeEditor<Schemes>;
   area: AreaPlugin<Schemes, AreaExtra>;
-}) {
+}): (() => void) | undefined {
   if (!import.meta.env.VITE_E2E) return;
   const { editor } = handle;
-  // FIX(structure): the hook is installed on window but never uninstalled — fix: return a cleanup that deletes window.__editor and invoke it from the editor's destroy path in Workspace; why: after unmount (or the StrictMode double-mount) the global can reference a destroyed editor, making e2e assertions read stale state.
-  window.__editor = {
+
+  const requireNode = (id: string) => {
+    const node = editor.getNode(id);
+    if (!node) throw new Error(`Test hook: node "${id}" not found.`);
+    return node;
+  };
+
+  const hook: TestHookHandle = {
     ...handle,
     addBooleanConnection: async (sourceId, targetId, operator = "TRUE") => {
-      // FIX(error-handling): getNode may return undefined and the cast hides it (same in addLimitItemConnection below), so a wrong fixture id fails deep inside the connection constructor with a cryptic error — fix: throw new Error(`node ${sourceId} not found`) when the lookup fails; why: e2e failures should point at the bad id, not at rete internals.
-      const source = editor.getNode(sourceId) as BooleanNodeProps;
-      const target = editor.getNode(targetId) as BooleanNodeProps;
+      const source = requireNode(sourceId) as BooleanNodeProps;
+      const target = requireNode(targetId) as BooleanNodeProps;
       await editor.addConnection(
         new BooleanConnection(source, "out", target, "in", operator),
       );
     },
     addLimitItemConnection: async (sourceId, targetId, operator) => {
-      const source = editor.getNode(sourceId) as LimitItemProps;
-      const target = editor.getNode(targetId) as LimitItemProps;
+      const source = requireNode(sourceId) as LimitItemProps;
+      const target = requireNode(targetId) as LimitItemProps;
       await editor.addConnection(
         new LimitItemConnection(source, "out", target, "in", operator),
       );
     },
+  };
+
+  window.__editor = hook;
+
+  return () => {
+    if (window.__editor === hook) delete window.__editor;
   };
 }

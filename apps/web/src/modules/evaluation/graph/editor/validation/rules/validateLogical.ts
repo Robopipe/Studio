@@ -1,6 +1,6 @@
+import { pushIssue } from "@/modules/evaluation/graph/editor/validation/issues";
 import { isLogicalOperator } from "@/modules/evaluation/graph/editor/utils/guards";
 import {
-  pushIssue,
   type ValidationContext,
 } from "@/modules/evaluation/graph/editor/validation/types";
 
@@ -20,8 +20,7 @@ export function findUselessLogicalNodes(context: ValidationContext) {
 
     pushIssue(nodeIssues, node.id, {
       level: "warning",
-      // FIX(consistency): 'Operator useless' inverts the word order of the sibling rule's title 'Useless Limit' (validateLimits.ts) — fix: use 'Useless operator'; why: these titles are user-facing and should follow one convention.
-      message: "Operator useless",
+      message: "Useless operator",
       description: [
         "Logical operators with only one input do not change the result and can be removed.",
         "Either connect the input directly to the output and remove this node, or add more inputs to create a meaningful logical expression.",

@@ -2,13 +2,10 @@ import { setupCustomScopePreset } from "@/modules/evaluation/graph/editor/preset
 import type { Schemes } from "@/modules/evaluation/graph/editor/types";
 import { isScopeNode } from "@/modules/evaluation/graph/editor/utils/scopes";
 import type { NodeEditor } from "rete";
-import type { AreaPlugin } from "rete-area-plugin";
 import { ScopesPlugin } from "rete-scopes-plugin";
-import type { AreaExtra } from "./createEditor";
 
 type Props = {
   editor: NodeEditor<Schemes>;
-  area: AreaPlugin<Schemes, AreaExtra>;
 };
 
 const DEFAULT_PADDING = { top: 100, right: 100, bottom: 100, left: 100 };
@@ -22,7 +19,6 @@ const DEFAULT_PADDING = { top: 100, right: 100, bottom: 100, left: 100 };
  * `size` enforces a minimum so scope nodes don't collapse when emptied.
  */
 export function setupScopes(props: Props): ScopesPlugin<Schemes, never> {
-  // FIX(dead-code): props.area is required by the call site but never used here — fix: remove area from Props and from the createEditor call, or wire it if it was meant to be used; why: an unused mandatory dependency misleads readers into thinking the scopes setup touches the area layer.
   const { editor } = props;
 
   const scopes = new ScopesPlugin<Schemes>({

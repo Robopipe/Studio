@@ -1,6 +1,5 @@
 import { BooleanConnection } from "@/modules/evaluation/graph/editor/connections/booleanConnection";
-import { AlertNode } from "@/modules/evaluation/graph/editor/nodes/action/alert";
-import { WarningNode } from "@/modules/evaluation/graph/editor/nodes/action/warning";
+import { addActionForSeverity } from "@/modules/evaluation/graph/editor/deserialization/addActionForSeverity";
 import { LimitNode } from "@/modules/evaluation/graph/editor/nodes/limit/limit";
 import { AndNode } from "@/modules/evaluation/graph/editor/nodes/logical/and";
 import { OrNode } from "@/modules/evaluation/graph/editor/nodes/logical/or";
@@ -56,7 +55,7 @@ export async function addLogicToEditor(
   // A test case built from the table view persists no logic tree (`logicNodes: []`),
   // yet its limits must still feed the ResultNode. Fall back to a default expression
   // synthesized from the limits present: a single limit connects directly, multiple
-  // limits are AND-ed (the implicit conjunction the table view represents).
+  // limits are connected with AND (the implicit conjunction the table view represents).
   const expression =
     parseLogicExpression(logicNodes) ??
     buildDefaultExpression(limitNodesById);
@@ -88,7 +87,7 @@ export async function addLogicToEditor(
     await editor.addConnection(resultInputConnection);
   }
 
-  await addFinalActionIfNeeded(editor, resultNode, options);
+  await addActionForSeverity(editor, resultNode, options.severity);
 
   return resultNode;
 }
@@ -171,17 +170,6 @@ function parseOperand(node: EvalLogicNode): ExpressionNode {
   throw new Error("Unexpected operator where operand was expected.");
 }
 
-// Mirrors the table-view LogicBuilder, which is the canonical producer of `logicNodes`:
-// a flat ordered list where each operand carries its own connector and nesting happens
-// ONLY through explicit GROUP nodes. There is no operator precedence anywhere in the
-// product, so a level is read left-to-right (left-associative): each operator combines
-// the accumulated left expression with the next operand. Consecutive identical operators
-// are coalesced into one n-ary node (e.g. A OR B OR C -> a single OR), which is
-// semantically identical for associative boolean ops and keeps the graph tidy.
-//
-// Parts must still strictly alternate operand/operator (starting and ending on an
-// operand); a level with two operands or two operators in a row is genuine corruption
-// the LogicBuilder cannot emit, so it throws rather than guessing.
 function collapseExpressionParts(
   parts: Array<ExpressionNode | "AND" | "OR">,
 ): ExpressionNode {
@@ -240,9 +228,9 @@ async function createLogicGraphFromExpression(
     return limitNode;
   }
 
-  // A nested 'not' returns the inner node; the caller (the operator loop below) applies
+  // A nested 'not' returns the inner node; the operator loop below applies
   // the 'NOT' on the connection into the logical node. A TOP-LEVEL 'not' is handled in
-  // addLogicToEditor, which strips it and sets 'NOT' on the result-input connection — so
+  // addLogicToEditor, which strips it and sets 'NOT' on the result-input connection - so
   // it never reaches here unwrapped.
   if (expression.kind === "not")
     return createLogicGraphFromExpression(context, expression.child);
@@ -267,31 +255,4 @@ async function createLogicGraphFromExpression(
   }
 
   return logicalNode;
-}
-
-// FIX(duplication): severity-to-action mapping and the "add action node + TRUE
-// BooleanConnection" sequence are duplicated in deserializeLimits.ts
-// (createActionNode/addDirectLimitActionIfNeeded use the identical
-// `severity === 'ALERT' ? new AlertNode() : new WarningNode()` ternary) — fix: extract a shared
-// helper, e.g. addActionForSeverity(editor, sourceNode, severity), used by both deserializers;
-// why: two copies of the same mapping will drift when a new severity is introduced.
-async function addFinalActionIfNeeded(
-  editor: NodeEditor<Schemes>,
-  resultNode: ResultNode,
-  options: LogicOptions,
-) {
-  if (!options.severity) return;
-  const actionNode =
-    options.severity === EvalSeverityEnum.ALERT
-      ? new AlertNode()
-      : new WarningNode();
-  await editor.addNode(actionNode);
-  const connection = new BooleanConnection(
-    resultNode,
-    "out",
-    actionNode,
-    "in",
-    "TRUE",
-  );
-  await editor.addConnection(connection);
 }

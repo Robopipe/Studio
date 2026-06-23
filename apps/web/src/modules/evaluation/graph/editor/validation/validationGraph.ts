@@ -55,21 +55,7 @@ export class ValidationGraph {
     return this.outgoingByNode.get(nodeId) ?? [];
   }
 
-  // FIX(dead-code): getConnectionsOf and hasAnyConnection are not referenced anywhere in src — fix: delete them (or add the rules/tests that were meant to use them); why: unused API on a core class implies behavior that does not exist and still has to be maintained.
-  getConnectionsOf(nodeId: string) {
-    return [...this.getIncoming(nodeId), ...this.getOutgoing(nodeId)];
-  }
-
-  hasAnyConnection(nodeId: string) {
-    return this.incomingByNode.has(nodeId) || this.outgoingByNode.has(nodeId);
-  }
-
-  // FIX(duplication): haveSameScope and areBothRoot are never called, while findCrossScopeConnections re-implements exactly this check inline (sourceNode.parent === targetNode.parent) — fix: use haveSameScope in that rule or delete both helpers; why: two copies of the scope rule can silently diverge.
   haveSameScope(a: NodeProps, b: NodeProps) {
     return a.parent === b.parent;
-  }
-
-  areBothRoot(a: NodeProps, b: NodeProps) {
-    return !a.parent && !b.parent;
   }
 }

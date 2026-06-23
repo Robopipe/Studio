@@ -1,4 +1,3 @@
-// FIX(structure): lone .ts file in ui/ root exporting React (styled) components, while every sibling view is a .tsx inside a subfolder (connections/, controls/, nodes/, sockets/) — fix: rename to .tsx and move to e.g. src/editor/ui/context-menu/ContextMenuView.tsx; why: the inconsistent extension/placement hides the React-component nature from tooling and humans.
 import { Presets } from "rete-react-plugin";
 import styled, { css } from "styled-components";
 
@@ -10,7 +9,6 @@ export const Menu = styled(Presets.contextMenu.Menu)`
   padding: 0.25rem;
 `;
 
-// FIX(dead-code): the &:hover rule sets `border-color` but the base style declares `border: none`, so the hover border-color can never render — fix: drop the `border-color` line from the hover block (or add a transparent base border if a hover border is intended); why: dead declarations mislead readers into thinking a hover border exists.
 export const Item = styled(Presets.contextMenu.Item).withConfig({
   shouldForwardProp: (prop) => prop !== "hasSubitems",
 })<{ hasSubitems?: boolean }>`
@@ -22,7 +20,6 @@ export const Item = styled(Presets.contextMenu.Item).withConfig({
 
   &:hover {
     background: var(--color-zinc-100);
-    border-color: var(--color-zinc-200);
     border-radius: 0.375rem;
   }
 

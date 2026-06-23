@@ -1,8 +1,7 @@
+import { pushIssue, pushControlIssue } from "@/modules/evaluation/graph/editor/validation/issues";
 import { countConnectedComponents } from "@/modules/evaluation/graph/editor/utils/graph";
 import { isLimitNode } from "@/modules/evaluation/graph/editor/utils/guards";
 import {
-  pushControlIssue,
-  pushIssue,
   type ValidationContext,
 } from "@/modules/evaluation/graph/editor/validation/types";
 

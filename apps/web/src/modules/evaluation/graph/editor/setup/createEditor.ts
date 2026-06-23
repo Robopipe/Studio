@@ -56,7 +56,7 @@ export async function createEditor(
 
   const connection = setupConnection({ editor, area, log });
   const render = setupRender({ editor, area });
-  const scopes = setupScopes({ editor, area });
+  const scopes = setupScopes({ editor });
   const validation = setupValidation({ editor, area });
   const arrange = setupArrange({ editor, area, scopes });
   const contextMenu = setupContextMenu({

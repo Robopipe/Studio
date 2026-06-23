@@ -9,7 +9,7 @@ import { AndNode } from "@/modules/evaluation/graph/editor/nodes/logical/and";
 import { OrNode } from "@/modules/evaluation/graph/editor/nodes/logical/or";
 import { ResultNode } from "@/modules/evaluation/graph/editor/nodes/result/result";
 import type { Schemes } from "@/modules/evaluation/graph/editor/types";
-import * as ContextMenuComponents from "@/modules/evaluation/graph/editor/ui/ContextMenuView";
+import * as ContextMenuComponents from "@/modules/evaluation/graph/editor/ui/context-menu/ContextMenuView";
 import { removeNodeWithDescendants } from "@/modules/evaluation/graph/editor/utils/removeNodes";
 import type { NodeEditor } from "rete";
 import type { AreaPlugin } from "rete-area-plugin";

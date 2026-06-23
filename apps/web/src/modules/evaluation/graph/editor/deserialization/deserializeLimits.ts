@@ -1,8 +1,6 @@
-import { BooleanConnection } from "@/modules/evaluation/graph/editor/connections/booleanConnection";
 import { LimitItemConnection } from "@/modules/evaluation/graph/editor/connections/limitItemConnection";
 import type { LabelOption } from "@/modules/evaluation/graph/editor/controls/label";
-import { AlertNode } from "@/modules/evaluation/graph/editor/nodes/action/alert";
-import { WarningNode } from "@/modules/evaluation/graph/editor/nodes/action/warning";
+import { addActionForSeverity } from "@/modules/evaluation/graph/editor/deserialization/addActionForSeverity";
 import { LimitNode } from "@/modules/evaluation/graph/editor/nodes/limit/limit";
 import type { FullLimit } from "@/modules/evaluation/graph/editor/serialization/serializeLimits";
 import type { AreaExtra } from "@/modules/evaluation/graph/editor/setup/createEditor";
@@ -10,7 +8,6 @@ import type {
   LimitItemProps,
   Schemes,
 } from "@/modules/evaluation/graph/editor/types";
-import { EvalSeverityEnum } from "@repo/schema";
 import type { NodeEditor } from "rete";
 import type { AreaPlugin } from "rete-area-plugin";
 import { createLimitItemNode } from "./deserializeLimitItems";
@@ -59,7 +56,7 @@ export async function addLimitToEditor(
   }
 
   await addLimitItemConnections(editor, limitItemNodes, limit);
-  await addDirectLimitActionIfNeeded(editor, limitNode, limit.severity);
+  await addActionForSeverity(editor, limitNode, limit.severity);
 
   await area.update("node", limitNode.id);
 
@@ -95,32 +92,4 @@ async function addLimitItemConnections(
 
     await editor.addConnection(connection);
   }
-}
-
-async function addDirectLimitActionIfNeeded(
-  editor: NodeEditor<Schemes>,
-  limitNode: LimitNode,
-  severity: EvalSeverityEnum | null,
-) {
-  if (!severity) return;
-
-  const actionNode = createActionNode(severity);
-
-  await editor.addNode(actionNode);
-
-  const connection = new BooleanConnection(
-    limitNode,
-    "out",
-    actionNode,
-    "in",
-    "TRUE",
-  );
-
-  await editor.addConnection(connection);
-}
-
-function createActionNode(severity: EvalSeverityEnum) {
-  return severity === EvalSeverityEnum.ALERT
-    ? new AlertNode()
-    : new WarningNode();
 }

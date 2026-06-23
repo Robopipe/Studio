@@ -1,6 +1,6 @@
+import { pushIssue } from "@/modules/evaluation/graph/editor/validation/issues";
 import { isResultNode } from "@/modules/evaluation/graph/editor/utils/guards";
 import {
-  pushIssue,
   type ValidationContext,
 } from "@/modules/evaluation/graph/editor/validation/types";
 
