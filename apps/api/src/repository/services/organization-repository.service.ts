@@ -20,10 +20,17 @@ export class OrganizationRepository {
    */
   public async getById(id: number): Promise<OrganizationEntity | null> {
     const organization = await this.db.query.organizationTable.findFirst({
-      where: { id },
+      where: { id, deletedAt: { isNull: true } },
     });
 
     return organization ? new OrganizationEntity(organization) : null;
+  }
+
+  public async softDelete(id: number): Promise<void> {
+    await this.db
+      .update(organizationTable)
+      .set({ deletedAt: new Date() })
+      .where(eq(organizationTable.id, id));
   }
 
   /**

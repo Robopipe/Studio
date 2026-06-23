@@ -23,6 +23,7 @@ export interface Annotation {
   type: RegionType;
   bbox?: BBox;
   points?: [number, number][];
+  groupId?: string | null;
 }
 
 export type AtomicHistoryEntry =
@@ -32,4 +33,4 @@ export type AtomicHistoryEntry =
 
 export type HistoryEntry =
   | AtomicHistoryEntry
-  | { type: "batch"; label: "delete" | "paste" | "move" | "relabel"; children: AtomicHistoryEntry[] };
+  | { type: "batch"; label: "delete" | "paste" | "move" | "relabel" | "group" | "ungroup"; children: AtomicHistoryEntry[] };

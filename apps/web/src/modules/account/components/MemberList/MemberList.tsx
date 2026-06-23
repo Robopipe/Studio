@@ -11,9 +11,9 @@ import {
   SelectValue,
 } from "@/modules/shadcn/ui/select";
 import { Spinner } from "@/modules/shadcn/ui/spinner";
-import { OrgMemberRoleEnum, UpdateMemberRole } from "@repo/schema";
+import { OrgMemberRoleEnum, UpdateMemberRole, type AssignableRole } from "@repo/schema";
 import { X } from "lucide-react";
-import { FormEvent } from "react";
+import { FormEvent, useState } from "react";
 import { toast } from "sonner";
 import {
   useGetInvitationsQuery,
@@ -37,6 +37,7 @@ export const MemberList = () => {
     skip: !canManage,
   });
   const [revokeInvitation] = useRevokeInvitationMutation();
+  const [inviteRole, setInviteRole] = useState<AssignableRole>(OrgMemberRoleEnum.MEMBER);
 
   const handleInvite = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -45,8 +46,9 @@ export const MemberList = () => {
     const email = formData.get("email") as string;
 
     try {
-      await inviteUser({ email }).unwrap();
+      await inviteUser({ email, role: inviteRole }).unwrap();
       form.reset();
+      setInviteRole(OrgMemberRoleEnum.MEMBER);
       toast.success(`Invitation sent to ${email}`);
     } catch (err: any) {
       const message =
@@ -172,7 +174,10 @@ export const MemberList = () => {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant="secondary">Pending</Badge>
+                  <Badge variant="secondary">
+                    {invitation.role === OrgMemberRoleEnum.ADMIN ? "Admin" : "Member"}
+                  </Badge>
+                  <Badge variant="outline">Pending</Badge>
                   <button
                     type="button"
                     className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-gray-100 hover:text-destructive"
@@ -197,13 +202,28 @@ export const MemberList = () => {
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="invite-email">Email</Label>
-                <Input
-                  id="invite-email"
-                  name="email"
-                  type="email"
-                  placeholder="user@example.com"
-                  required
-                />
+                <div className="flex flex-wrap items-center gap-2">
+                  <Input
+                    id="invite-email"
+                    name="email"
+                    type="email"
+                    placeholder="user@example.com"
+                    required
+                    className="min-w-0 flex-1"
+                  />
+                  <Select
+                    value={inviteRole}
+                    onValueChange={(val) => setInviteRole(val as AssignableRole)}
+                  >
+                    <SelectTrigger className="w-36">
+                      <SelectValue placeholder="Role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={OrgMemberRoleEnum.MEMBER}>Member</SelectItem>
+                      <SelectItem value={OrgMemberRoleEnum.ADMIN}>Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <Button
                 type="submit"

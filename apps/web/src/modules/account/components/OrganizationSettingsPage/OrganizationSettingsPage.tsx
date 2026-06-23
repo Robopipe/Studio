@@ -11,6 +11,7 @@ import {
   useUpdateOrganizationMutation,
 } from "../../services";
 import { MemberList } from "../MemberList";
+import { DangerZone } from "../DangerZone/DangerZone";
 
 export const OrganizationSettingsPage = () => {
   const { role } = useAuth();
@@ -71,6 +72,12 @@ export const OrganizationSettingsPage = () => {
       </div>
       <div className="my-4 h-px bg-black/10" />
       <MemberList />
+      {role === OrgMemberRoleEnum.OWNER && organization && (
+        <>
+          <div className="my-4 h-px bg-black/10" />
+          <DangerZone organization={organization} />
+        </>
+      )}
     </div>
   );
 };

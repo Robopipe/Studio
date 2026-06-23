@@ -107,7 +107,7 @@ export function TestCaseSection({ testCase, projectId, configId }: TestCaseSecti
           onClick={() => setIsCreateLimitOpen(true)}
         >
           <PlusIcon />
-          Add limit
+          Add check
         </Button>
         <div className="ml-auto flex shrink-0 items-center gap-2">
           <TestCaseEnabledSwitch

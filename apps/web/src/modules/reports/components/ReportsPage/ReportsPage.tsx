@@ -1,7 +1,7 @@
 import {
   useCreateReportMutation,
   useDeleteReportMutation,
-  useGetDashboardQuery,
+  useGetNNQuery,
   useListCamerasQuery,
   useListReportsQuery,
 } from "@/core/cameraApi";
@@ -11,7 +11,6 @@ import { Spinner } from "@/modules/shadcn/ui/spinner";
 import { ModelRunning, NoCameraDetected } from "@/modules/ui";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { downloadReport } from "../../utils/downloadReport";
 import { hasInflightReports } from "../../utils/hasInflightReports";
 import { CreateReportForm } from "../CreateReportForm";
 import { DeleteReportDialog } from "../DeleteReportDialog";
@@ -25,7 +24,6 @@ export interface ReportsPageProps {
 export const ReportsPage = ({ dashboardId, projectId }: ReportsPageProps) => {
   const { url: cameraApiUrl } = useCameraApiUrl();
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
-  const [downloadingId, setDownloadingId] = useState<number | null>(null);
   const [pollingInterval, setPollingInterval] = useState(0);
 
   const { data: cameras } = useListCamerasQuery(undefined, {
@@ -33,9 +31,9 @@ export const ReportsPage = ({ dashboardId, projectId }: ReportsPageProps) => {
   });
   const { cameraMxid: selectedCamera, streamName: selectedStream } =
     useSelectedCameraStream(cameras);
-  const { isSuccess: isModelRunning } = useGetDashboardQuery(
+  const { data: isModelRunning } = useGetNNQuery(
     { mxid: selectedCamera!, streamName: selectedStream! },
-    { skip: !selectedCamera || !selectedStream },
+    { skip: !selectedCamera || !selectedStream, refetchOnMountOrArgChange: true },
   );
 
   const {
@@ -105,17 +103,6 @@ export const ReportsPage = ({ dashboardId, projectId }: ReportsPageProps) => {
     }
   };
 
-  const handleDownload = async (reportId: number) => {
-    setDownloadingId(reportId);
-    try {
-      await downloadReport(cameraApiUrl, dashboardId, reportId);
-    } catch {
-      toast.error("Failed to download report");
-    } finally {
-      setDownloadingId(null);
-    }
-  };
-
   const handleConfirmDelete = async () => {
     if (pendingDeleteId === null) return;
     try {
@@ -143,9 +130,9 @@ export const ReportsPage = ({ dashboardId, projectId }: ReportsPageProps) => {
               <ReportListItem
                 key={report.id}
                 report={report}
-                onDownload={() => handleDownload(report.id)}
+                cameraApiUrl={cameraApiUrl}
+                dashboardId={dashboardId}
                 onDelete={() => setPendingDeleteId(report.id)}
-                isDownloading={downloadingId === report.id}
                 isDeleting={isDeleting && pendingDeleteId === report.id}
               />
             ))}

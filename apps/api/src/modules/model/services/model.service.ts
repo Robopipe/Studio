@@ -1,10 +1,12 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
 import { ModelRepository } from "../../../repository/services/model-repository.service";
+import { ProjectRepository } from "../../../repository/services/project-repository.service";
 import { ModelEntity } from "../entity/model.entity";
 import { ModelOutputEntity } from "../entity/model-output.entity";
 import { ModelOutputRepository } from "../../../repository/services/model-output-repository.service";
@@ -27,7 +29,8 @@ export class ModelService{
     private readonly modelOutputRepository: ModelOutputRepository,
     private readonly projectLabelRepository: ProjectLabelRepository,
     private readonly modelLogRepository: ModelLogRepository,
-    private readonly trainingExternalService: TrainingExternalService
+    private readonly trainingExternalService: TrainingExternalService,
+    private readonly projectRepository: ProjectRepository,
   ) {}
 
 
@@ -96,6 +99,7 @@ export class ModelService{
       splitValidate: data.splitValidate,
       splitTest: data.splitTest,
       customHyperparams: data.customHyperparams,
+      useGroups: data.useGroups,
     })
 
     await this.db.insert(modelLabelTable).values(labels.map((labelId) => ({
@@ -131,6 +135,11 @@ export class ModelService{
     }
 
     if (data.train) {
+      const project = await this.projectRepository.getByIdOrThrow(projectId);
+      if (!project.hasLicense) {
+        throw new ForbiddenException({ code: 'PROJECT_LICENSE_REQUIRED', message: 'Project is not licensed for training.' });
+      }
+
       await this.modelRepository.update(createdModel.id, {
         status: ModelStatusEnum.TRAINING,
       })
@@ -182,6 +191,7 @@ export class ModelService{
       splitValidate: data.splitValidate,
       splitTest: data.splitTest,
       customHyperparams: data.customHyperparams,
+      useGroups: data.useGroups,
       status: ModelStatusEnum.DRAFT
     })
 
@@ -237,6 +247,11 @@ export class ModelService{
    * @param projectId
    */
   public async trainModel(id: number, projectId: number): Promise<ModelEntity>{
+    const project = await this.projectRepository.getByIdOrThrow(projectId);
+    if (!project.hasLicense) {
+      throw new ForbiddenException({ code: 'PROJECT_LICENSE_REQUIRED', message: 'Project is not licensed for training.' });
+    }
+
     const model = await this.getModelById(id, projectId)
     await this.assertHasLabeledTasks(model.projectId, model.taskIds, model.trainingType, model.annotationsUsed);
     await this.trainingExternalService.train(model)

@@ -64,6 +64,6 @@ export class PreAnnotateSettingsController {
         "Path modelType must match body modelType",
       );
     }
-    return this.service.upsert(projectId, modelType, body);
+    return this.service.upsert(projectId, modelType, body as PreAnnotateSettings);
   }
 }

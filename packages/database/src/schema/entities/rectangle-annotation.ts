@@ -12,6 +12,8 @@ export const rectangleAnnotationTable = p.pgTable("rectangle_annotation", {
   y: p.doublePrecision("y").notNull(),
   width: p.doublePrecision("width").notNull(),
   height: p.doublePrecision("height").notNull(),
+  groupId: p.uuid("group_id"),
 }, (t) => [
   p.index("rect_annotation_task_id_idx").on(t.taskId),
+  p.index("rect_annotation_group_id_idx").on(t.groupId),
 ])

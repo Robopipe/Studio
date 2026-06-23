@@ -74,12 +74,20 @@ export const modelPreprocessingSchema = z.object({
   keepOriginal: z.boolean(),
 });
 
+export const modelOutputSchema = z.object({
+  id: z.number(),
+  type: z.enum(ModelOutputTypeEnum),
+  filePath: z.string(),
+  fileType: z.enum(TaskFileTypeEnum),
+});
+
 export const modelSchema = z.object({
   id: z.number(),
   name: z.string(),
   status: z.enum(ModelStatusEnum),
   epochs: z.number(),
   labels: labelSchema.array(),
+  outputs: modelOutputSchema.array(),
   taskIds: z.number().array(),
   datasetVersionId: z.number().nullable(),
   outputTypes: z.enum(ModelOutputTypeEnum).array(),
@@ -95,6 +103,7 @@ export const modelSchema = z.object({
   customHyperparams: z.record(z.string(), z.unknown()),
   augmentations: modelAugmentationSchema.pick({ type: true, params: true }).array(),
   preprocessings: modelPreprocessingSchema.pick({ type: true, params: true, keepOriginal: true }).array(),
+  useGroups: z.boolean(),
   errorMessage: z.string().nullable(),
   finalAccuracy: z.number().nullable(),
   finalLoss: z.number().nullable(),
@@ -193,6 +202,7 @@ export const createModelSchema = modelSchema
     // Original: customHyperparams: hyperparamsConfigSchema.default({}),
     customHyperparams: z.record(z.string(), z.unknown()).default({}),
     train: z.boolean().default(false),
+    useGroups: z.boolean().default(false),
   })
   .refine(
     (data) => {
@@ -213,6 +223,10 @@ export const createModelSchema = modelSchema
       }
     },
     { message: "annotationsUsed is invalid for the selected trainingType" },
+  )
+  .refine(
+    (data) => !data.useGroups || data.trainingType === ProjectTypeEnum.DETECTION,
+    { message: "useGroups is only supported for detection models" },
   );
 
 export const updateModelSchema = createModelSchema;
@@ -227,11 +241,4 @@ export const datasetStatsResponseSchema = z.object({
   labeledCount: z.number(),
   totalCandidateCount: z.number(),
   valid: z.boolean(),
-});
-
-export const modelOutputSchema = z.object({
-  id: z.number(),
-  type: z.enum(ModelOutputTypeEnum),
-  filePath: z.string(),
-  fileType: z.enum(TaskFileTypeEnum),
 });

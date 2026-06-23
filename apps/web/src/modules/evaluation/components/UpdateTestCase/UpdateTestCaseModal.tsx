@@ -48,7 +48,7 @@ export const UpdateTestCaseModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogTitle className="text-xl font-semibold">Edit Test case</DialogTitle>
 
         <form.AppForm>

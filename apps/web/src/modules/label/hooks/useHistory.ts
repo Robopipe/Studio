@@ -62,7 +62,7 @@ export const useHistory = ({
   );
 
   const runBatch = useCallback(
-    (label: "delete" | "paste" | "move" | "relabel", fn: () => void) => {
+    (label: "delete" | "paste" | "move" | "relabel" | "group" | "ungroup", fn: () => void) => {
       // Nested batches: re-enter the existing frame, no nesting in the entry
       // tree. Simpler and the only nesting case we care about is "delete the
       // selection" called from inside something else, which we don't actually do.
@@ -91,7 +91,7 @@ export const useHistory = ({
   // direct setAnnotations calls (e.g. keyboard nudge coalescing).
   const pushBatchEntry = useCallback(
     (params: {
-      label: "delete" | "paste" | "move" | "relabel";
+      label: "delete" | "paste" | "move" | "relabel" | "group" | "ungroup";
       changes: Array<{ before: Annotation; after: Annotation }>;
     }) => {
       if (params.changes.length === 0) return;

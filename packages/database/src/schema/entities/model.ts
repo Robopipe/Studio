@@ -66,5 +66,6 @@ export const modelTable = p.pgTable("model", {
   datasetVersionId: p
     .integer("dataset_version_id")
     .references(() => datasetVersionTable.id, { onDelete: "set null" }),
+  useGroups: p.boolean("use_groups").notNull().default(false),
   ...timestamps,
 });

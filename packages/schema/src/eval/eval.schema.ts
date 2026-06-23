@@ -52,13 +52,17 @@ export enum EvalSeverityEnum {
 }
 
 export enum EvalLimitItemParameterEnum {
-  POS_LEFT = "POS_LEFT", // %
-  POS_RIGHT = "POS_RIGHT", // %
-  POS_TOP = "POS_TOP", // %
-  POS_BOTTOM = "POS_BOTTOM", // %
-  POS_CENTER = "POS_CENTER", // %
+  POSITION = "POSITION", // %
   AREA = "AREA", // %
   COUNT = "COUNT", // pcs
+}
+
+export enum EvalLimitItemEdgeEnum {
+  LEFT = "LEFT",
+  RIGHT = "RIGHT",
+  TOP = "TOP",
+  BOTTOM = "BOTTOM",
+  CENTER = "CENTER",
 }
 
 export enum EvalLimitItemOperatorEnum {
@@ -77,8 +81,28 @@ export enum EvalLimitItemQuantifierUnitEnum {
   PCS = "PCS",
 }
 
+function validateEdgePair(
+  data: { parameter: string; targetEdge: string; parentEdge: string },
+  ctx: z.RefinementCtx,
+) {
+  if (data.parameter !== EvalLimitItemParameterEnum.POSITION) return;
+  const horizontal = new Set<string>([EvalLimitItemEdgeEnum.LEFT, EvalLimitItemEdgeEnum.RIGHT]);
+  const vertical = new Set<string>([EvalLimitItemEdgeEnum.TOP, EvalLimitItemEdgeEnum.BOTTOM]);
+  const targetIsH = horizontal.has(data.targetEdge);
+  const targetIsV = vertical.has(data.targetEdge);
+  const parentIsH = horizontal.has(data.parentEdge);
+  const parentIsV = vertical.has(data.parentEdge);
+  if ((targetIsH && parentIsV) || (targetIsV && parentIsH)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Target edge and parent edge must be on the same axis, or one must be CENTER",
+      path: ["parentEdge"],
+    });
+  }
+}
+
 /* Eval limit item */
-export const evalLimitItemSchema = z.object({
+const evalLimitItemBaseSchema = z.object({
   id: z.uuidv7(),
   limitFrom: z.number().nullable(),
   limitTo: z.number().nullable(),
@@ -87,9 +111,13 @@ export const evalLimitItemSchema = z.object({
   quantifierType: z.enum(EvalLimitItemQuantifierTypeEnum),
   quantifierUnit: z.enum(EvalLimitItemQuantifierUnitEnum),
   quantifierValue: z.number(),
+  targetEdge: z.enum(EvalLimitItemEdgeEnum),
+  parentEdge: z.enum(EvalLimitItemEdgeEnum),
   createdAt: timestampsSchema.createdAt,
   updatedAt: timestampsSchema.updatedAt,
 });
+
+export const evalLimitItemSchema = evalLimitItemBaseSchema.superRefine(validateEdgePair);
 // .refine((limitItem) => limitItem.limitFrom !== null || limitItem.limitTo !== null, {
 //   message: "At least one of limitFrom or limitTo must be provided"
 // })
@@ -175,7 +203,7 @@ export const evalLimitCreateOrUpdateSchema = evalLimitSchema
   .extend({
     targetLabelId: z.number(),
     targetParentLabelId: z.number().nullable(),
-    limitItems: evalLimitItemSchema
+    limitItems: evalLimitItemBaseSchema
       .pick({
         limitFrom: true,
         limitTo: true,
@@ -184,10 +212,13 @@ export const evalLimitCreateOrUpdateSchema = evalLimitSchema
         quantifierType: true,
         quantifierUnit: true,
         quantifierValue: true,
+        targetEdge: true,
+        parentEdge: true,
       })
       .extend({
         id: z.uuidv7().nullable(), // Added items will have ID null
       })
+      .superRefine(validateEdgePair)
       .array(),
   });
 

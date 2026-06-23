@@ -7,6 +7,7 @@ export class PolygonAnnotationEntity {
   readonly taskId: number;
   readonly labelId: number;
   readonly value: [number, number][];
+  readonly groupId: string | null;
   readonly label: ProjectLabelEntity;
 
   constructor(data: PolygonAnnotationSelect) {
@@ -14,6 +15,7 @@ export class PolygonAnnotationEntity {
     this.taskId = data.taskId;
     this.labelId = data.labelId;
     this.value = data.value;
+    this.groupId = data.groupId ?? null;
     this.label = new ProjectLabelEntity(data.label);
   }
 
@@ -22,6 +24,7 @@ export class PolygonAnnotationEntity {
       id: this.id,
       label: this.label.toResponse(),
       value: this.value,
+      groupId: this.groupId,
     }
   }
 }
