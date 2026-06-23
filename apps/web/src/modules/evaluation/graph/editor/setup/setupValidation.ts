@@ -7,7 +7,7 @@ import type { AreaPlugin } from "rete-area-plugin";
 import type { AreaExtra } from "./createEditor";
 
 type ValidationController = {
-  runValidation: () => Promise<void>;
+  runValidation: () => Promise<ValidationResult>;
   validateNow: () => Promise<ValidationResult>;
   enableLiveValidation: () => void;
   disableLiveValidation: () => void;
@@ -53,12 +53,12 @@ export function setupValidation(props: Props): ValidationController {
 
   let liveValidationEnabled = false;
 
-  let validationRunning = false;
   let validationQueued = false;
+  let runningPromise: Promise<ValidationResult> | null = null;
 
   let unsubscribeControlChanges: Array<() => void> = [];
 
-  function applyValidationResult() {
+  async function runOnce(): Promise<ValidationResult> {
     const result = validateGraph(editor);
     const nodes = editor.getNodes();
 
@@ -74,36 +74,33 @@ export function setupValidation(props: Props): ValidationController {
       }
     }
 
-    return { result, nodes };
-  }
-
-  async function runValidation() {
-    if (validationRunning) {
-      validationQueued = true;
-      return;
-    }
-
-    validationRunning = true;
-
-    try {
-      do {
-        validationQueued = false;
-
-        const { nodes } = applyValidationResult();
-        await Promise.all(nodes.map((node) => area.update("node", node.id)));
-      } while (validationQueued);
-    } finally {
-      validationRunning = false;
-    }
-  }
-
-  // FIX(duplication): duplicates the apply-result + update-all-nodes body of runValidation but bypasses the validationRunning/validationQueued coalescing documented above — fix: extract a shared runOnce() returning the result and route both entry points through the coalescing; why: a validateNow racing a live runValidation triggers exactly the redundant full-graph re-renders the coalescing was added to prevent.
-  async function validateNow() {
-    const { result, nodes } = applyValidationResult();
-
     await Promise.all(nodes.map((node) => area.update("node", node.id)));
 
     return result;
+  }
+
+  function runValidation(): Promise<ValidationResult> {
+    if (runningPromise) {
+      validationQueued = true;
+      return runningPromise;
+    }
+
+    runningPromise = (async () => {
+      let latest!: ValidationResult;
+      do {
+        validationQueued = false;
+        latest = await runOnce();
+      } while (validationQueued);
+      return latest;
+    })();
+
+    return runningPromise.finally(() => {
+      runningPromise = null;
+    });
+  }
+
+  function validateNow() {
+    return runValidation();
   }
 
   function requestValidation() {

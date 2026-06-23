@@ -23,8 +23,9 @@ export function validateGraph(editor: NodeEditor<Schemes>): ValidationResult {
   const graph = new ValidationGraph(editor);
   const nodeIssues = new Map<string, ValidationIssue[]>();
   const controlIssues = new Map<string, ControlIssues>();
+  const graphIssues: ValidationIssue[] = [];
 
-  const context = { graph, nodeIssues, controlIssues };
+  const context = { graph, nodeIssues, controlIssues, graphIssues };
 
   findEmptyLimits(context);
   findLimitsWithMultipleIslands(context);
@@ -53,9 +54,12 @@ export function validateGraph(editor: NodeEditor<Schemes>): ValidationResult {
       ),
   );
 
+  const hasGraphErrors = graphIssues.some((issue) => issue.level === "error");
+
   return {
-    valid: !hasNodeErrors && !hasControlErrors,
+    valid: !hasNodeErrors && !hasControlErrors && !hasGraphErrors,
     nodeIssues,
     controlIssues,
+    graphIssues,
   };
 }

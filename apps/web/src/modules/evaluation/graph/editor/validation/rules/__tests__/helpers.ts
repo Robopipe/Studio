@@ -22,6 +22,7 @@ export function makeContext(
     graph,
     nodeIssues: new Map(),
     controlIssues: new Map(),
+    graphIssues: [],
   };
 }
 

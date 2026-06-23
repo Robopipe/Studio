@@ -115,7 +115,6 @@ export const GraphEditor = ({ projectId, configId, testCaseId }: Props) => {
       },
     );
 
-    // FIX(react): this .then has no guard against the instance having been superseded or destroyed — under StrictMode useRete creates the editor twice, so the callback also fires for the discarded first instance, and nothing ever clears editorRef / setEditor / window.__editor on unmount — fix: track the latest created instance (or a disposed flag set by destroy) and skip stale resolutions, and clear the ref/state/test hook in a cleanup; why: toolbar handlers and Playwright hooks can end up operating on a destroyed editor.
     Promise.resolve(instance).then((result) => {
       editorRef.current = result;
       setAutoValidationEnabled(result.validation.isLiveValidationEnabled());

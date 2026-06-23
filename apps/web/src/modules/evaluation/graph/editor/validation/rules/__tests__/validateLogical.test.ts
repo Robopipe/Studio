@@ -6,12 +6,13 @@ import { describe, expect, it } from "vitest";
 import { conn, makeContext } from "./helpers";
 
 describe("findUselessLogicalNodes", () => {
-  // FIX(testing): this test pins the zero-input gap as correct behavior — a zero-input operator is even less meaningful than a one-input one, and no other rule catches it when it sits in the Result island — fix: if the rule is extended to report length === 0 (see FIX in validateLogical.ts), assert an issue here instead; why: the test certifies a validation gap as intended.
-  it("reports no warning for a logical node with zero inputs", () => {
+  it("reports an error for a logical node with zero inputs", () => {
     const and = new AndNode();
     const ctx = makeContext([and]);
     findUselessLogicalNodes(ctx);
-    expect(ctx.nodeIssues.size).toBe(0);
+    const issues = ctx.nodeIssues.get(and.id) ?? [];
+    expect(issues).toHaveLength(1);
+    expect(issues.at(0)?.level).toBe("error");
   });
 
   it("warns when a logical node has exactly one input", () => {

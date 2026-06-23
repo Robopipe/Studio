@@ -1,6 +1,3 @@
-// "LogicNodes" (not "Logical") deliberately mirrors the persisted payload field
-// `logicNodes` -- the flat boolean expression -- not the AND/OR "logical" node
-// classes under nodes/logical/.
 import type {
   NodeProps,
   Schemes,
@@ -160,8 +157,10 @@ function serializeLogicalExpression(
       sourceNode,
       operatorValue,
     );
-    const childNodes = maybeWrapChildExpression(childExpression, operatorValue);
-    const maybeNegatedChildNodes = applyNotIfNeeded(connection, childNodes);
+    const maybeNegatedChildNodes = applyNotIfNeeded(
+      connection,
+      childExpression.nodes,
+    );
 
     if (children.length > 0) {
       children.push({
@@ -196,41 +195,6 @@ function serializeLogicalExpression(
     operatorValue,
     nodes: children,
   };
-}
-
-// FIX(dead-code): the GROUP-wrapping branch at the bottom of this helper is unreachable —
-// serializeExpression always passes the parent's operatorValue down (line in the loop above), so
-// serializeLogicalExpression already wraps a differing-operator multi-node child via `needsGroup`
-// and returns nodes.length === 1; every early-return here therefore always fires — fix: keep the
-// grouping logic in exactly one place (drop this helper and use childExpression.nodes directly,
-// or drop needsGroup and wrap only here); why: two near-identical grouping implementations that
-// even disagree on the GROUP id (`needsGroup` emits id: node.id, this one id: '') invite silent
-// divergence on future edits.
-function maybeWrapChildExpression(
-  childExpression: SerializedExpression,
-  parentOperatorValue: EvalLogicNodeOperatorValueEnum,
-): EvalLogicNode[] {
-  const childOperatorValue = childExpression.operatorValue;
-
-  if (childOperatorValue === null) {
-    return childExpression.nodes;
-  }
-
-  if (childOperatorValue === parentOperatorValue) {
-    return childExpression.nodes;
-  }
-
-  if (childExpression.nodes.length <= 1) {
-    return childExpression.nodes;
-  }
-
-  return [
-    {
-      id: uuidv7(),
-      type: EvalLogicNodeTypeEnum.GROUP,
-      children: childExpression.nodes,
-    },
-  ];
 }
 
 function applyNotIfNeeded(

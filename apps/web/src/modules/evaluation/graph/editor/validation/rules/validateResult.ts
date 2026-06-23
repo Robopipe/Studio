@@ -11,10 +11,19 @@ import {
  * anchor for the main graph island.
  */
 export function findInvalidResultNodeCount(context: ValidationContext) {
-  const { graph, nodeIssues } = context;
+  const { graph, nodeIssues, graphIssues } = context;
   const resultNodes = graph.nodes.filter(isResultNode);
-  // FIX(bug): the doc comment promises 'exactly one' Result node, but the zero-Result case silently passes — the loop below has nothing to iterate, so a graph with no Result node (e.g. an empty graph) returns valid: true from validateGraph — fix: handle resultNodes.length === 0 explicitly (requires a graph-level issue slot or forcing valid=false in the result); why: validation green-lights graphs missing their documented required terminal node.
+
   if (resultNodes.length === 1) return;
+
+  if (resultNodes.length === 0) {
+    graphIssues.push({
+      level: "error",
+      message: "Missing Result node",
+      description: ["The graph must contain exactly one Result node."],
+    });
+    return;
+  }
 
   for (const node of resultNodes) {
     pushIssue(nodeIssues, node.id, {

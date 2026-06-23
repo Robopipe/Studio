@@ -19,10 +19,12 @@ export type ValidationResult = {
   valid: boolean;
   nodeIssues: Map<string, ValidationIssue[]>;
   controlIssues: ControlIssuesByNode;
+  graphIssues: ValidationIssue[];
 };
 
 export type ValidationContext = {
   readonly graph: ValidationGraph;
   readonly nodeIssues: Map<string, ValidationIssue[]>;
   readonly controlIssues: ControlIssuesByNode;
+  readonly graphIssues: ValidationIssue[];
 };

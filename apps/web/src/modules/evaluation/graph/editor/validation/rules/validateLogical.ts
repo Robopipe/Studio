@@ -5,18 +5,31 @@ import {
 } from "@/modules/evaluation/graph/editor/validation/types";
 
 /**
- * Finds logical nodes with exactly one input.
- *
- * A logical operator with only one input does not change the result and has no
- * meaningful logical effect.
+ * Finds logical nodes that cannot form a meaningful expression: zero inputs
+ * (unevaluable, reported as an error) or exactly one input (a no-op that does
+ * not change the result, reported as a warning).
  */
 export function findUselessLogicalNodes(context: ValidationContext) {
   const { graph, nodeIssues } = context;
 
   for (const node of graph.nodes) {
     if (!isLogicalOperator(node)) continue;
-    // FIX(bug): a logical operator with zero inputs silently passes — wired into the Result island (e.g. AND -> Result) it is flagged by no rule at all, yet it cannot evaluate to anything meaningful — fix: also report length === 0 (arguably as an error, since the node is not just useless but unevaluable); why: malformed graphs validate as clean.
-    if (graph.getIncoming(node.id).length != 1) continue;
+
+    const inputCount = graph.getIncoming(node.id).length;
+
+    if (inputCount === 0) {
+      pushIssue(nodeIssues, node.id, {
+        level: "error",
+        message: "Operator has no inputs",
+        description: [
+          "A logical operator needs at least two inputs to combine.",
+          "Connect inputs to this operator or remove it.",
+        ],
+      });
+      continue;
+    }
+
+    if (inputCount !== 1) continue;
 
     pushIssue(nodeIssues, node.id, {
       level: "warning",

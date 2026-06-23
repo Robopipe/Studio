@@ -5,11 +5,12 @@ import { describe, expect, it } from "vitest";
 import { makeContext } from "./helpers";
 
 describe("findInvalidResultNodeCount", () => {
-  // FIX(testing): this test pins the silent-pass for zero Result nodes as correct, contradicting the rule's doc comment ('exactly one Result node') — fix: once the rule reports the missing-Result case, this test must assert an issue instead; why: it currently certifies a validation gap as intended behavior.
-  it("reports no issues when the graph has no result nodes", () => {
+  it("reports a graph-level error when the graph has no result nodes", () => {
     const ctx = makeContext([new LimitNode()]);
     findInvalidResultNodeCount(ctx);
     expect(ctx.nodeIssues.size).toBe(0);
+    expect(ctx.graphIssues).toHaveLength(1);
+    expect(ctx.graphIssues.at(0)?.level).toBe("error");
   });
 
   it("reports no issues when the graph has exactly one result node", () => {
