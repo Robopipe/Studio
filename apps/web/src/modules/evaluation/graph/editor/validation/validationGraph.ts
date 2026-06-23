@@ -1,4 +1,3 @@
-// FIX(naming): file name 'validationGraph.ts' is one keystroke away from its sibling 'validateGraph.ts' and both live in the same folder — fix: rename this file after its export (ValidationGraph.ts) or something distinct like graphIndex.ts; why: the near-identical names make imports, code navigation, and reviews error-prone (this review was explicitly asked whether one is a stale copy of the other).
 import type {
   ConnProps,
   NodeProps,
@@ -65,7 +64,7 @@ export class ValidationGraph {
     return this.incomingByNode.has(nodeId) || this.outgoingByNode.has(nodeId);
   }
 
-  // FIX(duplication): haveSameScope and areBothRoot are never called, while findLimitItemCrossScopeConnections re-implements exactly this check inline (sourceNode.parent === targetNode.parent) — fix: use haveSameScope in that rule or delete both helpers; why: two copies of the scope rule can silently diverge.
+  // FIX(duplication): haveSameScope and areBothRoot are never called, while findCrossScopeConnections re-implements exactly this check inline (sourceNode.parent === targetNode.parent) — fix: use haveSameScope in that rule or delete both helpers; why: two copies of the scope rule can silently diverge.
   haveSameScope(a: NodeProps, b: NodeProps) {
     return a.parent === b.parent;
   }

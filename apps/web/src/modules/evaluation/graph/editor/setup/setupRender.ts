@@ -26,10 +26,10 @@ import { IntegerRangeControlView } from "@/modules/evaluation/graph/editor/ui/co
 import { LabelControlView } from "@/modules/evaluation/graph/editor/ui/controls/LabelControlView";
 import { NameControlView } from "@/modules/evaluation/graph/editor/ui/controls/NameControlView";
 import { PositionControlView } from "@/modules/evaluation/graph/editor/ui/controls/PositionControlView";
-import { QuantifierTypeControlView } from "@/modules/evaluation/graph/editor/ui/controls/QuantifierControlView";
-import { QuantifierUnitsControlView } from "@/modules/evaluation/graph/editor/ui/controls/QuantifierValueControlView";
+import { QuantifierTypeControlView } from "@/modules/evaluation/graph/editor/ui/controls/QuantifierTypeControlView";
+import { QuantifierUnitsControlView } from "@/modules/evaluation/graph/editor/ui/controls/QuantifierUnitsControlView";
 import { EnabledControlView } from "@/modules/evaluation/graph/editor/ui/controls/EnabledControlView";
-import { PercentageRangeControlView } from "@/modules/evaluation/graph/editor/ui/controls/RangeControlView";
+import { PercentageRangeControlView } from "@/modules/evaluation/graph/editor/ui/controls/PercentageRangeControlView";
 import { ActionNodeView } from "@/modules/evaluation/graph/editor/ui/nodes/ActionNodeView";
 import { AreaNodeView } from "@/modules/evaluation/graph/editor/ui/nodes/AreaNodeView";
 import { CountNodeView } from "@/modules/evaluation/graph/editor/ui/nodes/CountNodeView";
@@ -65,11 +65,6 @@ export function setupRender(props: Props): ReactPlugin<Schemes, AreaExtra> {
   const { editor, area } = props;
 
   const render = new ReactPlugin<Schemes, AreaExtra>({ createRoot });
-
-  // Build each configured connection view once. The customize.connection callback
-  // below runs on every render; creating a fresh view there would give it a new
-  // component identity each time, remounting the connection (losing the toggle's
-  // position and restarting the dash animation).
   const refreshConnection = (id: string) => {
     void area.update("connection", id);
   };
@@ -139,12 +134,9 @@ export function setupRender(props: Props): ReactPlugin<Schemes, AreaExtra> {
             sourceSocket instanceof BooleanSocket &&
             targetSocket instanceof BooleanSocket
           ) {
-            if (targetNode instanceof ActionNodeBase)
+            if (targetNode instanceof ActionNodeBase){
               return CustomConnectionView;
-
-            // An And/Or node feeding the Result is a plain edge: the whole result
-            // can't be negated (no DEFECT, no group-NOT in the table view). Only a
-            // single Limit -> Result may carry NOT, so it keeps the toggle.
+            }
             if (
               targetNode instanceof ResultNode &&
               (sourceNode instanceof AndNode || sourceNode instanceof OrNode)

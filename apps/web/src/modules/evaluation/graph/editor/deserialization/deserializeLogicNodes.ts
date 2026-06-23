@@ -1,4 +1,3 @@
-// FIX(naming): "LogicNodes" here vs "Logical" everywhere else (nodes/logical/, validateLogical.ts, LogicalNodeBase) — fix: rename to deserializeLogicalNodes.ts (and the serialization twin), or add a note that the name intentionally mirrors the backend payload field `logicNodes`; why: the Logic/Logical split makes cross-module grep and navigation unreliable.
 import { BooleanConnection } from "@/modules/evaluation/graph/editor/connections/booleanConnection";
 import { AlertNode } from "@/modules/evaluation/graph/editor/nodes/action/alert";
 import { WarningNode } from "@/modules/evaluation/graph/editor/nodes/action/warning";
@@ -7,7 +6,7 @@ import { AndNode } from "@/modules/evaluation/graph/editor/nodes/logical/and";
 import { OrNode } from "@/modules/evaluation/graph/editor/nodes/logical/or";
 import { ResultNode } from "@/modules/evaluation/graph/editor/nodes/result/result";
 import type {
-  LogicalProps,
+  BooleanNodeProps,
   Schemes,
 } from "@/modules/evaluation/graph/editor/types";
 import {
@@ -161,7 +160,6 @@ function parseOperand(node: EvalLogicNode): ExpressionNode {
   }
 
   if (node.type === EvalLogicNodeTypeEnum.GROUP) {
-    // Zod's recursive `get children()` widens the element type; it is an EvalLogicNode[].
     const expression = parseLogicExpression(
       node.children as EvalLogicNode[],
     );
@@ -214,8 +212,6 @@ function collapseExpressionParts(
     if (!operand || typeof operand === "string")
       throw new Error("Invalid logic expression: operand expected.");
 
-    // Coalesce a run of the same operator into the existing n-ary node; otherwise
-    // nest the accumulated expression as the left child of the new operator.
     accumulator =
       accumulator.kind === "operator" && accumulator.operator === operator
         ? {
@@ -236,7 +232,7 @@ function collapseExpressionParts(
 async function createLogicGraphFromExpression(
   context: BuildContext,
   expression: ExpressionNode,
-): Promise<LogicalProps> {
+): Promise<BooleanNodeProps> {
   if (expression.kind === "limit") {
     const limitNode = context.limitNodesById.get(expression.limitId);
     if (!limitNode)

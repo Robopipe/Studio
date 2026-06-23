@@ -1,7 +1,7 @@
 import { LimitNode } from "@/modules/evaluation/graph/editor/nodes/limit/limit";
 import { CountNode } from "@/modules/evaluation/graph/editor/nodes/limitItem/count";
 import {
-  findLimitItemCrossScopeConnections,
+  findCrossScopeConnections,
   findOrphanLimitItems,
 } from "@/modules/evaluation/graph/editor/validation/rules/validateLimitItems";
 import { describe, expect, it } from "vitest";
@@ -34,12 +34,12 @@ describe("findOrphanLimitItems", () => {
   });
 });
 
-describe("findLimitItemCrossScopeConnections", () => {
+describe("findCrossScopeConnections", () => {
   it("reports no issues for a connection between two root-level nodes", () => {
     const a = new CountNode();
     const b = new CountNode();
     const ctx = makeContext([a, b], [conn(a.id, b.id)]);
-    findLimitItemCrossScopeConnections(ctx);
+    findCrossScopeConnections(ctx);
     expect(ctx.nodeIssues.size).toBe(0);
   });
 
@@ -50,7 +50,7 @@ describe("findLimitItemCrossScopeConnections", () => {
     a.parent = limit.id;
     b.parent = limit.id;
     const ctx = makeContext([limit, a, b], [conn(a.id, b.id)]);
-    findLimitItemCrossScopeConnections(ctx);
+    findCrossScopeConnections(ctx);
     expect(ctx.nodeIssues.size).toBe(0);
   });
 
@@ -62,7 +62,7 @@ describe("findLimitItemCrossScopeConnections", () => {
     a.parent = limitA.id;
     b.parent = limitB.id;
     const ctx = makeContext([limitA, limitB, a, b], [conn(a.id, b.id)]);
-    findLimitItemCrossScopeConnections(ctx);
+    findCrossScopeConnections(ctx);
     const issues = ctx.nodeIssues.get(b.id) ?? [];
     expect(issues).toHaveLength(1);
     expect(issues.at(0)?.level).toBe("error");

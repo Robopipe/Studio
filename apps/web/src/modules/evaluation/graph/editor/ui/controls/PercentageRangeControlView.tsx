@@ -1,4 +1,3 @@
-// FIX(naming): file is named RangeControlView.tsx but exports PercentageRangeControlView for PercentageRangeControl — fix: rename the file to PercentageRangeControlView.tsx so file and export match; why: the sibling IntegerRangeControlView.tsx follows the file==export convention, and the generic "RangeControlView" name makes it ambiguous which of the two range controls this file renders.
 import type { PercentageRangeControl } from "@/modules/evaluation/graph/editor/controls/percentageRange";
 import { Slider } from "@/modules/shadcn/ui/slider";
 import { useSyncExternalStore } from "react";

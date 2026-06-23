@@ -5,7 +5,7 @@ import {
 import { LimitItemConnection } from "@/modules/evaluation/graph/editor/connections/limitItemConnection";
 import type {
   LimitItemProps,
-  LogicalProps,
+  BooleanNodeProps,
   Schemes,
 } from "@/modules/evaluation/graph/editor/types";
 import type { EvalLimitItemOperatorEnum } from "@repo/schema";
@@ -16,7 +16,6 @@ import { deselectAllNodes, type SelectableNodes } from "./nodeSelection";
 export type ClipboardNodeEntry = {
   node: Schemes["Node"];
   position: { x: number; y: number };
-  // Index into the clipboard nodes array of this node's parent, or null if root-level.
   parentIndex: number | null;
 };
 
@@ -43,8 +42,6 @@ export type Clipboard = {
   connections: ClipboardConnectionEntry[];
   center: { x: number; y: number };
 };
-
-// E is generic so this module does not need to import AreaExtra from the setup layer.
 
 /**
  * Snapshots all selected nodes (cloning their state at copy time) along with
@@ -159,9 +156,9 @@ export async function pasteNodes<E>(
     if (connEntry.kind === "boolean") {
       await editor.addConnection(
         new BooleanConnection(
-          source as LogicalProps,
+          source as BooleanNodeProps,
           connEntry.sourceOutput,
-          target as LogicalProps,
+          target as BooleanNodeProps,
           connEntry.targetInput,
           connEntry.operator,
         ),

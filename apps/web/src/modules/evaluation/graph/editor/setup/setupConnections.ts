@@ -7,7 +7,7 @@ import { BooleanSocket } from "@/modules/evaluation/graph/editor/sockets/boolean
 import { RuleSocket } from "@/modules/evaluation/graph/editor/sockets/ruleSocket";
 import type {
   LimitItemProps,
-  LogicalProps,
+  BooleanNodeProps,
   Schemes,
 } from "@/modules/evaluation/graph/editor/types";
 import type { NodeEditor } from "rete";
@@ -221,9 +221,9 @@ export function setupConnection(
       if (sourceOutput !== "out" || targetInput !== "in") return null;
 
       return new BooleanConnection(
-        sourceNode as LogicalProps,
+        sourceNode as BooleanNodeProps,
         "out",
-        targetNode as LogicalProps,
+        targetNode as BooleanNodeProps,
         "in",
       );
     }

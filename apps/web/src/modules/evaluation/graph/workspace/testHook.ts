@@ -6,7 +6,7 @@ import { LimitItemConnection } from "@/modules/evaluation/graph/editor/connectio
 import type { AreaExtra } from "@/modules/evaluation/graph/editor/setup/createEditor";
 import type {
   LimitItemProps,
-  LogicalProps,
+  BooleanNodeProps,
   Schemes,
 } from "@/modules/evaluation/graph/editor/types";
 import type { EvalLimitItemOperatorEnum } from "@repo/schema";
@@ -56,8 +56,8 @@ export function installTestHook(handle: {
     ...handle,
     addBooleanConnection: async (sourceId, targetId, operator = "TRUE") => {
       // FIX(error-handling): getNode may return undefined and the cast hides it (same in addLimitItemConnection below), so a wrong fixture id fails deep inside the connection constructor with a cryptic error — fix: throw new Error(`node ${sourceId} not found`) when the lookup fails; why: e2e failures should point at the bad id, not at rete internals.
-      const source = editor.getNode(sourceId) as LogicalProps;
-      const target = editor.getNode(targetId) as LogicalProps;
+      const source = editor.getNode(sourceId) as BooleanNodeProps;
+      const target = editor.getNode(targetId) as BooleanNodeProps;
       await editor.addConnection(
         new BooleanConnection(source, "out", target, "in", operator),
       );

@@ -1,4 +1,3 @@
-// FIX(naming): file is named QuantifierControlView.tsx but exports QuantifierTypeControlView for QuantifierTypeControl — fix: rename the file to QuantifierTypeControlView.tsx so file and export match; why: the folder already has QuantifierValueControlView.tsx exporting QuantifierUnitsControlView, and two near-identically named files that both mismatch their exports make the quantifier controls easy to confuse.
 import type { QuantifierTypeControl } from "@/modules/evaluation/graph/editor/controls/quantifierType";
 import { EvalLimitItemQuantifierTypeEnum } from "@repo/schema";
 import {

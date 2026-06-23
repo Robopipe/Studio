@@ -1,18 +1,18 @@
-import type { LogicalProps } from "@/modules/evaluation/graph/editor/types";
+import type { BooleanNodeProps } from "@/modules/evaluation/graph/editor/types";
 import { ClassicPreset } from "rete";
 
 export type BooleanOperator = "TRUE" | "NOT";
 
 export class BooleanConnection extends ClassicPreset.Connection<
-  LogicalProps,
-  LogicalProps
+  BooleanNodeProps,
+  BooleanNodeProps
 > {
   booleanOperator: BooleanOperator;
 
   constructor(
-    source: LogicalProps,
+    source: BooleanNodeProps,
     sourceOutput: string,
-    target: LogicalProps,
+    target: BooleanNodeProps,
     targetInput: string,
     booleanOperator: BooleanOperator = "TRUE",
   ) {

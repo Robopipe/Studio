@@ -1,4 +1,6 @@
-// FIX(naming): "LogicNodes" here vs "Logical" everywhere else (nodes/logical/, validateLogical.ts, LogicalNodeBase) — fix: rename to serializeLogicalNodes.ts (and the deserialization twin), or add a note that the name intentionally mirrors the backend payload field `logicNodes`; why: the Logic/Logical split makes cross-module grep and navigation unreliable.
+// "LogicNodes" (not "Logical") deliberately mirrors the persisted payload field
+// `logicNodes` -- the flat boolean expression -- not the AND/OR "logical" node
+// classes under nodes/logical/.
 import type {
   NodeProps,
   Schemes,

@@ -3,10 +3,10 @@ import type { NodeEditor } from "rete";
 import { findActionsWithInvalidSource } from "./rules/validateActions";
 import {
   findNodesOutsideResultIsland,
-  findNodesWithMultipleGraphOutputs,
+  findBranchesNotLeadingToResult,
 } from "./rules/validateGlobal";
 import {
-  findLimitItemCrossScopeConnections,
+  findCrossScopeConnections,
   findOrphanLimitItems,
 } from "./rules/validateLimitItems";
 import {
@@ -17,7 +17,7 @@ import {
 import { findUselessLogicalNodes } from "./rules/validateLogical";
 import { findInvalidResultNodeCount } from "./rules/validateResult";
 import type { ControlIssues, ValidationIssue, ValidationResult } from "./types";
-import { ValidationGraph } from "./validationGraph";
+import { ValidationGraph } from "./ValidationGraph";
 
 export function validateGraph(editor: NodeEditor<Schemes>): ValidationResult {
   const graph = new ValidationGraph(editor);
@@ -30,7 +30,7 @@ export function validateGraph(editor: NodeEditor<Schemes>): ValidationResult {
   findLimitsWithMultipleIslands(context);
 
   findOrphanLimitItems(context);
-  findLimitItemCrossScopeConnections(context);
+  findCrossScopeConnections(context);
   findLimitsWithMissingRequiredInputs(context);
 
   findUselessLogicalNodes(context);
@@ -40,7 +40,7 @@ export function validateGraph(editor: NodeEditor<Schemes>): ValidationResult {
   findInvalidResultNodeCount(context);
 
   findNodesOutsideResultIsland(context);
-  findNodesWithMultipleGraphOutputs(context);
+  findBranchesNotLeadingToResult(context);
 
   const hasNodeErrors = Array.from(nodeIssues.values()).some((issues) =>
     issues.some((issue) => issue.level === "error"),

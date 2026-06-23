@@ -1,4 +1,3 @@
-// FIX(naming): file is named QuantifierValueControlView.tsx but exports QuantifierUnitsControlView for QuantifierUnitsControl — fix: rename the file to QuantifierUnitsControlView.tsx (or rename the component) so file and export match like the sibling control views; why: searching for the component by name misses the file and the mismatch invites wrong imports.
 import type { QuantifierUnitsControl } from "@/modules/evaluation/graph/editor/controls/quantifierUnits";
 import { Button } from "@/modules/shadcn/ui/button";
 import { ButtonGroup } from "@/modules/shadcn/ui/button-group";

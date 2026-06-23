@@ -4,7 +4,7 @@ import { AndNode } from "@/modules/evaluation/graph/editor/nodes/logical/and";
 import { ResultNode } from "@/modules/evaluation/graph/editor/nodes/result/result";
 import {
   findNodesOutsideResultIsland,
-  findNodesWithMultipleGraphOutputs,
+  findBranchesNotLeadingToResult,
 } from "@/modules/evaluation/graph/editor/validation/rules/validateGlobal";
 import { describe, expect, it } from "vitest";
 import { conn, makeContext } from "./helpers";
@@ -50,12 +50,12 @@ describe("findNodesOutsideResultIsland", () => {
   });
 });
 
-describe("findNodesWithMultipleGraphOutputs", () => {
+describe("findBranchesNotLeadingToResult", () => {
   it("reports no issues when a branching node has only one graph output", () => {
     const limit = new LimitNode();
     const result = new ResultNode();
     const ctx = makeContext([limit, result], [conn(limit.id, result.id)]);
-    findNodesWithMultipleGraphOutputs(ctx);
+    findBranchesNotLeadingToResult(ctx);
     expect(ctx.nodeIssues.size).toBe(0);
   });
 
@@ -71,7 +71,7 @@ describe("findNodesWithMultipleGraphOutputs", () => {
         conn(and.id, result.id),
       ],
     );
-    findNodesWithMultipleGraphOutputs(ctx);
+    findBranchesNotLeadingToResult(ctx);
     expect(ctx.nodeIssues.size).toBe(0);
   });
 
@@ -83,7 +83,7 @@ describe("findNodesWithMultipleGraphOutputs", () => {
       [limit, and, result],
       [conn(limit.id, result.id), conn(limit.id, and.id)],
     );
-    findNodesWithMultipleGraphOutputs(ctx);
+    findBranchesNotLeadingToResult(ctx);
     const issues = ctx.nodeIssues.get(and.id) ?? [];
     expect(issues).toHaveLength(1);
     expect(issues.at(0)?.level).toBe("error");

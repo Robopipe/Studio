@@ -72,8 +72,7 @@ export function findNodesOutsideResultIsland(context: ValidationContext) {
  * must eventually lead to a Result node. Branch targets that do not lead to a
  * Result node are marked as invalid.
  */
-// FIX(naming): the name says it finds 'nodes with multiple graph outputs', but having multiple outputs is only the trigger — what it actually reports are branch *targets* that never reach a Result node — fix: rename to something like findBranchesNotLeadingToResult; why: the issue is attached to connection targets, so readers grepping by the reported message will not connect it to this name.
-export function findNodesWithMultipleGraphOutputs(context: ValidationContext) {
+export function findBranchesNotLeadingToResult(context: ValidationContext) {
   const { graph, nodeIssues } = context;
 
   const resultIslandNodeIds = getResultIslandNodeIds(context);

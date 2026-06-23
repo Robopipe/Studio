@@ -18,19 +18,14 @@ import type { ResultNode } from "./nodes/result/result";
 export type NodeGroup = "rule" | "logical" | "limit" | "action" | "result";
 
 export type LimitItemProps = CountNode | PositionNode | AreaNode;
-// FIX(naming): LogicalProps actually means "any node connectable via BooleanConnection" and
-// includes Limit, Warning, Alert and Result nodes, while elsewhere "logical" means only AND/OR
-// (nodeGroup 'logical', isLogicalOperator guard, nodes/logical/ folder) — fix: rename to
-// something like BooleanNodeProps/BooleanGraphProps; why: the same word meaning two different
-// node sets invites wrong instanceof assumptions at the BooleanConnection casts.
-export type LogicalProps =
+export type BooleanNodeProps =
   | AndNode
   | OrNode
   | LimitNode
   | WarningNode
   | AlertNode
   | ResultNode;
-export type NodeProps = LimitItemProps | LogicalProps;
+export type NodeProps = LimitItemProps | BooleanNodeProps;
 
 export type ConnProps = LimitItemConnection | BooleanConnection;
 
