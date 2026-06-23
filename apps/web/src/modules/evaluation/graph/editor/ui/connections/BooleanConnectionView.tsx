@@ -15,5 +15,6 @@ export function createBooleanConnectionView(
     setValue: (connection, value) => {
       connection.booleanOperator = value;
     },
+    getLabel: (value) => (value === "TRUE" ? "PASS" : "FLIP"),
   });
 }

@@ -66,6 +66,16 @@ export function setupRender(props: Props): ReactPlugin<Schemes, AreaExtra> {
 
   const render = new ReactPlugin<Schemes, AreaExtra>({ createRoot });
 
+  // Build each configured connection view once. The customize.connection callback
+  // below runs on every render; creating a fresh view there would give it a new
+  // component identity each time, remounting the connection (losing the toggle's
+  // position and restarting the dash animation).
+  const refreshConnection = (id: string) => {
+    void area.update("connection", id);
+  };
+  const limitItemConnectionView = createLimitItemConnectionView(refreshConnection);
+  const booleanConnectionView = createBooleanConnectionView(refreshConnection);
+
   render.addPreset(
     Presets.classic.setup({
       customize: {
@@ -122,9 +132,7 @@ export function setupRender(props: Props): ReactPlugin<Schemes, AreaExtra> {
             sourceSocket instanceof RuleSocket &&
             targetSocket instanceof RuleSocket
           ) {
-            return createLimitItemConnectionView((id) => {
-              void area.update("connection", id);
-            });
+            return limitItemConnectionView;
           }
 
           if (
@@ -144,9 +152,7 @@ export function setupRender(props: Props): ReactPlugin<Schemes, AreaExtra> {
               return CustomConnectionView;
             }
 
-            return createBooleanConnectionView((id) => {
-              void area.update("connection", id);
-            });
+            return booleanConnectionView;
           }
 
           return CustomConnectionView;

@@ -209,3 +209,11 @@
     @apply font-sans;
     }
 }
+
+/* Marching-ants animation for graph connection paths (evaluation editor).
+   Defined globally so it does not depend on any one component mounting first. */
+@keyframes dash {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
