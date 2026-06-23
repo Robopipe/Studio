@@ -104,7 +104,6 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
         annotationsUsed: model.annotationsUsed,
         labels: model.labels,
         outputs: model.outputTypes,
-        backend: model.backend,
         region: model.region,
         quantization: model.quantization,
         datasetSplit: {

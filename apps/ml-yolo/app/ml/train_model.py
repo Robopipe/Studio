@@ -273,13 +273,22 @@ def run_training(config: ModelConfig) -> None:
                 model_id=config.id,
                 model_type=config.type,
                 label_ids=config.training_config.dataset_config.label_ids,
+                # When checkpoints are uploaded, gate each epoch log on its
+                # checkpoint becoming durable so a Spot resume can't replay
+                # already-logged epochs (see WebhookCallbacks / CheckpointCallback).
+                gated=config.checkpoint_config is not None,
             )
             model.add_callback("on_fit_epoch_end", callbacks.on_fit_epoch_end)
             model.add_callback("on_train_end", callbacks.on_train_end)
 
             if config.checkpoint_config:
                 from .ultralytics_callbacks import CheckpointCallback
-                checkpoint_cb = CheckpointCallback(config.checkpoint_config.put_url)
+                # Release an epoch's buffered log only once its checkpoint upload
+                # succeeds, so backend.lastLoggedEpoch <= gcs.checkpointEpoch.
+                checkpoint_cb = CheckpointCallback(
+                    config.checkpoint_config.put_url,
+                    on_persisted=callbacks.flush_through,
+                )
                 # on_model_save fires after the trainer finishes writing
                 # last.pt; hooking on_fit_epoch_end would race the write.
                 model.add_callback("on_model_save", checkpoint_cb.on_model_save)
