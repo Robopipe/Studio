@@ -14,14 +14,12 @@ type Props = {
 
 export const AreaNodeView = (props: Props) => {
   const { data, emit } = props;
-
+  const { range, units, quantifier } = data.controls;
   const input = data.inputs.in;
   const output = data.outputs.out;
-  const { range, units, quantifier } = data.controls;
 
-  // FIX(error-handling): error message says "CountNode" but this is AreaNodeView (copy-paste from CountNodeView) — fix: "AreaNode is missing expected parts"; why: the misleading node name in the thrown error points debugging at the wrong node type.
   if (!input || !output || !range || !units || !quantifier) {
-    throw new Error(`CountNode is missing expected parts`);
+    throw new Error(`AreaNode is missing expected parts`);
   }
 
   return (

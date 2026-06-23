@@ -49,7 +49,10 @@ export const PositionControlView = ({ data }: Props) => {
         value={value.targetEdge}
         onValueChange={(next) => data.setTargetEdge(next as EvalLimitItemEdgeEnum)}
       >
-        <SelectTrigger size="sm" className="h-9 w-full text-zinc-400">
+        <SelectTrigger
+          size="sm"
+          className="h-9 w-full min-w-0 text-zinc-400 bg-white [&>span]:block [&>span]:truncate"
+        >
           <SelectValue placeholder="Detection" />
         </SelectTrigger>
         <SelectContent className="text-zinc-400">
@@ -67,7 +70,10 @@ export const PositionControlView = ({ data }: Props) => {
         value={value.parentEdge}
         onValueChange={(next) => data.setParentEdge(next as EvalLimitItemEdgeEnum)}
       >
-        <SelectTrigger size="sm" className="h-9 w-full text-zinc-400">
+        <SelectTrigger
+          size="sm"
+          className="h-9 w-full min-w-0 text-zinc-400 bg-white [&>span]:block [&>span]:truncate"
+        >
           <SelectValue placeholder="Input" />
         </SelectTrigger>
         <SelectContent className="text-zinc-400">

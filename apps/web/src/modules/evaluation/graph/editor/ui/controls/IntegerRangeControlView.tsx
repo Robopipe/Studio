@@ -39,7 +39,7 @@ export const IntegerRangeControlView = ({ data }: Props) => {
     >
       <ButtonGroup className="min-w-0 flex-1">
         <Input
-          className="h-9 px-2.5 text-sm"
+          className="h-9 px-2.5 text-sm bg-white"
           type="number"
           inputMode="numeric"
           min={data.min}
@@ -66,7 +66,7 @@ export const IntegerRangeControlView = ({ data }: Props) => {
 
       <ButtonGroup className="min-w-0 flex-1">
         <Input
-          className="h-9 px-2.5 text-sm"
+          className="h-9 px-2.5 text-sm bg-white"
           type="number"
           inputMode="numeric"
           min={data.min}

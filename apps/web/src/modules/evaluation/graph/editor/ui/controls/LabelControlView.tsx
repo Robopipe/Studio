@@ -27,13 +27,17 @@ export const LabelControlView = ({ data }: Props) => {
       >
         <SelectTrigger
           size="sm"
+          title={selected?.name}
           className={cn(
-            "w-full text-zinc-400",
+            "w-full min-w-0 text-zinc-400 bg-white",
+            "[&>span]:block [&>span]:truncate",
             data.hasValidationErrors && "border-red-500 focus:ring-red-500",
           )}
         >
           <SelectValue placeholder="Select label">
-            {selected?.name ?? (value === null ? "Select label" : undefined)}
+            <span className="block truncate">
+              {selected?.name ?? (value === null ? "Select label" : undefined)}
+            </span>
           </SelectValue>
         </SelectTrigger>
 

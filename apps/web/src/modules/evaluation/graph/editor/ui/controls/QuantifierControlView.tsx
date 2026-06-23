@@ -25,7 +25,7 @@ export const QuantifierTypeControlView = ({ data }: Props) => {
           data.setValue(next as EvalLimitItemQuantifierTypeEnum)
         }
       >
-        <SelectTrigger size="sm" className="w-full">
+        <SelectTrigger size="sm" className="w-full bg-white">
           <SelectValue placeholder="Select quantifier" />
         </SelectTrigger>
 

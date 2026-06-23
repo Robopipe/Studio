@@ -25,7 +25,7 @@ export const NameControlView = ({ data }: Props) => {
         type="text"
         value={draft}
         className={cn(
-          "h-9",
+          "h-9 bg-white",
           data.hasValidationErrors &&
             "border-red-500 focus-visible:ring-red-500",
         )}

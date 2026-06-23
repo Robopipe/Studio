@@ -26,7 +26,7 @@ export const QuantifierUnitsControlView = ({ data }: Props) => {
   return (
     <ButtonGroup className="w-full" onPointerDown={(e) => e.stopPropagation()}>
       <Input
-        className="h-9 px-2.5 text-sm"
+        className="h-9 px-2.5 text-sm bg-white"
         type="number"
         inputMode="numeric"
         min={0}

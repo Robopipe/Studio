@@ -19,9 +19,10 @@ export function ResultNodeView(props: Props) {
   const input = data.inputs.in;
   const output = data.outputs.out;
 
-  if (!input || !output)
-    throw new Error(`${label} node is missing expected parts`);
-
+  if (!input || !output) {
+    throw new Error(`ResultNode is missing expected parts`);
+  }
+    
   return (
     <NodeContainer
       height={height}

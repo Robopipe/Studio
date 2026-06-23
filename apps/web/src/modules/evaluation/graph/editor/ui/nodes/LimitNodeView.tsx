@@ -13,12 +13,12 @@ type Props = {
 
 export const LimitNodeView = (props: Props) => {
   const { data, emit } = props;
-
-  const output = data.outputs.out;
-  if (!output) throw new Error(`LimitNode is missing an output socket`);
-
-  // FIX(consistency): the output socket is guarded above, but the name/label/parentLabel controls are passed to RefControl unchecked, while every sibling view (AreaNodeView, CountNodeView, PositionNodeView) validates its controls and throws — fix: include the three controls in the missing-parts guard (if (!output || !name || !label || !parentLabel) throw ...); why: a deserialized LimitNode with a missing control would render silently broken here instead of failing loudly like the other node views.
   const { name, label, parentLabel, enabled } = data.controls;
+  const output = data.outputs.out;
+
+  if (!output || !name || !label || !parentLabel || !enabled) {
+    throw new Error(`CountNode is missing expected parts`);
+  }
 
   return (
     <ParentNodeContainer

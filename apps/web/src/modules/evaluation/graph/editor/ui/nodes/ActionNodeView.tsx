@@ -6,6 +6,7 @@ import { NodeContainer } from "@/modules/evaluation/graph/editor/ui/components/c
 import { IssueTooltip } from "@/modules/evaluation/graph/editor/ui/components/IssesTooltip";
 import { InputSocket } from "@/modules/evaluation/graph/editor/ui/components/sockets/InputSocket";
 import type { RenderEmit } from "rete-react-plugin";
+import { Label } from "../components/Label";
 
 type Props = {
   data: WarningNode | AlertNode;
@@ -14,13 +15,11 @@ type Props = {
 
 export const ActionNodeView = (props: Props) => {
   const { data, emit } = props;
+  const { label, height, width, selected = false, issues } = data;
   const input = data.inputs.in;
 
-  const { label, height, width, selected = false, issues } = data;
-
-  // FIX(error-handling): error message says "CoundNode" (copy-paste typo from CountNodeView) but this is the action (Warning/Alert) node view — fix: throw new Error(`${label} node is missing expected parts`) like ResultNodeView does; why: a wrong node name in the error sends whoever debugs a broken graph to the wrong file.
   if (!input) {
-    throw new Error(`CoundNode is missing expected parts`);
+    throw new Error(`ActionNode is missing expected parts`);
   }
 
   return (
@@ -41,7 +40,7 @@ export const ActionNodeView = (props: Props) => {
           style={{ height: `${data.socketHeight * GRID}px` }}
         >
           <InputSocket emit={emit} nodeId={data.id} input={input} />
-          <span className="flex flex-1 text-zinc-400 font-medium">{label}</span>
+          <Label>{label}</Label>
         </div>
       </div>
     </NodeContainer>

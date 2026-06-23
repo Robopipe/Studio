@@ -14,14 +14,12 @@ type Props = {
 
 export const CountNodeView = (props: Props) => {
   const { data, emit } = props;
-
+  const { count } = data.controls;
   const input = data.inputs.in;
   const output = data.outputs.out;
-  const { count } = data.controls;
 
-  // FIX(naming): typo "CoundNode" in the error message (and this exact typo has been copy-pasted into ActionNodeView and LogicalNode) — fix: "CountNode is missing expected parts"; why: misspelled error text is ungreppable against the real node name when debugging.
   if (!input || !output || !count) {
-    throw new Error(`CoundNode is missing expected parts`);
+    throw new Error(`CountNode is missing expected parts`);
   }
 
   return (

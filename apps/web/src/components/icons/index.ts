@@ -23,3 +23,5 @@ export * from "./TableViewIcon";
 export * from "./VerticalIcon";
 export * from "./XaxisIcon";
 export * from "./YaxisIcon";
+export * from "./AndGateIcon";
+export * from "./OrGateIcon";

@@ -25,7 +25,7 @@ export const PercentageRangeControlView = ({ data }: Props) => {
         min={data.min}
         max={data.max}
         step={data.step}
-        className="w-full"
+        className="w-full [&_[data-slot=slider-track]]:bg-zinc-200"
         onValueChange={(next) => {
           if (typeof next === "number") return;
 
