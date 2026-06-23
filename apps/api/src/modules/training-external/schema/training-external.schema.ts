@@ -134,10 +134,16 @@ export const trainingOutputUploadSchema = z.object({
   object_path: z.string(),
 });
 
+export const trainingCheckpointConfigSchema = z.object({
+  put_url: z.string(),
+  get_url: z.string(),
+});
+
 const basePayload = z.object({
   id: z.number(),
   training_config: trainingConfigSchema,
   output_config: trainingOutputUploadSchema.array(),
+  checkpoint_config: trainingCheckpointConfigSchema.optional(),
 });
 
 const createDataSchema = <T extends z.ZodTypeAny>(labelSchema: T) =>

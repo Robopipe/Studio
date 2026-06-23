@@ -6,11 +6,82 @@ apps/ml/app/ml/callbacks.py for the reference schema.
 """
 
 import math
+import shutil
+from pathlib import Path
+import threading
 from typing import Any, Optional
 
 import requests
 
 from ..models.model_type import ModelType
+
+
+def _upload_checkpoint_worker(put_url: str, file_path: Path) -> None:
+    try:
+        if not file_path.exists():
+            return
+        with open(file_path, "rb") as f:
+            r = requests.put(
+                put_url,
+                data=f,
+                headers={"Content-Type": "application/octet-stream"},
+                timeout=300,  # 5 minute timeout for large checkpoints
+            )
+            r.raise_for_status()
+            # Split URL to avoid logging the signature
+            print(f"[ml-yolo] Uploaded checkpoint to {put_url.split('?')[0]}")
+    except Exception as e:
+        print(f"[ml-yolo] Failed to upload checkpoint: {e}")
+
+
+class CheckpointCallback:
+    """Upload last.pt to GCS after each checkpoint save.
+
+    Hooked on on_model_save, NOT on_fit_epoch_end: the trainer writes
+    last.pt between those two callbacks, so reading it at on_fit_epoch_end
+    races the write and can upload a torn file — which then poisons the
+    Spot resume path (torch.load fails, the task crashes, Batch retries
+    into the same corrupt checkpoint).
+
+    last.pt is stable during on_model_save and untouched until the next
+    epoch's save, so we snapshot it with a cheap local copy and upload the
+    snapshot from a background thread — training never blocks on GCS.
+    Single-flight: if the previous upload is still running, this epoch is
+    skipped; the next save uploads a fresher checkpoint anyway. The lock
+    also guarantees the snapshot file is never overwritten mid-upload.
+    """
+
+    def __init__(self, put_url: str):
+        self.put_url = put_url
+        self._upload_lock = threading.Lock()
+
+    def on_model_save(self, trainer: Any) -> None:
+        last_pt = Path(trainer.save_dir) / "weights" / "last.pt"
+        if not last_pt.exists():
+            return
+        if not self._upload_lock.acquire(blocking=False):
+            print("[ml-yolo] Previous checkpoint upload still in flight, skipping")
+            return
+        snapshot = last_pt.with_name("last_upload_snapshot.pt")
+        try:
+            shutil.copyfile(last_pt, snapshot)
+        except Exception as e:
+            self._upload_lock.release()
+            print(f"[ml-yolo] Failed to snapshot checkpoint: {e}")
+            return
+        thread = threading.Thread(
+            target=self._upload_and_release,
+            args=(snapshot,),
+            daemon=True,
+        )
+        thread.start()
+
+    def _upload_and_release(self, snapshot: Path) -> None:
+        try:
+            _upload_checkpoint_worker(self.put_url, snapshot)
+        finally:
+            snapshot.unlink(missing_ok=True)
+            self._upload_lock.release()
 
 
 def _coerce_float(value: Any) -> Optional[float]:

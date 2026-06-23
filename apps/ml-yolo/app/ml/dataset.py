@@ -1,9 +1,11 @@
+import hashlib
 import math
 import random
 import requests
 import shutil
 import yaml
 import os
+from concurrent.futures import ThreadPoolExecutor
 from collections import defaultdict
 
 from ..models.dataset_config import DatasetConfig
@@ -26,7 +28,7 @@ TEST_DIR = "test"
 def copy_image(image: Image, dest: str):
     image_path = image.file_url
     if image_path.startswith("http://") or image_path.startswith("https://"):
-        response = requests.get(image_path, stream=True)
+        response = requests.get(image_path, stream=True, timeout=30)
         if response.status_code == 200:
             filename = os.path.basename(image_path)
             dest_path = os.path.join(dest, filename)
@@ -60,9 +62,24 @@ def prepare_dataset_config(config: DatasetConfig, dir: str):
         yaml.dump({"names": get_label_mapping(config)}, f)
 
 
-def iterate_datasets(images: list[Image], config: DatasetConfig):
-    shuffled_images = list(images)
-    random.shuffle(shuffled_images)
+def split_seed(seed_source: str) -> int:
+    """Derive a deterministic RNG seed from a stable string (the model id).
+
+    sha256, not the built-in hash() — hash() is salted per process
+    (PYTHONHASHSEED), so it would produce a different seed on every VM and
+    defeat the purpose.
+    """
+    return int.from_bytes(hashlib.sha256(seed_source.encode()).digest()[:8], "big")
+
+
+def iterate_datasets(images: list[Image], config: DatasetConfig, seed: int):
+    # The split must be identical across Cloud Batch task attempts: a Spot
+    # retry resumes from a checkpoint, and a re-drawn split would leak
+    # already-trained images into val/test. Sort by file_url first so the
+    # result is also independent of payload ordering, then shuffle with a
+    # seeded RNG isolated from the global `random` state.
+    shuffled_images = sorted(images, key=lambda image: image.file_url)
+    random.Random(seed).shuffle(shuffled_images)
     train_split, val_split, _ = (s / 100.0 for s in config.dataset_split)
     total_images = len(images)
     train_end = int(total_images * train_split)
@@ -128,7 +145,11 @@ def merge_groups(images: list[Image]) -> list[Image]:
 
 
 def prepare_dataset(
-    dir: str, images: list[Image], config: DatasetConfig, task_type: ModelType
+    dir: str,
+    images: list[Image],
+    config: DatasetConfig,
+    task_type: ModelType,
+    seed: int,
 ):
     if config.use_groups and task_type == ModelType.DETECTION:
         images = merge_groups(images)
@@ -147,7 +168,8 @@ def prepare_dataset(
         prepare_dirs(label_dir)
         prepare_dataset_config(config, dir)
 
-    for image, curr_dir in iterate_datasets(images, config):
+    def _download_task(args):
+        image, curr_dir = args
         if task_type == ModelType.CLASSIFICATION:
             label_name = label_mapping[image.labels[0].label.label_number]
             copy_image(image, f"{dir}/{curr_dir}/{label_name}")
@@ -158,3 +180,11 @@ def prepare_dataset(
             copy_image(image, f"{image_dir}/{curr_dir}")
             with open(f"{label_dir}/{curr_dir}/{label_filename}", "w") as f:
                 f.write("\n".join(image.labels_str(task_type)))
+
+    tasks = list(iterate_datasets(images, config, seed))
+    max_workers = min(32, len(tasks) or 1)
+    print(f"[ml-yolo] Downloading {len(tasks)} images using {max_workers} workers...")
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        list(executor.map(_download_task, tasks))
+    print(f"[ml-yolo] Dataset preparation complete.")
+

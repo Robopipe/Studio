@@ -9,6 +9,7 @@ Overwrite is applied first, then duplicate (so duplicates are based on preproces
 
 import os
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
 
 import albumentations as A
 import cv2
@@ -109,38 +110,69 @@ def _write_polygon_labels(
             f.write(f"{int(cls_id)} {points_str}\n")
 
 
+def _process_file_classification(filepath, label_dir, filename, pipeline, keep_originals):
+    image = cv2.imread(filepath)
+    if image is None:
+        return 0
+
+    result = pipeline(image=image)
+    ext = Path(filename).suffix.lower()
+
+    if keep_originals:
+        stem = Path(filename).stem
+        out_path = os.path.join(label_dir, f"{stem}{PREPROCESS_SUFFIX}{ext}")
+        cv2.imwrite(out_path, result["image"])
+    else:
+        cv2.imwrite(filepath, result["image"])
+    return 1
+
+
 def _process_classification(
     split_dir: str,
     pipeline: A.Compose,
     keep_originals: bool,
 ) -> int:
     """Apply the full preprocessing pipeline to all images in a classification split."""
-    count = 0
+    tasks = []
     for label_dir_name in os.listdir(split_dir):
         label_dir = os.path.join(split_dir, label_dir_name)
         if not os.path.isdir(label_dir):
             continue
-        for filename in list(os.listdir(label_dir)):
+        for filename in os.listdir(label_dir):
             filepath = os.path.join(label_dir, filename)
             ext = Path(filename).suffix.lower()
             if ext not in IMAGE_EXTENSIONS:
                 continue
+            tasks.append((filepath, label_dir, filename, pipeline, keep_originals))
 
-            image = cv2.imread(filepath)
-            if image is None:
-                continue
+    with ThreadPoolExecutor(max_workers=os.cpu_count() or 4) as executor:
+        results = executor.map(lambda args: _process_file_classification(*args), tasks)
+        return sum(results)
 
-            result = pipeline(image=image)
 
-            if keep_originals:
-                stem = Path(filename).stem
-                out_path = os.path.join(label_dir, f"{stem}{PREPROCESS_SUFFIX}{ext}")
-                cv2.imwrite(out_path, result["image"])
-            else:
-                cv2.imwrite(filepath, result["image"])
-            count += 1
+def _process_file_detection(filepath, image_split_dir, label_split_dir, filename, compose, keep_originals):
+    image = cv2.imread(filepath)
+    if image is None:
+        return 0
 
-    return count
+    stem = Path(filename).stem
+    ext = Path(filename).suffix.lower()
+    label_path = os.path.join(label_split_dir, f"{stem}.txt")
+    bboxes, class_ids = _parse_yolo_labels(label_path)
+
+    result = compose(image=image, bboxes=bboxes, class_labels=class_ids)
+    out_bboxes = [list(b) for b in result["bboxes"]]
+    out_class_ids = result["class_labels"]
+
+    if keep_originals:
+        out_img_path = os.path.join(image_split_dir, f"{stem}{PREPROCESS_SUFFIX}{ext}")
+        out_label_path = os.path.join(label_split_dir, f"{stem}{PREPROCESS_SUFFIX}.txt")
+        cv2.imwrite(out_img_path, result["image"])
+        _write_yolo_labels(out_label_path, out_bboxes, out_class_ids)
+    else:
+        cv2.imwrite(filepath, result["image"])
+        _write_yolo_labels(label_path, out_bboxes, out_class_ids)
+    return 1
 
 
 def _process_detection(
@@ -150,7 +182,6 @@ def _process_detection(
     keep_originals: bool,
 ) -> int:
     """Apply the full preprocessing pipeline to all images and YOLO labels."""
-    count = 0
     compose = A.Compose(
         pipeline_transforms,
         bbox_params=A.BboxParams(
@@ -160,39 +191,64 @@ def _process_detection(
         ),
     )
 
-    for filename in list(os.listdir(image_split_dir)):
+    tasks = []
+    for filename in os.listdir(image_split_dir):
         filepath = os.path.join(image_split_dir, filename)
         ext = Path(filename).suffix.lower()
         if ext not in IMAGE_EXTENSIONS:
             continue
-        stem = Path(filename).stem
+        tasks.append((filepath, image_split_dir, label_split_dir, filename, compose, keep_originals))
 
-        image = cv2.imread(filepath)
-        if image is None:
-            continue
+    with ThreadPoolExecutor(max_workers=os.cpu_count() or 4) as executor:
+        results = executor.map(lambda args: _process_file_detection(*args), tasks)
+        return sum(results)
 
-        label_path = os.path.join(label_split_dir, f"{stem}.txt")
-        bboxes, class_ids = _parse_yolo_labels(label_path)
 
-        result = compose(image=image, bboxes=bboxes, class_labels=class_ids)
-        out_bboxes = [list(b) for b in result["bboxes"]]
-        out_class_ids = result["class_labels"]
+def _process_file_segmentation(filepath, image_split_dir, label_split_dir, filename, compose, keep_originals):
+    image = cv2.imread(filepath)
+    if image is None:
+        return 0
 
-        if keep_originals:
-            out_img_path = os.path.join(
-                image_split_dir, f"{stem}{PREPROCESS_SUFFIX}{ext}"
-            )
-            out_label_path = os.path.join(
-                label_split_dir, f"{stem}{PREPROCESS_SUFFIX}.txt"
-            )
-            cv2.imwrite(out_img_path, result["image"])
-            _write_yolo_labels(out_label_path, out_bboxes, out_class_ids)
-        else:
-            cv2.imwrite(filepath, result["image"])
-            _write_yolo_labels(label_path, out_bboxes, out_class_ids)
-        count += 1
+    stem = Path(filename).stem
+    ext = Path(filename).suffix.lower()
+    img_h, img_w = image.shape[:2]
+    label_path = os.path.join(label_split_dir, f"{stem}.txt")
+    polygons, class_ids = _parse_polygon_labels(label_path)
 
-    return count
+    # Flatten polygon points into keypoints (pixel coords)
+    keypoints = []
+    poly_map = []  # (polygon_idx, point_count)
+    for poly_idx, points in enumerate(polygons):
+        poly_map.append((poly_idx, len(points)))
+        for x_norm, y_norm in points:
+            keypoints.append((x_norm * img_w, y_norm * img_h))
+
+    result = compose(image=image, keypoints=keypoints)
+    out_image = result["image"]
+    out_keypoints = result["keypoints"]
+    new_h, new_w = out_image.shape[:2]
+
+    # Reconstruct polygons from transformed keypoints
+    out_polygons = []
+    kp_idx = 0
+    for _, point_count in poly_map:
+        poly_points = []
+        for _ in range(point_count):
+            if kp_idx < len(out_keypoints):
+                px, py = out_keypoints[kp_idx]
+                poly_points.append((px / new_w, py / new_h))
+            kp_idx += 1
+        out_polygons.append(poly_points)
+
+    if keep_originals:
+        out_img_path = os.path.join(image_split_dir, f"{stem}{PREPROCESS_SUFFIX}{ext}")
+        out_label_path = os.path.join(label_split_dir, f"{stem}{PREPROCESS_SUFFIX}.txt")
+        cv2.imwrite(out_img_path, out_image)
+        _write_polygon_labels(out_label_path, out_polygons, class_ids)
+    else:
+        cv2.imwrite(filepath, out_image)
+        _write_polygon_labels(label_path, out_polygons, class_ids)
+    return 1
 
 
 def _process_segmentation(
@@ -202,68 +258,22 @@ def _process_segmentation(
     keep_originals: bool,
 ) -> int:
     """Apply the full preprocessing pipeline to all images and polygon labels."""
-    count = 0
+    compose = A.Compose(
+        pipeline_transforms,
+        keypoint_params=A.KeypointParams(format="xy", remove_invisible=False),
+    )
 
-    for filename in list(os.listdir(image_split_dir)):
+    tasks = []
+    for filename in os.listdir(image_split_dir):
         filepath = os.path.join(image_split_dir, filename)
         ext = Path(filename).suffix.lower()
         if ext not in IMAGE_EXTENSIONS:
             continue
-        stem = Path(filename).stem
+        tasks.append((filepath, image_split_dir, label_split_dir, filename, compose, keep_originals))
 
-        image = cv2.imread(filepath)
-        if image is None:
-            continue
-
-        img_h, img_w = image.shape[:2]
-        label_path = os.path.join(label_split_dir, f"{stem}.txt")
-        polygons, class_ids = _parse_polygon_labels(label_path)
-
-        # Flatten polygon points into keypoints (pixel coords)
-        keypoints = []
-        poly_map = []  # (polygon_idx, point_count)
-        for poly_idx, points in enumerate(polygons):
-            poly_map.append((poly_idx, len(points)))
-            for x_norm, y_norm in points:
-                keypoints.append((x_norm * img_w, y_norm * img_h))
-
-        compose = A.Compose(
-            pipeline_transforms,
-            keypoint_params=A.KeypointParams(format="xy", remove_invisible=False),
-        )
-
-        result = compose(image=image, keypoints=keypoints)
-        out_image = result["image"]
-        out_keypoints = result["keypoints"]
-        new_h, new_w = out_image.shape[:2]
-
-        # Reconstruct polygons from transformed keypoints
-        out_polygons = []
-        kp_idx = 0
-        for _, point_count in poly_map:
-            poly_points = []
-            for _ in range(point_count):
-                if kp_idx < len(out_keypoints):
-                    px, py = out_keypoints[kp_idx]
-                    poly_points.append((px / new_w, py / new_h))
-                kp_idx += 1
-            out_polygons.append(poly_points)
-
-        if keep_originals:
-            out_img_path = os.path.join(
-                image_split_dir, f"{stem}{PREPROCESS_SUFFIX}{ext}"
-            )
-            out_label_path = os.path.join(
-                label_split_dir, f"{stem}{PREPROCESS_SUFFIX}.txt"
-            )
-            cv2.imwrite(out_img_path, out_image)
-            _write_polygon_labels(out_label_path, out_polygons, class_ids)
-        else:
-            cv2.imwrite(filepath, out_image)
-            _write_polygon_labels(label_path, out_polygons, class_ids)
-        count += 1
-
-    return count
+    with ThreadPoolExecutor(max_workers=os.cpu_count() or 4) as executor:
+        results = executor.map(lambda args: _process_file_segmentation(*args), tasks)
+        return sum(results)
 
 
 def _run_pipeline(

@@ -323,7 +323,8 @@ export class TrainingExternalService {
       // the N1-style "custom attachment" path.
       const instancePolicy: protos.google.cloud.batch.v1.AllocationPolicy.IInstancePolicy = {
         machineType: mlBatchMachineType,
-        bootDisk: { sizeGb: String(mlBatchBootDiskGb) },
+        bootDisk: { sizeGb: String(mlBatchBootDiskGb), type: "pd-ssd" },
+        provisioningModel: "SPOT",
       };
       if (mlBatchGpuType && mlBatchGpuCount > 0) {
         instancePolicy.accelerators = [
@@ -380,6 +381,15 @@ export class TrainingExternalService {
                 memoryMib: mlBatchTaskMemoryMib,
               },
               maxRunDuration: { seconds: String(mlBatchMaxRunSeconds) },
+              maxRetryCount: 10,
+              lifecyclePolicies: [
+                {
+                  action: protos.google.cloud.batch.v1.LifecyclePolicy.Action.RETRY_TASK,
+                  actionCondition: {
+                    exitCodes: [50001],
+                  },
+                },
+              ],
             },
           },
         ],
@@ -464,16 +474,40 @@ export class TrainingExternalService {
       }
     })
 
+    const isUltralytics = model.backend === ModelBackendEnum.ULTRALYTICS;
+
+    const checkpointObjectPath = `${model.projectId}/model/${model.id}/checkpoint_last.pt`;
+    const [checkpointPutUrl, checkpointGetUrl] = isUltralytics
+      ? await Promise.all([
+          this.assetsService.generateSignedUploadUrl(
+            checkpointObjectPath,
+            "application/octet-stream",
+            UPLOAD_URL_TTL_MS,
+          ),
+          this.assetsService.generateSignedDownloadUrl(
+            checkpointObjectPath,
+            UPLOAD_URL_TTL_MS,
+          ),
+        ])
+      : [undefined, undefined];
+
     const basePayload: TrainingBasePayload = {
       id: model.id,
       output_config: outputUploads,
+      ...(checkpointPutUrl &&
+        checkpointGetUrl && {
+          checkpoint_config: {
+            put_url: checkpointPutUrl,
+            get_url: checkpointGetUrl,
+          },
+        }),
       training_config: {
         output_types: model.outputTypes,
         epochs: model.epochs,
         // ml-yolo consumes this to flip HubAI's quantization_mode between
         // FP16_STANDARD and INT8_STANDARD. Omit for Luxonis — its Pydantic
         // model rejects unknown keys (extra="forbid").
-        ...(model.backend === ModelBackendEnum.ULTRALYTICS && {
+        ...(isUltralytics && {
           quantization: model.quantization,
         }),
         dataset_config: {
