@@ -524,6 +524,7 @@ export class TrainingExternalService {
             params: pp.params,
             keep_original: pp.keepOriginal,
           })),
+          use_groups: model.useGroups
         },
         custom_hyperparams: model.customHyperparams,
       },
@@ -553,6 +554,7 @@ export class TrainingExternalService {
           labels: task.polygonAnnotations.map((annotation) => ({
             label: { label_number: labelsIndexMap[annotation.labelId] },
             points: annotation.value,
+            group_id: annotation.groupId,
           })),
         }));
 
@@ -574,6 +576,7 @@ export class TrainingExternalService {
                 y: annotation.y,
                 width: annotation.width,
                 height: annotation.height,
+                group_id: annotation.groupId,
               });
             }
           }
@@ -583,6 +586,7 @@ export class TrainingExternalService {
               labels.push({
                 label: { label_number: labelsIndexMap[annotation.labelId] },
                 points: annotation.value,
+                group_id: annotation.groupId,
               });
             }
           }

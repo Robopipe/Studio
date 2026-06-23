@@ -20,7 +20,7 @@ interface RunSubheaderProps {
 
 const TABS: { key: RunTab; label: string }[] = [
   { key: "inference", label: "Inference" },
-  { key: "dashboard", label: "Dashboard" },
+  { key: "dashboard", label: "Control" },
 ];
 
 const PHASE_MESSAGES: Record<Exclude<DeployPhase, "idle">, string> = {

@@ -1,7 +1,16 @@
 import { PolygonIcon, RectBboxIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/modules/shadcn/ui/dropdown-menu";
+import { PreAnnotateModelTypeEnum } from "@repo/schema";
+import {
+  ChevronDown,
   Crosshair,
+  FolderPlus,
   Hand,
   Info,
   Loader2,
@@ -34,13 +43,17 @@ export interface ToolbarProps {
   showCrosshair: boolean;
   onToggleCrosshair: () => void;
   onResetView: () => void;
-  onPreAnnotate: () => void;
+  onPreAnnotate: (modelType: PreAnnotateModelTypeEnum) => void;
   onOpenPreAnnotateSettings: () => void;
-  preAnnotateDisabled: boolean;
+  preAnnotateSegDisabled: boolean;
+  preAnnotateDetDisabled: boolean;
   preAnnotatePending: boolean;
-  preAnnotateDisabledReason?: string;
+  preAnnotateSegDisabledReason?: string;
+  preAnnotateDetDisabledReason?: string;
   preAnnotateSettingsDisabled?: boolean;
   preAnnotateSettingsDisabledReason?: string;
+  canGroup?: boolean;
+  onGroupSelected?: () => void;
 }
 
 const toolButtonClass =
@@ -63,11 +76,15 @@ export const Toolbar = ({
   onResetView,
   onPreAnnotate,
   onOpenPreAnnotateSettings,
-  preAnnotateDisabled,
+  preAnnotateSegDisabled,
+  preAnnotateDetDisabled,
   preAnnotatePending,
-  preAnnotateDisabledReason,
+  preAnnotateSegDisabledReason,
+  preAnnotateDetDisabledReason,
   preAnnotateSettingsDisabled,
   preAnnotateSettingsDisabledReason,
+  canGroup = false,
+  onGroupSelected,
 }: ToolbarProps) => {
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
@@ -97,6 +114,12 @@ export const Toolbar = ({
   }[] = [
     { icon: <Undo2 />, title: "Undo (Ctrl+Z)", onClick: onUndo, disabled: !canUndo },
     { icon: <Redo2 />, title: "Redo (Ctrl+Shift+Z)", onClick: onRedo, disabled: !canRedo },
+    {
+      icon: <FolderPlus />,
+      title: canGroup ? "Group regions (Ctrl+G)" : "Select ≥2 same-label regions to group",
+      onClick: () => onGroupSelected?.(),
+      disabled: !canGroup,
+    },
     { icon: <ZoomIn />, title: "Zoom in", onClick: onZoomIn },
     { icon: <ZoomOut />, title: "Zoom out", onClick: onZoomOut },
     { icon: <Maximize2 />, title: "Fit to screen (F)", onClick: onResetView },
@@ -164,18 +187,40 @@ export const Toolbar = ({
         </button>
       ))}
       <div className="my-1 h-px bg-black/10" />
-      <button
-        type="button"
-        className={cn(
-          toolButtonClass,
-          preAnnotateDisabled && "cursor-not-allowed opacity-[0.35]",
-        )}
-        title={preAnnotateDisabledReason ?? "Pre-annotate with model"}
-        onClick={onPreAnnotate}
-        disabled={preAnnotateDisabled}
-      >
-        {preAnnotatePending ? <Loader2 className="animate-spin" /> : <Sparkles />}
-      </button>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          className={cn(
+            toolButtonClass,
+            "relative",
+            preAnnotateSegDisabled && preAnnotateDetDisabled && "cursor-not-allowed opacity-[0.35]",
+          )}
+          title="Pre-annotate with model"
+          disabled={preAnnotatePending}
+        >
+          {preAnnotatePending ? (
+            <Loader2 className="animate-spin" />
+          ) : (
+            <Sparkles />
+          )}
+          <ChevronDown className="absolute bottom-0.5 right-0.5 size-2.5! opacity-50" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent side="right" align="end" sideOffset={6}>
+          <DropdownMenuItem
+            disabled={preAnnotateSegDisabled}
+            onClick={() => onPreAnnotate(PreAnnotateModelTypeEnum.SEGMENTATION)}
+            title={preAnnotateSegDisabledReason}
+          >
+            Segmentation
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            disabled={preAnnotateDetDisabled}
+            onClick={() => onPreAnnotate(PreAnnotateModelTypeEnum.DETECTION)}
+            title={preAnnotateDetDisabledReason}
+          >
+            Detection
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
       <button
         type="button"
         className={cn(

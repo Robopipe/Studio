@@ -5,10 +5,13 @@ import shutil
 import yaml
 import os
 from concurrent.futures import ThreadPoolExecutor
+from collections import defaultdict
 
 from ..models.dataset_config import DatasetConfig
 from ..models.image import Image
 from ..models.model_type import ModelType
+from ..models.labels.rectangle_label import RectangleLabel
+from ..models.labels.polygon_label import PolygonLabel
 
 DATASET_DIR = "dataset"
 DATASET_CONFIG = "dataset_config.yml"
@@ -86,9 +89,51 @@ def prepare_classification_directory(
             shutil.os.makedirs(label_dir, exist_ok=True)
 
 
+def _label_bbox(label: RectangleLabel | PolygonLabel) -> tuple[float, float, float, float]:
+    """Return (x_min, y_min, x_max, y_max) in raw 0–100 percent space."""
+    if isinstance(label, RectangleLabel):
+        return label.x, label.y, label.x + label.width, label.y + label.height
+    xs = [x for x, _ in label.points]
+    ys = [y for _, y in label.points]
+    return min(xs), min(ys), max(xs), max(ys)
+
+
+def merge_groups(images: list[Image]) -> list[Image]:
+    for img in images:
+        groupable = [l for l in img.labels if isinstance(l, (RectangleLabel, PolygonLabel))]
+        other = [l for l in img.labels if not isinstance(l, (RectangleLabel, PolygonLabel))]
+        grouped: dict[str | None, list] = defaultdict(list)
+        for l in groupable:
+            grouped[l.group_id].append(l)
+
+        ungrouped = grouped.pop(None, [])
+        merged_groups = []
+        for members in grouped.values():
+            bboxes = [_label_bbox(m) for m in members]
+            x_min = min(b[0] for b in bboxes)
+            y_min = min(b[1] for b in bboxes)
+            x_max = max(b[2] for b in bboxes)
+            y_max = max(b[3] for b in bboxes)
+            merged_groups.append(RectangleLabel(
+                label=members[0].label,
+                group_id=members[0].group_id,
+                x=x_min,
+                y=y_min,
+                width=x_max - x_min,
+                height=y_max - y_min,
+            ))
+
+        img.labels = other + ungrouped + merged_groups
+
+    return images
+
+
 def prepare_dataset(
     dir: str, images: list[Image], config: DatasetConfig, task_type: ModelType
 ):
+    if config.use_groups and task_type == ModelType.DETECTION:
+        images = merge_groups(images)
+
     global VAL_DIR
     dir = f"{dir}/{DATASET_DIR}"
     image_dir = f"{dir}/{IMAGE_DIR}"

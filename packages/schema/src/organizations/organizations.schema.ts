@@ -28,8 +28,10 @@ export const organizationMembersResponseSchema = z.object({
   members: z.array(organizationMemberSchema),
 });
 
+export const assignableRoleEnum = z.enum([OrgMemberRoleEnum.ADMIN, OrgMemberRoleEnum.MEMBER]);
+
 export const updateMemberRoleSchema = z.object({
-  role: z.enum([OrgMemberRoleEnum.ADMIN, OrgMemberRoleEnum.MEMBER]),
+  role: assignableRoleEnum,
 });
 
 export const organizationListItemSchema = z.object({
@@ -43,6 +45,7 @@ export const invitationSchema = z.object({
   email: z.email(),
   organizationName: z.string(),
   status: z.nativeEnum(InvitationStatusEnum),
+  role: assignableRoleEnum,
   expiresAt: z.string(),
   createdAt: z.string(),
 });

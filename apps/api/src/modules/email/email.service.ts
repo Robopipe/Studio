@@ -1,5 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import sgMail from "@sendgrid/mail";
+import { OrgMemberRoleEnum } from "@repo/schema";
 import { AppConfig } from "src/core/configuration/app.config";
 
 @Injectable()
@@ -40,18 +41,17 @@ export class EmailService {
 
   /**
    * @param email - recipient
-   * @param fullName - user's display name
-   * @param setPasswordLink - URL to the set-password page
+   * @param verifyLink - email verification URL
    */
-  async sendWelcomeEmail(email: string, fullName: string, setPasswordLink: string): Promise<void> {
+  async sendVerificationEmail(email: string, verifyLink: string): Promise<void> {
     const html = `
-      <h2>Welcome to Robopipe Studio</h2>
-      <p>Hi ${fullName},</p>
-      <p>Your account has been created. To get started, set your password by clicking the link below:</p>
-      <p><a href="${setPasswordLink}">${setPasswordLink}</a></p>
+      <h2>Verify your email — Robopipe Studio</h2>
+      <p>Thanks for signing up! Please verify your email address by clicking the link below:</p>
+      <p><a href="${verifyLink}">${verifyLink}</a></p>
       <p>This link will expire in 24 hours.</p>
+      <p>If you didn't create an account, you can safely ignore this email.</p>
     `;
-    await this.send(email, "Welcome to Robopipe Studio — Set Your Password", html);
+    await this.send(email, "Verify your email — Robopipe Studio", html);
   }
 
   /**
@@ -64,10 +64,12 @@ export class EmailService {
     email: string,
     organizationName: string,
     inviteLink: string,
+    role: OrgMemberRoleEnum,
   ): Promise<void> {
+    const roleLabel = role === OrgMemberRoleEnum.ADMIN ? 'Admin' : 'Member';
     const html = `
       <h2>You've Been Invited to Robopipe Studio</h2>
-      <p>You've been invited to join <strong>${organizationName}</strong> on Robopipe Studio.</p>
+      <p>You've been invited to join <strong>${organizationName}</strong> on Robopipe Studio as a <strong>${roleLabel}</strong>.</p>
       <p>Click the link below to accept the invitation:</p>
       <p><a href="${inviteLink}">${inviteLink}</a></p>
       <p>This invitation will expire in 7 days.</p>

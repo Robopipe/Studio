@@ -1,4 +1,4 @@
-import { useGetDashboardQuery, useListCamerasQuery } from "@/core/cameraApi";
+import { useGetNNQuery, useListCamerasQuery } from "@/core/cameraApi";
 import { useCameraApiUrl } from "@/hooks";
 import { useAppDispatch } from "@/hooks/redux";
 import { useSelectedCameraStream } from "@/modules/camera-selection";
@@ -79,22 +79,21 @@ export const CapturePage = ({}: CapturePageProps) => {
   // after Stop while the server now returns 404. isSuccess correctly
   // flips to false on a rejected refetch, matching useRunDeploy.
   const {
-    isSuccess: isDashboardRunning,
-    isLoading: isDashboardLoading,
-    isError: isDashboardError,
-  } = useGetDashboardQuery(
+    data: isModelRunning,
+    isLoading: isModelLoading,
+    isError: isModelError,
+  } = useGetNNQuery(
     { mxid: selectedCamera!, streamName: selectedStream! },
-    { skip: !selectedCamera || !selectedStream || isSwitchingProject },
+    { skip: !selectedCamera || !selectedStream || isSwitchingProject, refetchOnMountOrArgChange: true },
   );
   useEffect(() => {
-    if (isDashboardRunning || isDashboardError)
+    if (isModelRunning || isModelError)
       hasLoadedDashboardOnceRef.current = true;
-  }, [isDashboardRunning, isDashboardError]);
+  }, [isModelRunning, isModelError]);
 
-  const isModelRunning = isDashboardRunning;
   const needsSelection = !selectedCamera || !selectedStream;
-  const isInitialDashboardLoad =
-    isDashboardLoading && !hasLoadedDashboardOnceRef.current;
+  const isInitialModelLoad =
+    isModelLoading && !hasLoadedDashboardOnceRef.current;
 
   const hasCameras = cameras && cameras.length > 0;
 
@@ -124,7 +123,7 @@ export const CapturePage = ({}: CapturePageProps) => {
     return renderNoCamera();
   }
 
-  if (isLoading || (needsSelection && hasCameras) || isInitialDashboardLoad) {
+  if (isLoading || (needsSelection && hasCameras) || isInitialModelLoad) {
     return <SearchingForCamera url={cameraApiUrl} isOverride={isOverride} />;
   }
 

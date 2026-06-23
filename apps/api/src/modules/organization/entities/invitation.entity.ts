@@ -1,4 +1,5 @@
-import type { Invitation } from '@repo/schema';
+import type { AssignableRole, Invitation } from '@repo/schema';
+import { OrgMemberRoleEnum } from '@repo/schema';
 import type { InvitationSelect } from 'src/repository/types/invitation';
 
 export class InvitationEntity {
@@ -8,6 +9,7 @@ export class InvitationEntity {
   readonly invitedById: number;
   readonly token: string;
   readonly status: string;
+  readonly role: OrgMemberRoleEnum;
   readonly expiresAt: Date;
   readonly createdAt: Date;
   readonly organizationName?: string;
@@ -32,6 +34,7 @@ export class InvitationEntity {
       email: this.email,
       organizationName: this.organizationName ?? '',
       status: this.status as Invitation['status'],
+      role: this.role as AssignableRole,
       expiresAt: this.expiresAt.toISOString(),
       createdAt: this.createdAt.toISOString(),
     };
