@@ -2,11 +2,11 @@ import { expect, test } from "@playwright/test";
 import {
   addNodeAt,
   canvasCentre,
+  createLimitWithChildren,
   getConnections,
   getNodes,
   gotoEditor,
   nodeById,
-  pressShortcutAt,
 } from "./helpers";
 
 test.describe("Copy, paste & cut", () => {
@@ -15,7 +15,7 @@ test.describe("Copy, paste & cut", () => {
   });
 
   test("copy + paste duplicates the selected node", async ({ page }) => {
-    const id = await addNodeAt(page, "q", 0, 0);
+    const id = await addNodeAt(page, "a", 0, 0);
     await nodeById(page, id).click();
 
     await page.keyboard.press("ControlOrMeta+c");
@@ -31,7 +31,7 @@ test.describe("Copy, paste & cut", () => {
   test("cut removes the original and clipboard still pastes", async ({
     page,
   }) => {
-    const id = await addNodeAt(page, "q", 0, 0);
+    const id = await addNodeAt(page, "a", 0, 0);
     await nodeById(page, id).click();
 
     await page.keyboard.press("ControlOrMeta+x");
@@ -52,8 +52,8 @@ test.describe("Copy, paste & cut", () => {
   test("paste preserves internal connections between copied nodes", async ({
     page,
   }) => {
-    const a = await addNodeAt(page, "q", -250, 0);
-    const b = await addNodeAt(page, "q", 250, 0);
+    const a = await addNodeAt(page, "a", -250, 0);
+    const b = await addNodeAt(page, "a", 250, 0);
 
     await page.evaluate(
       ({ aId, bId }) => window.__editor!.addBooleanConnection(aId, bId),
@@ -77,23 +77,13 @@ test.describe("Copy, paste & cut", () => {
   });
 
   test("paste preserves parent-child relationships", async ({ page }) => {
-    const centre = await canvasCentre(page);
-    await pressShortcutAt(page, "l", { x: centre.x - 200, y: centre.y });
-    await pressShortcutAt(page, "1", { x: centre.x + 100, y: centre.y });
-    await pressShortcutAt(page, "1", { x: centre.x + 200, y: centre.y + 100 });
-    const limit = (await getNodes(page)).find((n) => n.label === "Limit")!;
-    // FIX(duplication): this "create Limit + Count children, then assign n.parent via page.evaluate" fixture block is copy-pasted in deletion.spec.ts (x2), history.spec.ts, movement.spec.ts and selection.spec.ts — fix: add a createLimitWithChildren(page, childCount) helper to helpers.ts (ideally backed by a setParent method on the window.__editor test hook); why: six near-identical copies will drift, and direct n.parent mutation bypassing the scopes plugin is a fragile detail that should live in one place.
-    await page.evaluate((parentId) => {
-      const { editor } = window.__editor!;
-      for (const n of editor.getNodes()) {
-        if (n.id !== parentId && n.label === "Count") n.parent = parentId;
-      }
-    }, limit.id);
+    const { limitId } = await createLimitWithChildren(page, 2);
 
-    // selects both children as parent selection selects its children.
-    await nodeById(page, limit.id).click({ position: { x: 5, y: 5 } });
+
+    await nodeById(page, limitId).click({ position: { x: 5, y: 5 } });
 
     await page.keyboard.press("ControlOrMeta+c");
+    const centre = await canvasCentre(page);
     await page.mouse.move(centre.x, centre.y + 300);
     await page.keyboard.press("ControlOrMeta+v");
 

@@ -24,7 +24,7 @@ test.describe("Context menu", () => {
   test("right clicking a node shows the Delete & Clone items", async ({
     page,
   }) => {
-    const id = await addNodeAt(page, "q", 0, 0);
+    const id = await addNodeAt(page, "a", 0, 0);
 
     await nodeById(page, id).click({
       button: "right",

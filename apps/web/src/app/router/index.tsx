@@ -16,6 +16,7 @@ import { ModelDetailPage, ModelNewPage } from "@/modules/model/components";
 import { ProjectsPage } from "@/modules/project";
 import { ProjectPage } from "@/modules/project/components/ProjectPage";
 import { RunPage } from "@/modules/run";
+import { E2EEditorPage } from "@/modules/evaluation/graph/workspace/E2EEditorPage";
 import { createBrowserRouter, Navigate, RouteObject } from "react-router";
 
 const { auth } = appConfig.web.routes;
@@ -69,4 +70,8 @@ const authenticatedRoutes: RouteObject = {
   ],
 };
 
-export const router = createBrowserRouter([publicRoutes, authenticatedRoutes]);
+// In E2E mode the whole app is replaced by the standalone editor host, so the
+// Playwright specs can reach the editor at any path without auth or backend data.
+export const router = import.meta.env.VITE_E2E
+  ? createBrowserRouter([{ path: "*", element: <E2EEditorPage /> }])
+  : createBrowserRouter([publicRoutes, authenticatedRoutes]);

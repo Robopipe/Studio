@@ -23,13 +23,14 @@ export const IntegerRangeControlView = ({ data }: Props) => {
     setLimitToDraft(formatNullableNumber(value.limitTo));
   }, [value.limitFrom, value.limitTo]);
 
-  // FIX(bug): when the committed input normalizes to the value already stored, IntegerRangeControl.setValue early-returns without emitting, so the resync effect never fires and the input keeps showing the stale raw text (e.g. value is 6, user types "5.7" -> control rounds to 6 -> no emit -> field still shows "5.7"; same for "-3" when value is 0) — fix: after commit, re-read the snapshot and setLimitFromDraft/setLimitToDraft unconditionally (or resync in onBlur); why: the UI displays a number that differs from the actual committed model value.
   const commitLimitFrom = (raw: string) => {
     data.setLimitFrom(parseNullableNumber(raw));
+    setLimitFromDraft(formatNullableNumber(data.limitFrom));
   };
 
   const commitLimitTo = (raw: string) => {
     data.setLimitTo(parseNullableNumber(raw));
+    setLimitToDraft(formatNullableNumber(data.limitTo));
   };
 
   return (

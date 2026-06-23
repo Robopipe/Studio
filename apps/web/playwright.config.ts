@@ -27,7 +27,7 @@ export default defineConfig({
     // They will not pass until the graph editor Workspace
     // (src/modules/evaluation/graph/workspace/Workspace.tsx) is mounted at a route the suite
     // visits and the E2E test hook is installed there. That route wiring is a follow-up.
-    command: `VITE_E2E=true pnpm dev -- --port ${PORT} --strictPort`,
+    command: `VITE_E2E=true pnpm dev --port ${PORT} --strictPort`,
     url: BASE_URL,
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,

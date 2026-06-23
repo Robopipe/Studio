@@ -13,9 +13,7 @@ test.describe("Canvas viewport", () => {
     await page.mouse.move(centre.x, centre.y);
     await page.mouse.wheel(0, 200);
 
-    // FIX(flakiness): mouse.wheel does not wait for the wheel event to be processed (per Playwright docs), so reading the zoom immediately can race the area plugin's handler — same pattern in both clamp tests below — fix: use await expect.poll(() => getZoom(page)).toBeLessThan(1); why: a one-frame delay in event dispatch turns these into intermittent failures on slow CI.
-    const zoomed = await getZoom(page);
-    expect(zoomed).toBeLessThan(1);
+    await expect.poll(() => getZoom(page)).toBeLessThan(1);
   });
 
   test("wheel up is clamped at the max (1.0)", async ({ page }) => {
@@ -26,7 +24,7 @@ test.describe("Canvas viewport", () => {
       await page.mouse.wheel(0, -300);
     }
 
-    expect(await getZoom(page)).toBe(1);
+    await expect.poll(() => getZoom(page)).toBe(1);
   });
 
   test("wheel down is clamped at the min (0.4)", async ({ page }) => {
@@ -37,7 +35,7 @@ test.describe("Canvas viewport", () => {
       await page.mouse.wheel(0, 300);
     }
 
-    expect(await getZoom(page)).toBeCloseTo(0.4, 5);
+    await expect.poll(() => getZoom(page)).toBeCloseTo(0.4, 5);
   });
 
   test("dragging the background pans the canvas", async ({ page }) => {

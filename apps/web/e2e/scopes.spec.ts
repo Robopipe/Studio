@@ -1,11 +1,10 @@
 import { expect, test } from "@playwright/test";
 import {
   addNodeAt,
-  canvasCentre,
+  dragWithScopeHold,
   getNodes,
   gotoEditor,
   nodeById,
-  pressShortcutAt,
 } from "./helpers";
 
 test.describe("Scopes", () => {
@@ -52,14 +51,7 @@ test.describe("Scopes", () => {
       y: limitBox.y + limitBox.height / 2,
     };
 
-    await page.mouse.move(from.x, from.y);
-    // To enter the scope mode, the user must press and hold a node for 250ms.
-    // To assign the node to a parent, the user must release the node over the parent node.
-    // FIX(duplication): this press-hold-drag sequence with the magic 300ms wait is duplicated verbatim in the "dragging a child out" test below — fix: extract a dragWithScopeHold(page, from, to) helper in helpers.ts with a named SCOPE_HOLD_MS constant tied to the app's 250ms threshold; why: when the hold threshold changes, two hand-rolled copies (and the bare 300) must be hunted down instead of one constant.
-    await page.mouse.down();
-    await page.waitForTimeout(300);
-    await page.mouse.move(to.x, to.y, { steps: 15 });
-    await page.mouse.up();
+    await dragWithScopeHold(page, from, to);
 
     const after = (await getNodes(page)).find((n) => n.id === countId)!;
     expect(after.parent).toBe(limitId);
@@ -69,12 +61,7 @@ test.describe("Scopes", () => {
     page,
   }) => {
     const limitId = await addNodeAt(page, "l", -100, 0);
-    // FIX(consistency): re-implements addNodeAt by hand (pressShortcutAt + canvasCentre twice + re-deriving the id via a label lookup) right after using addNodeAt for the limit on the previous line — fix: const countId = await addNodeAt(page, '1', 0, 0); why: the roundabout version is three times the code and would pick the wrong node if a second Count ever existed.
-    await pressShortcutAt(page, "1", {
-      x: (await canvasCentre(page)).x,
-      y: (await canvasCentre(page)).y,
-    });
-    const countId = (await getNodes(page)).find((n) => n.label === "Count")!.id;
+    const countId = await addNodeAt(page, "1", 0, 0);
 
     await page.evaluate(
       ({ parentId, childId }) => {
@@ -89,13 +76,10 @@ test.describe("Scopes", () => {
     if (!childBox) throw new Error("child not visible");
     const from = { x: childBox.x + 30, y: childBox.y + 20 };
 
-    await page.mouse.move(from.x, from.y);
-    // To enter the scope mode, the user must press and hold a node for 250ms.
-    // To clear the parent, the user must release the node over a different location.
-    await page.mouse.down();
-    await page.waitForTimeout(300);
-    await page.mouse.move(from.x + 500, from.y + 300, { steps: 15 });
-    await page.mouse.up();
+    await dragWithScopeHold(page, from, {
+      x: from.x + 500,
+      y: from.y + 300,
+    });
 
     const after = (await getNodes(page)).find((n) => n.id === countId)!;
     expect(after.parent).toBeNull();

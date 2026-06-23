@@ -1,12 +1,11 @@
 import { expect, test } from "@playwright/test";
 import {
   addNodeAt,
-  canvasCentre,
+  createLimitWithChildren,
   getConnections,
   getNodes,
   gotoEditor,
   nodeById,
-  pressShortcutAt,
 } from "./helpers";
 
 test.describe("Deletion", () => {
@@ -15,7 +14,7 @@ test.describe("Deletion", () => {
   });
 
   test("Backspace deletes the selected leaf node", async ({ page }) => {
-    const id = await addNodeAt(page, "q", 0, 0);
+    const id = await addNodeAt(page, "a", 0, 0);
     expect((await getNodes(page)).find((n) => n.id === id)).toBeDefined();
 
     // when creating a node, it is automatically selected
@@ -27,40 +26,18 @@ test.describe("Deletion", () => {
   test("Backspace on a LimitNode cascades to its children", async ({
     page,
   }) => {
-    const centre = await canvasCentre(page);
-    await pressShortcutAt(page, "l", { x: centre.x - 200, y: centre.y });
-    await pressShortcutAt(page, "1", { x: centre.x + 100, y: centre.y });
-    await pressShortcutAt(page, "1", { x: centre.x + 200, y: centre.y + 100 });
+    const { limitId } = await createLimitWithChildren(page, 2);
 
-    const limit = (await getNodes(page)).find((n) => n.label === "Limit")!;
-
-    // FIX(duplication): "Limit + Count children + parent assignment via page.evaluate" fixture is duplicated twice in this file and again in clipboard/history/movement/selection specs — fix: extract createLimitWithChildren(page, childCount) into helpers.ts; why: six copies of a non-trivial fixture will drift independently when the parenting mechanism changes.
-    await page.evaluate((parentId) => {
-      const { editor } = window.__editor!;
-      for (const n of editor.getNodes()) {
-        if (n.id !== parentId && n.label === "Count") n.parent = parentId;
-      }
-    }, limit.id);
-
-    await nodeById(page, limit.id).click({ position: { x: 5, y: 5 } });
+    await nodeById(page, limitId).click({ position: { x: 5, y: 5 } });
     await page.keyboard.press("Backspace");
 
     expect(await getNodes(page)).toHaveLength(0);
   });
 
   test("context menu Delete cascades on a LimitNode", async ({ page }) => {
-    const centre = await canvasCentre(page);
-    await pressShortcutAt(page, "l", { x: centre.x - 200, y: centre.y });
-    await pressShortcutAt(page, "1", { x: centre.x + 100, y: centre.y });
-    const limit = (await getNodes(page)).find((n) => n.label === "Limit")!;
-    await page.evaluate((parentId) => {
-      const { editor } = window.__editor!;
-      for (const n of editor.getNodes()) {
-        if (n.id !== parentId && n.label === "Count") n.parent = parentId;
-      }
-    }, limit.id);
+    const { limitId } = await createLimitWithChildren(page, 1);
 
-    await nodeById(page, limit.id).click({
+    await nodeById(page, limitId).click({
       button: "right",
       position: { x: 5, y: 5 },
     });
@@ -75,9 +52,9 @@ test.describe("Deletion", () => {
   test("deleting a middle node also removes both connections", async ({
     page,
   }) => {
-    const a = await addNodeAt(page, "q", -300, 0);
-    const b = await addNodeAt(page, "q", 0, 0);
-    const c = await addNodeAt(page, "q", 300, 0);
+    const a = await addNodeAt(page, "a", -300, 0);
+    const b = await addNodeAt(page, "a", 0, 0);
+    const c = await addNodeAt(page, "a", 300, 0);
 
     await page.evaluate(
       async ({ aId, bId, cId }) => {

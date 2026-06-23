@@ -15,8 +15,8 @@ test.describe("Node creation", () => {
 
   test.describe("keyboard shortcuts", () => {
     const cases: { key: string; label: string }[] = [
-      { key: "q", label: "AND" },
-      { key: "w", label: "OR" },
+      { key: "a", label: "AND" },
+      { key: "o", label: "OR" },
       { key: "l", label: "Limit" },
       { key: "r", label: "Result" },
       { key: "1", label: "Count" },
@@ -35,16 +35,15 @@ test.describe("Node creation", () => {
   });
 
   test("new node is auto selected", async ({ page }) => {
-    await pressShortcutAt(page, "q");
+    await pressShortcutAt(page, "a");
     const [node] = await getNodes(page);
     expect(node!.selected).toBe(true);
   });
 
   test("two shortcut presses create two nodes", async ({ page }) => {
-    await pressShortcutAt(page, "q");
-    // FIX(naming): `first` holds the canvas centre point, not the first node — fix: rename to `centre` as the other specs do; why: the name suggests a node snapshot and misreads on review.
-    const first = await canvasCentre(page);
-    await pressShortcutAt(page, "w", { x: first.x + 200, y: first.y });
+    await pressShortcutAt(page, "a");
+    const centre = await canvasCentre(page);
+    await pressShortcutAt(page, "o", { x: centre.x + 200, y: centre.y });
 
     const nodes = await getNodes(page);
     expect(nodes.map((n) => n.label).sort()).toEqual(["AND", "OR"]);
