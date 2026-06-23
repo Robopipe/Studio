@@ -1,4 +1,3 @@
-// FIX(naming): filename "IssesTooltip.tsx" is a typo and does not match the exported component IssueTooltip — fix: rename the file to IssueTooltip.tsx and update the 6 import sites; why: the misspelled path is copy-pasted into every consumer, hurts discoverability (searching "IssueTooltip" misses the file), and breaks the file/export naming convention.
 import type {
   ValidationIssue,
   ValidationIssueLevel,

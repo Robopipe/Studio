@@ -1,8 +1,6 @@
-import { GRID } from "@/modules/evaluation/graph/editor/constants";
 import type { ResultNode } from "@/modules/evaluation/graph/editor/nodes/result/result";
 import type { Schemes } from "@/modules/evaluation/graph/editor/types";
-import { NodeContainer } from "@/modules/evaluation/graph/editor/ui/components/containers/NodeContainer";
-import { IssueTooltip } from "@/modules/evaluation/graph/editor/ui/components/IssesTooltip";
+import { CompactNodeContainer } from "@/modules/evaluation/graph/editor/ui/components/containers/CompactNodeContainer";
 import { Label } from "@/modules/evaluation/graph/editor/ui/components/Label";
 import { InputSocket } from "@/modules/evaluation/graph/editor/ui/components/sockets/InputSocket";
 import { OutputSocket } from "@/modules/evaluation/graph/editor/ui/components/sockets/OutputSocket";
@@ -22,28 +20,18 @@ export function ResultNodeView(props: Props) {
   if (!input || !output) {
     throw new Error(`ResultNode is missing expected parts`);
   }
-    
+
   return (
-    <NodeContainer
-      height={height}
-      width={width}
-      selected={selected}
+    <CompactNodeContainer
       nodeId={data.id}
-    >
-      <div className=" h-full flex flex-col">
-        <div className="flex flex-grow flex-row  items-center gap-1 justify-end px-2">
-          <IssueTooltip issues={issues} level="warning" />
-          <IssueTooltip issues={issues} level="error" />
-        </div>
-        <div
-          className="flex flex-row items-center justify-between"
-          style={{ height: `${data.socketHeight * GRID}px` }}
-        >
-          <InputSocket emit={emit} nodeId={data.id} input={input} />
-          <Label>{label}</Label>
-          <OutputSocket emit={emit} nodeId={data.id} output={output} />
-        </div>
-      </div>
-    </NodeContainer>
+      width={width}
+      height={height}
+      selected={selected}
+      issues={issues}
+      socketHeight={data.socketHeight}
+      input={<InputSocket emit={emit} nodeId={data.id} input={input} />}
+      center={<Label>{label}</Label>}
+      output={<OutputSocket emit={emit} nodeId={data.id} output={output} />}
+    />
   );
 }

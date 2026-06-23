@@ -34,7 +34,7 @@ import { ActionNodeView } from "@/modules/evaluation/graph/editor/ui/nodes/Actio
 import { AreaNodeView } from "@/modules/evaluation/graph/editor/ui/nodes/AreaNodeView";
 import { CountNodeView } from "@/modules/evaluation/graph/editor/ui/nodes/CountNodeView";
 import { LimitNodeView } from "@/modules/evaluation/graph/editor/ui/nodes/LimitNodeView";
-import { LogicalNodeView } from "@/modules/evaluation/graph/editor/ui/nodes/LogicalNode";
+import { LogicalNodeView } from "@/modules/evaluation/graph/editor/ui/nodes/LogicalNodeView";
 import { PositionNodeView } from "@/modules/evaluation/graph/editor/ui/nodes/PositionNodeView";
 import { ResultNodeView } from "@/modules/evaluation/graph/editor/ui/nodes/ResultNodeView";
 import { SocketView } from "@/modules/evaluation/graph/editor/ui/sockets/SocketView";

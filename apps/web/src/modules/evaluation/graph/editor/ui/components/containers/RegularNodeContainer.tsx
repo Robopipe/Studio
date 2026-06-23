@@ -1,9 +1,9 @@
 import { GRID } from "@/modules/evaluation/graph/editor/constants";
 import type { NodeProps } from "@/modules/evaluation/graph/editor/types";
-import { IssueTooltip } from "@/modules/evaluation/graph/editor/ui/components/IssesTooltip";
-import { Label } from "@/modules/evaluation/graph/editor/ui/components/Label";
 import type { ReactNode } from "react";
+import { NodeBody } from "./NodeBody";
 import { NodeContainer } from "./NodeContainer";
+import { NodeHeader } from "./NodeHeader";
 
 type Props = {
   data: NodeProps;
@@ -28,32 +28,10 @@ export const RegularNodeContainer = (props: Props) => {
   } = data;
 
   return (
-    <NodeContainer
-      width={width}
-      height={height}
-      selected={selected}
-      nodeId={id}
-    >
+    <NodeContainer width={width} height={height} selected={selected} nodeId={id}>
       <div className="flex flex-col">
-        <div
-          className="flex items-center border-zinc-200 border-b-2"
-          style={{ height: `${labelHeight * GRID}px` }}
-        >
-          <span className="flex flex-1 px-2">
-            <Label>{label}</Label>
-            <div className="flex flex-grow" />
-            <div className="flex flex-row gap-1">
-              <IssueTooltip issues={issues} level="warning" />
-              <IssueTooltip issues={issues} level="error" />
-            </div>
-          </span>
-        </div>
-        <div
-          className="flex flex-col justify-center px-2 gap-2"
-          style={{ height: `${controlsHeight * GRID}px` }}
-        >
-          {children}
-        </div>
+        <NodeHeader label={label} labelHeight={labelHeight} issues={issues} />
+        <NodeBody controlsHeight={controlsHeight}>{children}</NodeBody>
       </div>
 
       <div
