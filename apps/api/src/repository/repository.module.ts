@@ -1,4 +1,5 @@
 import { Global, Module } from '@nestjs/common';
+import { AnalyticsRepository } from './services/analytics-repository.service';
 import { ModelRepository } from './services/model-repository.service';
 import { OrganizationRepository } from './services/organization-repository.service';
 import { ProjectRepository } from './services/project-repository.service';
@@ -26,6 +27,7 @@ import { ProjectPreAnnotateSettingsRepository } from './services/project-pre-ann
 @Global()
 @Module({
   providers: [
+    AnalyticsRepository,
     ModelRepository,
     OrganizationRepository,
     OrganizationMemberRepository,
@@ -49,6 +51,7 @@ import { ProjectPreAnnotateSettingsRepository } from './services/project-pre-ann
     ProjectPreAnnotateSettingsRepository,
   ],
   exports: [
+    AnalyticsRepository,
     ModelRepository,
     OrganizationRepository,
     OrganizationMemberRepository,

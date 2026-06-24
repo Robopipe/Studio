@@ -4,4 +4,7 @@ export const apiCacheTags = {
     testCases: "EvalTestCases",
     thresholds: "EvalThresholds",
   },
+  analytics: {
+    datasetStats: "AnalyticsDatasetStats",
+  },
 } as const;
