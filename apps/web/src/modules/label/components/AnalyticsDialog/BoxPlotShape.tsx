@@ -10,6 +10,9 @@ export interface BoxShapeProps {
     color: string;
     areaQ3: number;
     area: LabelEntry["area"];
+    scale: "linear" | "log";
+    domainMin: number;
+    domainMax: number;
   };
 }
 
@@ -23,17 +26,37 @@ export const BoxShape = ({
   if (!payload?.area || height <= 0 || payload.areaQ3 <= 0) return null;
 
   const { q1, q3, median, whiskerLow, whiskerHigh, outliers } = payload.area;
-  const color = payload.color;
+  const { color, scale, domainMin, domainMax } = payload;
 
-  // Pixel calibration using the bar itself:
-  //   bar dataKey = q3  →  y = pixel of q3,  height = pixel distance (q3 → 0)
-  //   pixelsPerUnit = height / q3  (linear axis starting at 0)
-  //   pixelOf(v) = y + height - v * pixelsPerUnit
-  const ppu = height / q3;
-  const toPixel = (v: number) => y + height - v * ppu;
+  // Pixel calibration using the bar's known anchors:
+  //   bar dataKey = q3  →  y = pixel(q3),  y + height = pixel(domainMin)
+  //
+  // Linear:  toPixel(v) = y + height - (v / q3) * height
+  //                     = y + height * (1 - v / q3)
+  //
+  // Log:     pixel is linear in log10(v), so:
+  //          toPixel(v) = y + height * (log10(q3) - log10(v))
+  //                                  / (log10(q3) - log10(domainMin))
+  //          Clamp v >= domainMin before log to prevent log(0) = -Infinity.
 
-  const pQ1 = toPixel(q1);
+  const log10 = Math.log10;
+
+  const toPixel = (v: number): number => {
+    if (scale === "log") {
+      const vSafe = Math.max(v, domainMin);
+      const logQ3 = log10(q3);
+      const logFloor = log10(domainMin);
+      return y + height * (logQ3 - log10(vSafe)) / (logQ3 - logFloor);
+    }
+    // linear
+    return y + height - (v / q3) * height;
+  };
+
+  // Skip elements whose data values fall entirely outside the visible range
+  const inRange = (v: number) => v >= domainMin && v <= domainMax;
+
   const pQ3 = y; // toPixel(q3) === y by definition
+  const pQ1 = toPixel(q1);
   const pMedian = toPixel(median);
   const pWL = toPixel(whiskerLow);
   const pWH = toPixel(whiskerHigh);
@@ -103,8 +126,8 @@ export const BoxShape = ({
         stroke={color}
         strokeWidth={1.5}
       />
-      {/* Outlier dots */}
-      {outliers.map((o, i) => (
+      {/* Outlier dots — skip any that fall outside the visible domain */}
+      {outliers.filter(inRange).map((o, i) => (
         <circle key={i} cx={mid} cy={toPixel(o)} r={2.5} fill={color} opacity={0.65} />
       ))}
     </g>
