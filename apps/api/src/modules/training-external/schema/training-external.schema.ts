@@ -102,9 +102,8 @@ export const trainingRectangleLabelSchema = z.object({
 export const trainingConfigSchema = z.object({
   output_types: z.enum(ModelOutputTypeEnum).array(),
   epochs: z.number(),
-  // Optional because the Luxonis ML service has Pydantic `extra="forbid"`
-  // and only ml-yolo consumes it. The API includes this key only for the
-  // Ultralytics dispatch (see training-external.service.ts).
+  // ml-yolo flips HubAI's quantization_mode (FP16_STANDARD / INT8_STANDARD)
+  // based on this. Optional for backward-compatible payloads.
   quantization: z.enum(ModelQuantizationEnum).optional(),
   dataset_config: z.object({
     dataset_split: z.tuple([z.number(), z.number(), z.number()]),
@@ -134,10 +133,16 @@ export const trainingOutputUploadSchema = z.object({
   object_path: z.string(),
 });
 
+export const trainingCheckpointConfigSchema = z.object({
+  put_url: z.string(),
+  get_url: z.string(),
+});
+
 const basePayload = z.object({
   id: z.number(),
   training_config: trainingConfigSchema,
   output_config: trainingOutputUploadSchema.array(),
+  checkpoint_config: trainingCheckpointConfigSchema.optional(),
 });
 
 const createDataSchema = <T extends z.ZodTypeAny>(labelSchema: T) =>

@@ -40,7 +40,7 @@ export const modelTable = p.pgTable("model", {
   name: p.varchar("name", { length: 256 }).notNull(),
   epochs: p.integer("epochs").notNull(),
   outputTypes: modelOutputTypeEnum("output_types").array().notNull(),
-  backend: modelBackendEnum("backend").notNull().default(ModelBackendEnum.LUXONIS),
+  backend: modelBackendEnum("backend").notNull().default(ModelBackendEnum.ULTRALYTICS),
   region: modelRegionEnum("region").notNull().default(ModelRegionEnum.EUROPE_WEST4),
   quantization: modelQuantizationEnum("quantization")
     .notNull()

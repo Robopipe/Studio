@@ -1,6 +1,5 @@
 import { cn } from "@/lib/utils";
 import {
-  ModelBackendEnum,
   ModelOutputTypeEnum,
   ModelQuantizationEnum,
   ModelRegionEnum,
@@ -8,11 +7,6 @@ import {
 import { useState } from "react";
 import { SettingsCard } from "../SettingsCard";
 import { HyperparamsModal } from "./HyperparamsModal";
-
-const BACKEND_LABELS: Record<ModelBackendEnum, string> = {
-  [ModelBackendEnum.LUXONIS]: "Luxonis Train",
-  [ModelBackendEnum.ULTRALYTICS]: "Ultra Vision",
-};
 
 const REGION_LABELS: Record<ModelRegionEnum, string> = {
   [ModelRegionEnum.EUROPE_WEST4]: "europe-west4",
@@ -27,8 +21,6 @@ const QUANTIZATION_LABELS: Record<ModelQuantizationEnum, string> = {
 export interface AdvancedSettingsProps {
   outputs: ModelOutputTypeEnum[];
   onOutputsChange: (outputs: ModelOutputTypeEnum[]) => void;
-  backend: ModelBackendEnum;
-  onBackendChange: (backend: ModelBackendEnum) => void;
   region: ModelRegionEnum;
   onRegionChange: (region: ModelRegionEnum) => void;
   quantization: ModelQuantizationEnum;
@@ -42,8 +34,6 @@ export interface AdvancedSettingsProps {
 export const AdvancedSettings = ({
   outputs,
   onOutputsChange,
-  backend,
-  onBackendChange,
   region,
   onRegionChange,
   quantization,
@@ -77,36 +67,6 @@ export const AdvancedSettings = ({
         <div className="flex flex-1 flex-col gap-4">
           <div className="flex flex-col gap-0.5">
             <span className="text-sm font-medium leading-5 text-black/90">
-              Training Backend
-            </span>
-            <p className="text-sm leading-5 text-black/60">
-              Luxonis Train is the default framework. Ultra Vision provides
-              richer augmentation pipeline and stronger small-data fine-tuning —
-              custom hyperparameters are backend-specific.
-            </p>
-            <div className="flex flex-row gap-2 py-2">
-              {Object.values(ModelBackendEnum).map((value) => {
-                const selected = backend === value;
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => onBackendChange(value)}
-                    className={cn(
-                      "cursor-pointer rounded-full border px-3 py-0.5 text-sm leading-5 transition-colors",
-                      selected
-                        ? "border-emerald-900 bg-emerald-50 text-emerald-700"
-                        : "border-transparent bg-white text-black/90 hover:bg-black/5",
-                    )}
-                  >
-                    {BACKEND_LABELS[value]}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <span className="text-sm font-medium leading-5 text-black/90">
               Training Region
             </span>
             <p className="text-sm leading-5 text-black/60">
@@ -137,41 +97,39 @@ export const AdvancedSettings = ({
               })}
             </div>
           </div>
-          {backend === ModelBackendEnum.ULTRALYTICS && (
-            <div className="flex flex-col gap-0.5">
-              <span className="text-sm font-medium leading-5 text-black/90">
-                Quantization
-              </span>
-              <p className="text-sm leading-5 text-black/60">
-                FP16 keeps full-precision weights — slower but most accurate.
-                INT8 quantizes weights and activations to 8 bits, calibrated
-                against a random 400-image sample of your training data:
-                typically 2–3× faster on RVC4 with a small accuracy drop (≈0.5–2
-                mAP points). Segmentation models use mixed INT8/INT16
-                automatically to preserve mask quality.
-              </p>
-              <div className="flex flex-row gap-2 py-2">
-                {Object.values(ModelQuantizationEnum).map((value) => {
-                  const selected = quantization === value;
-                  return (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => onQuantizationChange(value)}
-                      className={cn(
-                        "cursor-pointer rounded-full border px-3 py-0.5 text-sm leading-5 transition-colors",
-                        selected
-                          ? "border-emerald-900 bg-emerald-50 text-emerald-700"
-                          : "border-transparent bg-white text-black/90 hover:bg-black/5",
-                      )}
-                    >
-                      {QUANTIZATION_LABELS[value]}
-                    </button>
-                  );
-                })}
-              </div>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-sm font-medium leading-5 text-black/90">
+              Quantization
+            </span>
+            <p className="text-sm leading-5 text-black/60">
+              FP16 keeps full-precision weights — slower but most accurate. INT8
+              quantizes weights and activations to 8 bits, calibrated against a
+              random 400-image sample of your training data: typically 2–3×
+              faster on RVC4 with a small accuracy drop (≈0.5–2 mAP points).
+              Segmentation models use mixed INT8/INT16 automatically to preserve
+              mask quality.
+            </p>
+            <div className="flex flex-row gap-2 py-2">
+              {Object.values(ModelQuantizationEnum).map((value) => {
+                const selected = quantization === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => onQuantizationChange(value)}
+                    className={cn(
+                      "cursor-pointer rounded-full border px-3 py-0.5 text-sm leading-5 transition-colors",
+                      selected
+                        ? "border-emerald-900 bg-emerald-50 text-emerald-700"
+                        : "border-transparent bg-white text-black/90 hover:bg-black/5",
+                    )}
+                  >
+                    {QUANTIZATION_LABELS[value]}
+                  </button>
+                );
+              })}
             </div>
-          )}
+          </div>
           <div className="flex flex-col gap-0.5">
             <span className="text-sm font-medium leading-5 text-black/90">
               Output Formats
@@ -236,8 +194,8 @@ export const AdvancedSettings = ({
             </div>
             <div className="flex flex-col gap-1 pt-1">
               <p className="text-sm leading-5 text-black/60">
-                JSON object that deep-merges with the generated config.
-                Top-level keys: model, loader, trainer, tracker.
+                JSON object that deep-merges into the Ultralytics training
+                config (e.g. model_variant, imgsz, lr0, optimizer).
               </p>
               {hasSummary && (
                 <pre className="mt-2 overflow-x-auto whitespace-pre rounded bg-black/[0.04] p-2 font-mono text-xs text-muted-foreground">
@@ -255,7 +213,6 @@ export const AdvancedSettings = ({
       {modalOpen && (
         <HyperparamsModal
           value={customHyperparams}
-          backend={backend}
           onApply={handleApply}
           onClose={() => setModalOpen(false)}
         />
