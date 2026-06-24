@@ -9,7 +9,6 @@ import {
 // hyperparamsConfigSchema and createZodLinter imports kept for reference — validation intentionally bypassed
 // import { hyperparamsConfigSchema } from "@repo/schema";
 // import { createZodLinter } from "./zodLinter";
-import { ModelBackendEnum } from "@repo/schema";
 import { X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 // import { toast } from "sonner";
@@ -24,17 +23,12 @@ import { useCodeMirror } from "./useCodeMirror";
 
 export interface HyperparamsModalProps {
   value: string;
-  backend: ModelBackendEnum;
   onApply: (value: string) => void;
   onClose: () => void;
 }
 
-const DOCS_URL: Record<ModelBackendEnum, string> = {
-  [ModelBackendEnum.LUXONIS]:
-    "https://github.com/luxonis/luxonis-train/blob/main/configs/README.md",
-  [ModelBackendEnum.ULTRALYTICS]:
-    "https://docs.ultralytics.com/guides/hyperparameter-tuning/#default-search-space-description",
-};
+const DOCS_URL =
+  "https://docs.ultralytics.com/guides/hyperparameter-tuning/#default-search-space-description";
 
 function validateJson(text: string): string[] {
   const trimmed = text.trim();
@@ -65,14 +59,13 @@ function validateJson(text: string): string[] {
 
 export const HyperparamsModal = ({
   value,
-  backend,
   onApply,
   onClose,
 }: HyperparamsModalProps) => {
   const [editorValue, setEditorValue] = useState(value.trim() || "{\n  \n}");
   const [errors, setErrors] = useState<string[]>([]);
   const [selectedPreset, setSelectedPreset] = useState("");
-  const presets = useMemo(() => getHyperparamsPresets(backend), [backend]);
+  const presets = useMemo(() => getHyperparamsPresets(), []);
   // Reserved paths UI hidden — reserved keys bypass intentionally disabled
   // const [showReservedPaths, setShowReservedPaths] = useState(false);
 
@@ -234,7 +227,7 @@ export const HyperparamsModal = ({
             Override training config with a JSON object. Any valid JSON object
             is accepted and will be deep-merged with the generated config.{" "}
             <a
-              href={DOCS_URL[backend]}
+              href={DOCS_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="whitespace-nowrap text-emerald-600 hover:underline"

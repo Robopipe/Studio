@@ -167,11 +167,12 @@ export const createModelSchema = modelSchema
     splitTest: true,
   })
   .extend({
-    // Default to LUXONIS so existing clients that haven't been updated still work.
-    backend: z.enum(ModelBackendEnum).default(ModelBackendEnum.LUXONIS),
+    // ULTRALYTICS is the only supported training backend. LUXONIS is kept in
+    // the enum so historical models still load, but it is no longer dispatchable.
+    backend: z.enum(ModelBackendEnum).default(ModelBackendEnum.ULTRALYTICS),
     region: z.enum(ModelRegionEnum).default(ModelRegionEnum.EUROPE_WEST4),
-    // FP16 default keeps existing flows / older clients unchanged. INT8 is
-    // an Ultralytics-only opt-in; the API ignores the value for Luxonis.
+    // FP16 default keeps existing flows / older clients unchanged. INT8 is an
+    // opt-in for RVC4 INT8 quantization.
     quantization: z
       .enum(ModelQuantizationEnum)
       .default(ModelQuantizationEnum.FP16),

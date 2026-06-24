@@ -27,6 +27,7 @@ from .dataset import (
     TRAIN_DIR,
     VAL_DIR,
     prepare_dataset,
+    split_seed,
 )
 from .model_conversion import convert_model
 from .modelconverter_conversion import (
@@ -194,233 +195,307 @@ def run_training(config: ModelConfig) -> None:
     api_key = cfg.api_key
     callbacks: Optional[WebhookCallbacks] = None
 
+    # Use a fixed workdir path inside the container. Ultralytics bakes the
+    # absolute path to data.yaml into checkpoints; a fixed path ensures
+    # those internal references stay valid if a Spot instance is preempted
+    # and the task restarts on a new VM.
+    workdir = "/tmp/robopipe-ml-yolo-workdir"
+    if os.path.exists(workdir):
+        import shutil
+        shutil.rmtree(workdir, ignore_errors=True)
+    os.makedirs(workdir, exist_ok=True)
+
     try:
-        with tempfile.TemporaryDirectory() as workdir:
-            # 1) Prepare YOLO-format dataset on disk (shared with luxonis pipeline).
-            prepare_dataset(
+        # 1) Prepare YOLO-format dataset on disk (shared with luxonis pipeline).
+        prepare_dataset(
+            workdir,
+            config.data,
+            config.training_config.dataset_config,
+            config.type,
+            # Seeded by model id so a preempted Spot task re-creates the
+            # exact same train/val/test split before resuming from the
+            # checkpoint (see iterate_datasets).
+            seed=split_seed(str(config.id)),
+        )
+
+        # 2) Optional deterministic preprocessings.
+        if config.training_config.dataset_config.preprocessings:
+            preprocess_dataset(
                 workdir,
-                config.data,
-                config.training_config.dataset_config,
+                config.training_config.dataset_config.preprocessings,
                 config.type,
+                _resolve_imgsz(config),
             )
 
-            # 2) Optional deterministic preprocessings.
-            if config.training_config.dataset_config.preprocessings:
-                preprocess_dataset(
-                    workdir,
-                    config.training_config.dataset_config.preprocessings,
-                    config.type,
-                    _resolve_imgsz(config),
+        # 3) Write Ultralytics data.yaml (or resolve classification root).
+        data_path = build_data_yaml(config, workdir)
+
+        # 4) Load pretrained weights + wire callbacks.
+        checkpoint_path = os.path.join(workdir, "checkpoint_last.pt")
+        has_checkpoint = False
+        if config.checkpoint_config:
+            try:
+                print(f"[ml-yolo] Checking for existing checkpoint...")
+                r = requests.get(config.checkpoint_config.get_url, stream=True, timeout=30)
+                if r.status_code == 200:
+                    with open(checkpoint_path, "wb") as f:
+                        for chunk in r.iter_content(chunk_size=8192):
+                            f.write(chunk)
+                    print(f"[ml-yolo] Downloaded checkpoint to {checkpoint_path}")
+                    has_checkpoint = True
+                else:
+                    print(f"[ml-yolo] No existing checkpoint found (status {r.status_code})")
+            except Exception as e:
+                print(f"[ml-yolo] Error downloading checkpoint: {e}")
+
+        variant = get_model_variant(config)
+        if has_checkpoint:
+            print(f"[ml-yolo] Resuming from checkpoint: {checkpoint_path}")
+            try:
+                model = YOLO(checkpoint_path)
+            except Exception as e:
+                # A torn/corrupt checkpoint in GCS must not crash-loop the
+                # Batch task — fall back to a fresh start.
+                print(
+                    f"[ml-yolo] Checkpoint unusable ({e}); "
+                    f"starting fresh from {variant}"
                 )
-
-            # 3) Write Ultralytics data.yaml (or resolve classification root).
-            data_path = build_data_yaml(config, workdir)
-
-            # 4) Load pretrained weights + wire callbacks.
-            variant = get_model_variant(config)
+                has_checkpoint = False
+                model = YOLO(variant)
+        else:
             print(f"[ml-yolo] Loading Ultralytics model: {variant}")
             model = YOLO(variant)
 
-            if webhook_url is not None:
-                callbacks = WebhookCallbacks(
-                    webhook_url=f"{webhook_url}/progress/{config.id}",
-                    api_key=api_key,
-                    model_id=config.id,
-                    model_type=config.type,
-                    label_ids=config.training_config.dataset_config.label_ids,
-                )
-                model.add_callback("on_fit_epoch_end", callbacks.on_fit_epoch_end)
-                model.add_callback("on_train_end", callbacks.on_train_end)
-
-            # 5) Train.
-            project_dir = os.path.join(workdir, "runs")
-            train_kwargs = build_train_kwargs(config, data_path, project_dir)
-            print(f"[ml-yolo] train kwargs: {train_kwargs}")
-            model.train(**train_kwargs)
-
-            # 6) Export best weights via luxonis/tools (subprocess, separate
-            # venv) → ONNX with multi-output naming the camera-side parsers
-            # expect, plus an NN archive with proper `heads` metadata. We
-            # feed the *archive* (not raw ONNX) to HubAI below so the heads
-            # block survives RVC4 compilation; tools' graph surgery is what
-            # makes detection, segmentation, pose, and OBB all work without
-            # us reimplementing the head layout per task type.
-            #
-            # The previous path (`best.export(format="onnx", simplify=False,
-            # opset=18, dynamic=False)`) produced a single-output Ultralytics
-            # ONNX (`output0`, shape `(1, 4+nc, num_anchors)`), which HubAI
-            # would compile but emit an archive without heads — segmentation
-            # then crashed on the camera with "No heads defined in the NN
-            # Archive." tools-produced archives carry the heads through.
-            save_dir = Path(model.trainer.save_dir)
-            best_pt = save_dir / "weights" / "best.pt"
-            print(f"[ml-yolo] Exporting via luxonis/tools from {best_pt}")
-            onnx_path, archive_path = _export_via_tools(
-                best_pt, _resolve_imgsz(config), workdir
+        if webhook_url is not None:
+            callbacks = WebhookCallbacks(
+                webhook_url=f"{webhook_url}/progress/{config.id}",
+                api_key=api_key,
+                model_id=config.id,
+                model_type=config.type,
+                label_ids=config.training_config.dataset_config.label_ids,
+                # When checkpoints are uploaded, gate each epoch log on its
+                # checkpoint becoming durable so a Spot resume can't replay
+                # already-logged epochs (see WebhookCallbacks / CheckpointCallback).
+                gated=config.checkpoint_config is not None,
             )
+            model.add_callback("on_fit_epoch_end", callbacks.on_fit_epoch_end)
+            model.add_callback("on_train_end", callbacks.on_train_end)
 
-            if webhook_url is None:
-                print("[ml-yolo] No webhook_url configured, skipping uploads")
-                return
-
-            # 7) Upload RAW + run HubAI conversions for each requested output.
-            output_types = config.training_config.output_types
-            uploads_by_type: dict[ModelOutputType, OutputUpload] = {
-                u.type: u for u in config.output_config
-            }
-
-            def upload_for(t: ModelOutputType) -> OutputUpload:
-                upload = uploads_by_type.get(t)
-                if upload is None:
-                    raise RuntimeError(
-                        f"No signed upload URL for output type {t.value}"
-                    )
-                return upload
-
-            completed: list[OutputUpload] = []
-            if ModelOutputType.RAW in output_types:
-                raw_upload = upload_for(ModelOutputType.RAW)
-                _upload_to_signed_url(raw_upload, onnx_path)
-                completed.append(raw_upload)
-
-            non_raw = [t for t in output_types if t != ModelOutputType.RAW]
-            if non_raw:
-                _post_progress(
-                    webhook_url,
-                    api_key,
-                    config.id,
-                    {"progress": {"type": "converting"}},
+            if config.checkpoint_config:
+                from .ultralytics_callbacks import CheckpointCallback
+                # Release an epoch's buffered log only once its checkpoint upload
+                # succeeds, so backend.lastLoggedEpoch <= gcs.checkpointEpoch.
+                checkpoint_cb = CheckpointCallback(
+                    config.checkpoint_config.put_url,
+                    on_persisted=callbacks.flush_through,
                 )
+                # on_model_save fires after the trainer finishes writing
+                # last.pt; hooking on_fit_epoch_end would race the write.
+                model.add_callback("on_model_save", checkpoint_cb.on_model_save)
 
-            # Routing: RVC4+INT8 goes through the offline luxonis/modelconverter
-            # path so we can feed it a real calibration set sampled from the
-            # training images. Everything else (FP16, RVC2/RVC3 of any
-            # precision) goes through HubAI — modelconverter could do RVC2/RVC3
-            # too but HubAI is fine for those and we'd just be re-implementing
-            # the OpenVINO chain locally for no win.
-            is_int8 = config.training_config.quantization == "INT8"
+        # 5) Train.
+        project_dir = os.path.join(workdir, "runs")
+        train_kwargs = build_train_kwargs(config, data_path, project_dir)
+        if has_checkpoint:
+            train_kwargs["resume"] = True
+        print(f"[ml-yolo] train kwargs: {train_kwargs}")
+        model.train(**train_kwargs)
 
-            if is_int8:
-                quantization_mode = "INT8_INT16_MIXED"
-            else:
-                quantization_mode = "FP16_STANDARD"
-            # HubAI fallback domain — used for RVC2/RVC3 INT8 only (where
-            # modelconverter isn't on the path). RVC4+INT8 supplies its own
-            # local calibration dir, so this value is ignored there.
-            hubai_quantization_data = "GENERAL" if is_int8 else None
+        # 6) Export best weights via luxonis/tools (subprocess, separate
+        # venv) → ONNX with multi-output naming the camera-side parsers
+        # expect, plus an NN archive with proper `heads` metadata. We
+        # feed the *archive* (not raw ONNX) to HubAI below so the heads
+        # block survives RVC4 compilation; tools' graph surgery is what
+        # makes detection, segmentation, pose, and OBB all work without
+        # us reimplementing the head layout per task type.
+        #
+        # The previous path (`best.export(format="onnx", simplify=False,
+        # opset=18, dynamic=False)`) produced a single-output Ultralytics
+        # ONNX (`output0`, shape `(1, 4+nc, num_anchors)`), which HubAI
+        # would compile but emit an archive without heads — segmentation
+        # then crashed on the camera with "No heads defined in the NN
+        # Archive." tools-produced archives carry the heads through.
+        save_dir = Path(model.trainer.save_dir)
+        best_pt = save_dir / "weights" / "best.pt"
+        if not best_pt.exists():
+            # Resumed runs restore best_fitness (the number) from the
+            # checkpoint, but best.pt (the file) lived on the preempted VM.
+            # Ultralytics only rewrites best.pt when a post-resume epoch
+            # reaches that restored fitness, so it may never appear. The
+            # final-epoch weights are the best artifact on this VM.
+            last_pt = save_dir / "weights" / "last.pt"
+            print(
+                f"[ml-yolo] best.pt missing (resumed run where pre-preemption "
+                f"best was never beaten); falling back to {last_pt}"
+            )
+            best_pt = last_pt
+        print(f"[ml-yolo] Exporting via luxonis/tools from {best_pt}")
+        onnx_path, archive_path = _export_via_tools(
+            best_pt, _resolve_imgsz(config), workdir
+        )
 
-            # Sample a calibration set up-front when we know we'll need it,
-            # so the cost is paid once even if multiple targets request it.
-            #
-            # Priority: test → val → train. The test split is held out from
-            # training, so it's the closest proxy to inference distribution
-            # and gives the quantizer the best signal for activation ranges.
-            # We fall back to val and then train only if test alone doesn't
-            # reach max_images (small datasets, or skewed splits).
-            calib_dir: str | None = None
-            if is_int8 and ModelOutputType.RVC4 in non_raw:
-                calib_dir = os.path.join(workdir, "calib_images")
-                # Layouts differ by task type — see prepare_dataset:
-                #   classification:         <workdir>/dataset/<split>/<label>/*.jpg
-                #   detection/segmentation: <workdir>/dataset/images/<split>/*.jpg
-                # Classification also renames the val split to "valid"
-                # (dataset.py mutates VAL_DIR globally). Mirror preprocess.py's
-                # resolution rather than reading the mutated global, which
-                # would be stale here had we imported it before the mutation.
-                if config.type == ModelType.CLASSIFICATION:
-                    base = os.path.join(workdir, DATASET_DIR)
-                    val_subdir = "valid"
-                else:
-                    base = os.path.join(workdir, DATASET_DIR, IMAGE_DIR)
-                    val_subdir = VAL_DIR
-                calib_sources = [
-                    os.path.join(base, TEST_DIR),
-                    os.path.join(base, val_subdir),
-                    os.path.join(base, TRAIN_DIR),
-                ]
-                n = sample_calibration_images(calib_sources, calib_dir)
-                print(
-                    f"[ml-yolo] Sampled {n} calibration images "
-                    f"(prefer test → val → train) into {calib_dir}"
+        if webhook_url is None:
+            print("[ml-yolo] No webhook_url configured, skipping uploads")
+            return
+
+        # 7) Upload RAW + run HubAI conversions for each requested output.
+        output_types = config.training_config.output_types
+        uploads_by_type: dict[ModelOutputType, OutputUpload] = {
+            u.type: u for u in config.output_config
+        }
+
+        def upload_for(t: ModelOutputType) -> OutputUpload:
+            upload = uploads_by_type.get(t)
+            if upload is None:
+                raise RuntimeError(
+                    f"No signed upload URL for output type {t.value}"
                 )
-                if n == 0:
-                    raise RuntimeError(
-                        "INT8 RVC4 conversion requires at least one calibration "
-                        f"image; found none under any of {calib_sources}"
-                    )
+            return upload
 
-            for output_type in non_raw:
-                use_modelconverter = output_type == ModelOutputType.RVC4 and is_int8
+        completed: list[OutputUpload] = []
+        if ModelOutputType.RAW in output_types:
+            raw_upload = upload_for(ModelOutputType.RAW)
+            _upload_to_signed_url(raw_upload, onnx_path)
+            completed.append(raw_upload)
 
-                if use_modelconverter:
-                    print(
-                        f"[ml-yolo] Converting to {output_type.value} via "
-                        f"modelconverter (quantization_mode={quantization_mode}, "
-                        f"calibration_dir={calib_dir})"
-                    )
-                    converted_path = convert_rvc4_int8(
-                        archive_path=archive_path,
-                        output_dir=os.path.join(
-                            workdir, "converted", output_type.value
-                        ),
-                        calibration_dir=calib_dir,  # type: ignore[arg-type]
-                        quantization_mode=quantization_mode,
-                    )
-                else:
-                    print(
-                        f"[ml-yolo] Converting to {output_type.value} via HubAI "
-                        f"(quantization_mode={quantization_mode}, "
-                        f"quantization_data={hubai_quantization_data})"
-                    )
-                    # Feed HubAI the tools-produced NN archive (not raw ONNX)
-                    # so the `heads` block tools generated rides through the
-                    # platform-specific compile. HubAI's `is_nn_archive(path)`
-                    # check picks the archive path automatically.
-                    res = convert_model(
-                        path=archive_path,
-                        output_dir=os.path.join(
-                            workdir, "converted", output_type.value
-                        ),
-                        target_format=output_type,
-                        quantization_mode=quantization_mode,
-                        quantization_data=hubai_quantization_data,
-                    )
-                    converted_path = res.downloaded_path
-
-                # Safety net for the case where the converter strips heads
-                # through compilation. For tools-produced archives where heads
-                # survive, this is a no-op (idempotent on populated heads).
-                # Currently only fixes single-output Ultralytics-style
-                # detection archives.
-                patch_nn_archive_heads(
-                    converted_path,
-                    config.type,
-                    config.training_config.dataset_config.label_ids,
-                )
-                conv_upload = upload_for(output_type)
-                _upload_to_signed_url(conv_upload, converted_path)
-                completed.append(conv_upload)
-
-            _post_complete(
+        non_raw = [t for t in output_types if t != ModelOutputType.RAW]
+        if non_raw:
+            _post_progress(
                 webhook_url,
                 api_key,
                 config.id,
-                {
-                    "outputs": [
-                        {"type": u.type.value, "objectPath": u.object_path}
-                        for u in completed
-                    ],
-                    "finalAccuracy": (
-                        callbacks.final_metrics.get("accuracy") if callbacks else None
-                    ),
-                    "finalLoss": (
-                        callbacks.final_metrics.get("loss") if callbacks else None
-                    ),
-                    "bestMap50": (
-                        callbacks.final_metrics.get("best_map50") if callbacks else None
-                    ),
-                },
+                {"progress": {"type": "converting"}},
             )
+
+        # Routing: RVC4+INT8 goes through the offline luxonis/modelconverter
+        # path so we can feed it a real calibration set sampled from the
+        # training images. Everything else (FP16, RVC2/RVC3 of any
+        # precision) goes through HubAI — modelconverter could do RVC2/RVC3
+        # too but HubAI is fine for those and we'd just be re-implementing
+        # the OpenVINO chain locally for no win.
+        is_int8 = config.training_config.quantization == "INT8"
+
+        if is_int8:
+            quantization_mode = "INT8_INT16_MIXED"
+        else:
+            quantization_mode = "FP16_STANDARD"
+        # HubAI fallback domain — used for RVC2/RVC3 INT8 only (where
+        # modelconverter isn't on the path). RVC4+INT8 supplies its own
+        # local calibration dir, so this value is ignored there.
+        hubai_quantization_data = "GENERAL" if is_int8 else None
+
+        # Sample a calibration set up-front when we know we'll need it,
+        # so the cost is paid once even if multiple targets request it.
+        #
+        # Priority: test → val → train. The test split is held out from
+        # training, so it's the closest proxy to inference distribution
+        # and gives the quantizer the best signal for activation ranges.
+        # We fall back to val and then train only if test alone doesn't
+        # reach max_images (small datasets, or skewed splits).
+        calib_dir: str | None = None
+        if is_int8 and ModelOutputType.RVC4 in non_raw:
+            calib_dir = os.path.join(workdir, "calib_images")
+            # Layouts differ by task type — see prepare_dataset:
+            #   classification:         <workdir>/dataset/<split>/<label>/*.jpg
+            #   detection/segmentation: <workdir>/dataset/images/<split>/*.jpg
+            # Classification also renames the val split to "valid"
+            # (dataset.py mutates VAL_DIR globally). Mirror preprocess.py's
+            # resolution rather than reading the mutated global, which
+            # would be stale here had we imported it before the mutation.
+            if config.type == ModelType.CLASSIFICATION:
+                base = os.path.join(workdir, DATASET_DIR)
+                val_subdir = "valid"
+            else:
+                base = os.path.join(workdir, DATASET_DIR, IMAGE_DIR)
+                val_subdir = VAL_DIR
+            calib_sources = [
+                os.path.join(base, TEST_DIR),
+                os.path.join(base, val_subdir),
+                os.path.join(base, TRAIN_DIR),
+            ]
+            n = sample_calibration_images(calib_sources, calib_dir)
+            print(
+                f"[ml-yolo] Sampled {n} calibration images "
+                f"(prefer test → val → train) into {calib_dir}"
+            )
+            if n == 0:
+                raise RuntimeError(
+                    "INT8 RVC4 conversion requires at least one calibration "
+                    f"image; found none under any of {calib_sources}"
+                )
+
+        for output_type in non_raw:
+            use_modelconverter = output_type == ModelOutputType.RVC4 and is_int8
+
+            if use_modelconverter:
+                print(
+                    f"[ml-yolo] Converting to {output_type.value} via "
+                    f"modelconverter (quantization_mode={quantization_mode}, "
+                    f"calibration_dir={calib_dir})"
+                )
+                converted_path = convert_rvc4_int8(
+                    archive_path=archive_path,
+                    output_dir=os.path.join(
+                        workdir, "converted", output_type.value
+                    ),
+                    calibration_dir=calib_dir,  # type: ignore[arg-type]
+                    quantization_mode=quantization_mode,
+                )
+            else:
+                print(
+                    f"[ml-yolo] Converting to {output_type.value} via HubAI "
+                    f"(quantization_mode={quantization_mode}, "
+                    f"quantization_data={hubai_quantization_data})"
+                )
+                # Feed HubAI the tools-produced NN archive (not raw ONNX)
+                # so the `heads` block tools generated rides through the
+                # platform-specific compile. HubAI's `is_nn_archive(path)`
+                # check picks the archive path automatically.
+                res = convert_model(
+                    path=archive_path,
+                    output_dir=os.path.join(
+                        workdir, "converted", output_type.value
+                    ),
+                    target_format=output_type,
+                    quantization_mode=quantization_mode,
+                    quantization_data=hubai_quantization_data,
+                )
+                converted_path = res.downloaded_path
+
+            # Safety net for the case where the converter strips heads
+            # through compilation. For tools-produced archives where heads
+            # survive, this is a no-op (idempotent on populated heads).
+            # Currently only fixes single-output Ultralytics-style
+            # detection archives.
+            patch_nn_archive_heads(
+                converted_path,
+                config.type,
+                config.training_config.dataset_config.label_ids,
+            )
+            conv_upload = upload_for(output_type)
+            _upload_to_signed_url(conv_upload, converted_path)
+            completed.append(conv_upload)
+
+        _post_complete(
+            webhook_url,
+            api_key,
+            config.id,
+            {
+                "outputs": [
+                    {"type": u.type.value, "objectPath": u.object_path}
+                    for u in completed
+                ],
+                "finalAccuracy": (
+                    callbacks.final_metrics.get("accuracy") if callbacks else None
+                ),
+                "finalLoss": (
+                    callbacks.final_metrics.get("loss") if callbacks else None
+                ),
+                "bestMap50": (
+                    callbacks.final_metrics.get("best_map50") if callbacks else None
+                ),
+            },
+        )
     except Exception as e:
         error_message = str(e)
         print(f"[ml-yolo] Training error: {error_message}")
@@ -431,6 +506,9 @@ def run_training(config: ModelConfig) -> None:
                 config.id,
                 {"progress": {"type": "error", "errorMessage": error_message}},
             )
+    finally:
+        import shutil
+        shutil.rmtree(workdir, ignore_errors=True)
 
 
 def train_model(config: ModelConfig):
