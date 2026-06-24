@@ -32,6 +32,8 @@ function detailToUpdateBody(detail: EvalLimitDetail, enabled: boolean) {
       quantifierType: item.quantifierType,
       quantifierUnit: item.quantifierUnit,
       quantifierValue: item.quantifierValue,
+      targetEdge: item.targetEdge,
+      parentEdge: item.parentEdge,
     })),
   };
 }

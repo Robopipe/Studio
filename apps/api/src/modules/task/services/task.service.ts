@@ -4,7 +4,7 @@ import { TaskRepository } from "../../../repository/services/task-repository.ser
 import { PendingTaskRepository } from "../../../repository/services/pending-task-repository.service";
 import { ProjectRepository } from "../../../repository/services/project-repository.service";
 import { ProjectLabelRepository } from "../../../repository/services/project-label-repository.service";
-import { TaskFileTypeEnum, TaskStatusEnum, type ConfirmTaskUpload, type TaskExport, type TaskUploadUrl } from "@repo/schema";
+import { TaskFileTypeEnum, TaskStatusEnum, TaskSortBy, type ConfirmTaskUpload, type TaskExport, type TaskUploadUrl } from "@repo/schema";
 import { TaskDetailEntity, TaskEntity } from "../entity/task.entity";
 import { TaskUpdateRequest } from "../dto/task.dto";
 import { DB_CONNECTION } from "../../../core/database/database.constant";
@@ -57,7 +57,7 @@ export class TaskService {
    * measured locally), and kick off thumbnail generation asynchronously so
    * the user-visible response returns fast.
    */
-  public async confirmUpload(projectId: number, data: ConfirmTaskUpload): Promise<TaskEntity> {
+  public async confirmUpload(projectId: number, data: ConfirmTaskUpload, userId: number): Promise<TaskEntity> {
     const pending = await this.pendingTaskRepository.getById(data.pendingTaskId);
     if (!pending || pending.projectId !== projectId) {
       throw new NotFoundException("Pending task not found");
@@ -84,6 +84,7 @@ export class TaskService {
       width: data.width,
       height: data.height,
       status: TaskStatusEnum.TODO,
+      updatedBy: userId,
       ...(pending.capturedAt && { createdAt: pending.capturedAt }),
     });
 
@@ -121,12 +122,12 @@ export class TaskService {
     return this.taskRepository.getByIdAndProjectIdOrThrow(id, projectId)
   }
 
-  public async getTasks(projectId: number, page: number = 1, limit: number = 50, deleted: boolean | null = false, annotated?: boolean, order: "asc" | "desc" = "asc", labelIds?: number[], ids?: number[]): Promise<{ data: TaskEntity[]; total: number }>{
-    return this.taskRepository.getAllByProjectIdPaginated(projectId, page, limit, deleted, annotated, order, labelIds, ids)
+  public async getTasks(projectId: number, page: number = 1, limit: number = 50, deleted: boolean | null = false, annotated?: boolean, sortBy: TaskSortBy = "createdAt", sortOrder: "asc" | "desc" = "desc", labelIds?: number[], ids?: number[], updatedBy?: number[]): Promise<{ data: TaskEntity[]; total: number }>{
+    return this.taskRepository.getAllByProjectIdPaginated(projectId, page, limit, deleted, annotated, sortBy, sortOrder, labelIds, ids, updatedBy)
   }
 
-  public async getTaskIds(projectId: number, annotated?: boolean, labelIds?: number[], order: "asc" | "desc" = "asc"): Promise<number[]> {
-    return this.taskRepository.getAllIdsByProjectId(projectId, annotated, labelIds, order);
+  public async getTaskIds(projectId: number, annotated?: boolean, labelIds?: number[], sortBy: TaskSortBy = "createdAt", sortOrder: "asc" | "desc" = "desc"): Promise<number[]> {
+    return this.taskRepository.getAllIdsByProjectId(projectId, annotated, labelIds, sortBy, sortOrder);
   }
 
   public async updateTask(id: number, projectId: number, data: TaskUpdateRequest, userId: number): Promise<TaskDetailEntity>{
@@ -135,7 +136,7 @@ export class TaskService {
     await this.db.transaction(async(tx) => {
       const totalCount = await this.annotationService.upsertAnnotations(tx, id, data, userId);
       const status = totalCount > 0 || data.reviewed ? TaskStatusEnum.DONE : TaskStatusEnum.TODO;
-      await tx.update(taskTable).set({ status, annotationCount: totalCount }).where(eq(taskTable.id, id));
+      await tx.update(taskTable).set({ status, annotationCount: totalCount, updatedBy: userId }).where(eq(taskTable.id, id));
     });
 
     return this.getTask(id, projectId);
@@ -187,11 +188,13 @@ export class TaskService {
           y: a.y,
           width: a.width,
           height: a.height,
+          groupId: a.groupId ?? null,
         })),
         polygonAnnotations: task.polygonAnnotations.map((a) => ({
           id: a.id,
           labelId: a.label.id,
           value: a.value,
+          groupId: a.groupId ?? null,
         })),
         classificationAnnotations: task.classificationAnnotations.map((a) => ({
           id: a.id,

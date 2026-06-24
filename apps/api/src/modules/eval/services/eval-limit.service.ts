@@ -133,6 +133,8 @@ export class EvalLimitService {
           quantifierType: item.quantifierType,
           quantifierUnit: item.quantifierUnit,
           quantifierValue: item.quantifierValue,
+          targetEdge: item.targetEdge,
+          parentEdge: item.parentEdge,
         })
         .where(and(eq(evalLimitItemTable.id, item.id), eq(evalLimitItemTable.limitId, limitId)))
     ))
@@ -150,6 +152,8 @@ export class EvalLimitService {
           quantifierType: item.quantifierType,
           quantifierUnit: item.quantifierUnit,
           quantifierValue: item.quantifierValue,
+          targetEdge: item.targetEdge,
+          parentEdge: item.parentEdge,
         }))
       )
     }

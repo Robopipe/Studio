@@ -45,6 +45,8 @@ function toFormValues(limit: EvalLimitDetail): CreateLimitFormSchema {
       quantifierType: item.quantifierType,
       quantifierUnit: item.quantifierUnit,
       quantifierValue: item.quantifierValue,
+      targetEdge: item.targetEdge,
+      parentEdge: item.parentEdge,
     })),
   };
 }

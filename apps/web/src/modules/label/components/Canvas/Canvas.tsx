@@ -7,6 +7,9 @@ import { KonvaStage, KonvaStageHandle } from "./KonvaStage";
 
 export interface CanvasHandle {
   resetView: () => void;
+  startNudge: (selectedIds: Set<string>) => void;
+  applyNudge: (dxPx: number, dyPx: number) => void;
+  clearNudge: () => void;
 }
 
 export interface CanvasProps {
@@ -24,6 +27,9 @@ export interface CanvasProps {
   onDeleteSelected: () => void;
   onCopySelection: () => void;
   onPasteClipboard: () => void;
+  onGroupSelected: () => void;
+  onUngroupSelected: () => void;
+  canGroup: boolean;
   onGroupTranslate: (
     updates: Array<{ id: string; updates: Partial<Annotation> }>,
   ) => void;
@@ -68,6 +74,9 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
   onDeleteSelected,
   onCopySelection,
   onPasteClipboard,
+  onGroupSelected,
+  onUngroupSelected,
+  canGroup,
   onGroupTranslate,
   onUndo,
   onRedo,
@@ -97,6 +106,9 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
       if (!container || !image) return;
       onFitImage(image.width, image.height, container.clientWidth, container.clientHeight);
     },
+    startNudge: (ids) => stageHandle.current?.startNudge(ids),
+    applyNudge: (dx, dy) => stageHandle.current?.applyNudge(dx, dy),
+    clearNudge: () => stageHandle.current?.clearNudge(),
   }), [image, onFitImage]);
 
   useEffect(() => {
@@ -185,6 +197,16 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
         onPasteClipboard();
         return;
       }
+      if (mod && key.toLowerCase() === "g") {
+        if (isTextInputFocused(e.target)) return;
+        e.preventDefault();
+        if (e.shiftKey) {
+          onUngroupSelected();
+        } else if (canGroup) {
+          onGroupSelected();
+        }
+        return;
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
@@ -196,6 +218,9 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
     onUpdateAnnotation,
     onCopySelection,
     onPasteClipboard,
+    onGroupSelected,
+    onUngroupSelected,
+    canGroup,
     onSelect,
     onUndo,
     onRedo,

@@ -1,7 +1,7 @@
 import { Button } from "@/modules/shadcn/ui/button";
 import { Input } from "@/modules/shadcn/ui/input";
 import { Label } from "@/modules/shadcn/ui/label";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 export interface CreateReportFormProps {
@@ -14,17 +14,16 @@ export interface CreateReportFormProps {
 
 const DATETIME_LOCAL_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/;
 
-// Treat the datetime-local string as literal UTC: send back what the user
-// typed, never apply the browser's timezone offset.
 const toUtcIsoOrNull = (value: string): string | null => {
   if (!value || !DATETIME_LOCAL_PATTERN.test(value)) return null;
-  return value.length === 19 ? `${value}.000Z` : `${value}:00.000Z`;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
 };
 
 const pad = (n: number) => n.toString().padStart(2, "0");
 
-const formatUtcDateTime = (date: Date): string =>
-  `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}T${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}`;
+const formatLocalDateTime = (date: Date): string =>
+  `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 
 const isIncompleteDateTime = (value: string): boolean =>
   value !== "" && !DATETIME_LOCAL_PATTERN.test(value);
@@ -33,27 +32,27 @@ export const CreateReportForm = ({
   onSubmit,
   isSubmitting = false,
 }: CreateReportFormProps) => {
-  const { startOfTodayUtc, nowUtc } = useMemo(() => {
-    const now = new Date();
-    return {
-      startOfTodayUtc: formatUtcDateTime(
-        new Date(
-          Date.UTC(
-            now.getUTCFullYear(),
-            now.getUTCMonth(),
-            now.getUTCDate(),
-            0,
-            0,
-          ),
-        ),
-      ),
-      nowUtc: formatUtcDateTime(now),
+  const [nowDate, setNowDate] = useState(() => new Date());
+
+  useEffect(() => {
+    const msToNextMinute = 60_000 - (Date.now() % 60_000);
+    let interval: ReturnType<typeof setInterval>;
+    const timeout = setTimeout(() => {
+      setNowDate(new Date());
+      interval = setInterval(() => setNowDate(new Date()), 60_000);
+    }, msToNextMinute);
+    return () => {
+      clearTimeout(timeout);
+      clearInterval(interval);
     };
   }, []);
-  const maxAllowed = nowUtc;
 
-  const [start, setStart] = useState(startOfTodayUtc);
-  const [end, setEnd] = useState(nowUtc);
+  const maxAllowed = formatLocalDateTime(nowDate);
+
+  const [start, setStart] = useState(() => formatLocalDateTime(
+    new Date(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate(), 0, 0),
+  ));
+  const [end, setEnd] = useState(() => formatLocalDateTime(nowDate));
   const startRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLInputElement>(null);
 
@@ -67,11 +66,13 @@ export const CreateReportForm = ({
       toast.error("Please provide both date and time");
       return;
     }
-    if (start && start > maxAllowed) {
+    const submitNow = new Date();
+    const submitMax = formatLocalDateTime(submitNow);
+    if (start && start > submitMax) {
       toast.error("Start cannot be in the future");
       return;
     }
-    if (end && end > maxAllowed) {
+    if (end && end > submitMax) {
       toast.error("End cannot be in the future");
       return;
     }
@@ -82,8 +83,11 @@ export const CreateReportForm = ({
 
     try {
       await onSubmit({ start: toUtcIsoOrNull(start), end: toUtcIsoOrNull(end) });
-      setStart(startOfTodayUtc);
-      setEnd(nowUtc);
+      const resetNow = new Date();
+      setStart(formatLocalDateTime(
+        new Date(resetNow.getFullYear(), resetNow.getMonth(), resetNow.getDate(), 0, 0),
+      ));
+      setEnd(formatLocalDateTime(resetNow));
     } catch {
       // parent surfaces the error; keep the user's input so they can retry
     }
@@ -96,7 +100,7 @@ export const CreateReportForm = ({
       <span className="text-sm font-bold">Create new report</span>
       <div className="flex flex-row flex-wrap items-end gap-3">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="report-start">Start (UTC, optional)</Label>
+          <Label htmlFor="report-start">Start (optional)</Label>
           <Input
             ref={startRef}
             id="report-start"
@@ -108,7 +112,7 @@ export const CreateReportForm = ({
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="report-end">End (UTC, optional)</Label>
+          <Label htmlFor="report-end">End (optional)</Label>
           <Input
             ref={endRef}
             id="report-end"

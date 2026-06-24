@@ -4,10 +4,14 @@ import requests
 import shutil
 import yaml
 import os
+from concurrent.futures import ThreadPoolExecutor
+from collections import defaultdict
 
 from ..models.dataset_config import DatasetConfig
 from ..models.image import Image
 from ..models.model_type import ModelType
+from ..models.labels.rectangle_label import RectangleLabel
+from ..models.labels.polygon_label import PolygonLabel
 
 DATASET_DIR = "dataset"
 DATASET_CONFIG = "dataset_config.yml"
@@ -23,7 +27,7 @@ TEST_DIR = "test"
 def copy_image(image: Image, dest: str):
     image_path = image.file_url
     if image_path.startswith("http://") or image_path.startswith("https://"):
-        response = requests.get(image_path, stream=True)
+        response = requests.get(image_path, stream=True, timeout=30)
         if response.status_code == 200:
             filename = os.path.basename(image_path)
             dest_path = os.path.join(dest, filename)
@@ -85,9 +89,51 @@ def prepare_classification_directory(
             shutil.os.makedirs(label_dir, exist_ok=True)
 
 
+def _label_bbox(label: RectangleLabel | PolygonLabel) -> tuple[float, float, float, float]:
+    """Return (x_min, y_min, x_max, y_max) in raw 0–100 percent space."""
+    if isinstance(label, RectangleLabel):
+        return label.x, label.y, label.x + label.width, label.y + label.height
+    xs = [x for x, _ in label.points]
+    ys = [y for _, y in label.points]
+    return min(xs), min(ys), max(xs), max(ys)
+
+
+def merge_groups(images: list[Image]) -> list[Image]:
+    for img in images:
+        groupable = [l for l in img.labels if isinstance(l, (RectangleLabel, PolygonLabel))]
+        other = [l for l in img.labels if not isinstance(l, (RectangleLabel, PolygonLabel))]
+        grouped: dict[str | None, list] = defaultdict(list)
+        for l in groupable:
+            grouped[l.group_id].append(l)
+
+        ungrouped = grouped.pop(None, [])
+        merged_groups = []
+        for members in grouped.values():
+            bboxes = [_label_bbox(m) for m in members]
+            x_min = min(b[0] for b in bboxes)
+            y_min = min(b[1] for b in bboxes)
+            x_max = max(b[2] for b in bboxes)
+            y_max = max(b[3] for b in bboxes)
+            merged_groups.append(RectangleLabel(
+                label=members[0].label,
+                group_id=members[0].group_id,
+                x=x_min,
+                y=y_min,
+                width=x_max - x_min,
+                height=y_max - y_min,
+            ))
+
+        img.labels = other + ungrouped + merged_groups
+
+    return images
+
+
 def prepare_dataset(
     dir: str, images: list[Image], config: DatasetConfig, task_type: ModelType
 ):
+    if config.use_groups and task_type == ModelType.DETECTION:
+        images = merge_groups(images)
+
     global VAL_DIR
     dir = f"{dir}/{DATASET_DIR}"
     image_dir = f"{dir}/{IMAGE_DIR}"
@@ -102,7 +148,8 @@ def prepare_dataset(
         prepare_dirs(label_dir)
         prepare_dataset_config(config, dir)
 
-    for image, curr_dir in iterate_datasets(images, config):
+    def _download_task(args):
+        image, curr_dir = args
         if task_type == ModelType.CLASSIFICATION:
             label_name = label_mapping[image.labels[0].label.label_number]
             copy_image(image, f"{dir}/{curr_dir}/{label_name}")
@@ -113,3 +160,11 @@ def prepare_dataset(
             copy_image(image, f"{image_dir}/{curr_dir}")
             with open(f"{label_dir}/{curr_dir}/{label_filename}", "w") as f:
                 f.write("\n".join(image.labels_str(task_type)))
+
+    tasks = list(iterate_datasets(images, config))
+    max_workers = min(32, len(tasks) or 1)
+    print(f"[ml] Downloading {len(tasks)} images using {max_workers} workers...")
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        list(executor.map(_download_task, tasks))
+    print(f"[ml] Dataset preparation complete.")
+

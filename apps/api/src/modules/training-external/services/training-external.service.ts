@@ -15,7 +15,6 @@ import {
   ModelOutputTypeEnum,
   TaskFileTypeEnum,
   ModelStatusEnum,
-  ModelBackendEnum,
   ModelRegionEnum,
 } from "@repo/schema";
 import { HttpService } from "@nestjs/axios";
@@ -190,20 +189,19 @@ export class TrainingExternalService {
    * Train
    * @param model - Model entity
    *
-   * Dispatches to the ML service matching `model.backend`. Each backend has
-   * its own Cloud Batch image (Cloud) and FastAPI host (local dev) because
-   * luxonis-train and ultralytics can't share a Python environment cleanly.
+   * Dispatches the training run to the ml-yolo service — as a Cloud Batch job
+   * (Cloud, GPU VM) when an image is configured, otherwise POSTed to the
+   * FastAPI host for local dev.
    */
   public async train(model: ModelEntity): Promise<void> {
     const outputUploads = await this.generateOutputUploads(model);
     const trainingPayload = await this.getTrainingPayload(model, outputUploads);
 
-    const isYolo = model.backend === ModelBackendEnum.ULTRALYTICS;
-    const batchImage = isYolo ? this.config.mlBatchImageYolo : this.config.mlBatchImage;
-    const httpHost = isYolo ? this.config.mlHostYolo : this.config.mlHost;
+    const batchImage = this.config.mlBatchImageYolo;
+    const httpHost = this.config.mlHostYolo;
 
     this.logger.log(
-      `Train dispatch: backend=${model.backend} batchImage=${batchImage ?? "-"} httpHost=${httpHost ?? "-"}`,
+      `Train dispatch: model=${model.id} batchImage=${batchImage ?? "-"} httpHost=${httpHost ?? "-"}`,
     );
 
     if (batchImage) {
@@ -212,7 +210,7 @@ export class TrainingExternalService {
       await this.trainViaHttp(trainingPayload, httpHost);
     } else {
       throw new InternalServerErrorException(
-        `No ML training backend configured for ${model.backend}. Set either ML_HOST${isYolo ? "_YOLO" : ""} or ML_BATCH_IMAGE${isYolo ? "_YOLO" : ""}.`,
+        "No ML training backend configured. Set either ML_HOST_YOLO or ML_BATCH_IMAGE_YOLO.",
       );
     }
   }
@@ -246,9 +244,8 @@ export class TrainingExternalService {
 
   private async trainViaHttp(trainingPayload: TrainingPayload, httpHost: string): Promise<void> {
     try {
-      // Use an absolute URL so axios ignores the module-level baseURL (which
-      // points at the luxonis host). Still inherits the Authorization header
-      // from HttpModule.registerAsync — both ML services share ML_SECRET.
+      // Use an absolute URL so axios ignores the module-level baseURL. Still
+      // inherits the Authorization header from HttpModule.registerAsync (ML_SECRET).
       await this.http.axiosRef.post(`${httpHost.replace(/\/$/, "")}/train/`, trainingPayload);
     } catch (e) {
       this.logger.error(
@@ -323,7 +320,8 @@ export class TrainingExternalService {
       // the N1-style "custom attachment" path.
       const instancePolicy: protos.google.cloud.batch.v1.AllocationPolicy.IInstancePolicy = {
         machineType: mlBatchMachineType,
-        bootDisk: { sizeGb: String(mlBatchBootDiskGb) },
+        bootDisk: { sizeGb: String(mlBatchBootDiskGb), type: "pd-ssd" },
+        provisioningModel: "SPOT",
       };
       if (mlBatchGpuType && mlBatchGpuCount > 0) {
         instancePolicy.accelerators = [
@@ -380,6 +378,15 @@ export class TrainingExternalService {
                 memoryMib: mlBatchTaskMemoryMib,
               },
               maxRunDuration: { seconds: String(mlBatchMaxRunSeconds) },
+              maxRetryCount: 10,
+              lifecyclePolicies: [
+                {
+                  action: protos.google.cloud.batch.v1.LifecyclePolicy.Action.RETRY_TASK,
+                  actionCondition: {
+                    exitCodes: [50001],
+                  },
+                },
+              ],
             },
           },
         ],
@@ -464,18 +471,32 @@ export class TrainingExternalService {
       }
     })
 
+    const checkpointObjectPath = `${model.projectId}/model/${model.id}/checkpoint_last.pt`;
+    const [checkpointPutUrl, checkpointGetUrl] = await Promise.all([
+      this.assetsService.generateSignedUploadUrl(
+        checkpointObjectPath,
+        "application/octet-stream",
+        UPLOAD_URL_TTL_MS,
+      ),
+      this.assetsService.generateSignedDownloadUrl(
+        checkpointObjectPath,
+        UPLOAD_URL_TTL_MS,
+      ),
+    ]);
+
     const basePayload: TrainingBasePayload = {
       id: model.id,
       output_config: outputUploads,
+      checkpoint_config: {
+        put_url: checkpointPutUrl,
+        get_url: checkpointGetUrl,
+      },
       training_config: {
         output_types: model.outputTypes,
         epochs: model.epochs,
         // ml-yolo consumes this to flip HubAI's quantization_mode between
-        // FP16_STANDARD and INT8_STANDARD. Omit for Luxonis — its Pydantic
-        // model rejects unknown keys (extra="forbid").
-        ...(model.backend === ModelBackendEnum.ULTRALYTICS && {
-          quantization: model.quantization,
-        }),
+        // FP16_STANDARD and INT8_STANDARD.
+        quantization: model.quantization,
         dataset_config: {
           dataset_split: [
             model.splitTrain,
@@ -490,6 +511,7 @@ export class TrainingExternalService {
             params: pp.params,
             keep_original: pp.keepOriginal,
           })),
+          use_groups: model.useGroups
         },
         custom_hyperparams: model.customHyperparams,
       },
@@ -519,6 +541,7 @@ export class TrainingExternalService {
           labels: task.polygonAnnotations.map((annotation) => ({
             label: { label_number: labelsIndexMap[annotation.labelId] },
             points: annotation.value,
+            group_id: annotation.groupId,
           })),
         }));
 
@@ -540,6 +563,7 @@ export class TrainingExternalService {
                 y: annotation.y,
                 width: annotation.width,
                 height: annotation.height,
+                group_id: annotation.groupId,
               });
             }
           }
@@ -549,6 +573,7 @@ export class TrainingExternalService {
               labels.push({
                 label: { label_number: labelsIndexMap[annotation.labelId] },
                 points: annotation.value,
+                group_id: annotation.groupId,
               });
             }
           }

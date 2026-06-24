@@ -86,10 +86,7 @@ def _extract_archive(archive: Path) -> tuple[Path, list[str] | None]:
 
 
 def _infer_n_classes(session: ort.InferenceSession) -> int:
-    # Two known shapes:
-    #   - Standard Ultralytics seg export: one 3D output (1, 4+nc+32, anchors).
-    #   - luxonis/tools split export: per-stride 4D heads (1, 4+nc, H, W) named
-    #     `*_yolov8`, with mask coeffs broken out into `*_masks`.
+    # Standard Ultralytics seg export: one 3D output (1, 4+nc+32, anchors).
     for out in session.get_outputs():
         shape = out.shape
         if (
@@ -98,13 +95,29 @@ def _infer_n_classes(session: ort.InferenceSession) -> int:
             and shape[1] > 36
         ):
             return shape[1] - 4 - 32
+    # Standard Ultralytics det export: one 3D output (1, 4+nc, anchors)
+    # where nc < 32 means it won't satisfy the seg check above.
+    for out in session.get_outputs():
+        shape = out.shape
+        if len(shape) == 3 and isinstance(shape[1], int) and shape[1] > 4:
+            return shape[1] - 4
+    # luxonis/tools split export (both seg and det): per-stride 4D heads
+    # named *_yolov8 with layout: 4 LTRB + 1 injected objectness + nc.
     for out in session.get_outputs():
         if "_yolov8" not in out.name:
             continue
         shape = out.shape
-        # luxonis/tools split layout: 4 LTRB + 1 injected objectness + nc.
         if len(shape) == 4 and isinstance(shape[1], int) and shape[1] > 5:
             return shape[1] - 5
+    # luxonis-train plain det export: per-stride 4D heads with generic names
+    # (output0/output1/...), same LTRB + objectness + nc layout. Count
+    # matching heads to confirm this is a multi-stride model (not segmentation).
+    plain_4d = [
+        o for o in session.get_outputs()
+        if len(o.shape) == 4 and isinstance(o.shape[1], int) and o.shape[1] > 5
+    ]
+    if len(plain_4d) > 1:
+        return plain_4d[0].shape[1] - 5
     return 0
 
 

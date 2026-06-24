@@ -43,7 +43,6 @@ export interface DuplicateModelState {
     annotationsUsed: ProjectTypeEnum[];
     labels: ProjectLabel[];
     outputs: ModelOutputTypeEnum[];
-    backend: ModelBackendEnum;
     region: ModelRegionEnum;
     quantization: ModelQuantizationEnum;
     datasetSplit: DatasetSplit;
@@ -54,6 +53,7 @@ export interface DuplicateModelState {
     taskPreviews?: { id: number; thumbnailUrl: string }[];
     /** Source model's dataset version — lets the new model reuse the exact same version (no duplication) when taskIds are unchanged. */
     datasetVersionId?: number | null;
+    useGroups?: boolean;
   };
 }
 
@@ -80,9 +80,6 @@ const ModelNewPageInner = () => {
       ModelOutputTypeEnum.RAW,
       ModelOutputTypeEnum.RVC4,
     ],
-  );
-  const [backend, setBackend] = useState<ModelBackendEnum>(
-    duplicateState?.backend ?? ModelBackendEnum.ULTRALYTICS,
   );
   const [region, setRegion] = useState<ModelRegionEnum>(
     duplicateState?.region ?? ModelRegionEnum.EUROPE_WEST4,
@@ -112,10 +109,8 @@ const ModelNewPageInner = () => {
     if (duplicateState?.customHyperparams !== undefined) {
       return duplicateState.customHyperparams;
     }
-    // Default to the High Accuracy preset for the initial backend.
-    const initialBackend =
-      duplicateState?.backend ?? ModelBackendEnum.ULTRALYTICS;
-    const preset = getHyperparamsPresets(initialBackend).find(
+    // Default to the High Accuracy preset.
+    const preset = getHyperparamsPresets().find(
       (p) => p.id === "high-accuracy",
     );
     return preset ? JSON.stringify(preset.config, null, 2) : "";
@@ -140,6 +135,9 @@ const ModelNewPageInner = () => {
   // reuses this version if taskIds are unchanged, or appends a new version
   // under the same dataset if they've been edited.
   const sourceDatasetVersionId = duplicateState?.datasetVersionId ?? undefined;
+  const [useGroups, setUseGroups] = useState<boolean>(
+    duplicateState?.useGroups ?? false,
+  );
 
   // When duplicating, we receive taskIds but no thumbnail URLs. Fetch them
   // so the Source Images card can render the preview row.
@@ -177,7 +175,7 @@ const ModelNewPageInner = () => {
     {
       projectId: activeProject?.id!,
       annotated: "true",
-      order: "desc",
+      sortOrder: "desc",
     },
     { skip: !activeProject?.id || !shouldPrefillTasks },
   );
@@ -187,7 +185,7 @@ const ModelNewPageInner = () => {
       page: 1,
       limit: 15,
       annotated: "true",
-      order: "desc",
+      sortOrder: "desc",
     },
     { skip: !activeProject?.id || !shouldPrefillTasks },
   );
@@ -249,30 +247,6 @@ const ModelNewPageInner = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTaskIds, trainingType, annotationsUsed, activeProject?.id]);
 
-  // When switching backend, swap the hyperparams JSON to the new backend's
-  // matching preset *iff* the current text still matches a preset of the
-  // previous backend. That way users on defaults get the right defaults for
-  // the new backend (fast/high/low align by id), but anyone who hand-edited
-  // the JSON keeps their work — backend change isn't a license to wipe it.
-  const handleBackendChange = (next: ModelBackendEnum) => {
-    if (next === backend) return;
-    const previousPresets = getHyperparamsPresets(backend);
-    const matched = previousPresets.find(
-      (p) => JSON.stringify(p.config, null, 2) === customHyperparams,
-    );
-    if (matched) {
-      const newPresets = getHyperparamsPresets(next);
-      const swap =
-        newPresets.find((p) => p.id === matched.id) ??
-        newPresets.find((p) => p.id === "high-accuracy");
-      if (swap) {
-        setCustomHyperparams(JSON.stringify(swap.config, null, 2));
-        setHyperparamsError(null);
-      }
-    }
-    setBackend(next);
-  };
-
   const parseHyperparams = (): Record<string, unknown> | undefined => {
     if (!customHyperparams.trim()) return {};
     try {
@@ -295,6 +269,7 @@ const ModelNewPageInner = () => {
 
   const saveModel = async (train = false) => {
     if (datasetError) return;
+    if (useGroups && trainingType !== ProjectTypeEnum.DETECTION) return;
     setSaveError(null);
     const trimmedName = name.trim();
     const nextNameError = trimmedName ? null : "Version name is required";
@@ -338,7 +313,7 @@ const ModelNewPageInner = () => {
         splitTrain: datasetSplit.train,
         splitValidate: datasetSplit.validation,
         outputTypes: outputs,
-        backend,
+        backend: ModelBackendEnum.ULTRALYTICS,
         region,
         quantization,
         trainingType,
@@ -350,6 +325,7 @@ const ModelNewPageInner = () => {
         preprocessings: allPreprocessings,
         customHyperparams: parsedHyperparams,
         train,
+        useGroups,
       }).unwrap();
       navigate(`/projects/${activeProject?.id}/models/${newModel.id}`);
     } catch (err: unknown) {
@@ -428,6 +404,9 @@ const ModelNewPageInner = () => {
           selectedTaskPreviews={selectedTaskPreviews}
           onEditSelection={() => setSelectionDialogOpen(true)}
           datasetError={datasetError}
+          useGroups={useGroups}
+          setUseGroups={setUseGroups}
+          trainingType={trainingType}
         />
         <DatasetSplitSettings
           split={datasetSplit}
@@ -439,8 +418,6 @@ const ModelNewPageInner = () => {
         <AdvancedSettings
           outputs={outputs}
           onOutputsChange={setOutputs}
-          backend={backend}
-          onBackendChange={handleBackendChange}
           region={region}
           onRegionChange={setRegion}
           quantization={quantization}
@@ -456,12 +433,14 @@ const ModelNewPageInner = () => {
           <Button onClick={() => saveModel()} disabled={Boolean(datasetError)}>
             Save
           </Button>
-          <Button
-            onClick={() => saveModel(true)}
-            disabled={Boolean(datasetError)}
-          >
-            Save &amp; Train
-          </Button>
+          {activeProject?.hasLicense && (
+            <Button
+              onClick={() => saveModel(true)}
+              disabled={Boolean(datasetError)}
+            >
+              Save &amp; Train
+            </Button>
+          )}
         </div>
       </div>
 

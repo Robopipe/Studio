@@ -48,6 +48,8 @@ export type DeployEvalLimitItem = {
   limitTo: number | null;
   parameter: string;
   operator: string;
+  targetEdge: string;
+  parentEdge: string;
 };
 
 export type DeployEvalLimit = {

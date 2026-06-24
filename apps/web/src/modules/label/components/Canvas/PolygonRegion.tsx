@@ -147,8 +147,8 @@ export const PolygonRegion = ({
 
   const handleLineDragMove = () => {
     groupDrag.onDragMove(annotation.id);
-    // Single-select also keeps vertex circles in sync with the dragged line.
-    // (In multi-select, no circles are rendered — loop is a no-op.)
+    // Keep vertex circles in sync with the dragged line (both single- and
+    // multi-select, since circles now render whenever the polygon is selected).
     const line = lineRef.current;
     if (!line) return;
     const dx = line.x();
@@ -225,6 +225,7 @@ export const PolygonRegion = ({
             <Circle
               key={i}
               ref={(node) => { circleRefs.current[i] = node; }}
+              id={`vertex-${annotation.id}-${i}`}
               x={(px / 100) * imageWidth}
               y={(py / 100) * imageHeight}
               radius={4 / stageScale}

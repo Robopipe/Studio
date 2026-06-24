@@ -1,6 +1,7 @@
 import * as p from "drizzle-orm/pg-core";
 import { id, timestamps } from "../helpers";
 import { projectTable } from "./project";
+import { userTable } from "./user";
 import { TaskFileTypeEnum, TaskStatusEnum } from "@repo/schema";
 
 export const taskStatusEnum = p.pgEnum("task_status_enum", [TaskStatusEnum.TODO, TaskStatusEnum.DONE]);
@@ -21,6 +22,7 @@ export const taskTable = p.pgTable("task", {
   height: p.integer("height").notNull(),
   status: taskStatusEnum("status").notNull(),
   annotationCount: p.integer("annotation_count").notNull().default(0),
+  updatedBy: p.integer("updated_by").references(() => userTable.id, { onDelete: "set null" }),
   ...timestamps,
 }, (t) => [
   p.unique().on(t.projectId, t.iid),

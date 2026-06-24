@@ -6,6 +6,7 @@ export class UserEntity {
   readonly username: string;
   readonly email: string;
   readonly fullName: string;
+  readonly emailVerifiedAt: Date | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;
   readonly deletedAt: Date | null;

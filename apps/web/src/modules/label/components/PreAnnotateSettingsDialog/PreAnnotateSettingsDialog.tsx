@@ -16,19 +16,38 @@ import {
   SelectValue,
 } from "@/modules/shadcn/ui/select";
 import { Slider } from "@/modules/shadcn/ui/slider";
-import { Model, ModelStatusEnum, ProjectTypeEnum } from "@repo/schema";
-import { useEffect, useState } from "react";
 import {
-  DEFAULT_PRE_ANNOTATE_SETTINGS,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/modules/shadcn/ui/tabs";
+import {
+  DetectionPreAnnotateSettings,
+  Model,
+  ModelBackendEnum,
+  ModelOutputTypeEnum,
+  ModelStatusEnum,
+  PRE_ANNOTATE_DEFAULTS,
+  PreAnnotateModelTypeEnum,
   PreAnnotateSettings,
-} from "../../utils/preAnnotateSettings";
+  ProjectTypeEnum,
+  SegmentationPreAnnotateSettings,
+} from "@repo/schema";
+import { useEffect, useState } from "react";
 
 export interface PreAnnotateSettingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   models: Model[];
-  settings: PreAnnotateSettings;
-  onApply: (next: PreAnnotateSettings) => void;
+  segSettings: SegmentationPreAnnotateSettings;
+  detSettings: DetectionPreAnnotateSettings;
+  segHasSavedSettings: boolean;
+  detHasSavedSettings: boolean;
+  onApply: (next: PreAnnotateSettings) => Promise<void>;
+  onDelete: (modelType: PreAnnotateModelTypeEnum) => Promise<void>;
+  isSaving: boolean;
+  defaultTab?: PreAnnotateModelTypeEnum;
 }
 
 const formatNumber = (value: number, digits: number) =>
@@ -37,242 +56,441 @@ const formatNumber = (value: number, digits: number) =>
     maximumFractionDigits: digits,
   });
 
+const SEG_DEFAULTS = PRE_ANNOTATE_DEFAULTS[PreAnnotateModelTypeEnum.SEGMENTATION];
+const DET_DEFAULTS = PRE_ANNOTATE_DEFAULTS[PreAnnotateModelTypeEnum.DETECTION];
+
 export const PreAnnotateSettingsDialog = ({
   open,
   onOpenChange,
   models,
-  settings,
+  segSettings,
+  detSettings,
+  segHasSavedSettings,
+  detHasSavedSettings,
   onApply,
+  onDelete,
+  isSaving,
+  defaultTab,
 }: PreAnnotateSettingsDialogProps) => {
-  const trainedModels = models.filter(
+  const [activeTab, setActiveTab] = useState<PreAnnotateModelTypeEnum>(
+    defaultTab ?? PreAnnotateModelTypeEnum.SEGMENTATION,
+  );
+
+  // Segmentation form state
+  const [segModelId, setSegModelId] = useState<number | null>(segSettings.modelId);
+  const [segConf, setSegConf] = useState(segSettings.conf);
+  const [segIou, setSegIou] = useState(segSettings.iou);
+  const [segPolyEpsilon, setSegPolyEpsilon] = useState(segSettings.polyEpsilon);
+  const [segMaskThreshold, setSegMaskThreshold] = useState(segSettings.maskThreshold);
+  const [segMinAreaPx, setSegMinAreaPx] = useState(segSettings.minAreaPx);
+  const [segFillConcavityLabelIds, setSegFillConcavityLabelIds] = useState<number[]>(
+    segSettings.fillConcavityLabelIds,
+  );
+
+  // Detection form state
+  const [detModelId, setDetModelId] = useState<number | null>(detSettings.modelId);
+  const [detConf, setDetConf] = useState(detSettings.conf);
+  const [detIou, setDetIou] = useState(detSettings.iou);
+  const [detMinAreaPx, setDetMinAreaPx] = useState(detSettings.minAreaPx);
+
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Compute valid model lists before the open-reset effect so it can reconcile
+  // stale saved ids (e.g. a model exported RVC-only after being saved here).
+  const segModels = models.filter(
     (m) =>
       m.status === ModelStatusEnum.DONE &&
-      m.trainingType === ProjectTypeEnum.SEGMENTATION,
+      m.trainingType === ProjectTypeEnum.SEGMENTATION &&
+      m.backend === ModelBackendEnum.ULTRALYTICS &&
+      m.outputs.some((o) => o.type === ModelOutputTypeEnum.RAW),
   );
-  const hasAnyTrainedModel = models.some((m) => m.status === ModelStatusEnum.DONE);
-
-  const [modelId, setModelId] = useState<number | null>(settings.modelId);
-  const [conf, setConf] = useState(settings.conf);
-  const [iou, setIou] = useState(settings.iou);
-  const [polyEpsilon, setPolyEpsilon] = useState(settings.polyEpsilon);
-  const [maskThreshold, setMaskThreshold] = useState(settings.maskThreshold);
-  const [minAreaPx, setMinAreaPx] = useState(settings.minAreaPx);
-  const [fillConcavityLabelIds, setFillConcavityLabelIds] = useState<number[]>(
-    settings.fillConcavityLabelIds,
+  const detModels = models.filter(
+    (m) =>
+      m.status === ModelStatusEnum.DONE &&
+      m.trainingType === ProjectTypeEnum.DETECTION &&
+      m.backend === ModelBackendEnum.ULTRALYTICS &&
+      m.outputs.some((o) => o.type === ModelOutputTypeEnum.RAW),
+  );
+  const hasAnyTrainedModel = models.some(
+    (m) =>
+      m.status === ModelStatusEnum.DONE &&
+      m.backend === ModelBackendEnum.ULTRALYTICS &&
+      m.outputs.some((o) => o.type === ModelOutputTypeEnum.RAW),
   );
 
   useEffect(() => {
     if (!open) return;
-    setModelId(settings.modelId);
-    setConf(settings.conf);
-    setIou(settings.iou);
-    setPolyEpsilon(settings.polyEpsilon);
-    setMaskThreshold(settings.maskThreshold);
-    setMinAreaPx(settings.minAreaPx);
-    setFillConcavityLabelIds(settings.fillConcavityLabelIds);
-  }, [open, settings]);
+    // Reconcile: if the saved modelId is no longer in the valid filtered list
+    // (e.g. the model was re-exported without RAW), reset the selection so the
+    // user must pick a valid model before Save becomes enabled again.
+    const validSegId = segModels.some((m) => m.id === segSettings.modelId)
+      ? segSettings.modelId
+      : null;
+    const validDetId = detModels.some((m) => m.id === detSettings.modelId)
+      ? detSettings.modelId
+      : null;
+    setSegModelId(validSegId);
+    setSegConf(segSettings.conf);
+    setSegIou(segSettings.iou);
+    setSegPolyEpsilon(segSettings.polyEpsilon);
+    setSegMaskThreshold(segSettings.maskThreshold);
+    setSegMinAreaPx(segSettings.minAreaPx);
+    setSegFillConcavityLabelIds(segSettings.fillConcavityLabelIds);
+    setDetModelId(validDetId);
+    setDetConf(detSettings.conf);
+    setDetIou(detSettings.iou);
+    setDetMinAreaPx(detSettings.minAreaPx);
+    setSaveError(null);
+    if (defaultTab) setActiveTab(defaultTab);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, segSettings, detSettings, defaultTab]);
 
-  const selectedModel = trainedModels.find((m) => m.id === modelId) ?? null;
+  const selectedSegModel = segModels.find((m) => m.id === segModelId) ?? null;
 
   const toggleFillConcavityLabel = (labelId: number) => {
-    setFillConcavityLabelIds((prev) =>
-      prev.includes(labelId)
-        ? prev.filter((id) => id !== labelId)
-        : [...prev, labelId],
+    setSegFillConcavityLabelIds((prev) =>
+      prev.includes(labelId) ? prev.filter((id) => id !== labelId) : [...prev, labelId],
     );
   };
 
-  const handleSave = () => {
-    // Drop any label IDs that aren't in the currently selected model so we
-    // don't carry stale toggles forward when the user switches models.
-    const validIds = selectedModel
-      ? new Set(selectedModel.labels.map((l) => l.id))
-      : new Set<number>();
-    onApply({
-      modelId,
-      conf,
-      iou,
-      polyEpsilon,
-      maskThreshold,
-      minAreaPx,
-      fillConcavityLabelIds: fillConcavityLabelIds.filter((id) =>
-        validIds.has(id),
-      ),
-    });
-    onOpenChange(false);
+  const handleSave = async () => {
+    setSaveError(null);
+    try {
+      if (activeTab === PreAnnotateModelTypeEnum.SEGMENTATION) {
+        const validIds = selectedSegModel
+          ? new Set(selectedSegModel.labels.map((l) => l.id))
+          : new Set<number>();
+        await onApply({
+          modelType: PreAnnotateModelTypeEnum.SEGMENTATION,
+          modelId: segModelId,
+          conf: segConf,
+          iou: segIou,
+          polyEpsilon: segPolyEpsilon,
+          maskThreshold: segMaskThreshold,
+          minAreaPx: segMinAreaPx,
+          fillConcavityLabelIds: segFillConcavityLabelIds.filter((id) => validIds.has(id)),
+        });
+      } else {
+        await onApply({
+          modelType: PreAnnotateModelTypeEnum.DETECTION,
+          modelId: detModelId,
+          conf: detConf,
+          iou: detIou,
+          minAreaPx: detMinAreaPx,
+        });
+      }
+      onOpenChange(false);
+    } catch {
+      setSaveError("Failed to save settings. Please try again.");
+    }
+  };
+
+  const handleDelete = async () => {
+    setSaveError(null);
+    try {
+      await onDelete(activeTab);
+      onOpenChange(false);
+    } catch {
+      setSaveError("Failed to delete settings. Please try again.");
+    }
   };
 
   const handleReset = () => {
-    setModelId(null);
-    setConf(DEFAULT_PRE_ANNOTATE_SETTINGS.conf);
-    setIou(DEFAULT_PRE_ANNOTATE_SETTINGS.iou);
-    setPolyEpsilon(DEFAULT_PRE_ANNOTATE_SETTINGS.polyEpsilon);
-    setMaskThreshold(DEFAULT_PRE_ANNOTATE_SETTINGS.maskThreshold);
-    setMinAreaPx(DEFAULT_PRE_ANNOTATE_SETTINGS.minAreaPx);
-    setFillConcavityLabelIds(
-      DEFAULT_PRE_ANNOTATE_SETTINGS.fillConcavityLabelIds,
-    );
+    if (activeTab === PreAnnotateModelTypeEnum.SEGMENTATION) {
+      setSegModelId(null);
+      setSegConf(SEG_DEFAULTS.conf);
+      setSegIou(SEG_DEFAULTS.iou);
+      setSegPolyEpsilon(SEG_DEFAULTS.polyEpsilon);
+      setSegMaskThreshold(SEG_DEFAULTS.maskThreshold);
+      setSegMinAreaPx(SEG_DEFAULTS.minAreaPx);
+      setSegFillConcavityLabelIds(SEG_DEFAULTS.fillConcavityLabelIds);
+    } else {
+      setDetModelId(null);
+      setDetConf(DET_DEFAULTS.conf);
+      setDetIou(DET_DEFAULTS.iou);
+      setDetMinAreaPx(DET_DEFAULTS.minAreaPx);
+    }
+    setSaveError(null);
   };
+
+  const activeModelId =
+    activeTab === PreAnnotateModelTypeEnum.SEGMENTATION ? segModelId : detModelId;
+  const activeHasSavedSettings =
+    activeTab === PreAnnotateModelTypeEnum.SEGMENTATION
+      ? segHasSavedSettings
+      : detHasSavedSettings;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="gap-6 sm:max-w-[560px]">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[90vh] flex-col gap-0 sm:max-w-[560px]">
+        <DialogHeader className="shrink-0 pb-4">
           <DialogTitle className="text-xl font-semibold">
             Pre-annotate settings
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex flex-col gap-1.5">
-          <Label>Model</Label>
-          {trainedModels.length === 0 ? (
-            <p className="rounded-md border border-dashed border-black/10 bg-black/[0.03] px-3 py-2 text-sm text-muted-foreground">
-              {hasAnyTrainedModel
-                ? "None of your trained models are segmentation models. Train a segmentation model to enable pre-annotation."
-                : "No trained models in this project yet. Train a segmentation model first."}
-            </p>
-          ) : (
-            <>
-              <Select
-                value={modelId == null ? "" : String(modelId)}
-                onValueChange={(value) =>
-                  setModelId(value ? Number(value) : null)
-                }
-              >
-                <SelectTrigger>
-                  {/* Base UI's SelectValue renders the raw `value` unless
-                      we pass a render function. Map id → human name. */}
-                  <SelectValue placeholder="Select a model">
-                    {(value: string) => {
-                      const id = Number(value);
-                      const sel = trainedModels.find((m) => m.id === id);
-                      return sel ? sel.name : "Select a model";
-                    }}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {trainedModels.map((m) => (
-                    <SelectItem key={m.id} value={String(m.id)}>
-                      {m.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                Pick any trained segmentation model from this project. Each
-                model is downloaded and cached on first use, so re-using the
-                same one across tasks is fastest.
-              </p>
-            </>
-          )}
-        </div>
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => {
+            setActiveTab(v as PreAnnotateModelTypeEnum);
+            setSaveError(null);
+          }}
+          className="flex min-h-0 flex-1 flex-col"
+        >
+          <TabsList variant="line" className="shrink-0">
+            <TabsTrigger value={PreAnnotateModelTypeEnum.SEGMENTATION}>
+              Segmentation
+            </TabsTrigger>
+            <TabsTrigger value={PreAnnotateModelTypeEnum.DETECTION}>
+              Detection
+            </TabsTrigger>
+          </TabsList>
 
-        {selectedModel && (
-          <div className="flex flex-col gap-1.5">
-            <Label>Predicted labels — click to fill concavities</Label>
-            <div className="flex flex-wrap gap-1.5">
-              {selectedModel.labels.length === 0 ? (
-                <span className="text-sm text-muted-foreground">
-                  (none recorded)
-                </span>
+          <TabsContent
+            value={PreAnnotateModelTypeEnum.SEGMENTATION}
+            className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto py-4 pr-1 [scrollbar-color:rgba(0,0,0,0.15)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb:hover]:bg-black/25 [&::-webkit-scrollbar-thumb]:rounded-[3px] [&::-webkit-scrollbar-thumb]:bg-black/15 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-1.5"
+          >
+            <div className="flex flex-col gap-1.5">
+              <Label>Model</Label>
+              {segModels.length === 0 ? (
+                <p className="rounded-md border border-dashed border-black/10 bg-black/[0.03] px-3 py-2 text-sm text-muted-foreground">
+                  {hasAnyTrainedModel
+                    ? "None of your trained models qualify. Pre-annotation requires an Ultra Vision segmentation model exported with a RAW (ONNX) output."
+                    : "No qualifying models in this project yet. Train an Ultra Vision segmentation model and export it with the RAW output enabled."}
+                </p>
               ) : (
-                selectedModel.labels.map((l) => {
-                  const active = fillConcavityLabelIds.includes(l.id);
-                  return (
-                    <button
-                      key={l.id}
-                      type="button"
-                      aria-pressed={active}
-                      onClick={() => toggleFillConcavityLabel(l.id)}
-                      className={cn(
-                        "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-sm transition",
-                        active
-                          ? "border-primary bg-primary/10 text-foreground"
-                          : "border-border text-muted-foreground hover:bg-muted",
-                      )}
-                    >
-                      <span
-                        className="h-2 w-2 rounded-full"
-                        style={{ backgroundColor: l.color }}
-                      />
-                      {l.name}
-                    </button>
-                  );
-                })
+                <>
+                  <Select
+                    value={segModelId == null ? "" : String(segModelId)}
+                    onValueChange={(value) =>
+                      setSegModelId(value ? Number(value) : null)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a model">
+                        {(value: string) => {
+                          const id = Number(value);
+                          const sel = segModels.find((m) => m.id === id);
+                          return sel ? sel.name : "Select a model";
+                        }}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {segModels.map((m) => (
+                        <SelectItem key={m.id} value={String(m.id)}>
+                          {m.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Pick any trained segmentation model from this project. Each
+                    model is downloaded and cached on first use.
+                  </p>
+                </>
               )}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Selected labels get traced as their outer silhouette (convex
-              hull), bridging dips where the mask cuts inward — useful for
-              objects like a baguette where the toppings carve into the
-              mask. Unselected labels stay tight to the predicted mask.
-            </p>
+
+            {selectedSegModel && (
+              <div className="flex flex-col gap-1.5">
+                <Label>Predicted labels — click to fill concavities</Label>
+                <div className="flex flex-wrap gap-1.5">
+                  {selectedSegModel.labels.length === 0 ? (
+                    <span className="text-sm text-muted-foreground">(none recorded)</span>
+                  ) : (
+                    selectedSegModel.labels.map((l) => {
+                      const active = segFillConcavityLabelIds.includes(l.id);
+                      return (
+                        <button
+                          key={l.id}
+                          type="button"
+                          aria-pressed={active}
+                          onClick={() => toggleFillConcavityLabel(l.id)}
+                          className={cn(
+                            "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-sm transition",
+                            active
+                              ? "border-primary bg-primary/10 text-foreground"
+                              : "border-border text-muted-foreground hover:bg-muted",
+                          )}
+                        >
+                          <span
+                            className="h-2 w-2 rounded-full"
+                            style={{ backgroundColor: l.color }}
+                          />
+                          {l.name}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Selected labels get traced as their outer silhouette,
+                  bridging dips where the mask cuts inward. Unselected labels
+                  stay tight to the predicted mask.
+                </p>
+              </div>
+            )}
+
+            <div className="flex flex-col gap-5">
+              <SliderRow
+                label="Confidence"
+                help="Drop predictions below this score. Lower captures more shapes but lets in more false positives."
+                value={segConf}
+                min={0}
+                max={1}
+                step={0.05}
+                display={formatNumber(segConf, 2)}
+                onChange={setSegConf}
+              />
+              <SliderRow
+                label="IoU"
+                help="Suppresses overlapping detections of the same object. Higher keeps more near-duplicates; lower is stricter."
+                value={segIou}
+                min={0}
+                max={1}
+                step={0.05}
+                display={formatNumber(segIou, 2)}
+                onChange={setSegIou}
+              />
+              <SliderRow
+                label="Polygon detail"
+                help="Vertex spacing as a fraction of the image diagonal. Lower = more vertices; higher = simpler shapes."
+                value={segPolyEpsilon}
+                min={0}
+                max={0.02}
+                step={0.0005}
+                display={formatNumber(segPolyEpsilon, 4)}
+                onChange={setSegPolyEpsilon}
+              />
+              <SliderRow
+                label="Mask threshold"
+                help="Probability cutoff used to turn the model's soft mask into a binary shape. Lower = polygons grow slightly; higher = tighter shapes."
+                value={segMaskThreshold}
+                min={0.05}
+                max={0.95}
+                step={0.05}
+                display={formatNumber(segMaskThreshold, 2)}
+                onChange={setSegMaskThreshold}
+              />
+              <SliderRow
+                label="Minimum polygon area"
+                help="Drop predicted polygons whose mask area (in pixels²) is below this. Useful for filtering tiny noise blobs."
+                value={segMinAreaPx}
+                min={0}
+                max={500}
+                step={5}
+                display={`${Math.round(segMinAreaPx)} px²`}
+                onChange={setSegMinAreaPx}
+              />
+            </div>
+          </TabsContent>
+
+          <TabsContent
+            value={PreAnnotateModelTypeEnum.DETECTION}
+            className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto py-4 pr-1 [scrollbar-color:rgba(0,0,0,0.15)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb:hover]:bg-black/25 [&::-webkit-scrollbar-thumb]:rounded-[3px] [&::-webkit-scrollbar-thumb]:bg-black/15 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-1.5"
+          >
+            <div className="flex flex-col gap-1.5">
+              <Label>Model</Label>
+              {detModels.length === 0 ? (
+                <p className="rounded-md border border-dashed border-black/10 bg-black/[0.03] px-3 py-2 text-sm text-muted-foreground">
+                  {hasAnyTrainedModel
+                    ? "None of your trained models qualify. Pre-annotation requires an Ultra Vision detection model exported with a RAW (ONNX) output."
+                    : "No qualifying models in this project yet. Train an Ultra Vision detection model and export it with the RAW output enabled."}
+                </p>
+              ) : (
+                <>
+                  <Select
+                    value={detModelId == null ? "" : String(detModelId)}
+                    onValueChange={(value) =>
+                      setDetModelId(value ? Number(value) : null)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a model">
+                        {(value: string) => {
+                          const id = Number(value);
+                          const sel = detModels.find((m) => m.id === id);
+                          return sel ? sel.name : "Select a model";
+                        }}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {detModels.map((m) => (
+                        <SelectItem key={m.id} value={String(m.id)}>
+                          {m.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Pick any trained detection model from this project. Each
+                    model is downloaded and cached on first use.
+                  </p>
+                </>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-5">
+              <SliderRow
+                label="Confidence"
+                help="Drop detections below this score. Lower captures more boxes but lets in more false positives."
+                value={detConf}
+                min={0}
+                max={1}
+                step={0.05}
+                display={formatNumber(detConf, 2)}
+                onChange={setDetConf}
+              />
+              <SliderRow
+                label="IoU"
+                help="Suppresses overlapping detections of the same object. Higher keeps more near-duplicates; lower is stricter."
+                value={detIou}
+                min={0}
+                max={1}
+                step={0.05}
+                display={formatNumber(detIou, 2)}
+                onChange={setDetIou}
+              />
+              <SliderRow
+                label="Minimum box area"
+                help="Drop predicted boxes whose area (in pixels²) is below this. Useful for filtering tiny noise detections."
+                value={detMinAreaPx}
+                min={0}
+                max={500}
+                step={5}
+                display={`${Math.round(detMinAreaPx)} px²`}
+                onChange={setDetMinAreaPx}
+              />
+            </div>
+          </TabsContent>
+        </Tabs>
+
+        {saveError && <p className="shrink-0 pt-2 text-sm text-destructive">{saveError}</p>}
+
+        <DialogFooter className="shrink-0 pt-6 sm:justify-between">
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleReset} disabled={isSaving}>
+              Reset
+            </Button>
+            {activeHasSavedSettings && (
+              <Button
+                variant="outline"
+                onClick={handleDelete}
+                disabled={isSaving}
+                className="text-destructive hover:text-destructive"
+              >
+                Delete
+              </Button>
+            )}
           </div>
-        )}
-
-        <div className="flex flex-col gap-5">
-          <SliderRow
-            label="Confidence"
-            help="Drop predictions below this score. Lower captures more shapes but lets in more false positives."
-            value={conf}
-            min={0}
-            max={1}
-            step={0.05}
-            display={formatNumber(conf, 2)}
-            onChange={setConf}
-          />
-          <SliderRow
-            label="IoU"
-            help="Suppresses overlapping detections of the same object. Higher keeps more near-duplicates; lower is stricter."
-            value={iou}
-            min={0}
-            max={1}
-            step={0.05}
-            display={formatNumber(iou, 2)}
-            onChange={setIou}
-          />
-          <SliderRow
-            label="Polygon detail"
-            help="Vertex spacing as a fraction of the image diagonal. Lower = more vertices (large objects gain detail, small objects keep their jagged edges); higher = simpler shapes."
-            value={polyEpsilon}
-            min={0}
-            max={0.02}
-            step={0.0005}
-            display={formatNumber(polyEpsilon, 4)}
-            onChange={setPolyEpsilon}
-          />
-          <SliderRow
-            label="Mask threshold"
-            help="Probability cutoff used to turn the model's soft mask into a binary shape. Lower = polygons hug uncertain edges and grow slightly; higher = tighter, more conservative shapes."
-            value={maskThreshold}
-            min={0.05}
-            max={0.95}
-            step={0.05}
-            display={formatNumber(maskThreshold, 2)}
-            onChange={setMaskThreshold}
-          />
-          <SliderRow
-            label="Minimum polygon area"
-            help="Drop predicted polygons whose mask area (in original-image pixels²) is below this. Useful for filtering tiny noise blobs without affecting real objects."
-            value={minAreaPx}
-            min={0}
-            max={500}
-            step={5}
-            display={`${Math.round(minAreaPx)} px²`}
-            onChange={setMinAreaPx}
-          />
-        </div>
-
-        <DialogFooter className="sm:justify-end">
-          <Button variant="outline" onClick={handleReset}>
-            Reset
-          </Button>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleSave} disabled={modelId == null}>
-            Save
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave} disabled={activeModelId == null || isSaving}>
+              {isSaving ? "Saving…" : "Save"}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

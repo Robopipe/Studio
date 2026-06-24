@@ -1,5 +1,5 @@
 import { Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { invitationTable } from '@repo/database/schema';
 import { InvitationStatusEnum } from '@repo/schema';
 import { DB_CONNECTION } from 'src/core/database/database.constant';
@@ -100,5 +100,17 @@ export class InvitationRepository {
       .update(invitationTable)
       .set({ status })
       .where(eq(invitationTable.id, id));
+  }
+
+  public async expireAllPendingByOrganizationId(organizationId: number): Promise<void> {
+    await this.db
+      .update(invitationTable)
+      .set({ status: InvitationStatusEnum.EXPIRED })
+      .where(
+        and(
+          eq(invitationTable.organizationId, organizationId),
+          eq(invitationTable.status, InvitationStatusEnum.PENDING),
+        ),
+      );
   }
 }

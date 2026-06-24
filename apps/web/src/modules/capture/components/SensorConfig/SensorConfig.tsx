@@ -26,11 +26,19 @@ import {
   SelectValue,
 } from "@/modules/shadcn/ui/select";
 import { Skeleton } from "@/modules/shadcn/ui/skeleton";
-import { ChevronDown, Info, Loader2, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Info, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useVideoCapture } from "../../context/VideoCaptureContext";
 import { SelectParameter } from "../SelectParameter";
+
+const clamp = (v: number, lo: number, hi: number) =>
+  Math.min(hi, Math.max(lo, v));
+
+// Default FPS for a resolution: midpoint rounded to the nearest multiple of
+// 10, clamped into the valid range.
+const niceDefaultFps = (min: number, max: number) =>
+  clamp(Math.round((min + max) / 2 / 10) * 10, min, max);
 
 export interface SensorConfigProps {
   selectedCamera: string;
@@ -103,7 +111,7 @@ export const SensorConfig = ({
       ...draft,
       width: option.width,
       height: option.height,
-      fps: option.max_fps,
+      fps: niceDefaultFps(option.min_fps, option.max_fps),
     });
   };
 
@@ -121,7 +129,9 @@ export const SensorConfig = ({
         streamName: selectedStream,
         config: draft,
       }).unwrap();
-      dispatch(bumpPipeline({ mxid: selectedCamera, streamName: selectedStream }));
+      dispatch(
+        bumpPipeline({ mxid: selectedCamera, streamName: selectedStream }),
+      );
       toast.success("Sensor config saved");
       setConfirmOpen(false);
     } catch {
@@ -138,13 +148,9 @@ export const SensorConfig = ({
   return (
     <>
       <div className="flex flex-col gap-3">
-        <p className="text-[10px] font-bold uppercase tracking-[1px] text-foreground/90">
-          Sensor config
-        </p>
-
         <div className="flex flex-col gap-3 rounded-xl border border-black/5 bg-black/3 px-5 py-4">
           <div className="flex items-center justify-between">
-            <p className="text-base font-medium leading-6 text-foreground">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-black">
               Sensor config
             </p>
             <Button
@@ -158,7 +164,7 @@ export const SensorConfig = ({
               {isCollapsed ? (
                 <ChevronDown className="size-4" />
               ) : (
-                <X className="size-4" />
+                <ChevronUp className="size-4" />
               )}
             </Button>
           </div>
@@ -168,11 +174,15 @@ export const SensorConfig = ({
               <Alert className="py-2">
                 <Info />
                 <AlertDescription className="text-nowrap">
-                  Applies to still image captures only — not the live video stream.
+                  Applies to still image captures only — not the live video
+                  stream.
                 </AlertDescription>
               </Alert>
 
-              {isLoading || !draft || !config || availableSorted.length === 0 ? (
+              {isLoading ||
+              !draft ||
+              !config ||
+              availableSorted.length === 0 ? (
                 <SensorConfigSkeleton />
               ) : (
                 <>
@@ -216,6 +226,20 @@ export const SensorConfig = ({
                         onValueChange={(v) =>
                           setDraft({ ...draft, fps: v ?? draft.fps })
                         }
+                        onBlur={() => {
+                          if (!selectedOption) return;
+                          setDraft({
+                            ...draft,
+                            fps: clamp(
+                              draft.fps,
+                              selectedOption.min_fps,
+                              selectedOption.max_fps,
+                            ),
+                          });
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") e.currentTarget.blur();
+                        }}
                       />
                     </div>
 
@@ -273,10 +297,7 @@ export const SensorConfig = ({
                 </>
               )}
               {isIntervalCapturing && (
-                <>
-                  {" "}
-                  Interval shooting is in progress. Saving will stop it.
-                </>
+                <> Interval shooting is in progress. Saving will stop it.</>
               )}
             </DialogDescription>
           </DialogHeader>

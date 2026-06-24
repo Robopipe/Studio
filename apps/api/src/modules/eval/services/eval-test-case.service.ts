@@ -119,6 +119,8 @@ export class EvalTestCaseService {
           quantifierType: limitItem.quantifierType,
           quantifierUnit: limitItem.quantifierUnit,
           quantifierValue: limitItem.quantifierValue,
+          targetEdge: limitItem.targetEdge,
+          parentEdge: limitItem.parentEdge,
           position: index
         })))
       }
@@ -220,6 +222,8 @@ export class EvalTestCaseService {
           quantifierType: item.quantifierType,
           quantifierUnit: item.quantifierUnit,
           quantifierValue: item.quantifierValue,
+          targetEdge: item.targetEdge,
+          parentEdge: item.parentEdge,
         })
         .where(and(eq(evalLimitItemTable.id, item.id), eq(evalLimitItemTable.limitId, limitId)))
     ))
@@ -237,6 +241,8 @@ export class EvalTestCaseService {
           quantifierType: item.quantifierType,
           quantifierUnit: item.quantifierUnit,
           quantifierValue: item.quantifierValue,
+          targetEdge: item.targetEdge,
+          parentEdge: item.parentEdge,
         }))
       )
     }

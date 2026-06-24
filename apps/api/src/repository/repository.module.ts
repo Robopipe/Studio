@@ -13,12 +13,14 @@ import { ModelLogRepository } from "./services/model-log-repository.service";
 import { DashboardConfigurationRepository } from "./services/dashboard-configuration.service";
 import { DashboardEvaluationRepository } from "./services/dashboard-evaluation.service";
 import { PasswordResetRepository } from "./services/password-reset-repository.service";
+import { EmailVerificationRepository } from "./services/email-verification-repository.service";
 import { OrganizationMemberRepository } from "./services/organization-member-repository.service";
 import { InvitationRepository } from "./services/invitation-repository.service";
 import { EvalLimitRepository } from './services/eval-limit.service';
 import { EvalTestCaseRepository } from './services/eval-test-case.service';
 import { EvalThresholdRepository } from './services/eval-threshold.service';
 import { CapturedVideoRepository } from './services/captured-video-repository.service';
+import { ProjectPreAnnotateSettingsRepository } from './services/project-pre-annotate-settings-repository.service';
 
 
 @Global()
@@ -29,6 +31,7 @@ import { CapturedVideoRepository } from './services/captured-video-repository.se
     OrganizationMemberRepository,
     InvitationRepository,
     PasswordResetRepository,
+    EmailVerificationRepository,
     ProjectRepository,
     TaskRepository,
     PendingTaskRepository,
@@ -43,6 +46,7 @@ import { CapturedVideoRepository } from './services/captured-video-repository.se
     EvalTestCaseRepository,
     EvalThresholdRepository,
     CapturedVideoRepository,
+    ProjectPreAnnotateSettingsRepository,
   ],
   exports: [
     ModelRepository,
@@ -50,6 +54,7 @@ import { CapturedVideoRepository } from './services/captured-video-repository.se
     OrganizationMemberRepository,
     InvitationRepository,
     PasswordResetRepository,
+    EmailVerificationRepository,
     ProjectRepository,
     TaskRepository,
     PendingTaskRepository,
@@ -64,6 +69,7 @@ import { CapturedVideoRepository } from './services/captured-video-repository.se
     EvalTestCaseRepository,
     EvalThresholdRepository,
     CapturedVideoRepository,
+    ProjectPreAnnotateSettingsRepository,
   ],
 })
 export class RepositoryModule {}

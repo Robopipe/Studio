@@ -21,6 +21,7 @@ import {
 } from "@/modules/evaluation";
 import { ReportsPage } from "@/modules/reports";
 import { DashboardRuntimePage } from "../DashboardRuntimePage";
+import { webConfig } from "@/config/web";
 
 type RightPanelTab = "custom" | "evaluation" | "test-cases" | "reports";
 
@@ -269,11 +270,13 @@ export const DashboardPage = ({
                 <div className="flex flex-row items-center gap-6">
                   {(
                     [
-                      { key: "custom", label: "Custom dashboard" },
-                      { key: "test-cases", label: "Test cases" },
-                      { key: "evaluation", label: "Evaluation" },
-                      // { key: "reports", label: "Reports" },
-                    ] as const
+                      ...[
+                        { key: "custom", label: "Dashboard" },
+                        { key: "test-cases", label: "Test cases" },
+                        { key: "evaluation", label: "Evaluation" }
+                      ],
+                      ...((import.meta.env.DEV || webConfig.baseUrl === 'https://dev.robopipe.io') ? [{ key: "reports", label: "Reports" }] : []),
+                    ] as { key: RightPanelTab; label: string }[]
                   ).map((tab) => (
                     <button
                       key={tab.key}
@@ -295,7 +298,9 @@ export const DashboardPage = ({
                   disabled={!dashboardUrl}
                   onClick={() => {
                     if (!dashboardUrl) return;
-                    navigator.clipboard.writeText(dashboardUrl).then(() => {
+                    const url = new URL(dashboardUrl);
+                    url.search = "";
+                    navigator.clipboard.writeText(url.toString()).then(() => {
                       toast.success("Dashboard link copied to clipboard");
                     });
                   }}

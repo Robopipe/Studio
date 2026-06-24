@@ -1,4 +1,4 @@
-import { EvalLimitItemQuantifierTypeEnum } from "@repo/schema";
+import { EvalLimitItemEdgeEnum, EvalLimitItemQuantifierTypeEnum } from "@repo/schema";
 
 export const quantifierTypeLabel: Record<EvalLimitItemQuantifierTypeEnum, string> = {
   [EvalLimitItemQuantifierTypeEnum.MIN]: "At least",
@@ -7,11 +7,7 @@ export const quantifierTypeLabel: Record<EvalLimitItemQuantifierTypeEnum, string
 };
 
 export const parameterLabel: Record<string, string> = {
-  POS_LEFT: "Position Left",
-  POS_RIGHT: "Position Right",
-  POS_TOP: "Position Top",
-  POS_BOTTOM: "Position Bottom",
-  POS_CENTER: "Position Center",
+  POSITION: "Position",
   AREA: "Area",
   COUNT: "Count",
 };
@@ -19,11 +15,15 @@ export const parameterLabel: Record<string, string> = {
 export const parameterUnit: Record<string, string> = {
   COUNT: "pcs",
   AREA: "%",
-  POS_LEFT: "%",
-  POS_RIGHT: "%",
-  POS_TOP: "%",
-  POS_BOTTOM: "%",
-  POS_CENTER: "%",
+  POSITION: "%",
+};
+
+export const edgeLabel: Record<EvalLimitItemEdgeEnum, string> = {
+  [EvalLimitItemEdgeEnum.LEFT]: "Left",
+  [EvalLimitItemEdgeEnum.RIGHT]: "Right",
+  [EvalLimitItemEdgeEnum.TOP]: "Top",
+  [EvalLimitItemEdgeEnum.BOTTOM]: "Bottom",
+  [EvalLimitItemEdgeEnum.CENTER]: "Center",
 };
 
 export function formatLimitValue(

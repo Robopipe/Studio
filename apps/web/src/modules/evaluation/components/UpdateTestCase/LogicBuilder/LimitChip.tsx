@@ -41,11 +41,13 @@ export function LimitChip({ node, hasNot }: LimitChipProps) {
           : "border-border bg-background text-foreground hover:border-primary/50",
       )}
     >
-      {/* NOT toggle — animates from zero width to full width on hover */}
+      {/* NOT toggle — always visible; faded when inactive, solid red when negated */}
       <div
         className={cn(
-          "overflow-hidden transition-[max-width] duration-200 grayscale-100 opacity-50",
-          hasNot ? "max-w-12 grayscale-0 opacity-100" : "max-w-0 group-hover/chip:max-w-12",
+          "transition-opacity duration-200",
+          hasNot
+            ? "grayscale-0 opacity-100"
+            : "grayscale-100 opacity-50 group-hover/chip:opacity-100",
         )}
       >
         <Button

@@ -1,11 +1,25 @@
+import { useAuth } from "@/core/auth/hooks/useAuth";
 import { useProfileQuery } from "@/core/auth/services";
 import { cn } from "@/lib/utils";
 import { useGetTasksQuery } from "@/modules/capture/services/captureApi";
 import { useGetModelsQuery } from "@/modules/model/services/modelApi";
 import { EditProjectModal } from "@/modules/project/components/EditProjectModal";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
-import { useGetProjectLabelsQuery } from "@/modules/project/services/projectApi";
-import { Label } from "@repo/schema";
+import {
+  useDeletePreAnnotateSettingsMutation,
+  useGetPreAnnotateSettingsQuery,
+  useGetProjectLabelsQuery,
+  useUpdatePreAnnotateSettingsMutation,
+} from "@/modules/project/services/projectApi";
+import {
+  DetectionPreAnnotateSettings,
+  Label,
+  OrgMemberRoleEnum,
+  PRE_ANNOTATE_DEFAULTS,
+  PreAnnotateModelTypeEnum,
+  PreAnnotateSettings,
+  SegmentationPreAnnotateSettings,
+} from "@repo/schema";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useAnnotationNudge } from "../../hooks/useAnnotationNudge";
@@ -25,11 +39,13 @@ import {
   taskDetailToAnnotations,
 } from "../../utils/mapAnnotations";
 import {
-  DEFAULT_PRE_ANNOTATE_SETTINGS,
-  PreAnnotateSettings,
-  readPreAnnotateSettings,
-  writePreAnnotateSettings,
-} from "../../utils/preAnnotateSettings";
+  addToGroup,
+  assignPasteGroups,
+  canGroupSelection,
+  groupSelected,
+  removeFromGroup,
+  ungroupAnnotations,
+} from "../../utils/groupAnnotations";
 import { AnnotationPanel } from "../AnnotationPanel";
 import { Canvas, CanvasHandle } from "../Canvas";
 import { ClassSelect } from "../ClassSelect";
@@ -51,6 +67,8 @@ export const LabelPage = () => {
     setPage,
     filter,
     setFilter,
+    sort,
+    setSort,
     pendingAnchorRef,
   } = useLabelUrlState();
 
@@ -65,6 +83,11 @@ export const LabelPage = () => {
       ...(filter.labelIds.length > 0 && {
         labelIds: filter.labelIds.join(","),
       }),
+      ...(filter.updatedBy.length > 0 && {
+        updatedBy: filter.updatedBy.join(","),
+      }),
+      sortBy: sort.sortBy,
+      sortOrder: sort.sortOrder,
     },
     { skip: !projectId, refetchOnMountOrArgChange: true },
   );
@@ -111,30 +134,73 @@ export const LabelPage = () => {
   const [predictAnnotations, { isLoading: isPredicting }] =
     usePredictAnnotationsMutation();
   const { data: profile } = useProfileQuery();
+  const { role } = useAuth();
+  const canManagePreAnnotateSettings =
+    role === OrgMemberRoleEnum.OWNER || role === OrgMemberRoleEnum.ADMIN;
   const { data: models = [] } = useGetModelsQuery(
     { projectId: projectId! },
     { skip: !projectId },
   );
 
   const [preAnnotateOpen, setPreAnnotateOpen] = useState(false);
-  const [preAnnotateSettings, setPreAnnotateSettingsState] =
-    useState<PreAnnotateSettings>(DEFAULT_PRE_ANNOTATE_SETTINGS);
+  const [
+    updatePreAnnotateSettingsMutation,
+    { isLoading: isSavingPreAnnotateSettings },
+  ] = useUpdatePreAnnotateSettingsMutation();
+  const [
+    deletePreAnnotateSettingsMutation,
+    { isLoading: isDeletingPreAnnotateSettings },
+  ] = useDeletePreAnnotateSettingsMutation();
 
-  // Hydrate from localStorage as soon as we know which (user, project) we
-  // are; mirrors the cameraApiOverride pattern.
+  const { data: savedSegSettings } = useGetPreAnnotateSettingsQuery(
+    { projectId: projectId!, modelType: PreAnnotateModelTypeEnum.SEGMENTATION },
+    { skip: !projectId },
+  );
+  const { data: savedDetSettings } = useGetPreAnnotateSettingsQuery(
+    { projectId: projectId!, modelType: PreAnnotateModelTypeEnum.DETECTION },
+    { skip: !projectId },
+  );
+
+  const segSettings: SegmentationPreAnnotateSettings =
+    (savedSegSettings as SegmentationPreAnnotateSettings | undefined) ??
+    PRE_ANNOTATE_DEFAULTS[PreAnnotateModelTypeEnum.SEGMENTATION];
+  const detSettings: DetectionPreAnnotateSettings =
+    (savedDetSettings as DetectionPreAnnotateSettings | undefined) ??
+    PRE_ANNOTATE_DEFAULTS[PreAnnotateModelTypeEnum.DETECTION];
+
+
+  // One-time cleanup: remove old per-user localStorage keys from before
+  // settings were centralised in the DB.
   useEffect(() => {
     if (!profile?.id || !projectId) return;
-    setPreAnnotateSettingsState(readPreAnnotateSettings(profile.id, projectId));
+    try {
+      localStorage.removeItem(`preAnnotateSettings:${profile.id}:${projectId}`);
+    } catch {
+      // ignore
+    }
   }, [profile?.id, projectId]);
 
   const updatePreAnnotateSettings = useCallback(
-    (next: PreAnnotateSettings) => {
-      setPreAnnotateSettingsState(next);
-      if (profile?.id && projectId) {
-        writePreAnnotateSettings(profile.id, projectId, next);
-      }
+    async (next: PreAnnotateSettings): Promise<void> => {
+      if (!projectId) return;
+      await updatePreAnnotateSettingsMutation({
+        projectId,
+        modelType: next.modelType,
+        body: next,
+      }).unwrap();
     },
-    [profile?.id, projectId],
+    [projectId, updatePreAnnotateSettingsMutation],
+  );
+
+  const deletePreAnnotateSettings = useCallback(
+    async (modelType: PreAnnotateModelTypeEnum): Promise<void> => {
+      if (!projectId) return;
+      await deletePreAnnotateSettingsMutation({
+        projectId,
+        modelType,
+      }).unwrap();
+    },
+    [projectId, deletePreAnnotateSettingsMutation],
   );
 
   const { toolMode, setToolMode } = useToolMode();
@@ -163,7 +229,10 @@ export const LabelPage = () => {
   }, []);
   const canvasRef = useRef<CanvasHandle>(null);
   const handleResetView = useCallback(() => canvasRef.current?.resetView(), []);
-  const imageDimsRef = useRef<{ width: number; height: number }>({ width: 0, height: 0 });
+  const imageDimsRef = useRef<{ width: number; height: number }>({
+    width: 0,
+    height: 0,
+  });
   const prevTaskIdRef = useRef<number | null>(null);
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [isDirty, setIsDirty] = useState(false);
@@ -180,26 +249,17 @@ export const LabelPage = () => {
   const [hiddenAnnotationIds, setHiddenAnnotationIds] = useState<Set<string>>(
     () => new Set(),
   );
-  const toggleAnnotationVisibility = useCallback((id: string) => {
-    setHiddenAnnotationIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
-  const hideAllAnnotations = useCallback(() => {
-    setHiddenAnnotationIds(new Set(annotations.map((a) => a.id)));
-  }, [annotations]);
-  const showAllAnnotations = useCallback(() => {
-    setHiddenAnnotationIds(new Set());
-  }, []);
-  const isolateAnnotation = useCallback((id: string | null) => {
-    setIsolatedLabelId(null);
-    setHiddenAnnotationIds(
-      id ? new Set(annotations.filter((a) => a.id !== id).map((a) => a.id)) : new Set(),
-    );
-  }, [annotations]);
+  const isolateAnnotation = useCallback(
+    (id: string | null) => {
+      setIsolatedLabelId(null);
+      setHiddenAnnotationIds(
+        id
+          ? new Set(annotations.filter((a) => a.id !== id).map((a) => a.id))
+          : new Set(),
+      );
+    },
+    [annotations],
+  );
   // Transient "h"-hold overlay; does not mutate hiddenAnnotationIds so the
   // per-annotation eye toggles are restored exactly on release.
   const [previewHideAll, setPreviewHideAll] = useState(false);
@@ -211,12 +271,57 @@ export const LabelPage = () => {
   const setIsolatedLabel = useCallback(
     (labelId: string) => {
       setIsolatedLabelId(labelId);
-      const label = labels.find((l) => String(l.id) === labelId);
-      if (label) setActiveLabel(label);
+      setHiddenAnnotationIds(
+        new Set(
+          annotations.filter((a) => a.labelId !== labelId).map((a) => a.id),
+        ),
+      );
+      // Only update the drawing label when no region is selected. With an
+      // active selection the unanimity effect owns activeLabel and would
+      // immediately override this, causing a visible flicker.
+      if (selectedAnnotationIds.size === 0) {
+        const label = labels.find((l) => String(l.id) === labelId);
+        if (label) setActiveLabel(label);
+      }
     },
-    [labels],
+    [labels, selectedAnnotationIds],
   );
-  const clearIsolatedLabel = useCallback(() => setIsolatedLabelId(null), []);
+  const clearIsolatedLabel = useCallback(
+    (showHidden: boolean = false) => {
+      setIsolatedLabelId(null);
+      if (showHidden) {
+        setHiddenAnnotationIds(new Set());
+      }
+    },
+    [setHiddenAnnotationIds],
+  );
+  const toggleAllAnnotationsVisibility = useCallback(() => {
+    if (hiddenAnnotationIds.size === 0) {
+      setHiddenAnnotationIds(new Set(annotations.map((a) => a.id)));
+    } else {
+      setHiddenAnnotationIds(new Set());
+      clearIsolatedLabel();
+    }
+  }, [
+    annotations,
+    hiddenAnnotationIds,
+    setHiddenAnnotationIds,
+    clearIsolatedLabel,
+  ]);
+  const toggleAnnotationVisibility = useCallback(
+    (id: string) => {
+      setHiddenAnnotationIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+      });
+      if (isolatedLabelId !== annotations.find((a) => a.id === id)?.labelId) {
+        clearIsolatedLabel();
+      }
+    },
+    [isolatedLabelId, annotations, clearIsolatedLabel],
+  );
   const [activeLabel, setActiveLabel] = useState<Label | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const canvasState = useCanvasState();
@@ -267,6 +372,49 @@ export const LabelPage = () => {
       }
     },
     [selectedAnnotationIds, primarySelectedId, annotations],
+  );
+
+  const handleSelectFromSidebar = useCallback(
+    (id: string, opts?: { additive?: boolean; range?: boolean }) => {
+      if (isolatedLabelId !== null) {
+        const clickedIdx = annotations.findIndex((a) => a.id === id);
+        if (clickedIdx >= 0) {
+          const isRemoval = !!opts?.additive && selectedAnnotationIds.has(id);
+          let added: Annotation[] = [];
+          if (!isRemoval) {
+            if (opts?.range && primarySelectedId) {
+              const anchorIdx = annotations.findIndex(
+                (a) => a.id === primarySelectedId,
+              );
+              if (anchorIdx >= 0) {
+                const [lo, hi] =
+                  anchorIdx < clickedIdx
+                    ? [anchorIdx, clickedIdx]
+                    : [clickedIdx, anchorIdx];
+                added = annotations.slice(lo, hi + 1);
+              } else {
+                added = [annotations[clickedIdx]];
+              }
+            } else {
+              added = [annotations[clickedIdx]];
+            }
+          }
+          if (added.some((a) => a.labelId !== isolatedLabelId)) {
+            setIsolatedLabelId(null);
+            setHiddenAnnotationIds(new Set());
+          }
+        }
+      }
+      handleSelect(id, opts);
+    },
+    [
+      isolatedLabelId,
+      annotations,
+      primarySelectedId,
+      selectedAnnotationIds,
+      handleSelect,
+      setHiddenAnnotationIds,
+    ],
   );
 
   // Wraps history.deleteAnnotation so the id is also removed from the
@@ -354,6 +502,102 @@ export const LabelPage = () => {
     [setAnnotationsAndDirty],
   );
 
+  const canGroup = useMemo(
+    () => canGroupSelection(annotations, selectedAnnotationIds),
+    [annotations, selectedAnnotationIds],
+  );
+
+  const handleGroupSelected = useCallback(() => {
+    if (!canGroup) return;
+    const after = groupSelected(annotations, selectedAnnotationIds);
+    // Apply the full reordered array in one shot (groupSelected moves members
+    // to be contiguous — updateAnnotation can't express a reorder).
+    setAnnotationsAndDirty(after);
+    // Record for undo: only the annotations whose groupId changed.
+    const changes = annotations
+      .map((orig) => {
+        const updated = after.find((a) => a.id === orig.id);
+        if (!updated || updated.groupId === orig.groupId) return null;
+        return { before: orig, after: updated };
+      })
+      .filter(Boolean) as { before: Annotation; after: Annotation }[];
+    if (changes.length > 0) history.pushBatchEntry({ label: "group", changes });
+  }, [annotations, selectedAnnotationIds, canGroup, history, setAnnotationsAndDirty]);
+
+  const handleUngroupAnnotations = useCallback(
+    (groupIds: Set<string>) => {
+      const before = annotations.filter(
+        (a) => a.groupId && groupIds.has(a.groupId),
+      );
+      history.runBatch("ungroup", () => {
+        for (const a of before) {
+          history.updateAnnotation(a.id, { groupId: null });
+        }
+        // auto-dissolve any remaining singletons (silently clears their groupId)
+        // This runs implicitly via autoDissolve in the utilities — we replicate
+        // it here for annotations that are NOT in the explicitly ungrouped set
+        // but might become singletons after this batch.
+        const afterUngroup = ungroupAnnotations(annotations, groupIds);
+        for (const a of annotations) {
+          if (a.groupId && !groupIds.has(a.groupId)) {
+            const afterA = afterUngroup.find((x) => x.id === a.id);
+            if (afterA && afterA.groupId !== a.groupId) {
+              history.updateAnnotation(a.id, { groupId: afterA.groupId });
+            }
+          }
+        }
+      });
+    },
+    [annotations, history],
+  );
+
+  const handleMoveAnnotationInSidebar = useCallback(
+    (fromIndex: number, toIndex: number, targetGroupId: string | null) => {
+      const movedAnnotation = annotations[fromIndex];
+      if (!movedAnnotation) return;
+
+      if (targetGroupId) {
+        // Joining a group — addToGroup handles the groupId assignment,
+        // compaction (makeGroupContiguous), and dissolving the old group.
+        const groupMember = annotations.find((a) => a.groupId === targetGroupId);
+        if (groupMember && movedAnnotation.labelId !== groupMember.labelId) {
+          toast.error("Cannot add to group: labels must match");
+          return;
+        }
+        if (movedAnnotation.groupId === targetGroupId) {
+          handleReorderAnnotations(fromIndex, toIndex);
+          return;
+        }
+        const after = addToGroup(annotations, movedAnnotation.id, targetGroupId);
+        const changes = annotations
+          .map((orig) => {
+            const updated = after.find((a) => a.id === orig.id);
+            if (!updated || updated.groupId === orig.groupId) return null;
+            return { before: orig, after: updated };
+          })
+          .filter(Boolean) as { before: Annotation; after: Annotation }[];
+        setAnnotationsAndDirty(after);
+        if (changes.length > 0) history.pushBatchEntry({ label: "group", changes });
+      } else if (movedAnnotation.groupId) {
+        // Leaving a group — removeFromGroup handles the groupId clear,
+        // compaction of the remaining members, and auto-dissolve.
+        const after = removeFromGroup(annotations, movedAnnotation.id);
+        const changes = annotations
+          .map((orig) => {
+            const updated = after.find((a) => a.id === orig.id);
+            if (!updated || updated.groupId === orig.groupId) return null;
+            return { before: orig, after: updated };
+          })
+          .filter(Boolean) as { before: Annotation; after: Annotation }[];
+        setAnnotationsAndDirty(after);
+        if (changes.length > 0) history.pushBatchEntry({ label: "ungroup", changes });
+      } else {
+        handleReorderAnnotations(fromIndex, toIndex);
+      }
+    },
+    [annotations, history, handleReorderAnnotations, setAnnotationsAndDirty],
+  );
+
   const handleClear = useCallback(() => {
     if (selectedAnnotationIds.size === 0) return;
     const ids = Array.from(selectedAnnotationIds);
@@ -409,10 +653,27 @@ export const LabelPage = () => {
       return;
     }
     const stamp = Date.now();
-    const pasted: Annotation[] = clip.annotations.map((a, idx) => {
+    const rawPasted: Annotation[] = clip.annotations.map((a, idx) => {
       const cloned = cloneAnnotation(a);
       return { ...cloned, id: `ann-${stamp}-${idx}`, apiId: undefined };
     });
+    // Preserve group structure: build a map from original id to new pasted annotation
+    // so assignPasteGroups can find the source groupIds
+    const sourceMap = clip.annotations.map((original, idx) => ({
+      ...rawPasted[idx],
+      // carry original id temporarily so assignPasteGroups can look up the groupId
+      _originalId: original.id,
+    }));
+    const pastedWithSrcIds = rawPasted.map((a, idx) => ({
+      ...a,
+      id: sourceMap[idx]._originalId,
+    }));
+    const withGroups = assignPasteGroups(pastedWithSrcIds, clip.annotations);
+    // Re-assign the new pasted ids
+    const pasted: Annotation[] = rawPasted.map((a, idx) => ({
+      ...a,
+      groupId: withGroups[idx]?.groupId,
+    }));
     history.runBatch("paste", () => {
       for (const ann of pasted) history.addAnnotation(ann);
     });
@@ -433,15 +694,38 @@ export const LabelPage = () => {
 
       if (selectedAnnotationIds.size > 0) {
         const ids = Array.from(selectedAnnotationIds);
+        const newLabelId = String(label.id);
         history.runBatch("relabel", () => {
           for (const id of ids) {
+            const a = annotations.find((x) => x.id === id);
             history.updateAnnotation(id, {
-              labelId: String(label.id),
+              labelId: newLabelId,
               labelName: label.name,
               color: label.color,
             });
+            // Auto-eject from group if label changes while in a group
+            if (a?.groupId && a.labelId !== newLabelId) {
+              const groupSiblings = annotations.filter(
+                (x) => x.id !== id && x.groupId === a.groupId,
+              );
+              history.updateAnnotation(id, { groupId: null });
+              // Auto-dissolve the group if it becomes a singleton
+              if (groupSiblings.length === 1) {
+                history.updateAnnotation(groupSiblings[0].id, { groupId: null });
+              }
+            }
           }
         });
+        // Notify user if any grouped regions were ejected
+        const ejectedCount = ids.filter((id) => {
+          const a = annotations.find((x) => x.id === id);
+          return a?.groupId && a.labelId !== newLabelId;
+        }).length;
+        if (ejectedCount > 0) {
+          toast.info(
+            `${ejectedCount} region${ejectedCount === 1 ? "" : "s"} removed from group (label changed)`,
+          );
+        }
       }
 
       setActiveLabel(label);
@@ -450,7 +734,7 @@ export const LabelPage = () => {
         setIsolatedLabelId(null);
       }
     },
-    [labels, activeLabel?.id, selectedAnnotationIds, history, isolatedLabelId],
+    [labels, activeLabel?.id, selectedAnnotationIds, annotations, history, isolatedLabelId],
   );
 
   const canMarkEmpty = true;
@@ -479,100 +763,156 @@ export const LabelPage = () => {
     handleSave({ reviewed: true });
   }, [handleSave]);
 
-  const handlePreAnnotate = useCallback(() => {
-    if (
-      !projectId ||
-      selectedTaskId === null ||
-      preAnnotateSettings.modelId === null ||
-      annotations.length > 0
-    ) {
-      return;
-    }
+  const handlePreAnnotate = useCallback(
+    (modelType: PreAnnotateModelTypeEnum) => {
+      if (!projectId || selectedTaskId === null) return;
 
-    const labelById = new Map(labels.map((l) => [l.id, l]));
-    const stamp = Date.now();
-    const toastId = toast.loading("Pre-annotating...");
+      const modelId =
+        modelType === PreAnnotateModelTypeEnum.DETECTION
+          ? detSettings.modelId
+          : segSettings.modelId;
+      if (modelId === null) return;
 
-    predictAnnotations({
+      const isDetection = modelType === PreAnnotateModelTypeEnum.DETECTION;
+      const conflictingAnnotations = isDetection
+        ? annotations.filter((a) => a.type === "bbox")
+        : annotations.filter((a) => a.type === "polygon");
+      if (conflictingAnnotations.length > 0) return;
+
+      const labelById = new Map(labels.map((l) => [l.id, l]));
+      const stamp = Date.now();
+      const toastId = toast.loading("Pre-annotating...");
+
+      const body =
+        modelType === PreAnnotateModelTypeEnum.DETECTION
+          ? {
+              modelType: PreAnnotateModelTypeEnum.DETECTION as const,
+              modelId: modelId,
+              conf: detSettings.conf,
+              iou: detSettings.iou,
+              minAreaPx: detSettings.minAreaPx,
+            }
+          : {
+              modelType: PreAnnotateModelTypeEnum.SEGMENTATION as const,
+              modelId: modelId,
+              conf: segSettings.conf,
+              iou: segSettings.iou,
+              polyEpsilon: segSettings.polyEpsilon,
+              maskThreshold: segSettings.maskThreshold,
+              minAreaPx: segSettings.minAreaPx,
+              fillConcavityLabelIds: segSettings.fillConcavityLabelIds,
+            };
+
+      predictAnnotations({ projectId, taskId: selectedTaskId, body })
+        .unwrap()
+        .then((result) => {
+          let predicted: Annotation[] = [];
+
+          if (result.modelType === PreAnnotateModelTypeEnum.DETECTION) {
+            predicted = result.rectangles.flatMap((r, idx) => {
+              const label = labelById.get(r.labelId);
+              if (!label) return [];
+              return [
+                {
+                  id: `pred-${stamp}-${idx}`,
+                  apiId: undefined,
+                  labelId: String(label.id),
+                  labelName: label.name,
+                  color: label.color,
+                  type: "bbox" as const,
+                  bbox: { x: r.x, y: r.y, width: r.width, height: r.height },
+                },
+              ];
+            });
+          } else {
+            predicted = result.polygons.flatMap((p, idx) => {
+              const label = labelById.get(p.labelId);
+              if (!label) return [];
+              return [
+                {
+                  id: `pred-${stamp}-${idx}`,
+                  apiId: undefined,
+                  labelId: String(label.id),
+                  labelName: label.name,
+                  color: label.color,
+                  type: "polygon" as const,
+                  points: p.value,
+                },
+              ];
+            });
+          }
+
+          // Replace annotations of the predicted geometry type; keep the other type.
+          const kept = isDetection
+            ? annotations.filter((a) => a.type !== "bbox")
+            : annotations.filter((a) => a.type !== "polygon");
+          const next = [...kept, ...predicted];
+
+          setAnnotations(next);
+          setIsDirty(true);
+          history.reset();
+          setSelectedAnnotationIds(new Set());
+          setPrimarySelectedId(null);
+
+          const noun = isDetection ? "box" : "polygon";
+          const plural = isDetection ? "boxes" : "polygons";
+          if (predicted.length === 0) {
+            toast.info("No predictions above the confidence threshold", {
+              id: toastId,
+              description: "Try lowering Confidence in the pre-annotate settings.",
+            });
+          } else {
+            toast.success(
+              `Pre-annotated ${predicted.length} ${predicted.length === 1 ? noun : plural}`,
+              { id: toastId },
+            );
+          }
+        })
+        .catch((err: unknown) => {
+          const message =
+            (err as { data?: { message?: string } })?.data?.message ??
+            "Pre-annotation failed";
+          toast.error(message, { id: toastId });
+        });
+    },
+    [
       projectId,
-      taskId: selectedTaskId,
-      body: {
-        modelId: preAnnotateSettings.modelId,
-        conf: preAnnotateSettings.conf,
-        iou: preAnnotateSettings.iou,
-        polyEpsilon: preAnnotateSettings.polyEpsilon,
-        maskThreshold: preAnnotateSettings.maskThreshold,
-        minAreaPx: preAnnotateSettings.minAreaPx,
-        fillConcavityLabelIds: preAnnotateSettings.fillConcavityLabelIds,
-      },
-    })
-      .unwrap()
-      .then((result) => {
-        const newAnnotations: Annotation[] = result.polygons.flatMap(
-          (p, idx) => {
-            const label = labelById.get(p.labelId);
-            if (!label) return [];
-            return [
-              {
-                id: `pred-${stamp}-${idx}`,
-                apiId: undefined,
-                labelId: String(label.id),
-                labelName: label.name,
-                color: label.color,
-                type: "polygon",
-                points: p.value,
-              },
-            ];
-          },
-        );
+      selectedTaskId,
+      segSettings,
+      detSettings,
+      annotations,
+      predictAnnotations,
+      labels,
+      history,
+    ],
+  );
 
-        // Pre-annotate is "load a starting state" rather than a per-action
-        // edit. Replace annotations wholesale, mark the task dirty so the
-        // Save button lights up, and reset history so Undo/Redo only
-        // tracks corrections the user makes from here.
-        setAnnotations(newAnnotations);
-        setIsDirty(true);
-        history.reset();
-        setSelectedAnnotationIds(new Set());
-        setPrimarySelectedId(null);
+  const rectangleAnnotations = useMemo(
+    () => annotations.filter((a) => a.type === "bbox"),
+    [annotations],
+  );
+  const polygonAnnotations = useMemo(
+    () => annotations.filter((a) => a.type === "polygon"),
+    [annotations],
+  );
 
-        if (newAnnotations.length === 0) {
-          toast.info("No predictions above the confidence threshold", {
-            id: toastId,
-            description:
-              "Try lowering Confidence in the pre-annotate settings.",
-          });
-        } else {
-          toast.success(
-            `Pre-annotated ${newAnnotations.length} polygon${newAnnotations.length === 1 ? "" : "s"}`,
-            { id: toastId },
-          );
-        }
-      })
-      .catch((err: unknown) => {
-        const message =
-          (err as { data?: { message?: string } })?.data?.message ??
-          "Pre-annotation failed";
-        toast.error(message, { id: toastId });
-      });
-  }, [
-    projectId,
-    selectedTaskId,
-    preAnnotateSettings,
-    annotations.length,
-    predictAnnotations,
-    labels,
-    history,
-  ]);
-
-  const preAnnotateDisabledReason = useMemo(() => {
+  const preAnnotateSegDisabledReason = useMemo(() => {
     if (selectedTaskId === null) return "Select a task first";
-    if (annotations.length > 0)
-      return "Pre-annotate is only available on empty tasks";
-    if (preAnnotateSettings.modelId === null)
-      return "Choose a model in pre-annotate settings";
+    if (polygonAnnotations.length > 0)
+      return "Segmentation pre-annotate is only available when no polygons exist";
+    if (segSettings.modelId === null)
+      return "Choose a segmentation model in pre-annotate settings";
     return undefined;
-  }, [selectedTaskId, annotations.length, preAnnotateSettings.modelId]);
+  }, [selectedTaskId, polygonAnnotations.length, segSettings.modelId]);
+
+  const preAnnotateDetDisabledReason = useMemo(() => {
+    if (selectedTaskId === null) return "Select a task first";
+    if (rectangleAnnotations.length > 0)
+      return "Detection pre-annotate is only available when no boxes exist";
+    if (detSettings.modelId === null)
+      return "Choose a detection model in pre-annotate settings";
+    return undefined;
+  }, [selectedTaskId, rectangleAnnotations.length, detSettings.modelId]);
 
   useLabelShortcuts({
     tasks,
@@ -605,12 +945,20 @@ export const LabelPage = () => {
     imageDimsRef,
     setAnnotations: setAnnotationsAndDirty,
     pushBatchEntry: history.pushBatchEntry,
+    startNudge: (ids) => canvasRef.current?.startNudge(ids),
+    applyNudge: (dx, dy) => canvasRef.current?.applyNudge(dx, dy),
+    clearNudge: () => canvasRef.current?.clearNudge(),
   });
 
   const isolatedAnnotationId = useMemo(() => {
     if (isolatedLabelId !== null) return null;
-    if (hiddenAnnotationIds.size === annotations.length - 1 && annotations.length > 0) {
-      return annotations.find((a) => !hiddenAnnotationIds.has(a.id))?.id ?? null;
+    if (
+      hiddenAnnotationIds.size === annotations.length - 1 &&
+      annotations.length > 0
+    ) {
+      return (
+        annotations.find((a) => !hiddenAnnotationIds.has(a.id))?.id ?? null
+      );
     }
     return null;
   }, [hiddenAnnotationIds, annotations, isolatedLabelId]);
@@ -657,18 +1005,21 @@ export const LabelPage = () => {
         filter={filter}
         labels={labels}
         onFilterChange={setFilter}
+        sort={sort}
+        onSortChange={setSort}
       />
       <AnnotationPanel
         annotations={annotations}
         labels={labels}
         selectedAnnotationIds={selectedAnnotationIds}
-        onSelectAnnotation={handleSelect}
+        onSelectAnnotation={handleSelectFromSidebar}
         onDeleteAnnotation={deleteAnnotationWithSelection}
         onReorderAnnotations={handleReorderAnnotations}
+        onMoveAnnotation={handleMoveAnnotationInSidebar}
+        onUngroupAnnotations={handleUngroupAnnotations}
         hiddenAnnotationIds={hiddenAnnotationIds}
         onToggleAnnotationVisibility={toggleAnnotationVisibility}
-        onHideAllAnnotations={hideAllAnnotations}
-        onShowAllAnnotations={showAllAnnotations}
+        onToggleAllAnnotationsVisibility={toggleAllAnnotationsVisibility}
         isolatedLabelId={isolatedLabelId}
         onIsolateLabel={setIsolatedLabel}
         onClearIsolate={clearIsolatedLabel}
@@ -707,13 +1058,25 @@ export const LabelPage = () => {
           onDeleteSelected={handleClear}
           onCopySelection={handleCopySelection}
           onPasteClipboard={handlePasteClipboard}
+          onGroupSelected={handleGroupSelected}
+          onUngroupSelected={() => {
+            const groupIds = new Set(
+              Array.from(selectedAnnotationIds)
+                .map((id) => annotations.find((a) => a.id === id)?.groupId)
+                .filter(Boolean) as string[],
+            );
+            if (groupIds.size > 0) handleUngroupAnnotations(groupIds);
+          }}
+          canGroup={canGroup}
           onGroupTranslate={handleGroupTranslate}
           onUndo={history.undo}
           onRedo={history.redo}
           onZoomAtPoint={canvasState.zoomAtPoint}
           onSetPosition={canvasState.setPosition}
           onFitImage={canvasState.fitImage}
-          onImageLoad={(w, h) => { imageDimsRef.current = { width: w, height: h }; }}
+          onImageLoad={(w, h) => {
+            imageDimsRef.current = { width: w, height: h };
+          }}
         />
         <div
           className={cn(
@@ -743,11 +1106,23 @@ export const LabelPage = () => {
               onResetView={handleResetView}
               onPreAnnotate={handlePreAnnotate}
               onOpenPreAnnotateSettings={() => setPreAnnotateOpen(true)}
-              preAnnotateDisabled={
-                preAnnotateDisabledReason !== undefined || isPredicting
+              preAnnotateSegDisabled={
+                preAnnotateSegDisabledReason !== undefined || isPredicting
+              }
+              preAnnotateDetDisabled={
+                preAnnotateDetDisabledReason !== undefined || isPredicting
               }
               preAnnotatePending={isPredicting}
-              preAnnotateDisabledReason={preAnnotateDisabledReason}
+              preAnnotateSegDisabledReason={preAnnotateSegDisabledReason}
+              preAnnotateDetDisabledReason={preAnnotateDetDisabledReason}
+              preAnnotateSettingsDisabled={!canManagePreAnnotateSettings}
+              preAnnotateSettingsDisabledReason={
+                !canManagePreAnnotateSettings
+                  ? "Only owners and admins can edit pre-annotation settings"
+                  : undefined
+              }
+              canGroup={canGroup}
+              onGroupSelected={handleGroupSelected}
             />
           </div>
         </div>
@@ -785,8 +1160,13 @@ export const LabelPage = () => {
         open={preAnnotateOpen}
         onOpenChange={setPreAnnotateOpen}
         models={models}
-        settings={preAnnotateSettings}
+        segSettings={segSettings}
+        detSettings={detSettings}
+        segHasSavedSettings={savedSegSettings != null}
+        detHasSavedSettings={savedDetSettings != null}
         onApply={updatePreAnnotateSettings}
+        onDelete={deletePreAnnotateSettings}
+        isSaving={isSavingPreAnnotateSettings || isDeletingPreAnnotateSettings}
       />
       <LeaveAnnotationsDialog
         isDirty={isDirty}

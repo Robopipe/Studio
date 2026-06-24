@@ -8,6 +8,7 @@ export class ProjectEntity {
   readonly organizationId: number;
   readonly cameraApiUrl: string | null;
   readonly multipleDashboardConfigs: boolean;
+  readonly hasLicense: boolean;
   readonly taskCount: number;
   readonly annotatedTaskCount: number;
   readonly createdAt: Date;
@@ -21,6 +22,7 @@ export class ProjectEntity {
     this.organizationId = data.organizationId;
     this.cameraApiUrl = data.cameraApiUrl;
     this.multipleDashboardConfigs = data.multipleDashboardConfigs;
+    this.hasLicense = data.hasLicense;
     this.taskCount = data.taskCount ?? 0;
     this.annotatedTaskCount = data.annotatedTaskCount ?? 0;
     this.createdAt = data.createdAt;
@@ -36,6 +38,7 @@ export class ProjectEntity {
       organizationId: this.organizationId,
       cameraApiUrl: this.cameraApiUrl,
       multipleDashboardConfigs: this.multipleDashboardConfigs,
+      hasLicense: this.hasLicense,
       taskCount: this.taskCount,
       annotatedTaskCount: this.annotatedTaskCount,
       createdAt: this.createdAt.toISOString(),
