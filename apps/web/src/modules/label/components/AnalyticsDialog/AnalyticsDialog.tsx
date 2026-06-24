@@ -4,7 +4,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/modules/shadcn/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/modules/shadcn/ui/tabs";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/modules/shadcn/ui/tabs";
 
 import { AnnotationTypeSelector } from "./AnnotationTypeSelector";
 import { EmptyState } from "./EmptyState";
@@ -17,7 +22,10 @@ export interface AnalyticsDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export const AnalyticsDialog = ({ open, onOpenChange }: AnalyticsDialogProps) => {
+export const AnalyticsDialog = ({
+  open,
+  onOpenChange,
+}: AnalyticsDialogProps) => {
   const {
     data,
     isLoading,
@@ -34,6 +42,7 @@ export const AnalyticsDialog = ({ open, onOpenChange }: AnalyticsDialogProps) =>
         <DialogHeader>
           <DialogTitle>Dataset Analytics</DialogTitle>
         </DialogHeader>
+        <DialogTitle>Statistics</DialogTitle>
 
         {/* Annotation type selector */}
         <AnnotationTypeSelector
