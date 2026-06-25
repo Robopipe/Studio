@@ -80,7 +80,7 @@ export function findBranchesNotLeadingToResult(context: ValidationContext) {
         message: "Branch does not lead to Result",
         description: [
           "This branch is created from a node with multiple graph outputs.",
-          "Every branch in a Result island must eventually connect to a Result node.",
+          "Every branch in a Result island must eventually flow into a Result node.",
         ],
       });
     }

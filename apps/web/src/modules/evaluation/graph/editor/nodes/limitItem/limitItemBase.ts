@@ -28,7 +28,6 @@ export abstract class LimitItemBase<
   abstract get limitFrom(): number | null;
   abstract get limitTo(): number | null;
   abstract get parameter(): EvalLimitItemParameterEnum;
-  // Edges are only meaningful for POSITION; AREA/COUNT report CENTER.
   abstract get targetEdge(): EvalLimitItemEdgeEnum;
   abstract get parentEdge(): EvalLimitItemEdgeEnum;
   abstract get quantifierType(): EvalLimitItemQuantifierTypeEnum;

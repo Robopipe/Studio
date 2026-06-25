@@ -29,7 +29,10 @@ export const LabelControlView = ({ data }: Props) => {
           size="sm"
           title={selected?.name}
           className={cn(
-            "w-full min-w-0 text-zinc-400 bg-white",
+            "w-full min-w-0 bg-white",
+            // Match the name control: a chosen label uses the default text colour,
+            // only the placeholder stays muted.
+            selected ? "text-foreground" : "text-zinc-400",
             "[&>span]:block [&>span]:truncate",
             data.hasValidationErrors && "border-red-500 focus:ring-red-500",
           )}
