@@ -36,6 +36,7 @@ export class ConfigLoader {
     const mlBatchGpuCount = process.env.ML_BATCH_GPU_COUNT
       ? Number(process.env.ML_BATCH_GPU_COUNT)
       : undefined;
+    const mlBatchBootDiskImage = process.env.ML_BATCH_BOOT_DISK_IMAGE || undefined;
     const mlBatchBootDiskGb = process.env.ML_BATCH_BOOT_DISK_GB
       ? Number(process.env.ML_BATCH_BOOT_DISK_GB)
       : undefined;
@@ -82,6 +83,7 @@ export class ConfigLoader {
       mlBatchMachineType,
       mlBatchGpuType,
       mlBatchGpuCount,
+      mlBatchBootDiskImage,
       mlBatchBootDiskGb,
       mlBatchMaxRunSeconds,
       mlBatchTaskCpuMilli,

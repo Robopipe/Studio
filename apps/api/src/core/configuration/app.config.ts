@@ -31,6 +31,15 @@ export const appConfigSchema = z.object({
   // for N1-style custom GPU attachment.
   mlBatchGpuType: z.string().default(""),
   mlBatchGpuCount: z.number().int().default(0),
+  // Custom boot-disk VM image. Empty = Batch's default Container-Optimized OS,
+  // where the GPU driver is downloaded at boot (installGpuDrivers, ~2-3 min)
+  // and bind-mounted into the container from /var/lib/nvidia. Set this to a
+  // Deep Learning VM image family (driver + Docker + NVIDIA Container Toolkit
+  // pre-baked) to skip that download — e.g.
+  // "projects/ml-images/global/images/family/common-cu129-ubuntu-2204-nvidia-580". When set,
+  // installGpuDrivers is forced off and the container gets the GPU via the
+  // nvidia runtime (`--gpus all`) instead of the COS bind-mounts.
+  mlBatchBootDiskImage: z.string().optional(),
   mlBatchBootDiskGb: z.number().int().default(100),
   mlBatchMaxRunSeconds: z.number().int().default(86400),
   // Resources allocated to the single training task on the VM. Batch defaults
