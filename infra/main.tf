@@ -157,6 +157,7 @@ module "cloud_run" {
   ml_batch_machine_type         = var.ml_batch_machine_type
   ml_batch_gpu_type             = var.ml_gpu_type
   ml_batch_gpu_count            = var.ml_gpu_count
+  ml_batch_boot_disk_image      = var.ml_batch_boot_disk_image
   ml_batch_boot_disk_gb         = var.ml_batch_boot_disk_gb
   ml_batch_max_run_seconds      = var.ml_batch_max_run_seconds
   ml_batch_task_cpu_milli       = var.ml_batch_task_cpu_milli

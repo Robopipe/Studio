@@ -269,6 +269,7 @@ export class TrainingExternalService {
       mlBatchMachineType,
       mlBatchGpuType,
       mlBatchGpuCount,
+      mlBatchBootDiskImage,
       mlBatchBootDiskGb,
       mlBatchMaxRunSeconds,
       mlBatchTaskCpuMilli,
@@ -318,9 +319,21 @@ export class TrainingExternalService {
       // explicit `accelerators` block with those families causes createJob to
       // fail. Only attach accelerators when ML_BATCH_GPU_TYPE is set, which is
       // the N1-style "custom attachment" path.
+      // A custom boot-disk image (e.g. a Deep Learning VM) ships with the GPU
+      // driver, Docker, and NVIDIA Container Toolkit pre-baked. That lets us
+      // skip Batch's ~2-3 min COS driver download (installGpuDrivers) and reach
+      // the GPU through the nvidia runtime (`--gpus all`) instead of the
+      // COS-style /var/lib/nvidia bind-mounts. When unset, behaviour is the
+      // original Container-Optimized OS path.
+      const useCustomImage = Boolean(mlBatchBootDiskImage);
+
       const instancePolicy: protos.google.cloud.batch.v1.AllocationPolicy.IInstancePolicy = {
         machineType: mlBatchMachineType,
-        bootDisk: { sizeGb: String(mlBatchBootDiskGb), type: "pd-ssd" },
+        bootDisk: {
+          sizeGb: String(mlBatchBootDiskGb),
+          type: "pd-ssd",
+          ...(useCustomImage ? { image: mlBatchBootDiskImage } : {}),
+        },
         provisioningModel: "SPOT",
       };
       if (mlBatchGpuType && mlBatchGpuCount > 0) {
@@ -328,6 +341,22 @@ export class TrainingExternalService {
           { type: mlBatchGpuType, count: String(mlBatchGpuCount) },
         ];
       }
+
+      // COS exposes the host driver to the container via bind-mounts + an
+      // LD_LIBRARY_PATH pointing at them; a custom DLVM image uses the nvidia
+      // container runtime, so it needs neither — just `--gpus all`.
+      const nvidiaVolumes = useCustomImage
+        ? []
+        : [
+            "/var/lib/nvidia/lib64:/usr/local/nvidia/lib64",
+            "/var/lib/nvidia/bin:/usr/local/nvidia/bin",
+          ];
+      const containerOptions = useCustomImage
+        ? `--gpus all --shm-size=${mlBatchShmSize}`
+        : `--shm-size=${mlBatchShmSize}`;
+      const nvidiaEnv: Record<string, string> = useCustomImage
+        ? {}
+        : { LD_LIBRARY_PATH: "/usr/local/nvidia/lib64" };
 
       const networkInterfaces = mlBatchNetwork
         ? [{
@@ -347,25 +376,22 @@ export class TrainingExternalService {
                 {
                   container: {
                     imageUri: mlBatchImage,
-                    // Bind-mount the host's NVIDIA driver libraries so the
-                    // containerized training process can talk to the GPU.
-                    // `installGpuDrivers: true` on the allocation policy puts
-                    // them on the VM; containers have to opt in explicitly.
-                    volumes: [
-                      "/var/lib/nvidia/lib64:/usr/local/nvidia/lib64",
-                      "/var/lib/nvidia/bin:/usr/local/nvidia/bin",
-                    ],
+                    // GPU access plumbing depends on the host image — see
+                    // useCustomImage above. COS: bind-mount /var/lib/nvidia.
+                    // DLVM: empty (the nvidia runtime injects the driver).
+                    volumes: nvidiaVolumes,
                     // `options` is forwarded to `docker run`. --shm-size bumps
                     // /dev/shm from Docker's 64 MiB default; PyTorch DataLoader
                     // workers use shm for IPC and OOM the bus otherwise.
-                    options: `--shm-size=${mlBatchShmSize}`,
+                    // On a custom image `--gpus all` enables GPU device access.
+                    options: containerOptions,
                   },
                   environment: {
                     variables: {
                       CONFIG_URL: signedUrl,
                       WEBHOOK_URL: `${apiHost}/v1/training-external`,
                       APP_ENV: this.config.env,
-                      LD_LIBRARY_PATH: "/usr/local/nvidia/lib64",
+                      ...nvidiaEnv,
                     },
                     ...(Object.keys(secretVariables).length > 0
                       ? { secretVariables }
@@ -394,10 +420,11 @@ export class TrainingExternalService {
           instances: [
             {
               policy: instancePolicy,
-              // Always install drivers — training is always GPU-backed. For
+              // On COS, install drivers — training is always GPU-backed. For
               // bundled-GPU VMs this is what turns the GPU on; for custom N1
-              // attachment this installs the CUDA driver stack.
-              installGpuDrivers: true,
+              // attachment this installs the CUDA driver stack. A custom DLVM
+              // image already has them, so installing again is wasted time.
+              installGpuDrivers: !useCustomImage,
             },
           ],
           ...(mlBatchServiceAccount

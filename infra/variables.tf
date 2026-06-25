@@ -95,6 +95,12 @@ variable "ml_batch_machine_type" {
   default     = "a2-ultragpu-1g"
 }
 
+variable "ml_batch_boot_disk_image" {
+  description = "Custom boot-disk VM image for Cloud Batch training VMs. Empty = Batch's default Container-Optimized OS (GPU driver downloaded at boot, ~2-3 min). Set to a Deep Learning VM image family (driver + Docker + NVIDIA Container Toolkit pre-baked) to skip that download, e.g. projects/ml-images/global/images/family/common-cu129-ubuntu-2204-nvidia-580."
+  type        = string
+  default     = ""
+}
+
 variable "ml_batch_boot_disk_gb" {
   description = "Boot disk size in GB for Cloud Batch training VMs"
   type        = number
