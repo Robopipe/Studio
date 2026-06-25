@@ -3,6 +3,7 @@ import {
   useAddReplayVideoMutation,
   useDeployDashboardMutation,
   useGetDashboardQuery,
+  useGetNNQuery,
   useRemoveDashboardMutation,
   useRemoveReplayVideoMutation,
 } from "@/core/cameraApi";
@@ -115,6 +116,10 @@ export const useRunDeploy = ({
     { mxid: selectedCamera!, streamName: selectedStream! },
     { skip: !selectedCamera || !selectedStream },
   );
+  const { data: isRemoteModelDeployed } = useGetNNQuery(
+    { mxid: selectedCamera!, streamName: selectedStream! },
+    { skip: !selectedCamera || !selectedStream },
+  );
 
   const [settingsUnlockToken, setSettingsUnlockToken] = useState<string | null>(
     null,
@@ -144,7 +149,7 @@ export const useRunDeploy = ({
         return qs ? `${base}?${qs}` : base;
       })()
     : null;
-  const isDeployed = !!effectiveDashboardUrl;
+  const isDeployed = !!isRemoteModelDeployed;
 
   // Lazy triggers for multi-config deploy
   const [triggerGetProjects] = useLazyGetProjectsQuery();
