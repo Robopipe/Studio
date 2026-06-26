@@ -254,13 +254,21 @@ export const GraphEditor = ({ projectId, configId, testCaseId }: Props) => {
     if (!instance) return;
 
     const { area } = instance;
-    const { k } = area.area.transform;
+    const { x, y, k } = area.area.transform;
     const next = clamp(k + step, ZOOM_MIN, ZOOM_MAX);
     if (next === k) return;
 
+    // Keep the point at the viewport centre fixed. rete applies
+    // `transform.{x,y} += o{x,y}` (factor 1 here, since `next` is pre-clamped to
+    // the restrictor bounds), so the offset is measured from the content's current
+    // translation — subtract transform.{x,y} or the origin drifts with the pan.
     const { width, height } = area.container.getBoundingClientRect();
-    const delta = next / k - 1;
-    void area.area.zoom(next, (-width / 2) * delta, (-height / 2) * delta);
+    const ratio = next / k;
+    void area.area.zoom(
+      next,
+      (width / 2 - x) * (1 - ratio),
+      (height / 2 - y) * (1 - ratio),
+    );
   }, []);
 
   const handleFocus = useCallback(() => {
