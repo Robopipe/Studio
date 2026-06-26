@@ -335,11 +335,19 @@ export class TrainingExternalService {
           ...(useCustomImage ? { image: mlBatchBootDiskImage } : {}),
         },
         // FLEX_START (Dynamic Workload Scheduler — Flex Start mode): the job is
-        // queued until GPU capacity becomes available, then runs uninterrupted
-        // to completion (no preemption, unlike SPOT). Avoids the transient
-        // CODE_GCE_ZONE_RESOURCE_POOL_EXHAUSTED fast-fail by waiting instead.
-        // Requires a bounded maxRunDuration (set on taskSpec below, ≤7 days).
+        // queued until GPU capacity is found, then runs uninterrupted to
+        // completion (no preemption, unlike SPOT). Avoids the transient
+        // CODE_GCE_ZONE_RESOURCE_POOL_EXHAUSTED fast-fail by waiting instead;
+        // billed at DWS pricing (~53% off on-demand).
+        //
+        // `reservation: "NO_RESERVATION"` is MANDATORY with FLEX_START — it's
+        // what puts Batch on its DWS flex-start path, which sets the GCE
+        // instance termination action for us. Without it, Batch applies a 7-day
+        // instance maxRunDuration but no termination action, and GCE rejects the
+        // job with CODE_GCE_BAD_REQUEST ("max-run-duration ... not supported
+        // without an instance termination action").
         provisioningModel: "FLEX_START",
+        reservation: "NO_RESERVATION",
       };
       if (mlBatchGpuType && mlBatchGpuCount > 0) {
         instancePolicy.accelerators = [
