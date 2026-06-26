@@ -19,9 +19,9 @@ export function findEmptyLimits(context: ValidationContext) {
 
     pushIssue(nodeIssues, node.id, {
       level: "warning",
-      message: "Useless Limit",
+      message: "Useless Check",
       description: [
-        "A limit node with no children has no effect and can be removed.",
+        "A check node with no children has no effect and can be removed.",
       ],
     });
   }
@@ -48,8 +48,8 @@ export function findLimitsWithMultipleIslands(context: ValidationContext) {
       level: "error",
       message: "Disconnected children",
       description: [
-        "All Limit items inside a Limit must form a single connected component.",
-        "Connect all child nodes together or split them into separate Limit nodes.",
+        "All Check items inside a Check must form a single connected component.",
+        "Connect all child nodes together or split them into separate Check nodes.",
       ],
     });
   }

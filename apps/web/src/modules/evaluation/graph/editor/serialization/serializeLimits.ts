@@ -45,7 +45,7 @@ export function serializeLimitNode(
     enabled: limitNode.enabledValue,
     targetLabelId: parseRequiredNumber(
       limitNode.labelValue,
-      "Limit label is required.",
+      "Check label is required.",
     ),
     targetParentLabelId: parseNullableNumber(limitNode.parentLabelValue),
     limitItems,

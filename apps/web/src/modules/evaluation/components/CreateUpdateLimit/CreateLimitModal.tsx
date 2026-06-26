@@ -43,7 +43,7 @@ export const CreateLimitModal = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[calc(100vh-4rem)] overflow-y-auto sm:max-w-6xl">
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold">Add Limit</DialogTitle>
+          <DialogTitle className="text-xl font-semibold">Add Check</DialogTitle>
         </DialogHeader>
 
         <form.AppForm>

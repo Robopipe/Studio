@@ -234,7 +234,7 @@ export function TestCaseSection({
       {isDeleteTestCaseOpen && (
         <DeleteLimitDialog
           title="Do you really want to delete this test case."
-          description="This action can not be undone. All limits associated with this test case will be removed."
+          description="This action can not be undone. All checks associated with this test case will be removed."
           confirmLabel="Delete this test case anyway"
           onCancel={() => setIsDeleteTestCaseOpen(false)}
           onConfirm={handleDeleteTestCase}
@@ -252,8 +252,8 @@ export function TestCaseSection({
 
       {deleteState?.type === "blocked" && (
         <DeleteLimitDialog
-          title="Cannot delete this limit"
-          description="This limit is used in the evaluation logic. Remove it from the evaluation logic first, then you can delete it."
+          title="Cannot delete this check"
+          description="This check is used in the evaluation logic. Remove it from the evaluation logic first, then you can delete it."
           confirmLabel="OK"
           onCancel={() => setDeleteState(null)}
           onConfirm={() => setDeleteState(null)}

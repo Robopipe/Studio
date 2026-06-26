@@ -18,10 +18,10 @@ export function findOrphanLimitItems(context: ValidationContext) {
 
     pushIssue(nodeIssues, node.id, {
       level: "error",
-      message: "Orphan Limit item",
+      message: "Orphan Check item",
       description: [
-        "Limit item nodes must be placed inside a limit node",
-        "Long press to enter the scope mode and move this node inside a limit node.",
+        "Check item nodes must be placed inside a check node",
+        "Long press to enter the scope mode and move this node inside a check node.",
       ],
     });
   }
@@ -46,7 +46,7 @@ export function findCrossScopeConnections(context: ValidationContext) {
       level: "error",
       message: "Out of bounds connection",
       description: [
-        "All connected Limit items must be placed inside the same parent limit node.",
+        "All connected Check items must be placed inside the same parent check node.",
       ],
     });
   }

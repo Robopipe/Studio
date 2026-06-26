@@ -113,7 +113,7 @@ export function LimitEnabledSwitch({
         checked={limit.enabled}
         onCheckedChange={handleToggle}
         disabled={pending}
-        aria-label={limit.enabled ? "Disable limit" : "Enable limit"}
+        aria-label={limit.enabled ? "Disable check" : "Enable check"}
       />
       {limit.enabled ? (
         <Badge>Enabled</Badge>

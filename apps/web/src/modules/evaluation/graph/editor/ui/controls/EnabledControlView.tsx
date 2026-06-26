@@ -14,7 +14,7 @@ export const EnabledControlView = ({ data }: Props) => {
       <Switch
         checked={value}
         onCheckedChange={(next) => data.setValue(next)}
-        aria-label={value ? "Disable limit" : "Enable limit"}
+        aria-label={value ? "Disable check" : "Enable check"}
       />
     </div>
   );

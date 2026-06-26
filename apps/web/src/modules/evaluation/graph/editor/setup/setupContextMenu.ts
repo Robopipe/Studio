@@ -34,10 +34,10 @@ export function setupContextMenu(props: Props): ContextMenuPlugin<Schemes> {
   const { editor, area, render, history, getLabels } = props;
 
   const classicItems = ContextMenuPresets.classic.setup([
-    ["Limit", () => new LimitNode({ labels: getLabels() })],
+    ["Check", () => new LimitNode({ labels: getLabels() })],
     ["Result", () => new ResultNode()],
     [
-      "Limit Item",
+      "Check Item",
       [
         ["Position", () => new PositionNode()],
         ["Area", () => new AreaNode()],

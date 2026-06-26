@@ -127,7 +127,7 @@ export const SHORTCUTS: ShortcutDefinition[] = [
     action: "addLimit",
     key: "l",
     group: "Add node at cursor",
-    description: "Limit",
+    description: "Check",
   },
   {
     action: "addResult",

@@ -30,7 +30,7 @@ export function findActionsWithInvalidSource(context: ValidationContext) {
         message: "Invalid action placement",
         description: [
           "The previous node does not support an action.",
-          "Actions can only be connected directly to a Limit node or to the Result node.",
+          "Actions can only be connected directly to a Check node or to the Result node.",
         ],
       });
       break;

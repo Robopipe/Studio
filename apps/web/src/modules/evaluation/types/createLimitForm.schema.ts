@@ -34,7 +34,7 @@ export const createLimitFormSchema = z.object({
   targetParentLabelId: z.number().nullable(),
   limitItems: z
     .array(limitItemFormSchema)
-    .min(1, "At least one limit item is required"),
+    .min(1, "At least one check item is required"),
 });
 
 export type CreateLimitFormSchema = z.infer<typeof createLimitFormSchema>;

@@ -264,7 +264,7 @@ export function LimitItemRow({
                   variant="ghost"
                   size="icon-sm"
                   className="shrink-0 self-end text-muted-foreground hover:text-destructive"
-                  aria-label="Delete limit"
+                  aria-label="Delete check item"
                   onClick={onDelete}
                 >
                   <Trash2Icon className="text-destructive" />

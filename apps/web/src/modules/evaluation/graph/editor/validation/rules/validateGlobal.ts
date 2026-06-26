@@ -38,7 +38,7 @@ export function findNodesOutsideResultIsland(context: ValidationContext) {
       message: "Disconnected node",
       description: [
         "This node is not connected to a Result node.",
-        "All graph nodes except Limit items must be connected to an island that contains a Result node.",
+        "All graph nodes except Check items must be connected to an island that contains a Result node.",
       ],
     });
   }

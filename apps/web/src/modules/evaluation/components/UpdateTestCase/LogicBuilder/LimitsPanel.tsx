@@ -31,7 +31,7 @@ export function LimitsPanel() {
   if (availableLimits.length === 0) {
     return (
       <div className="flex items-center justify-center py-4 text-xs text-muted-foreground">
-        No limits defined for this test case yet
+        No checks defined for this test case yet
       </div>
     );
   }

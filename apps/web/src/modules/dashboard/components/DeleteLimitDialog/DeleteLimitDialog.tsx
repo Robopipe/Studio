@@ -21,9 +21,9 @@ export const DeleteLimitDialog = ({
   onCancel,
   onConfirm,
   isLoading = false,
-  title = "Do you really want to delete this limit.",
-  description = "This action can not be undone. However you can setup a new limit with same parameters.",
-  confirmLabel = "Delete this limit anyway",
+  title = "Do you really want to delete this check.",
+  description = "This action can not be undone. However you can setup a new check with same parameters.",
+  confirmLabel = "Delete this check anyway",
 }: DeleteLimitDialogProps) => {
   return (
     <Dialog open onOpenChange={(open) => !open && !isLoading && onCancel()}>
