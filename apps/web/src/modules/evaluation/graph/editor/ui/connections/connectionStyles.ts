@@ -8,3 +8,6 @@ export const CONNECTION_SVG_CLASS =
 
 export const CONNECTION_PATH_CLASS =
   "pointer-events-auto fill-none stroke-[5] stroke-zinc-400 [stroke-dasharray:10_5] [stroke-dashoffset:45] [animation:dash_1s_linear_infinite]";
+  
+export const MAGNETIC_CONNECTION_PATH_CLASS =
+  "pointer-events-none fill-none stroke-[5] stroke-zinc-400 [stroke-dasharray:10_5] [stroke-dashoffset:45] [animation:dash_1s_linear_infinite]";

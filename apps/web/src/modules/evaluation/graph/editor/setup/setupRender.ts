@@ -21,6 +21,7 @@ import { RuleSocket } from "@/modules/evaluation/graph/editor/sockets/ruleSocket
 import type { Schemes } from "@/modules/evaluation/graph/editor/types";
 import { createBooleanConnectionView } from "@/modules/evaluation/graph/editor/ui/connections/BooleanConnectionView";
 import { CustomConnectionView } from "@/modules/evaluation/graph/editor/ui/connections/CustomConnectionView";
+import { MagneticConnectionView } from "@/modules/evaluation/graph/editor/ui/connections/MagneticConnectionView";
 import { createLimitItemConnectionView } from "@/modules/evaluation/graph/editor/ui/connections/LimitItemConnectionView";
 import { IntegerRangeControlView } from "@/modules/evaluation/graph/editor/ui/controls/IntegerRangeControlView";
 import { LabelControlView } from "@/modules/evaluation/graph/editor/ui/controls/LabelControlView";
@@ -102,6 +103,10 @@ export function setupRender(props: Props): ReactPlugin<Schemes, AreaExtra> {
           return null;
         },
         connection(context) {
+          if ((context.payload as { isMagnetic?: boolean }).isMagnetic) {
+            return MagneticConnectionView;
+          }
+
           const sourceNode = editor.getNode(context.payload.source);
           const targetNode = editor.getNode(context.payload.target);
 

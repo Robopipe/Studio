@@ -15,6 +15,7 @@ import { setupBackground } from "./setupBackground";
 import { setupConnection } from "./setupConnections";
 import { setupContextMenu } from "./setupContextMenu";
 import { setupKeyListeners } from "./setupKeyListeners";
+import { setupMagneticConnection } from "./setupMagneticConnection";
 import { setupRender } from "./setupRender";
 import { setupScopes } from "./setupScopes";
 import { setupSelector } from "./setupSelector";
@@ -101,6 +102,8 @@ export async function createEditor(
 
   window.addEventListener("keydown", keyListeners.handler);
 
+  const magnetic = setupMagneticConnection({ editor, area });
+
   setupBackground(area);
 
   return {
@@ -112,6 +115,7 @@ export async function createEditor(
     destroy: () => {
       window.removeEventListener("keydown", keyListeners.handler);
       keyListeners.dispose();
+      magnetic.dispose();
       validation.destroy();
       area.destroy();
     },

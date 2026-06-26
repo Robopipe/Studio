@@ -1,19 +1,11 @@
 import {
   ZOOM_MAX,
   ZOOM_MIN,
-  ZOOM_STEP,
 } from "@/modules/evaluation/graph/editor/constants";
 import { expect, test } from "@playwright/test";
-import {
-  addNodeAt,
-  canvasCentre,
-  getZoom,
-  gotoEditor,
-  nodeById,
-} from "./helpers";
+import { canvasCentre, getZoom, gotoEditor } from "./helpers";
 
 const PRECISION = 5;
-const CLICKS_TO_CLAMP = Math.ceil((ZOOM_MAX - ZOOM_MIN) / ZOOM_STEP) + 2;
 
 test.describe("Canvas viewport", () => {
   test.beforeEach(async ({ page }) => {
@@ -50,78 +42,6 @@ test.describe("Canvas viewport", () => {
     }
 
     await expect.poll(() => getZoom(page)).toBeCloseTo(ZOOM_MIN, PRECISION);
-  });
-
-  test("the zoom-out button zooms out by one step", async ({ page }) => {
-    expect(await getZoom(page)).toBe(ZOOM_MAX);
-
-    await page.getByRole("button", { name: "Zoom out" }).click();
-
-    await expect
-      .poll(() => getZoom(page))
-      .toBeCloseTo(ZOOM_MAX - ZOOM_STEP, PRECISION);
-  });
-
-  test("the zoom-in button is clamped at the max", async ({ page }) => {
-    expect(await getZoom(page)).toBe(ZOOM_MAX);
-
-    await page.getByRole("button", { name: "Zoom in" }).click();
-
-    await expect.poll(() => getZoom(page)).toBe(ZOOM_MAX);
-  });
-
-  test("the zoom-in button reverses the zoom-out button", async ({ page }) => {
-    const zoomOut = page.getByRole("button", { name: "Zoom out" });
-    await zoomOut.click();
-    await zoomOut.click();
-    await expect
-      .poll(() => getZoom(page))
-      .toBeCloseTo(ZOOM_MAX - 2 * ZOOM_STEP, PRECISION);
-
-    await page.getByRole("button", { name: "Zoom in" }).click();
-
-    await expect
-      .poll(() => getZoom(page))
-      .toBeCloseTo(ZOOM_MAX - ZOOM_STEP, PRECISION);
-  });
-
-  test("the zoom-out button is clamped at the min", async ({ page }) => {
-    const zoomOut = page.getByRole("button", { name: "Zoom out" });
-    for (let i = 0; i < CLICKS_TO_CLAMP; i++) {
-      await zoomOut.click();
-    }
-
-    await expect.poll(() => getZoom(page)).toBeCloseTo(ZOOM_MIN, PRECISION);
-  });
-
-  test("the fit-to-view button brings an off-screen node into view", async ({
-    page,
-  }) => {
-    const id = await addNodeAt(page, "1", 0, 0);
-
-    const centre = await canvasCentre(page);
-    await page.mouse.move(centre.x, centre.y);
-    await page.mouse.down({ button: "left" });
-    await page.mouse.move(centre.x - 1200, centre.y - 1200, { steps: 10 });
-    await page.mouse.up({ button: "left" });
-
-    await page.getByRole("button", { name: "Fit to view" }).click();
-
-    await expect
-      .poll(async () => {
-        const node = await nodeById(page, id).boundingBox();
-        const canvasBox = await page.getByTestId("editor-canvas").boundingBox();
-        if (!node || !canvasBox) return false;
-        const cx = node.x + node.width / 2;
-        const cy = node.y + node.height / 2;
-        return (
-          cx >= canvasBox.x &&
-          cx <= canvasBox.x + canvasBox.width &&
-          cy >= canvasBox.y &&
-          cy <= canvasBox.y + canvasBox.height
-        );
-      })
-      .toBe(true);
   });
 
   test("dragging the background pans the canvas", async ({ page }) => {

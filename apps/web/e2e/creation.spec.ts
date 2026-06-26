@@ -49,14 +49,14 @@ test.describe("Node creation", () => {
     expect(nodes.map((n) => n.label).sort()).toEqual(["AND", "OR"]);
   });
 
-  test("context menu creates a Limit node", async ({ page }) => {
+  test("context menu creates a Check node", async ({ page }) => {
     await canvas(page).click({ button: "right", position: { x: 100, y: 100 } });
 
-    const limitItem = page
+    const checkItem = page
       .getByTestId("context-menu-item")
-      .filter({ hasText: /^Limit$/ });
-    await expect(limitItem).toBeVisible();
-    await limitItem.click();
+      .filter({ hasText: /^Check$/ });
+    await expect(checkItem).toBeVisible();
+    await checkItem.click();
 
     const nodes = await getNodes(page);
     expect(nodes).toHaveLength(1);

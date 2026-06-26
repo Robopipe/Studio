@@ -13,9 +13,9 @@ test.describe("Context menu", () => {
 
     await expect(page.getByTestId("context-menu")).toBeVisible();
     await expect(page.getByTestId("context-menu-item")).toHaveText([
-      "Limit",
+      "Check",
       "Result",
-      "Limit Item",
+      "Check Item",
       "Logical",
       "Action",
     ]);
@@ -37,7 +37,7 @@ test.describe("Context menu", () => {
   });
 
   const groups = [
-    { label: "Limit Item", children: ["Position", "Area", "Count"] },
+    { label: "Check Item", children: ["Position", "Area", "Count"] },
     { label: "Logical", children: ["And", "Or"] },
     { label: "Action", children: ["Warning", "Alert"] },
   ];

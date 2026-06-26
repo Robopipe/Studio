@@ -2,8 +2,6 @@ import { BooleanConnection } from "@/modules/evaluation/graph/editor/connections
 import { LimitItemConnection } from "@/modules/evaluation/graph/editor/connections/limitItemConnection";
 import { ActionNodeBase } from "@/modules/evaluation/graph/editor/nodes/action/actionBase";
 import { LimitNode } from "@/modules/evaluation/graph/editor/nodes/limit/limit";
-import { ResultNode } from "@/modules/evaluation/graph/editor/nodes/result/result";
-import { AppSocket } from "@/modules/evaluation/graph/editor/sockets/appSocket";
 import { BooleanSocket } from "@/modules/evaluation/graph/editor/sockets/booleanSocket";
 import { RuleSocket } from "@/modules/evaluation/graph/editor/sockets/ruleSocket";
 import type {
@@ -19,6 +17,7 @@ import {
   getSourceTarget,
 } from "rete-connection-plugin";
 import type { AreaExtra } from "./createEditor";
+import { validateConnection } from "./connectionRules";
 
 type Props = {
   editor: NodeEditor<Schemes>;
@@ -91,6 +90,16 @@ export function setupConnection(
 
     if (!isTrackedSocket(socket)) return;
 
+    if (
+      pickedSocket &&
+      pickedSocket.nodeId === nodeId &&
+      String(pickedSocket.key) === key &&
+      pickedSocket.side === side
+    ) {
+      socket.connected = true;
+      return;
+    }
+
     const connections = editor.getConnections();
 
     const isConnected =
@@ -128,45 +137,6 @@ export function setupConnection(
     recomputeSocketConnected(data.source, String(data.sourceOutput), "output");
     recomputeSocketConnected(data.target, String(data.targetInput), "input");
     refreshConnectionNodes(data.source, data.target);
-  }
-
-  function wouldCreateCycle(sourceNodeId: string, targetNodeId: string) {
-    if (sourceNodeId === targetNodeId) return true;
-
-    const adjacency = new Map<string, string[]>();
-
-    for (const node of editor.getNodes()) {
-      adjacency.set(node.id, []);
-    }
-
-    for (const connection of editor.getConnections()) {
-      const list = adjacency.get(connection.source) ?? [];
-      list.push(connection.target);
-      adjacency.set(connection.source, list);
-    }
-
-    const stack = [targetNodeId];
-    const visited = new Set<string>();
-
-    while (stack.length > 0) {
-      const current = stack.pop();
-      if (!current) continue;
-
-      if (current === sourceNodeId) {
-        return true;
-      }
-
-      if (visited.has(current)) continue;
-      visited.add(current);
-
-      for (const next of adjacency.get(current) ?? []) {
-        if (!visited.has(next)) {
-          stack.push(next);
-        }
-      }
-    }
-
-    return false;
   }
 
   function getExistingOutgoingActionConnections(nodeId: string) {
@@ -240,63 +210,18 @@ export function setupConnection(
 
           if (!source || !target || from === to) return false;
 
-          const sourceNode = editor.getNode(source.nodeId);
-          const targetNode = editor.getNode(target.nodeId);
-
-          if (!sourceNode || !targetNode) return false;
-
-          const sourceSocket = getOutputSocket(
-            source.nodeId,
-            String(source.key),
-          );
-          const targetSocket = getInputSocket(
-            target.nodeId,
-            String(target.key),
+          const result = validateConnection(
+            editor,
+            { nodeId: source.nodeId, key: String(source.key) },
+            { nodeId: target.nodeId, key: String(target.key) },
           );
 
-          if (!sourceSocket || !targetSocket) return false;
-
-          if (
-            !(sourceSocket instanceof AppSocket) ||
-            !(targetSocket instanceof AppSocket)
-          ) {
-            return false;
-          }
-
-          if (!sourceSocket.isCompatibleWith(targetSocket)) {
-            log("Sockets are not compatible", "error");
-            connection.drop();
-            return false;
-          }
-
-          if (wouldCreateCycle(source.nodeId, target.nodeId)) {
-            log("Loops are not allowed", "error");
-            connection.drop();
-            return false;
-          }
-
-          if (
-            sourceNode instanceof ResultNode &&
-            !(targetNode instanceof ActionNodeBase)
-          ) {
-            log("Result node can only connect to an action node", "error");
-            connection.drop();
-            return false;
-          }
-
-          if (targetNode instanceof ActionNodeBase) {
-            const sourceCanConnectToAction =
-              sourceNode instanceof LimitNode ||
-              sourceNode instanceof ResultNode;
-
-            if (!sourceCanConnectToAction) {
-              log(
-                "Action nodes can only be connected from a Limit node or Result node",
-                "error",
-              );
+          if (!result.ok) {
+            if (result.reason) {
+              log(result.reason, "error");
               connection.drop();
-              return false;
             }
+            return false;
           }
 
           return true;
