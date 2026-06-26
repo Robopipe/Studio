@@ -46,8 +46,6 @@ Config JSON shape
 Metrics
 -------
 * meanConfidence — mean score over all kept detections in the task (null if none).
-* f1At50         — per-image F1 at IoU threshold 0.5 (null if no GT of the
-                   chosen geometry on this task).
 * minIou         — smallest matched-TP IoU on this task (null if no TP match).
 * Per-class box-stats for confidence scores and matched-TP IoU values are
   accumulated and sent in the final complete webhook.
@@ -279,34 +277,25 @@ def _task_metrics(
     gt: list[dict],
     has_gt: bool,
     label_ids: list[int],
-) -> tuple[Optional[float], Optional[float], Optional[float]]:
-    """Compute per-task meanConfidence, f1At50, minIou from matching results."""
+) -> tuple[Optional[float], Optional[float]]:
+    """Compute per-task meanConfidence, minIou from matching results."""
     if not per_class_results:
         # No kept detections.
         if not has_gt:
-            return None, None, None
+            return None, None
         # GT exists but model found nothing → all misses.
-        return None, 0.0, None
+        return None, None
 
     scores = [s for _, s, _ in per_class_results]
     mean_conf = float(np.mean(scores)) if scores else None
 
     if not has_gt:
-        return mean_conf, None, None
-
-    # F1@50
-    tp = sum(1 for _, _, iou in per_class_results if iou is not None)
-    fp = len(per_class_results) - tp
-    fn = len(gt) - tp  # GT objects that were never matched
-
-    precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
-    recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-    f1 = (2 * precision * recall / (precision + recall)) if (precision + recall) > 0 else 0.0
+        return mean_conf, None
 
     tp_ious = [iou for _, _, iou in per_class_results if iou is not None]
     min_iou = float(min(tp_ious)) if tp_ious else None
 
-    return mean_conf, float(f1), min_iou
+    return mean_conf, min_iou
 
 
 # ─── Box-stats helper (mirrors the SQL percentile_cont + IQR logic) ───────────
@@ -450,7 +439,7 @@ def main() -> None:
                 model_type,
             )
 
-            mean_conf, f1, min_iou = _task_metrics(per_class_results, effective_gt, has_gt, label_ids)
+            mean_conf, min_iou = _task_metrics(per_class_results, effective_gt, has_gt, label_ids)
 
             # Accumulate per-class stats.
             for ci, score, matched_iou in per_class_results:
@@ -461,12 +450,11 @@ def main() -> None:
 
         except Exception:
             _log.exception("error processing task %d — treating as null", task_id)
-            mean_conf, f1, min_iou = None, None, None
+            mean_conf, min_iou = None, None
 
         chunk_results.append({
             "taskId": task_id,
             "meanConfidence": mean_conf,
-            "f1At50": f1,
             "minIou": min_iou,
         })
         processed += 1

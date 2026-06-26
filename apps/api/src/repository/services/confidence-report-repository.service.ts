@@ -76,7 +76,7 @@ export class ConfidenceReportRepository {
 
   /**
    * Write per-task scalars from a progress webhook chunk.
-   * Updates meanConfidence, f1At50, minIou for each reported task.
+   * Updates meanConfidence, minIou for each reported task.
    * Tasks with null scalars (un-annotated) still get a null write to mark
    * them as "processed" — the API only checks for explicit nulls.
    */
@@ -100,7 +100,6 @@ export class ConfidenceReportRepository {
         .update(taskTable)
         .set({
           meanConfidence: result.meanConfidence ?? null,
-          f1At50: result.f1At50 ?? null,
           minIou: result.minIou ?? null,
           updatedAt: new Date(),
         })
@@ -115,7 +114,7 @@ export class ConfidenceReportRepository {
   public async clearTaskScalars(projectId: number): Promise<void> {
     await this.db
       .update(taskTable)
-      .set({ meanConfidence: null, f1At50: null, minIou: null })
+      .set({ meanConfidence: null, minIou: null })
       .where(eq(taskTable.projectId, projectId));
   }
 }

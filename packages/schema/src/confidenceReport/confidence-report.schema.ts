@@ -72,7 +72,6 @@ export const confidenceReportSchema = z.object({
 export const confidenceReportTaskResultSchema = z.object({
   taskId: z.number(),
   meanConfidence: z.number().nullable(),
-  f1At50: z.number().nullable(),
   minIou: z.number().nullable(),
 });
 

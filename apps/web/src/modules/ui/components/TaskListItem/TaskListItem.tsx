@@ -6,7 +6,6 @@ import { MediaListItem, MediaListItemDate } from "./MediaListItem";
 
 export interface TaskMetrics {
   meanConfidence?: number | null;
-  f1At50?: number | null;
   minIou?: number | null;
 }
 
@@ -43,12 +42,11 @@ const MetricBadge = ({
 );
 
 const TaskMetricsBadges = ({ metrics }: { metrics: TaskMetrics }) => {
-  const { meanConfidence, f1At50, minIou } = metrics;
-  if (meanConfidence == null && f1At50 == null && minIou == null) return null;
+  const { meanConfidence, minIou } = metrics;
+  if (meanConfidence == null && minIou == null) return null;
   return (
     <div className="flex items-center gap-0.5 flex-wrap">
       <MetricBadge label="Conf" value={meanConfidence} />
-      <MetricBadge label="F1" value={f1At50} />
       <MetricBadge label="IoU" value={minIou} />
     </div>
   );
