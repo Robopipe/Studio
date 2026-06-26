@@ -89,6 +89,10 @@ export const taskSchema = z.object({
   status: z.enum(TaskStatusEnum),
   annotationCount: z.number().nullable(),
   updatedBy: z.number().nullable().optional(),
+  // Per-task confidence report scalars — null until a report has been run.
+  meanConfidence: z.number().nullable().optional(),
+  f1At50: z.number().nullable().optional(),
+  minIou: z.number().nullable().optional(),
   ...timestampsSchema
 })
 

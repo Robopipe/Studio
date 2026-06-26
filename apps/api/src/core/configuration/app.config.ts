@@ -55,6 +55,17 @@ export const appConfigSchema = z.object({
   // empty disables the predict endpoint (local dev without the service).
   mlInferUrl: z.string().optional(),
   mlInferApiKey: z.string(),
+  // ml-infer batch job for the confidence report. When mlBatchImageInfer is
+  // set, the report is dispatched as a Cloud Batch CPU job. When mlHostInfer
+  // is set, it is POSTed to the FastAPI service (local dev). Neither set →
+  // the confidence report run endpoint returns 503.
+  mlBatchImageInfer: z.string().optional(),
+  mlHostInfer: z.string().optional(),
+  mlBatchInferMachineType: z.string().default("n2-standard-8"),
+  mlBatchInferBootDiskGb: z.number().int().default(50),
+  mlBatchInferMaxRunSeconds: z.number().int().default(14400),
+  mlBatchInferTaskCpuMilli: z.number().int().default(7000),
+  mlBatchInferTaskMemoryMib: z.number().int().default(28672),
 });
 
 export class AppConfig extends createZodDto(appConfigSchema) {}

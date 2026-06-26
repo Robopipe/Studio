@@ -196,4 +196,14 @@ export const relationBase = defineRelations(schema, (r) => ({
       to: r.modelTable.id,
     }),
   },
+  confidenceReportTable: {
+    project: r.one.projectTable({
+      from: r.confidenceReportTable.projectId,
+      to: r.projectTable.id,
+    }),
+    model: r.one.modelTable({
+      from: r.confidenceReportTable.modelId,
+      to: r.modelTable.id,
+    }),
+  },
 }));

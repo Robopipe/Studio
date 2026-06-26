@@ -12,6 +12,7 @@ import {
 } from "@/modules/shadcn/ui/tabs";
 
 import { AnnotationTypeSelector } from "./AnnotationTypeSelector";
+import { ConfidenceReportSection } from "./ConfidenceReportSection";
 import { EmptyState } from "./EmptyState";
 import { InstancesChart } from "./InstancesChart";
 import { SizesChart } from "./SizesChart";
@@ -89,6 +90,9 @@ export const AnalyticsDialog = ({
               </TabsContent>
             </Tabs>
           )}
+
+          {/* Confidence Report section — always visible regardless of stats loading state */}
+          <ConfidenceReportSection />
         </div>
       </DialogContent>
     </Dialog>

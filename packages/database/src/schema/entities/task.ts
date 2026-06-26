@@ -23,6 +23,10 @@ export const taskTable = p.pgTable("task", {
   status: taskStatusEnum("status").notNull(),
   annotationCount: p.integer("annotation_count").notNull().default(0),
   updatedBy: p.integer("updated_by").references(() => userTable.id, { onDelete: "set null" }),
+  // Per-task confidence-report scalars. Null until a report has been run.
+  meanConfidence: p.real("mean_confidence"),
+  f1At50: p.real("f1_at_50"),
+  minIou: p.real("min_iou"),
   ...timestamps,
 }, (t) => [
   p.unique().on(t.projectId, t.iid),
