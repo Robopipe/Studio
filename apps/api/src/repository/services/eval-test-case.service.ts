@@ -1,8 +1,8 @@
 import { Inject, Injectable, InternalServerErrorException, NotFoundException } from "@nestjs/common";
 import { DB_CONNECTION } from "src/core/database/database.constant";
 import type { DbConnection } from "src/core/database/types/database.types";
-import { EvalTestCaseDetailEntity, EvalTestCaseEntity, EvalTestCaseThresholdEntity } from "src/modules/eval/entities/eval-test-case.entity";
-import { EvalTestCaseDetailSelect, EvalTestCaseInsert, EvalTestCaseSelect } from "../types/eval";
+import { EvalTestCaseDetailEntity, EvalTestCaseEntity, EvalTestCaseFullEntity, EvalTestCaseThresholdEntity } from "src/modules/eval/entities/eval-test-case.entity";
+import { EvalTestCaseDetailSelect, EvalTestCaseFullSelect, EvalTestCaseInsert, EvalTestCaseSelect } from "../types/eval";
 import { evalTestCaseTable } from "@repo/database";
 import type { EvalLogicNode } from "@repo/schema";
 import { and, asc, eq } from "drizzle-orm";
@@ -153,6 +153,32 @@ export class EvalTestCaseRepository {
        throw new NotFoundException('Test case not found')
      }
      return new EvalTestCaseDetailEntity(testCase as EvalTestCaseDetailSelect)
+   }
+
+  /**
+   * Get test case full (limits WITH items + logic nodes) by id, scoped to project and config.
+   * @throws NotFoundException
+   */
+   public async getFullOrThrow(id: string, projectId: number, dashboardConfigurationId: number): Promise<EvalTestCaseFullEntity>{
+     const testCase = await this.db.query.evalTestCaseTable.findFirst({
+       where: { id, projectId, dashboardConfigurationId },
+       with: {
+         limits: {
+           with: {
+             targetLabel: true,
+             targetParentLabel: true,
+             limitItems: {
+               orderBy: (limitItem) => asc(limitItem.position)
+             }
+           },
+           orderBy: (limit) => asc(limit.createdAt)
+         }
+       }
+     })
+     if(!testCase){
+       throw new NotFoundException('Test case not found')
+     }
+     return new EvalTestCaseFullEntity(testCase as EvalTestCaseFullSelect)
    }
 
   /**

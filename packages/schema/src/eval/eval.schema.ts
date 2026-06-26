@@ -155,6 +155,11 @@ export const evalTestCaseDetailSchema = evalTestCaseSchema.extend({
   logicNodes: evalLogicNodeSchema.array(), // [] by default
 });
 
+/* Eval test case full -> detail with limit items inlined on each limit. (node-view) */
+export const evalTestCaseFullSchema = evalTestCaseDetailSchema.extend({
+  limits: z.array(evalLimitDetailSchema),
+});
+
 export const evalThresholdSchema = z.object({
   id: z.string(),
   name: z.string(),

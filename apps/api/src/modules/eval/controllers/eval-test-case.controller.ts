@@ -3,7 +3,7 @@ import { ProjectGuard } from "src/modules/auth/guards/project-guard";
 import { ProjectId } from "src/modules/auth/decorators/project-id.decorator";
 import { EvalTestCaseService } from "../services/eval-test-case.service";
 import { EvalTestCaseCreateOrUpdateDto, EvalTestCaseFullCreateOrUpdateDto } from "../dto/eval-test-case.dto";
-import { EvalTestCase, EvalTestCaseDetail } from "@repo/schema";
+import { EvalTestCase, EvalTestCaseDetail, EvalTestCaseFull } from "@repo/schema";
 
 @Controller("eval/:projectId/config/:configId/test-case")
 @UseGuards(ProjectGuard)
@@ -28,6 +28,17 @@ export class EvalTestCaseController {
   ): Promise<EvalTestCaseDetail>{
     const testCaseDetail = await this.evalTestCaseService.getTestCaseDetail(projectId, configId, testCaseId);
     return testCaseDetail.toDetailResponse()
+  }
+
+
+  @Get(":testCaseId/full")
+  public async getTestCaseFull(
+    @ProjectId() projectId: number,
+    @Param("configId", ParseIntPipe) configId: number,
+    @Param("testCaseId") testCaseId: string
+  ): Promise<EvalTestCaseFull>{
+    const testCaseFull = await this.evalTestCaseService.getTestCaseFull(projectId, configId, testCaseId);
+    return testCaseFull.toFullResponse()
   }
 
 

@@ -1,5 +1,5 @@
 import { BadRequestException, Inject, Injectable } from "@nestjs/common";
-import { EvalTestCaseDetailEntity, EvalTestCaseEntity } from "../entities/eval-test-case.entity";
+import { EvalTestCaseDetailEntity, EvalTestCaseEntity, EvalTestCaseFullEntity } from "../entities/eval-test-case.entity";
 import { EvalLimitDetailEntity } from "../entities/eval-limit.entity";
 import { EvalTestCaseCreateOrUpdateDto, EvalTestCaseFullCreateOrUpdateDto } from "../dto/eval-test-case.dto";
 import { EvalTestCaseRepository } from "src/repository/services/eval-test-case.service";
@@ -54,6 +54,13 @@ export class EvalTestCaseService {
   }
 
   /**
+   * Get test case full (limits WITH items + logic nodes) — single query verifies project + config + test case ownership.
+   */
+  public async getTestCaseFull(projectId: number, configId: number, testCaseId: string): Promise<EvalTestCaseFullEntity>{
+    return this.evalTestCaseRepository.getFullOrThrow(testCaseId, projectId, configId);
+  }
+
+  /**
    * Create test case — must verify config belongs to project first (no test case to check yet).
    */
   public async createTestCase(projectId: number, configId: number, data: EvalTestCaseCreateOrUpdateDto): Promise<EvalTestCaseDetailEntity> {
@@ -104,7 +111,7 @@ export class EvalTestCaseService {
 
     for (const limit of (data.limits || [])){
       const createdLimit = await this.evalLimitRepository.create(createdTestCase.id, {
-        name: limit.name, severity: limit.severity,
+        name: limit.name, severity: limit.severity, enabled: limit.enabled,
         targetParentLabelId: limit.targetParentLabelId, targetLabelId: limit.targetLabelId
       }, limit.id ?? undefined);
 
@@ -165,6 +172,7 @@ export class EvalTestCaseService {
       const limitData = {
         name: limit.name,
         severity: limit.severity,
+        enabled: limit.enabled,
         targetLabelId: limit.targetLabelId,
         targetParentLabelId: limit.targetParentLabelId,
       }

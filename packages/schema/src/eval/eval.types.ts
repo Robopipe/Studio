@@ -7,6 +7,7 @@ import {
   evalLogicNodeSchema,
   evalTestCaseCreateOrUpdateSchema,
   evalTestCaseDetailSchema,
+  evalTestCaseFullSchema,
   evalTestCaseSchema,evalTestCaseThresholdSchema,evalThresholdCreateOrUpdateSchema, evalThresholdSchema, evalThresholdsResponseSchema
 } from "./eval.schema";
 
@@ -20,6 +21,7 @@ export type EvalLimit = z.infer<typeof evalLimitSchema>;
 export type EvalLimitDetail = z.infer<typeof evalLimitDetailSchema>;
 export type EvalTestCase = z.infer<typeof evalTestCaseSchema>;
 export type EvalTestCaseDetail = z.infer<typeof evalTestCaseDetailSchema>;
+export type EvalTestCaseFull = z.infer<typeof evalTestCaseFullSchema>;
 export type EvalTestCaseCreateOrUpdate = z.infer<
   typeof evalTestCaseCreateOrUpdateSchema
 >;
