@@ -1,4 +1,5 @@
 import { DeleteLimitDialog } from "@/modules/dashboard/components/DeleteLimitDialog/DeleteLimitDialog";
+import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import { Button } from "@/modules/shadcn/ui/button";
 import { Skeleton } from "@/modules/shadcn/ui/skeleton";
 import { ModelStatusEnum } from "@repo/schema";
@@ -7,6 +8,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import type { AppliedAugmentation } from "../AugmentationSettings/augmentationTypes";
 import type { DuplicateModelState } from "@/modules/model/components";
+import { LicenseRequiredDialog } from "../LicenseRequiredDialog/LicenseRequiredDialog";
 import {
   useCancelTrainingMutation,
   useDeleteModelMutation,
@@ -30,6 +32,8 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
   const [cancelTraining, { isLoading: isCancelling }] = useCancelTrainingMutation();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [showLicenseDialog, setShowLicenseDialog] = useState(false);
+  const [activeProject] = useActiveProject();
   const [activeTab, setActiveTab] = useState<ModelTab>("overview");
 
   const {
@@ -100,7 +104,6 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
         annotationsUsed: model.annotationsUsed,
         labels: model.labels,
         outputs: model.outputTypes,
-        backend: model.backend,
         region: model.region,
         quantization: model.quantization,
         datasetSplit: {
@@ -164,6 +167,10 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
         <Button
           size="sm"
           onClick={async () => {
+            if (!activeProject?.hasLicense) {
+              setShowLicenseDialog(true);
+              return;
+            }
             await trainModel({
               projectId: Number(projectId),
               modelId: Number(modelId),
@@ -225,6 +232,8 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
           <ModelParameters model={model} />
         )}
       </div>
+
+      <LicenseRequiredDialog open={showLicenseDialog} onOpenChange={setShowLicenseDialog} />
 
       {showDeleteDialog && (
         <DeleteLimitDialog

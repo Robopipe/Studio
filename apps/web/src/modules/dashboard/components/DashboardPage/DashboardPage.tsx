@@ -273,7 +273,7 @@ export const DashboardPage = ({
                       { key: "test-cases", label: "Test cases" },
                       { key: "evaluation", label: "Evaluation" },
                       { key: "reports", label: "Reports" },
-                    ] as const
+                    ] as { key: RightPanelTab; label: string }[]
                   ).map((tab) => (
                     <button
                       key={tab.key}

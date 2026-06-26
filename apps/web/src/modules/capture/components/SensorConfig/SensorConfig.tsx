@@ -32,6 +32,14 @@ import { toast } from "sonner";
 import { useVideoCapture } from "../../context/VideoCaptureContext";
 import { SelectParameter } from "../SelectParameter";
 
+const clamp = (v: number, lo: number, hi: number) =>
+  Math.min(hi, Math.max(lo, v));
+
+// Default FPS for a resolution: midpoint rounded to the nearest multiple of
+// 10, clamped into the valid range.
+const niceDefaultFps = (min: number, max: number) =>
+  clamp(Math.round((min + max) / 2 / 10) * 10, min, max);
+
 export interface SensorConfigProps {
   selectedCamera: string;
   selectedStream: string;
@@ -103,7 +111,7 @@ export const SensorConfig = ({
       ...draft,
       width: option.width,
       height: option.height,
-      fps: Math.round((option.max_fps + option.min_fps) / 4),
+      fps: niceDefaultFps(option.min_fps, option.max_fps),
     });
   };
 
@@ -218,6 +226,20 @@ export const SensorConfig = ({
                         onValueChange={(v) =>
                           setDraft({ ...draft, fps: v ?? draft.fps })
                         }
+                        onBlur={() => {
+                          if (!selectedOption) return;
+                          setDraft({
+                            ...draft,
+                            fps: clamp(
+                              draft.fps,
+                              selectedOption.min_fps,
+                              selectedOption.max_fps,
+                            ),
+                          });
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") e.currentTarget.blur();
+                        }}
                       />
                     </div>
 

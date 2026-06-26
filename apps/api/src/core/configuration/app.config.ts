@@ -14,18 +14,15 @@ export const appConfigSchema = z.object({
   mlSecret: z.string(),
   webHost: z.string(),
   apiHost: z.string(),
-  mlHost: z.string().optional(),
-  // Ultralytics-backed ML service (luxonis-train and ultralytics run in separate
-  // containers to avoid pip dependency conflicts). Picked per-training-run based
-  // on the `backend` field on the model (LUXONIS → mlHost / mlBatchImage,
-  // ULTRALYTICS → mlHostYolo / mlBatchImageYolo).
+  // FastAPI host for the (sole) ml-yolo training service. Named *Yolo to match
+  // the ML_HOST_YOLO deploy env var. Used for local dev; empty in Cloud
+  // deploys, which dispatch via Cloud Batch (mlBatchImageYolo) instead.
   mlHostYolo: z.string().optional(),
   mlRegion: z.string().optional(),
   gcpProject: z.string().optional(),
-  // Cloud Batch: when `mlBatchImage` is set, training jobs are dispatched as
-  // Cloud Batch jobs that boot a VM with the configured GPU. When `mlHost` is
-  // set instead, training is POSTed to the FastAPI service for local dev.
-  mlBatchImage: z.string().optional(),
+  // Cloud Batch: when `mlBatchImageYolo` is set, training jobs are dispatched
+  // as Cloud Batch jobs that boot a VM with the configured GPU. When
+  // `mlHostYolo` is set instead, training is POSTed to the FastAPI service.
   mlBatchImageYolo: z.string().optional(),
   mlBatchServiceAccount: z.string().optional(),
   mlBatchMachineType: z.string().default("a2-ultragpu-1g"),
@@ -34,6 +31,15 @@ export const appConfigSchema = z.object({
   // for N1-style custom GPU attachment.
   mlBatchGpuType: z.string().default(""),
   mlBatchGpuCount: z.number().int().default(0),
+  // Custom boot-disk VM image. Empty = Batch's default Container-Optimized OS,
+  // where the GPU driver is downloaded at boot (installGpuDrivers, ~2-3 min)
+  // and bind-mounted into the container from /var/lib/nvidia. Set this to a
+  // Deep Learning VM image family (driver + Docker + NVIDIA Container Toolkit
+  // pre-baked) to skip that download — e.g.
+  // "projects/ml-images/global/images/family/common-cu129-ubuntu-2204-nvidia-580". When set,
+  // installGpuDrivers is forced off and the container gets the GPU via the
+  // nvidia runtime (`--gpus all`) instead of the COS bind-mounts.
+  mlBatchBootDiskImage: z.string().optional(),
   mlBatchBootDiskGb: z.number().int().default(100),
   mlBatchMaxRunSeconds: z.number().int().default(86400),
   // Resources allocated to the single training task on the VM. Batch defaults

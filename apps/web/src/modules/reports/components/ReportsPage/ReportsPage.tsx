@@ -1,7 +1,7 @@
 import {
   useCreateReportMutation,
   useDeleteReportMutation,
-  useGetDashboardQuery,
+  useGetNNQuery,
   useListCamerasQuery,
   useListReportsQuery,
 } from "@/core/cameraApi";
@@ -31,9 +31,9 @@ export const ReportsPage = ({ dashboardId, projectId }: ReportsPageProps) => {
   });
   const { cameraMxid: selectedCamera, streamName: selectedStream } =
     useSelectedCameraStream(cameras);
-  const { isSuccess: isModelRunning } = useGetDashboardQuery(
+  const { data: isModelRunning } = useGetNNQuery(
     { mxid: selectedCamera!, streamName: selectedStream! },
-    { skip: !selectedCamera || !selectedStream },
+    { skip: !selectedCamera || !selectedStream, refetchOnMountOrArgChange: true },
   );
 
   const {

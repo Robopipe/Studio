@@ -67,20 +67,21 @@ type DisplayRow =
 
 function buildDisplayRows(annotations: Annotation[]): DisplayRow[] {
   const rows: DisplayRow[] = [];
-  let i = 0;
-  while (i < annotations.length) {
-    const a = annotations[i];
+  // Track the index in `rows` where each groupId's entry was inserted so we
+  // can append late-arriving members regardless of array order (e.g. after a
+  // server refetch returns group members non-contiguously).
+  const groupRowIndex = new Map<string, number>();
+  for (const a of annotations) {
     if (a.groupId) {
-      const groupId = a.groupId;
-      const members: Annotation[] = [];
-      while (i < annotations.length && annotations[i].groupId === groupId) {
-        members.push(annotations[i]);
-        i++;
+      const at = groupRowIndex.get(a.groupId);
+      if (at != null) {
+        (rows[at] as Extract<DisplayRow, { type: "group" }>).members.push(a);
+      } else {
+        groupRowIndex.set(a.groupId, rows.length);
+        rows.push({ type: "group", groupId: a.groupId, color: a.color, labelName: a.labelName, members: [a] });
       }
-      rows.push({ type: "group", groupId, color: members[0].color, labelName: members[0].labelName, members });
     } else {
       rows.push({ type: "single", annotation: a });
-      i++;
     }
   }
   return rows;
@@ -342,7 +343,7 @@ export const AnnotationPanel = ({
                     {/* Group header row */}
                     <div
                       className={cn(
-                        "group relative flex cursor-pointer select-none items-center gap-1.5 rounded-md px-2 py-1 transition-colors hover:bg-black/5",
+                        "group relative flex cursor-pointer select-none items-center gap-1.5 rounded-md pl-7 pr-2 py-1 transition-colors hover:bg-black/5",
                         (allMembersSelected || someMembersSelected) &&
                           "bg-primary/15 ring-1 ring-inset ring-primary/40 hover:bg-primary/15",
                         headerDnd.showDropOnto &&
@@ -369,7 +370,7 @@ export const AnnotationPanel = ({
                           e.stopPropagation();
                           toggleGroupCollapse(groupId);
                         }}
-                        className="flex shrink-0 items-center justify-center rounded text-muted-foreground/60 hover:text-foreground [&_svg]:size-3"
+                        className="flex shrink-0 items-center justify-center rounded text-muted-foreground/60 hover:text-foreground [&_svg]:size-3 cursor-pointer"
                       >
                         {isCollapsed ? <ChevronRight /> : <ChevronDown />}
                       </button>

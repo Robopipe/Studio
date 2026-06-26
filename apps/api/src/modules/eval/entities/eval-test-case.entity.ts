@@ -1,6 +1,6 @@
-import { EvalLogicNode, EvalTestCase, EvalTestCaseDetail, EvalSeverityEnum, EvalTestCaseThreshold, EvalTestCaseTypeEnum } from "@repo/schema";
-import { EvalTestCaseDetailSelect, EvalTestCaseSelect, EvalTestCaseThresholdSelect } from "src/repository/types/eval";
-import { EvalLimitEntity } from "./eval-limit.entity";
+import { EvalLogicNode, EvalTestCase, EvalTestCaseDetail, EvalTestCaseFull, EvalSeverityEnum, EvalTestCaseThreshold, EvalTestCaseTypeEnum } from "@repo/schema";
+import { EvalTestCaseDetailSelect, EvalTestCaseFullSelect, EvalTestCaseSelect, EvalTestCaseThresholdSelect } from "src/repository/types/eval";
+import { EvalLimitDetailEntity, EvalLimitEntity } from "./eval-limit.entity";
 import { EvalThresholdEntity } from "./eval-threshold.entity";
 
 export class EvalTestCaseEntity {
@@ -55,6 +55,23 @@ export class EvalTestCaseDetailEntity extends EvalTestCaseEntity {
     return {
       ...this.toResponse(),
       logicNodes: this.logicNodes
+    }
+  }
+}
+
+
+export class EvalTestCaseFullEntity extends EvalTestCaseDetailEntity {
+  declare readonly limits: EvalLimitDetailEntity[];
+
+  constructor(data: EvalTestCaseFullSelect){
+    super(data)
+    this.limits = data.limits.map((limit) => new EvalLimitDetailEntity(limit))
+  }
+
+  public toFullResponse(): EvalTestCaseFull {
+    return {
+      ...this.toDetailResponse(),
+      limits: this.limits.map((limit) => limit.toDetailResponse())
     }
   }
 }

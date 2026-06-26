@@ -22,6 +22,7 @@ export * from "./task";
 export * from "./pending-task";
 export * from "./user";
 export * from "./password-reset";
+export * from "./email-verification";
 export * from './dashboard-configuration'
 export * from './dashboard-evaluation'
 export * from './eval'

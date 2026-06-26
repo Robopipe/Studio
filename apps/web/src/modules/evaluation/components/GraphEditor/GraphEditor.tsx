@@ -19,7 +19,6 @@ import { installTestHook } from "@/modules/evaluation/graph/workspace/testHook";
 import { useGetProjectLabelsQuery } from "@/modules/project/services/projectApi";
 import { Button } from "@/modules/shadcn/ui/button";
 import {
-  Frame,
   Keyboard,
   LayoutGrid,
   Maximize2,

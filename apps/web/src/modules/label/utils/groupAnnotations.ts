@@ -151,6 +151,30 @@ function autoDissolve(annotations: Annotation[]): Annotation[] {
   );
 }
 
+/**
+ * Reorder annotations so that each group's members are contiguous, anchored
+ * at the position of the first-appearing member. Non-grouped annotations keep
+ * their relative order. This is the multi-group generalisation of
+ * `makeGroupContiguous` and should be applied when reconstructing annotation
+ * state from the server (which may return members non-contiguously).
+ */
+export function normalizeGroupOrder(annotations: Annotation[]): Annotation[] {
+  const result: Annotation[] = [];
+  const placed = new Set<string>();
+  for (const a of annotations) {
+    if (!a.groupId) {
+      result.push(a);
+      continue;
+    }
+    if (placed.has(a.groupId)) continue; // already gathered on first sighting
+    placed.add(a.groupId);
+    for (const m of annotations) {
+      if (m.groupId === a.groupId) result.push(m);
+    }
+  }
+  return result;
+}
+
 /** Compute the set of groupIds for which all annotations are in the selected set. */
 export function getSelectedGroupIds(
   annotations: Annotation[],

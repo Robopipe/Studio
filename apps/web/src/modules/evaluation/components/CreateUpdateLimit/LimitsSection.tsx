@@ -16,7 +16,7 @@ export function LimitsSection({ labelOptions }: LimitsSectionProps) {
   return (
     <section className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <h6 className="text-sm font-bold">Limit Items</h6>
+        <h6 className="text-sm font-bold">Check Items</h6>
         <form.AppField name="limitItems">
           {(field) => (
             <Button
@@ -32,7 +32,7 @@ export function LimitsSection({ labelOptions }: LimitsSectionProps) {
               }
             >
               <PlusIcon />
-              Add limit
+              Add check item
             </Button>
           )}
         </form.AppField>

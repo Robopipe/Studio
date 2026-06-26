@@ -3,7 +3,7 @@ import { ProjectGuard } from "src/modules/auth/guards/project-guard";
 import { ProjectId } from "src/modules/auth/decorators/project-id.decorator";
 import { EvalTestCaseService } from "../services/eval-test-case.service";
 import { EvalTestCaseCreateOrUpdateDto, EvalTestCaseFullCreateOrUpdateDto } from "../dto/eval-test-case.dto";
-import { EvalTestCase, EvalTestCaseDetail } from "@repo/schema";
+import { EvalTestCase, EvalTestCaseDetail, EvalTestCaseFull } from "@repo/schema";
 
 @Controller("eval/:projectId/config/:configId/test-case")
 @UseGuards(ProjectGuard)
@@ -31,6 +31,17 @@ export class EvalTestCaseController {
   }
 
 
+  @Get(":testCaseId/full")
+  public async getTestCaseFull(
+    @ProjectId() projectId: number,
+    @Param("configId", ParseIntPipe) configId: number,
+    @Param("testCaseId") testCaseId: string
+  ): Promise<EvalTestCaseFull>{
+    const testCaseFull = await this.evalTestCaseService.getTestCaseFull(projectId, configId, testCaseId);
+    return testCaseFull.toFullResponse()
+  }
+
+
   @Post()
   public async createTestCase(
     @ProjectId() projectId: number,
@@ -47,9 +58,9 @@ export class EvalTestCaseController {
     @ProjectId() projectId: number,
     @Param("configId", ParseIntPipe) configId: number,
     @Body() data: EvalTestCaseFullCreateOrUpdateDto
-  ): Promise<EvalTestCaseDetail>{
+  ): Promise<EvalTestCaseFull>{
     const createdTestCase = await this.evalTestCaseService.createTestCaseFull(projectId, configId, data)
-    return createdTestCase.toDetailResponse()
+    return createdTestCase.toFullResponse()
   }
 
 
@@ -71,9 +82,9 @@ export class EvalTestCaseController {
     @Param("configId", ParseIntPipe) configId: number,
     @Param("testCaseId") testCaseId: string,
     @Body() data: EvalTestCaseFullCreateOrUpdateDto
-  ): Promise<EvalTestCaseDetail>{
+  ): Promise<EvalTestCaseFull>{
     const updatedTestCase = await this.evalTestCaseService.updateTestCaseFull(projectId, configId, testCaseId, data)
-    return updatedTestCase.toDetailResponse()
+    return updatedTestCase.toFullResponse()
   }
 
 

@@ -1,4 +1,4 @@
-import { ConflictException, Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import type { Organization, PreAuthToken, SessionJwt, Token, UpdateUserRequest } from '@repo/schema';
 import { OrgMemberRoleEnum } from '@repo/schema';
@@ -12,6 +12,7 @@ import { EmailService } from 'src/modules/email/email.service';
 import { UserEntity } from 'src/modules/user/entities/user.entity';
 import { OrganizationMemberRepository } from 'src/repository/services/organization-member-repository.service';
 import { OrganizationRepository } from 'src/repository/services/organization-repository.service';
+import { EmailVerificationRepository } from 'src/repository/services/email-verification-repository.service';
 import { PasswordResetRepository } from 'src/repository/services/password-reset-repository.service';
 import { UserRepository } from 'src/repository/services/user-repository.service';
 import { RegisterDto } from "../dto/auth.dto";
@@ -24,6 +25,7 @@ export class AuthService {
     private readonly organizationRepository: OrganizationRepository,
     private readonly organizationMemberRepository: OrganizationMemberRepository,
     private readonly passwordResetRepository: PasswordResetRepository,
+    private readonly emailVerificationRepository: EmailVerificationRepository,
     private readonly emailService: EmailService,
     private readonly jwtService: JwtService,
     private readonly configService: AppConfig,
@@ -47,6 +49,10 @@ export class AuthService {
     const isPasswordValid = await this.checkPassword(password, user.password);
     if (!isPasswordValid) {
       return null;
+    }
+
+    if (!user.emailVerifiedAt) {
+      throw new ForbiddenException('Please verify your email before logging in.');
     }
 
     const { password: _, ...rest } = user;
@@ -207,20 +213,27 @@ export class AuthService {
   }
 
   /**
-   * Register a new user with a random password and send a welcome email
-   * with a set-password link. The user must set their password before logging in.
-   * @param data - registration payload (email, fullName)
+   * Register a new user with a password and send a verification email.
+   * If an unverified account exists with that email, updates it and re-sends verification.
+   * @param data - registration payload (email, fullName, password)
    * @returns success message
-   * @throws {ConflictException} if a user with that email already exists
+   * @throws {ConflictException} if a verified user with that email already exists
    */
   public async register(data: RegisterDto): Promise<{ message: string }> {
     const existingUser = await this.userRepository.getByEmail(data.email);
+
     if (existingUser) {
-      throw new ConflictException("User with this email already exists");
+      if (existingUser.emailVerifiedAt) {
+        throw new ConflictException("User with this email already exists");
+      }
+      // Unverified account: update credentials to the latest attempt and re-issue verification
+      const hashedPassword = await this.hashPassword(data.password);
+      await this.userRepository.updatePasswordAndName(existingUser.id, hashedPassword, data.fullName);
+      await this.issueEmailVerification(existingUser);
+      return { message: "Account created. Please check your email to verify your address." };
     }
 
-    const randomPassword = randomBytes(32).toString('hex');
-    const hashedPassword = await this.hashPassword(randomPassword);
+    const hashedPassword = await this.hashPassword(data.password);
     const user = await this.userRepository.create({
       email: data.email,
       username: data.email,
@@ -228,29 +241,61 @@ export class AuthService {
       password: hashedPassword,
     });
 
-    await this.sendSetPasswordEmail(user);
+    await this.issueEmailVerification(user);
 
-    return { message: "Account created. Please check your email to set your password." };
+    return { message: "Account created. Please check your email to verify your address." };
   }
 
   /**
-   * Generates a password reset token and sends the welcome/set-password email.
-   * @param user - newly created user entity
+   * Verify an email address using a token from the verification email.
+   * Idempotent: re-verifying an already-verified account is a no-op.
+   * @param token - the verification token from the email link
+   * @throws {BadRequestException} if the token is invalid or expired
    */
-  private async sendSetPasswordEmail(user: UserEntity): Promise<void> {
-    await this.passwordResetRepository.deleteByUserId(user.id);
+  public async verifyEmail(token: string): Promise<{ message: string }> {
+    const record = await this.emailVerificationRepository.findValidToken(token);
+    if (!record) {
+      throw new BadRequestException('Invalid or expired verification link');
+    }
+
+    await this.userRepository.markEmailVerified(record.userId);
+    await this.emailVerificationRepository.markUsed(record.id);
+
+    return { message: 'Email verified successfully.' };
+  }
+
+  /**
+   * Resend a verification email if the account exists and is unverified.
+   * Always returns a generic message to avoid user enumeration.
+   * @param email - email address to resend the verification link to
+   */
+  public async resendVerification(email: string): Promise<{ message: string }> {
+    const user = await this.userRepository.getByEmail(email);
+    if (user && !user.emailVerifiedAt) {
+      await this.issueEmailVerification(user);
+    }
+    return { message: 'If an account with that email exists and is unverified, a new verification link has been sent.' };
+  }
+
+  /**
+   * Issues a new email verification token and sends the verification email.
+   * Deletes any existing tokens for the user first (single active token).
+   * @param user - user to verify
+   */
+  private async issueEmailVerification(user: UserEntity): Promise<void> {
+    await this.emailVerificationRepository.deleteByUserId(user.id);
 
     const token = randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-    await this.passwordResetRepository.create({
+    await this.emailVerificationRepository.create({
       token,
       userId: user.id,
       expiresAt,
     });
 
-    const setPasswordLink = `${this.configService.webHost}/reset-password?token=${token}&welcome=1`;
-    await this.emailService.sendWelcomeEmail(user.email, user.fullName, setPasswordLink);
+    const verifyLink = `${this.configService.webHost}/verify-email?token=${token}`;
+    await this.emailService.sendVerificationEmail(user.email, verifyLink);
   }
 
   /**

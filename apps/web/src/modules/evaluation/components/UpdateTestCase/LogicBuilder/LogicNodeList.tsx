@@ -33,14 +33,20 @@ function findGap(
 ): DropGap | null {
   // :scope > div is the <div className="contents"> wrapper; its direct child is <span data-logic-item>
   const items = Array.from(
-    containerEl.querySelectorAll<HTMLElement>(":scope > div > [data-logic-item]"),
+    containerEl.querySelectorAll<HTMLElement>(
+      ":scope > div > [data-logic-item]",
+    ),
   );
   if (items.length === 0) return null;
 
   const containerRect = containerEl.getBoundingClientRect();
 
   // Bucket items into rows by rect.top (4 px tolerance handles subpixel rounding)
-  type Row = { top: number; bottom: number; items: { el: HTMLElement; rect: DOMRect; index: number }[] };
+  type Row = {
+    top: number;
+    bottom: number;
+    items: { el: HTMLElement; rect: DOMRect; index: number }[];
+  };
   const rows: Row[] = [];
   items.forEach((el, index) => {
     const rect = el.getBoundingClientRect();
@@ -49,7 +55,11 @@ function findGap(
       last.bottom = Math.max(last.bottom, rect.bottom);
       last.items.push({ el, rect, index });
     } else {
-      rows.push({ top: rect.top, bottom: rect.bottom, items: [{ el, rect, index }] });
+      rows.push({
+        top: rect.top,
+        bottom: rect.bottom,
+        items: [{ el, rect, index }],
+      });
     }
   });
 
@@ -62,7 +72,10 @@ function findGap(
       minDist = 0;
       break;
     }
-    const dist = Math.min(Math.abs(clientY - row.top), Math.abs(clientY - row.bottom));
+    const dist = Math.min(
+      Math.abs(clientY - row.top),
+      Math.abs(clientY - row.bottom),
+    );
     if (dist < minDist) {
       minDist = dist;
       chosenRow = row;
@@ -181,7 +194,7 @@ export function LogicNodeList({ nodes, groupId }: LogicNodeListProps) {
             : "border-border/40",
         )}
       >
-        Drag limits here to build logic
+        Drag checks here to build logic
       </div>
     );
   }
@@ -220,7 +233,11 @@ export function LogicNodeList({ nodes, groupId }: LogicNodeListProps) {
         <div
           aria-hidden
           className="pointer-events-none absolute w-0.5 rounded-full bg-primary"
-          style={{ left: dropGap.left, top: dropGap.top, height: dropGap.height }}
+          style={{
+            left: dropGap.left,
+            top: dropGap.top,
+            height: dropGap.height,
+          }}
         />
       )}
     </div>

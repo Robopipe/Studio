@@ -4,6 +4,7 @@ export const webRoutes = {
     login: "/login",
     forgotPassword: "/forgot-password",
     resetPassword: "/reset-password",
+    verifyEmail: "/verify-email",
     selectOrganization: "/select-organization",
   },
   main: {

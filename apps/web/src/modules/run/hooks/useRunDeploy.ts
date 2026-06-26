@@ -3,6 +3,7 @@ import {
   useAddReplayVideoMutation,
   useDeployDashboardMutation,
   useGetDashboardQuery,
+  useGetNNQuery,
   useRemoveDashboardMutation,
   useRemoveReplayVideoMutation,
 } from "@/core/cameraApi";
@@ -106,11 +107,16 @@ export const useRunDeploy = ({
 }: UseRunDeployParams) => {
   const [showDeployConfirm, setShowDeployConfirm] = useState(false);
   const [deployPhase, setDeployPhase] = useState<DeployPhase>("idle");
+  const [dashboardReloadNonce, setDashboardReloadNonce] = useState(0);
 
   // Single source of truth: the camera itself. The GET endpoint returns the
   // dashboard HTML (200) or 404 if none is running. No local mirror — that's
   // what caused the "can't stop after refresh" and stale-banner bugs.
   const { isSuccess: isRemoteDashboardDeployed } = useGetDashboardQuery(
+    { mxid: selectedCamera!, streamName: selectedStream! },
+    { skip: !selectedCamera || !selectedStream },
+  );
+  const { data: isRemoteModelDeployed } = useGetNNQuery(
     { mxid: selectedCamera!, streamName: selectedStream! },
     { skip: !selectedCamera || !selectedStream },
   );
@@ -133,11 +139,17 @@ export const useRunDeploy = ({
   }, [selectedCamera, selectedStream]);
 
   const effectiveDashboardUrl = isRemoteDashboardDeployed
-    ? `${cameraApiUrl}/cameras/${selectedCamera}/streams/${selectedStream}/dashboard${
-        settingsUnlockToken ? `?s=${settingsUnlockToken}` : ""
-      }`
+    ? (() => {
+        const base = `${cameraApiUrl}/cameras/${selectedCamera}/streams/${selectedStream}/dashboard`;
+        const params = new URLSearchParams();
+        if (settingsUnlockToken) params.set("s", settingsUnlockToken);
+        if (dashboardReloadNonce > 0)
+          params.set("_r", String(dashboardReloadNonce));
+        const qs = params.toString();
+        return qs ? `${base}?${qs}` : base;
+      })()
     : null;
-  const isDeployed = !!effectiveDashboardUrl;
+  const isDeployed = !!isRemoteModelDeployed;
 
   // Lazy triggers for multi-config deploy
   const [triggerGetProjects] = useLazyGetProjectsQuery();
@@ -363,6 +375,9 @@ export const useRunDeploy = ({
       }).unwrap();
       // Dashboard tab picks up the URL via useGetDashboardQuery — the deploy
       // mutation invalidates the Dashboard tag, which triggers refetch.
+      // Increment the nonce so the iframe src changes and the browser reloads
+      // the frame even when the camera/stream/token are unchanged (redeploy).
+      setDashboardReloadNonce((n) => n + 1);
     } finally {
       setDeployPhase("idle");
     }
@@ -548,6 +563,7 @@ export const useRunDeploy = ({
         .catch(() => {});
       // Tag invalidation in the mutations drops dashboardUrl to null via the
       // query refetch — no local state to reset.
+      setDashboardReloadNonce((n) => n + 1);
     } finally {
       setDeployPhase("idle");
     }

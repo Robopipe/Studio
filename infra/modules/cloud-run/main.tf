@@ -93,6 +93,11 @@ resource "google_cloud_run_v2_service" "api" {
       }
 
       env {
+        name  = "ML_BATCH_BOOT_DISK_IMAGE"
+        value = var.ml_batch_boot_disk_image
+      }
+
+      env {
         name  = "ML_BATCH_BOOT_DISK_GB"
         value = tostring(var.ml_batch_boot_disk_gb)
       }

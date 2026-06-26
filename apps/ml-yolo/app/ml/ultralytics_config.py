@@ -9,7 +9,7 @@ Recognized keys in custom_hyperparams (see https://docs.ultralytics.com/usage/cf
     lr0, lrf, momentum, weight_decay, warmup_epochs, close_mosaic, box, cls,
     dfl, hsv_h, hsv_s, hsv_v, degrees, translate, scale, shear, perspective,
     flipud, fliplr, mosaic, mixup, copy_paste, optimizer, cos_lr, patience,
-    imgsz, workers, device, amp
+    imgsz, workers, device, amp, batch
 Plus two ml-yolo-specific keys stripped before passthrough:
     backend          — consumed by the API dispatcher
     model_variant    — pretrained weights filename (e.g. yolo11m.pt)
@@ -90,16 +90,27 @@ def build_train_kwargs(
     custom.pop("backend", None)
     custom.pop("model_variant", None)
 
+    # The API doesn't send batch_size today, so without this the Pydantic
+    # default (8) would always apply — wasting most of an A100. A float in
+    # (0, 1) tells Ultralytics to auto-size the batch to that fraction of
+    # CUDA memory; on CPU-only runs (local Docker smoke tests) it ignores
+    # the fraction and falls back to its default batch of 16. An explicit
+    # batch_size in the payload still wins, as does a `batch` key in
+    # custom_hyperparams via the merge below.
+    batch = tc.batch_size if "batch_size" in tc.model_fields_set else 0.7
+
     kwargs: dict[str, Any] = {
         "data": data_path,
         "epochs": tc.epochs,
-        "batch": tc.batch_size,
+        "batch": batch,
         "project": project_dir,
         "name": str(config.id),
         "exist_ok": True,
         "verbose": True,
+        "cache": True,  # Cache images in RAM for much faster epoch times
     }
-    # custom_hyperparams wins over defaults but not over the dispatch kwargs above.
+    # custom_hyperparams is merged last, so user-supplied keys (e.g. `batch`,
+    # `imgsz`) override the dispatch defaults above.
     for key, value in custom.items():
         kwargs[key] = value
     return kwargs

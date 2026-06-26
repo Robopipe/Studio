@@ -5,8 +5,10 @@ import {
   LoginForm,
   ResetPasswordForm,
   SelectOrganizationPage,
+  VerifyEmailPage,
 } from "@/core/auth/components";
 import { Authenticated } from "@/core/auth/components/Authenticated/Authenticated";
+import { Guest } from "@/core/auth/components/Guest/Guest";
 import { RegisterForm } from "@/core/auth/components/RegisterForm/RegisterForm";
 import { AccountPage, OrganizationSettingsPage } from "@/modules/account/components";
 import { CapturePage } from "@/modules/capture/components/CapturePage";
@@ -20,29 +22,20 @@ import { E2EEditorPage } from "@/modules/evaluation/graph/workspace/E2EEditorPag
 import { createBrowserRouter, Navigate, RouteObject } from "react-router";
 
 const { auth } = appConfig.web.routes;
-const publicRoutes: RouteObject = {
+const unguardedPublicRoutes: RouteObject = {
   element: <AuthLayout />,
   children: [
-    {
-      path: auth.login,
-      element: <LoginForm />,
-    },
-    {
-      path: auth.register,
-      element: <RegisterForm />,
-    },
-    {
-      path: auth.forgotPassword,
-      element: <ForgotPasswordForm />,
-    },
-    {
-      path: auth.resetPassword,
-      element: <ResetPasswordForm />,
-    },
-    {
-      path: auth.selectOrganization,
-      element: <SelectOrganizationPage />,
-    },
+    { path: auth.resetPassword, element: <ResetPasswordForm /> },
+    { path: auth.verifyEmail, element: <VerifyEmailPage /> },
+    { path: auth.selectOrganization, element: <SelectOrganizationPage /> },
+  ],
+};
+const guestRoutes: RouteObject = {
+  element: <Guest />,
+  children: [
+    { path: auth.login, element: <LoginForm /> },
+    { path: auth.register, element: <RegisterForm /> },
+    { path: auth.forgotPassword, element: <ForgotPasswordForm /> },
   ],
 };
 const authenticatedRoutes: RouteObject = {
@@ -74,4 +67,4 @@ const authenticatedRoutes: RouteObject = {
 // Playwright specs can reach the editor at any path without auth or backend data.
 export const router = import.meta.env.VITE_E2E
   ? createBrowserRouter([{ path: "*", element: <E2EEditorPage /> }])
-  : createBrowserRouter([publicRoutes, authenticatedRoutes]);
+  : createBrowserRouter([unguardedPublicRoutes, guestRoutes, authenticatedRoutes]);

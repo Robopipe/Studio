@@ -22,6 +22,9 @@ export type EvalTestCaseSelect = Omit<InferSelectModel<typeof evalTestCaseTable>
   limits: EvalLimitSelect[];
 }
 export type EvalTestCaseDetailSelect = EvalTestCaseSelect & Pick<InferSelectModel<typeof evalTestCaseTable>, "logicNodes">
+export type EvalTestCaseFullSelect = Omit<EvalTestCaseDetailSelect, "limits"> & {
+  limits: EvalLimitDetailSelect[];
+}
 export type EvalTestCaseInsert = Omit<InferInsertModel<typeof evalTestCaseTable>, "id" | "projectId" | "dashboardConfigurationId" | "createdAt" | "updatedAt">
 
 

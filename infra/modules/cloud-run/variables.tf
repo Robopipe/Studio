@@ -92,6 +92,12 @@ variable "ml_batch_gpu_count" {
   default     = 0
 }
 
+variable "ml_batch_boot_disk_image" {
+  description = "Custom boot-disk VM image for Cloud Batch training VMs. Empty = default Container-Optimized OS; set to a Deep Learning VM image to skip the GPU driver download."
+  type        = string
+  default     = ""
+}
+
 variable "ml_batch_boot_disk_gb" {
   description = "Boot disk size in GB for Cloud Batch training VMs"
   type        = number

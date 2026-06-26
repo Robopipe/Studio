@@ -9,7 +9,7 @@ import { AssetsModule } from "../assets/assets.module";
   imports: [HttpModule.registerAsync({
     inject: [AppConfig],
     useFactory: (config: AppConfig) => ({
-      baseURL: config.mlHost ?? "",
+      baseURL: config.mlHostYolo ?? "",
       headers: {
         Authorization: config.mlSecret
       }

@@ -157,8 +157,7 @@ export const evalTestCaseDetailSchema = evalTestCaseSchema.extend({
 
 /* Eval test case full -> detail with limit items inlined on each limit.
    This is the shape the graph editor needs (limits WITH their items + logicNodes)
-   and the single source of truth shared with the table view. The dedicated GET
-   endpoint does not exist yet; the web assembles it from detail + per-limit detail. */
+   and the single source of truth shared with the table view. Returned by GET .../full. */
 export const evalTestCaseFullSchema = evalTestCaseDetailSchema.extend({
   limits: z.array(evalLimitDetailSchema),
 });

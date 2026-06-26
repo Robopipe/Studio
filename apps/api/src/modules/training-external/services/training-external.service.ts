@@ -15,7 +15,6 @@ import {
   ModelOutputTypeEnum,
   TaskFileTypeEnum,
   ModelStatusEnum,
-  ModelBackendEnum,
   ModelRegionEnum,
 } from "@repo/schema";
 import { HttpService } from "@nestjs/axios";
@@ -190,20 +189,19 @@ export class TrainingExternalService {
    * Train
    * @param model - Model entity
    *
-   * Dispatches to the ML service matching `model.backend`. Each backend has
-   * its own Cloud Batch image (Cloud) and FastAPI host (local dev) because
-   * luxonis-train and ultralytics can't share a Python environment cleanly.
+   * Dispatches the training run to the ml-yolo service — as a Cloud Batch job
+   * (Cloud, GPU VM) when an image is configured, otherwise POSTed to the
+   * FastAPI host for local dev.
    */
   public async train(model: ModelEntity): Promise<void> {
     const outputUploads = await this.generateOutputUploads(model);
     const trainingPayload = await this.getTrainingPayload(model, outputUploads);
 
-    const isYolo = model.backend === ModelBackendEnum.ULTRALYTICS;
-    const batchImage = isYolo ? this.config.mlBatchImageYolo : this.config.mlBatchImage;
-    const httpHost = isYolo ? this.config.mlHostYolo : this.config.mlHost;
+    const batchImage = this.config.mlBatchImageYolo;
+    const httpHost = this.config.mlHostYolo;
 
     this.logger.log(
-      `Train dispatch: backend=${model.backend} batchImage=${batchImage ?? "-"} httpHost=${httpHost ?? "-"}`,
+      `Train dispatch: model=${model.id} batchImage=${batchImage ?? "-"} httpHost=${httpHost ?? "-"}`,
     );
 
     if (batchImage) {
@@ -212,7 +210,7 @@ export class TrainingExternalService {
       await this.trainViaHttp(trainingPayload, httpHost);
     } else {
       throw new InternalServerErrorException(
-        `No ML training backend configured for ${model.backend}. Set either ML_HOST${isYolo ? "_YOLO" : ""} or ML_BATCH_IMAGE${isYolo ? "_YOLO" : ""}.`,
+        "No ML training backend configured. Set either ML_HOST_YOLO or ML_BATCH_IMAGE_YOLO.",
       );
     }
   }
@@ -246,9 +244,8 @@ export class TrainingExternalService {
 
   private async trainViaHttp(trainingPayload: TrainingPayload, httpHost: string): Promise<void> {
     try {
-      // Use an absolute URL so axios ignores the module-level baseURL (which
-      // points at the luxonis host). Still inherits the Authorization header
-      // from HttpModule.registerAsync — both ML services share ML_SECRET.
+      // Use an absolute URL so axios ignores the module-level baseURL. Still
+      // inherits the Authorization header from HttpModule.registerAsync (ML_SECRET).
       await this.http.axiosRef.post(`${httpHost.replace(/\/$/, "")}/train/`, trainingPayload);
     } catch (e) {
       this.logger.error(
@@ -272,6 +269,7 @@ export class TrainingExternalService {
       mlBatchMachineType,
       mlBatchGpuType,
       mlBatchGpuCount,
+      mlBatchBootDiskImage,
       mlBatchBootDiskGb,
       mlBatchMaxRunSeconds,
       mlBatchTaskCpuMilli,
@@ -321,15 +319,57 @@ export class TrainingExternalService {
       // explicit `accelerators` block with those families causes createJob to
       // fail. Only attach accelerators when ML_BATCH_GPU_TYPE is set, which is
       // the N1-style "custom attachment" path.
+      // A custom boot-disk image (e.g. a Deep Learning VM) ships with the GPU
+      // driver, Docker, and NVIDIA Container Toolkit pre-baked. That lets us
+      // skip Batch's ~2-3 min COS driver download (installGpuDrivers) and reach
+      // the GPU through the nvidia runtime (`--gpus all`) instead of the
+      // COS-style /var/lib/nvidia bind-mounts. When unset, behaviour is the
+      // original Container-Optimized OS path.
+      const useCustomImage = Boolean(mlBatchBootDiskImage);
+
       const instancePolicy: protos.google.cloud.batch.v1.AllocationPolicy.IInstancePolicy = {
         machineType: mlBatchMachineType,
-        bootDisk: { sizeGb: String(mlBatchBootDiskGb) },
+        bootDisk: {
+          sizeGb: String(mlBatchBootDiskGb),
+          type: "pd-ssd",
+          ...(useCustomImage ? { image: mlBatchBootDiskImage } : {}),
+        },
+        // FLEX_START (Dynamic Workload Scheduler — Flex Start mode): the job is
+        // queued until GPU capacity is found, then runs uninterrupted to
+        // completion (no preemption, unlike SPOT). Avoids the transient
+        // CODE_GCE_ZONE_RESOURCE_POOL_EXHAUSTED fast-fail by waiting instead;
+        // billed at DWS pricing (~53% off on-demand).
+        //
+        // `reservation: "NO_RESERVATION"` is MANDATORY with FLEX_START — it's
+        // what puts Batch on its DWS flex-start path, which sets the GCE
+        // instance termination action for us. Without it, Batch applies a 7-day
+        // instance maxRunDuration but no termination action, and GCE rejects the
+        // job with CODE_GCE_BAD_REQUEST ("max-run-duration ... not supported
+        // without an instance termination action").
+        provisioningModel: "FLEX_START",
+        reservation: "NO_RESERVATION",
       };
       if (mlBatchGpuType && mlBatchGpuCount > 0) {
         instancePolicy.accelerators = [
           { type: mlBatchGpuType, count: String(mlBatchGpuCount) },
         ];
       }
+
+      // COS exposes the host driver to the container via bind-mounts + an
+      // LD_LIBRARY_PATH pointing at them; a custom DLVM image uses the nvidia
+      // container runtime, so it needs neither — just `--gpus all`.
+      const nvidiaVolumes = useCustomImage
+        ? []
+        : [
+            "/var/lib/nvidia/lib64:/usr/local/nvidia/lib64",
+            "/var/lib/nvidia/bin:/usr/local/nvidia/bin",
+          ];
+      const containerOptions = useCustomImage
+        ? `--gpus all --shm-size=${mlBatchShmSize}`
+        : `--shm-size=${mlBatchShmSize}`;
+      const nvidiaEnv: Record<string, string> = useCustomImage
+        ? {}
+        : { LD_LIBRARY_PATH: "/usr/local/nvidia/lib64" };
 
       const networkInterfaces = mlBatchNetwork
         ? [{
@@ -349,25 +389,22 @@ export class TrainingExternalService {
                 {
                   container: {
                     imageUri: mlBatchImage,
-                    // Bind-mount the host's NVIDIA driver libraries so the
-                    // containerized training process can talk to the GPU.
-                    // `installGpuDrivers: true` on the allocation policy puts
-                    // them on the VM; containers have to opt in explicitly.
-                    volumes: [
-                      "/var/lib/nvidia/lib64:/usr/local/nvidia/lib64",
-                      "/var/lib/nvidia/bin:/usr/local/nvidia/bin",
-                    ],
+                    // GPU access plumbing depends on the host image — see
+                    // useCustomImage above. COS: bind-mount /var/lib/nvidia.
+                    // DLVM: empty (the nvidia runtime injects the driver).
+                    volumes: nvidiaVolumes,
                     // `options` is forwarded to `docker run`. --shm-size bumps
                     // /dev/shm from Docker's 64 MiB default; PyTorch DataLoader
                     // workers use shm for IPC and OOM the bus otherwise.
-                    options: `--shm-size=${mlBatchShmSize}`,
+                    // On a custom image `--gpus all` enables GPU device access.
+                    options: containerOptions,
                   },
                   environment: {
                     variables: {
                       CONFIG_URL: signedUrl,
                       WEBHOOK_URL: `${apiHost}/v1/training-external`,
                       APP_ENV: this.config.env,
-                      LD_LIBRARY_PATH: "/usr/local/nvidia/lib64",
+                      ...nvidiaEnv,
                     },
                     ...(Object.keys(secretVariables).length > 0
                       ? { secretVariables }
@@ -380,6 +417,15 @@ export class TrainingExternalService {
                 memoryMib: mlBatchTaskMemoryMib,
               },
               maxRunDuration: { seconds: String(mlBatchMaxRunSeconds) },
+              maxRetryCount: 10,
+              lifecyclePolicies: [
+                {
+                  action: protos.google.cloud.batch.v1.LifecyclePolicy.Action.RETRY_TASK,
+                  actionCondition: {
+                    exitCodes: [50001],
+                  },
+                },
+              ],
             },
           },
         ],
@@ -387,10 +433,11 @@ export class TrainingExternalService {
           instances: [
             {
               policy: instancePolicy,
-              // Always install drivers — training is always GPU-backed. For
+              // On COS, install drivers — training is always GPU-backed. For
               // bundled-GPU VMs this is what turns the GPU on; for custom N1
-              // attachment this installs the CUDA driver stack.
-              installGpuDrivers: true,
+              // attachment this installs the CUDA driver stack. A custom DLVM
+              // image already has them, so installing again is wasted time.
+              installGpuDrivers: !useCustomImage,
             },
           ],
           ...(mlBatchServiceAccount
@@ -464,18 +511,32 @@ export class TrainingExternalService {
       }
     })
 
+    const checkpointObjectPath = `${model.projectId}/model/${model.id}/checkpoint_last.pt`;
+    const [checkpointPutUrl, checkpointGetUrl] = await Promise.all([
+      this.assetsService.generateSignedUploadUrl(
+        checkpointObjectPath,
+        "application/octet-stream",
+        UPLOAD_URL_TTL_MS,
+      ),
+      this.assetsService.generateSignedDownloadUrl(
+        checkpointObjectPath,
+        UPLOAD_URL_TTL_MS,
+      ),
+    ]);
+
     const basePayload: TrainingBasePayload = {
       id: model.id,
       output_config: outputUploads,
+      checkpoint_config: {
+        put_url: checkpointPutUrl,
+        get_url: checkpointGetUrl,
+      },
       training_config: {
         output_types: model.outputTypes,
         epochs: model.epochs,
         // ml-yolo consumes this to flip HubAI's quantization_mode between
-        // FP16_STANDARD and INT8_STANDARD. Omit for Luxonis — its Pydantic
-        // model rejects unknown keys (extra="forbid").
-        ...(model.backend === ModelBackendEnum.ULTRALYTICS && {
-          quantization: model.quantization,
-        }),
+        // FP16_STANDARD and INT8_STANDARD.
+        quantization: model.quantization,
         dataset_config: {
           dataset_split: [
             model.splitTrain,

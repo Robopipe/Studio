@@ -123,7 +123,7 @@ export function TestCaseSection({
               onClick={() => setIsCreateLimitOpen(true)}
             >
               <PlusIcon />
-              Add limit
+              Add check
             </Button>
           </>
         )}
