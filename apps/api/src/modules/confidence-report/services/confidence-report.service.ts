@@ -152,7 +152,7 @@ export class ConfidenceReportService {
         height: task.height,
         gt,
         // Whether this task has GT of the requested geometry (used by the
-        // Python job to skip IoU/F1 computation without erroring).
+        // Python job to skip IoU computation without erroring).
         hasGt: gt.length > 0,
       };
     });

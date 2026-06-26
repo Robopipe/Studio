@@ -21,7 +21,6 @@ export class TaskEntity {
   readonly annotationCount: number;
   readonly updatedBy: number | null;
   readonly meanConfidence: number | null;
-  readonly f1At50: number | null;
   readonly minIou: number | null;
 
   constructor(data: TaskSelect) {
@@ -40,7 +39,6 @@ export class TaskEntity {
     this.deletedAt = data.deletedAt;
     this.updatedBy = data.updatedBy ?? null;
     this.meanConfidence = data.meanConfidence ?? null;
-    this.f1At50 = data.f1At50 ?? null;
     this.minIou = data.minIou ?? null;
   }
 
@@ -57,7 +55,6 @@ export class TaskEntity {
       annotationCount: this.annotationCount,
       updatedBy: this.updatedBy,
       meanConfidence: this.meanConfidence,
-      f1At50: this.f1At50,
       minIou: this.minIou,
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),
