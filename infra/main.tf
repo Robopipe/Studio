@@ -167,6 +167,11 @@ module "cloud_run" {
 
   ml_infer_url            = google_cloud_run_v2_service.ml_infer.uri
   ml_infer_api_key_secret = module.secrets.secret_ids["mlInferApiKey"]
+  # Full Cloud Run Job resource name — computed deterministically so we avoid
+  # a circular dependency between cloud_run (needs the name) and the Job
+  # resource (formerly needed the API URL for WEBHOOK_URL — now passed via
+  # per-execution override instead).
+  ml_infer_job_name = "projects/${var.project_id}/locations/${var.region}/jobs/${local.name_prefix}-confidence-report"
 
   depends_on = [google_project_service.apis, module.secrets]
 }
@@ -269,6 +274,88 @@ resource "google_cloud_run_v2_service_iam_member" "ml_infer_public" {
   location = var.region
   role     = "roles/run.invoker"
   member   = "allUsers"
+}
+
+# Cloud Run Job for the confidence report. Runs the same ml-infer image as
+# the service but with `command` overriding the default uvicorn CMD so it
+# executes `python -m app.batch` instead. Each report run triggers a new
+# execution via the Cloud Run Admin API with per-execution env overrides
+# (CONFIG_URL, REPORT_ID, WEBHOOK_URL). The Job is bootstrapped with the
+# hello placeholder image; the ml-infer Cloud Build trigger updates it.
+resource "google_cloud_run_v2_job" "confidence_report" {
+  project  = var.project_id
+  name     = "${local.name_prefix}-confidence-report"
+  location = var.region
+
+  template {
+    template {
+      service_account = google_service_account.ml_infer.email
+
+      # 4h matches the old Cloud Batch ML_BATCH_INFER_MAX_RUN_SECONDS=14400.
+      timeout     = "14400s"
+      max_retries = 0
+
+      containers {
+        image   = "us-docker.pkg.dev/cloudrun/container/hello:latest"
+        command = ["python", "-m", "app.batch"]
+
+        resources {
+          limits = {
+            cpu    = "4"
+            memory = "8Gi"
+          }
+        }
+
+        # API_KEY is injected from the mlSecret so the Python job can
+        # authenticate webhook POSTs to the API. Matches the secret the
+        # API's ApiKeyGuard(TRAINING_EXTERNAL) expects.
+        env {
+          name = "API_KEY"
+          value_source {
+            secret_key_ref {
+              secret  = module.secrets.secret_ids["mlSecret"]
+              version = "latest"
+            }
+          }
+        }
+
+        env {
+          name  = "LOG_LEVEL"
+          value = "INFO"
+        }
+
+        env {
+          name  = "MODEL_CACHE_SIZE"
+          value = "1"
+        }
+
+        env {
+          name  = "APP_ENV"
+          value = var.environment == "prod" ? "production" : "development"
+        }
+      }
+    }
+  }
+
+  lifecycle {
+    ignore_changes = [template[0].template[0].containers[0].image]
+  }
+
+  depends_on = [google_project_service.apis, module.secrets]
+}
+
+# IAM: allow the API service account to trigger and cancel confidence-report
+# Job executions. roles/run.developer is required for:
+#   - run.jobs.run (trigger a new execution)
+#   - run.jobs.runWithOverrides (trigger with per-execution env overrides)
+#   - run.executions.cancel (cancel a running execution)
+# Scoped to the Job resource only (not project-wide).
+resource "google_cloud_run_v2_job_iam_member" "api_run_confidence_report" {
+  project  = var.project_id
+  name     = google_cloud_run_v2_job.confidence_report.name
+  location = var.region
+  role     = "roles/run.developer"
+  member   = "serviceAccount:${google_service_account.api.email}"
 }
 
 module "cloud_batch_ml" {
@@ -472,5 +559,6 @@ resource "google_cloudbuild_trigger" "ml_infer" {
     _PROJECT_ID   = var.project_id
     _REPO_NAME    = module.artifact_registry.repository_id
     _SERVICE_NAME = google_cloud_run_v2_service.ml_infer.name
+    _JOB_NAME     = google_cloud_run_v2_job.confidence_report.name
   }
 }

@@ -43,7 +43,8 @@ export const confidenceReportTable = p.pgTable("confidence_report", {
   processed: p.integer("processed").notNull().default(0),
   /** Total tasks in the project when the run was started. */
   total: p.integer("total").notNull().default(0),
-  batchJobName: p.text("batch_job_name"),
+  /** Cloud Run Job execution resource name — used to cancel the run. */
+  executionName: p.text("execution_name"),
   errorMessage: p.text("error_message"),
   /**
    * Frozen per-class box-stats for the confidence and IoU box-plots.

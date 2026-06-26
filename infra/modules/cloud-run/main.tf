@@ -207,6 +207,11 @@ resource "google_cloud_run_v2_service" "api" {
         }
       }
 
+      env {
+        name  = "ML_INFER_JOB_NAME"
+        value = var.ml_infer_job_name
+      }
+
       volume_mounts {
         name       = "cloudsql"
         mount_path = "/cloudsql"

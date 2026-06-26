@@ -9,7 +9,7 @@ import {
   ServiceUnavailableException,
 } from "@nestjs/common";
 import { Storage } from "@google-cloud/storage";
-import { BatchServiceClient, protos } from "@google-cloud/batch";
+import { v2 as runV2 } from "@google-cloud/run";
 import { HttpService } from "@nestjs/axios";
 import {
   ConfidenceReportComplete,
@@ -35,7 +35,7 @@ import {
 } from "@repo/schema";
 import type { ConfidenceReportSelect } from "../../../repository/types/confidence-report";
 
-/** Signed-URL TTL for the batch-job config (wide margin for long runs). */
+/** Signed-URL TTL for the job config stored in GCS (wide margin for long runs). */
 const CONFIG_URL_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 /** Number of tasks per progress webhook chunk. */
@@ -44,7 +44,8 @@ const PROGRESS_CHUNK_SIZE = 10;
 @Injectable()
 export class ConfidenceReportService {
   private readonly logger = new Logger(ConfidenceReportService.name);
-  private readonly batchClient = new BatchServiceClient();
+  private readonly jobsClient = new runV2.JobsClient();
+  private readonly executionsClient = new runV2.ExecutionsClient();
 
   constructor(
     @Inject(DB_CONNECTION) private readonly db: DbConnection,
@@ -90,9 +91,9 @@ export class ConfidenceReportService {
     }
 
     // Validate backend availability.
-    if (!this.config.mlBatchImageInfer && !this.config.mlHostInfer) {
+    if (!this.config.mlInferJobName && !this.config.mlHostInfer) {
       throw new ServiceUnavailableException(
-        "No confidence-report backend configured. Set either ML_HOST_INFER or ML_BATCH_IMAGE_INFER.",
+        "No confidence-report backend configured. Set either ML_HOST_INFER (local dev) or ML_INFER_JOB_NAME (deployed).",
       );
     }
 
@@ -168,12 +169,12 @@ export class ConfidenceReportService {
       status: ConfidenceReportStatusEnum.PENDING,
       processed: 0,
       total: tasks.length,
-      batchJobName: null,
+      executionName: null,
       errorMessage: null,
       perClassStats: null,
     });
 
-    // Build the config payload for the batch job.
+    // Build the config payload for the job.
     const jobConfig = {
       reportId: report.id,
       projectId,
@@ -192,8 +193,8 @@ export class ConfidenceReportService {
     };
 
     // Dispatch.
-    if (this.config.mlBatchImageInfer) {
-      await this.dispatchViaBatch(report, jobConfig, this.config.mlBatchImageInfer);
+    if (this.config.mlInferJobName) {
+      await this.dispatchViaCloudRunJob(report, jobConfig, this.config.mlInferJobName);
     } else {
       await this.dispatchViaHttp(jobConfig, this.config.mlHostInfer!);
     }
@@ -227,14 +228,14 @@ export class ConfidenceReportService {
       status: ConfidenceReportStatusEnum.CANCELLED,
     });
 
-    if (report.batchJobName) {
+    if (report.executionName) {
       try {
-        await this.batchClient.deleteJob({ name: report.batchJobName });
-        this.logger.log(`Cloud Batch job ${report.batchJobName} deletion requested`);
+        await this.executionsClient.cancelExecution({ name: report.executionName });
+        this.logger.log(`Cloud Run execution ${report.executionName} cancel requested`);
       } catch (e) {
-        this.logger.error(`Failed deleting Cloud Batch job ${report.batchJobName}`, e);
+        this.logger.error(`Failed cancelling Cloud Run execution ${report.executionName}`, e);
         // Don't re-throw — the report is already marked CANCELLED, so late
-        // webhooks will be ignored even if the Batch job keeps running briefly.
+        // webhooks will be ignored even if the execution keeps running briefly.
       }
     }
   }
@@ -242,7 +243,7 @@ export class ConfidenceReportService {
   // ─── Webhook handlers (called by ConfidenceReportWebhookController) ───────
 
   /**
-   * Progress webhook — batch job sends this every N tasks.
+   * Progress webhook — job sends this every N tasks.
    */
   public async handleProgress(reportId: number, data: ConfidenceReportProgress): Promise<void> {
     const report = await this.confidenceReportRepository.findById(reportId);
@@ -274,7 +275,7 @@ export class ConfidenceReportService {
   }
 
   /**
-   * Complete webhook — batch job sends this once when all tasks are done.
+   * Complete webhook — job sends this once when all tasks are done.
    */
   public async handleComplete(
     reportId: number,
@@ -304,7 +305,7 @@ export class ConfidenceReportService {
   }
 
   /**
-   * Error webhook — batch job sends this on failure.
+   * Error webhook — job sends this on failure.
    */
   public async handleError(reportId: number, data: ConfidenceReportError): Promise<void> {
     const report = await this.confidenceReportRepository.findById(reportId);
@@ -340,20 +341,16 @@ export class ConfidenceReportService {
     }
   }
 
-  private async dispatchViaBatch(
+  private async dispatchViaCloudRunJob(
     report: ConfidenceReportSelect,
     jobConfig: object,
-    batchImage: string,
+    jobName: string,
   ): Promise<void> {
-    const { gcpProject, bucketName, mlBatchServiceAccount, mlBatchApiKeySecret, mlBatchNetwork, mlBatchSubnetwork, mlBatchInferMachineType, mlBatchInferBootDiskGb, mlBatchInferMaxRunSeconds, mlBatchInferTaskCpuMilli, mlBatchInferTaskMemoryMib } = this.config;
-
-    if (!gcpProject) {
-      throw new InternalServerErrorException(
-        "Cloud Batch requires GCP_PROJECT to be set.",
-      );
-    }
+    const { bucketName } = this.config;
 
     try {
+      // Write config JSON to GCS and mint a signed read URL so the Job
+      // container can fetch it without needing bucket IAM (it uses signed URLs).
       const storage = new Storage();
       const bucket = storage.bucket(bucketName);
       const configPath = `confidence-report-configs/${report.id}/${Date.now()}.json`;
@@ -366,83 +363,45 @@ export class ConfidenceReportService {
         expires: Date.now() + CONFIG_URL_TTL_MS,
       });
 
-      const region = this.config.mlRegion ?? "europe-west4";
-      const parent = `projects/${gcpProject}/locations/${region}`;
-      const jobId = `report-${report.id}-${Date.now()}`.toLowerCase();
-
-      const secretVariables: Record<string, string> = {};
-      if (mlBatchApiKeySecret) {
-        secretVariables.API_KEY = `projects/${gcpProject}/secrets/${mlBatchApiKeySecret}/versions/latest`;
-      }
-
-      const instancePolicy: protos.google.cloud.batch.v1.AllocationPolicy.IInstancePolicy = {
-        machineType: mlBatchInferMachineType,
-        bootDisk: { sizeGb: String(mlBatchInferBootDiskGb), type: "pd-ssd" },
-        provisioningModel: "SPOT",
-      };
-
-      const networkInterfaces = mlBatchNetwork
-        ? [{ network: mlBatchNetwork, subnetwork: mlBatchSubnetwork, noExternalIpAddress: false }]
-        : undefined;
-
-      const job: protos.google.cloud.batch.v1.IJob = {
-        taskGroups: [
-          {
-            taskCount: "1",
-            parallelism: "1",
-            taskSpec: {
-              runnables: [
-                {
-                  container: { imageUri: batchImage },
-                  environment: {
-                    variables: {
-                      CONFIG_URL: signedUrl,
-                      WEBHOOK_URL: `${this.config.apiHost}/v1/confidence-report/webhook`,
-                      APP_ENV: this.config.env,
-                    },
-                    ...(Object.keys(secretVariables).length > 0 ? { secretVariables } : {}),
-                  },
-                },
-              ],
-              computeResource: {
-                cpuMilli: mlBatchInferTaskCpuMilli,
-                memoryMib: mlBatchInferTaskMemoryMib,
-              },
-              maxRunDuration: { seconds: String(mlBatchInferMaxRunSeconds) },
-              maxRetryCount: 0,
-            },
-          },
-        ],
-        allocationPolicy: {
-          instances: [
+      // Trigger a new Cloud Run Job execution with per-run env overrides.
+      // CONFIG_URL: signed GCS URL for this run's config JSON.
+      // REPORT_ID / WEBHOOK_URL: used by the top-level error handler in
+      // batch.py to post an error webhook even if main() crashes before
+      // reading the config (e.g. a GCS fetch failure).
+      const webhookUrl = `${this.config.apiHost}/v1/confidence-report/webhook`;
+      const [operation] = await this.jobsClient.runJob({
+        name: jobName,
+        overrides: {
+          containerOverrides: [
             {
-              policy: instancePolicy,
-              installGpuDrivers: false,
+              env: [
+                { name: "CONFIG_URL", value: signedUrl },
+                { name: "REPORT_ID", value: String(report.id) },
+                { name: "WEBHOOK_URL", value: webhookUrl },
+              ],
             },
           ],
-          ...(mlBatchServiceAccount
-            ? { serviceAccount: { email: mlBatchServiceAccount } }
-            : {}),
-          ...(networkInterfaces ? { network: { networkInterfaces } } : {}),
         },
-        logsPolicy: { destination: "CLOUD_LOGGING" },
-        labels: { report_id: String(report.id), app_env: this.config.env },
-      };
+      });
 
-      const [createdJob] = await this.batchClient.createJob({ parent, jobId, job });
-
-      if (createdJob?.name) {
-        await this.confidenceReportRepository.update(report.id, {
-          batchJobName: createdJob.name,
-        });
+      // operation.metadata is google.cloud.run.v2.IExecution — set immediately
+      // when the LRO is created. We don't await operation.promise() (which only
+      // resolves when the execution *finishes*, potentially hours later).
+      const executionName = (operation.metadata as { name?: string } | null)?.name ?? null;
+      if (executionName) {
+        await this.confidenceReportRepository.update(report.id, { executionName });
+      } else {
+        this.logger.warn(
+          `Report ${report.id}: Cloud Run execution name not available in LRO metadata — cancellation will be a no-op`,
+        );
       }
 
-      this.logger.log(`Cloud Batch job ${jobId} submitted for report ${report.id}`);
+      this.logger.log(`Cloud Run Job execution started for report ${report.id}: ${executionName ?? "(name pending)"}`);
     } catch (e) {
-      this.logger.error(`Failed submitting Cloud Batch job for report ${report.id}`, e);
+      this.logger.error(`Failed starting Cloud Run Job execution for report ${report.id}`, e);
       await this.confidenceReportRepository.update(report.id, {
         status: ConfidenceReportStatusEnum.ERROR,
-        errorMessage: "Failed to dispatch Cloud Batch job",
+        errorMessage: "Failed to dispatch Cloud Run Job execution",
       });
       throw e;
     }
