@@ -76,48 +76,15 @@ export const evaluationApi = api.injectEndpoints({
     }),
 
     // Single source of truth for a test case: the whole thing (meta + logic tree +
-    // limits WITH their items). Both the graph (subscribes) and the table (peeks,
-    // non-subscribing) read this one cache entry.
-    //
-    // The test-case detail endpoint omits per-limit `limitItems`, so as a stopgap this
-    // composes the test-case detail with each limit's detail (which carries its items)
-    // into one flat `EvalTestCaseFull` via N+1 client-side requests.
-    //
-    // FIXME(backend): replace this whole composite query with a single direct call to
-    // GET /eval/{projectId}/config/{configId}/test-case/{testCaseId}/full once that
-    // endpoint returns limits WITH their limitItems. Then this becomes a plain `query:`
-    // + `transformResponse: evalTestCaseFullSchema.parse` — the flat shape is unchanged.
+    // limits WITH their items) in one GET /full call. Both the graph (subscribes) and
+    // the table (peeks, non-subscribing) read this one cache entry.
     getEvalTestCaseFull: builder.query<
       EvalTestCaseFull,
       { projectId: number; configId: number; testCaseId: string }
     >({
-      async queryFn(
-        { projectId, configId, testCaseId },
-        _api,
-        _extraOptions,
-        baseQuery,
-      ) {
-        const base = `/eval/${projectId}/config/${configId}`;
-
-        const detailResult = await baseQuery(`${base}/test-case/${testCaseId}`);
-        if (detailResult.error) return { error: detailResult.error };
-        const detail = evalTestCaseDetailSchema.parse(detailResult.data);
-
-        const limitResults = await Promise.all(
-          detail.limits.map((limit) =>
-            baseQuery(`${base}/limit/${testCaseId}/${limit.id}`),
-          ),
-        );
-
-        const failed = limitResults.find((result) => result.error);
-        if (failed?.error) return { error: failed.error };
-
-        // limitResults follows detail.limits order, so the assembled limits stay ordered.
-        const limits = limitResults.map((result) => result.data);
-        const full = evalTestCaseFullSchema.parse({ ...detail, limits });
-
-        return { data: full };
-      },
+      query: ({ projectId, configId, testCaseId }) =>
+        `/eval/${projectId}/config/${configId}/test-case/${testCaseId}/full`,
+      transformResponse: (response) => evalTestCaseFullSchema.parse(response),
       providesTags: (_result, _error, { testCaseId }) => [
         { type: apiCacheTags.eval.testCases, id: testCaseId },
         { type: apiCacheTags.eval.limits, id: testCaseId },
@@ -166,7 +133,7 @@ export const evaluationApi = api.injectEndpoints({
     // full limits (with their items) and logic tree. This is what the graph editor uses
     // to persist the serialized flow; the BE diffs limits/items by id.
     updateEvalTestCaseFull: builder.mutation<
-      EvalTestCaseDetail,
+      EvalTestCaseFull,
       {
         projectId: number;
         configId: number;
@@ -179,55 +146,41 @@ export const evaluationApi = api.injectEndpoints({
         method: "PUT",
         body,
       }),
-      transformResponse: (response) => evalTestCaseDetailSchema.parse(response),
-      // The table view reads limits/test-cases through different cached queries than the
-      // graph. The /full response already carries the updated limits (with severity), so
-      // patch those caches straight from it — the table reflects instantly instead of
-      // waiting on the invalidation refetch round-trip. The invalidation below still runs
-      // as a background reconcile (and covers thresholds + the graph's own query).
+      transformResponse: (response) => evalTestCaseFullSchema.parse(response),
+      // The PUT /full response is the authoritative full test case (limits WITH items +
+      // real ids for newly created ones). Patch the caches straight from it so both views
+      // reflect instantly without waiting on the invalidation refetch.
       async onQueryStarted(
         { projectId, configId, testCaseId },
         { dispatch, queryFulfilled },
       ) {
         try {
-          const { data } = await queryFulfilled; // EvalTestCaseDetail (limits w/o items)
+          const { data } = await queryFulfilled; // EvalTestCaseFull (limits WITH items)
 
-          // Overview list — reflect meta + limit changes in the table instantly.
+          // SSOT — replace the whole entry with the authoritative response.
+          dispatch(
+            evaluationApi.util.updateQueryData(
+              "getEvalTestCaseFull",
+              { projectId, configId, testCaseId },
+              () => data,
+            ),
+          );
+
+          // Overview list — item-free limits, so strip logicNodes + limitItems.
           dispatch(
             evaluationApi.util.updateQueryData(
               "getEvalTestCases",
               { projectId, configId },
               (draft) => {
                 const index = draft.findIndex((tc) => tc.id === testCaseId);
-                if (index !== -1) {
-                  const { logicNodes: _logicNodes, ...testCase } = data;
-                  draft[index] = testCase;
-                }
-              },
-            ),
-          );
-
-          // SSOT — patch meta + the limit list. The detail response carries no
-          // limitItems, so preserve the existing items for surviving limits; the
-          // invalidation below refetches the full entry to reconcile items.
-          // (Simplifiable once BE PUT /full returns limits with items.)
-          dispatch(
-            evaluationApi.util.updateQueryData(
-              "getEvalTestCaseFull",
-              { projectId, configId, testCaseId },
-              (draft) => {
-                const existingItems = new Map(
-                  draft.limits.map((limit) => [limit.id, limit.limitItems]),
-                );
-                draft.name = data.name;
-                draft.type = data.type;
-                draft.severity = data.severity;
-                draft.enabled = data.enabled;
-                draft.logicNodes = data.logicNodes;
-                draft.limits = data.limits.map((limit) => ({
-                  ...limit,
-                  limitItems: existingItems.get(limit.id) ?? [],
-                }));
+                if (index === -1) return;
+                const { logicNodes: _logicNodes, limits, ...rest } = data;
+                draft[index] = {
+                  ...rest,
+                  limits: limits.map(
+                    ({ limitItems: _limitItems, ...limit }) => limit,
+                  ),
+                };
               },
             ),
           );

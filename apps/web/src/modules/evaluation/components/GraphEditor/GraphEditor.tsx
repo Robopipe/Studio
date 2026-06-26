@@ -226,26 +226,14 @@ export const GraphEditor = ({ projectId, configId, testCaseId }: Props) => {
     body.enabled = testCaseData.enabled;
 
     try {
-      const saved = await updateTestCaseFull({
+      await updateTestCaseFull({
         projectId,
         configId,
         testCaseId,
         body,
       }).unwrap();
 
-      const diverged = (body.limits ?? []).some((sent) => {
-        if (!sent.id) return false;
-        const persisted = saved.limits.find((limit) => limit.id === sent.id);
-        return persisted ? persisted.enabled !== sent.enabled : false;
-      });
-
-      if (diverged) {
-        toast.warning(
-          "Saved, but some changes didn't persist on the server.",
-        );
-      } else {
-        toast.success("Test case saved.");
-      }
+      toast.success("Test case saved.");
     } catch {
       toast.error("Failed to save test case.");
     }
