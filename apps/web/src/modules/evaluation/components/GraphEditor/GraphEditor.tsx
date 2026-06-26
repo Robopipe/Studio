@@ -8,12 +8,18 @@ import {
 import { deserializeTestCase } from "@/modules/evaluation/graph/editor/deserialization/deserializeTestCase";
 import { serializeTestCase } from "@/modules/evaluation/graph/editor/serialization/serializeTestCase";
 import { toFullCreateOrUpdate } from "@/modules/evaluation/graph/editor/serialization/toFullCreateOrUpdate";
+import {
+  ZOOM_MAX,
+  ZOOM_MIN,
+  ZOOM_STEP,
+} from "@/modules/evaluation/graph/editor/constants";
 import { createEditor } from "@/modules/evaluation/graph/editor/setup/createEditor";
 import type { Schemes } from "@/modules/evaluation/graph/editor/types";
 import { installTestHook } from "@/modules/evaluation/graph/workspace/testHook";
 import { useGetProjectLabelsQuery } from "@/modules/project/services/projectApi";
 import { Button } from "@/modules/shadcn/ui/button";
 import {
+  Frame,
   Keyboard,
   LayoutGrid,
   Maximize2,
@@ -21,16 +27,19 @@ import {
   RefreshCw,
   RefreshCwOff,
   Save,
+  ScanEye,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { NodeEditor } from "rete";
+import { AreaExtensions } from "rete-area-plugin";
 import { useRete } from "rete-react-plugin";
 import { toast } from "sonner";
 import { GraphKeybindsDialog } from "./GraphKeybindsDialog";
 
 const MIN_HEIGHT = 240;
 const DEFAULT_HEIGHT = 480;
-// Leave room for surrounding chrome when dragging toward the bottom of the viewport.
 const VIEWPORT_MARGIN = 120;
 
 const clamp = (value: number, min: number, max: number) =>
@@ -52,16 +61,8 @@ export const GraphEditor = ({ projectId, configId, testCaseId }: Props) => {
   const [height, setHeight] = useState(DEFAULT_HEIGHT);
   const [maximized, setMaximized] = useState(false);
   const dragStart = useRef<{ y: number; height: number } | null>(null);
-
-  // Read lazily by the `mod+s` shortcut so it always runs the latest handleSave
-  // (which closes over testCaseData) without recreating the editor.
   const saveRef = useRef<() => void>(() => {});
-
-  // Project labels feed the Limit-node selectors. They're read lazily via a ref so
-  // node-creation sites (context menu, shortcut, deserialize) always see the latest
-  // set — the editor mounts immediately and doesn't need to wait for the query.
-  const { data: projectLabels, isSuccess: labelsLoaded } =
-    useGetProjectLabelsQuery({ projectId });
+  const { data: projectLabels, isSuccess: labelsLoaded } = useGetProjectLabelsQuery({ projectId });
   const labelsRef = useRef<LabelOption[]>([]);
   labelsRef.current = useMemo<LabelOption[]>(
     () =>
@@ -127,12 +128,6 @@ export const GraphEditor = ({ projectId, configId, testCaseId }: Props) => {
 
   const [ref] = useRete(create);
 
-  // Loads the saved test case into the editor once both the editor instance and the
-  // fetched data are ready. `editor` (state) flips non-null in the same tick the full
-  // instance lands in editorRef, so it's a safe readiness trigger. projectLabels is a
-  // dep so a late labels response re-runs the load and the limit nodes resolve names.
-  // GraphEditor mounts fresh each time the graph view opens, so refetch on mount to
-  // pick up anything the table view changed while the graph was hidden.
   const { data: testCaseData } = useGetEvalTestCaseFullQuery(
     {
       projectId,
@@ -141,26 +136,14 @@ export const GraphEditor = ({ projectId, configId, testCaseId }: Props) => {
     },
     { refetchOnMountOrArgChange: true },
   );
-  const [updateTestCaseFull, { isLoading: isSaving }] =
-    useUpdateEvalTestCaseFullMutation();
-
-  // Hides the deserialize + auto-arrange "jump" behind an opaque overlay that fades
-  // out once the layout has settled (see the overlay in the JSX). Starts hidden so the
-  // overlay covers the canvas from mount until the first load finishes.
+  const [updateTestCaseFull, { isLoading: isSaving }] = useUpdateEvalTestCaseFullMutation();
   const [ready, setReady] = useState(false);
-
-  // Deserialize ONCE per mount. The graph only mounts in graph view, so every later
-  // testCaseData change is self-induced by our own save (the cache patch + refetch) —
-  // re-deserializing then would needlessly rebuild + re-arrange the canvas (the "jump"
-  // on save). External edits (made in the table view, with the graph unmounted) are
-  // picked up on remount via refetchOnMountOrArgChange.
   const hasLoadedRef = useRef(false);
 
   useEffect(() => {
     const instance = editorRef.current;
     if (hasLoadedRef.current) return;
     if (!instance || !editor || !testCaseData) return;
-    // Wait for labels so limit nodes resolve their names on the first (only) load.
     if (!labelsLoaded) return;
 
     hasLoadedRef.current = true;
@@ -189,7 +172,6 @@ export const GraphEditor = ({ projectId, configId, testCaseId }: Props) => {
             : "Failed to load test case.",
         );
       } finally {
-        // Reveal once the layout settled (or load failed — don't trap the canvas).
         if (!cancelled) setReady(true);
       }
     })();
@@ -239,8 +221,6 @@ export const GraphEditor = ({ projectId, configId, testCaseId }: Props) => {
       return;
     }
 
-    // The graph owns only the flow (limits, items, logic, severity, type). name and
-    // enabled are owned by the table-view UI, so carry them over from the loaded data.
     const body = serializeTestCase(instance.editor, {
       name: testCaseData.name,
     });
@@ -254,9 +234,6 @@ export const GraphEditor = ({ projectId, configId, testCaseId }: Props) => {
         body,
       }).unwrap();
 
-      // Surface a silent partial save: compare what the server stored against what we
-      // sent (same-origin ids). Catches fields the /full endpoint may drop (e.g. limit
-      // `enabled`) instead of failing silently.
       const diverged = (body.limits ?? []).some((sent) => {
         if (!sent.id) return false;
         const persisted = saved.limits.find((limit) => limit.id === sent.id);
@@ -275,7 +252,6 @@ export const GraphEditor = ({ projectId, configId, testCaseId }: Props) => {
     }
   };
 
-  // Keep the mod+s shortcut pointed at the current handleSave.
   saveRef.current = handleSave;
 
   const handleArrange = async () => {
@@ -286,11 +262,32 @@ export const GraphEditor = ({ projectId, configId, testCaseId }: Props) => {
     toast.success("Arranged layout.");
   };
 
+  const zoomBy = useCallback((step: number) => {
+    const instance = editorRef.current;
+    if (!instance) return;
+
+    const { area } = instance;
+    const { k } = area.area.transform;
+    const next = clamp(k + step, ZOOM_MIN, ZOOM_MAX);
+    if (next === k) return;
+
+    const { width, height } = area.container.getBoundingClientRect();
+    const delta = next / k - 1;
+    void area.area.zoom(next, (-width / 2) * delta, (-height / 2) * delta);
+  }, []);
+
+  const handleFocus = useCallback(() => {
+    const instance = editorRef.current;
+    if (!instance) return;
+
+    const nodes = instance.editor.getNodes();
+    if (nodes.length === 0) return;
+    void AreaExtensions.zoomAt(instance.area, nodes);
+  }, []);
+
   return (
     <div
       className={cn(
-        // `isolate` traps the toolbar's z-50 in this editor's own stacking context, so
-        // sibling editor instances can't bleed over a maximized one.
         "relative isolate w-full overflow-hidden rounded-md border bg-background",
         maximized && "fixed inset-0 z-50 rounded-none border-0",
       )}
@@ -298,9 +295,6 @@ export const GraphEditor = ({ projectId, configId, testCaseId }: Props) => {
     >
       <div ref={ref} className="h-full w-full" data-testid="editor-canvas" />
       {editor && <EditorDebugOverlay editor={editor} />}
-      {/* Masks the deserialize + auto-arrange jump until the layout settles, then
-          fades out. `pointer-events-none` so it never intercepts clicks (even
-          mid-fade); z-40 keeps it under the z-50 toolbar so the buttons stay visible. */}
       <div
         aria-hidden
         className={cn(
@@ -309,15 +303,41 @@ export const GraphEditor = ({ projectId, configId, testCaseId }: Props) => {
         )}
       />
       <div className="pointer-events-none absolute inset-x-4 top-4 z-50 flex justify-between gap-2">
-        <Button
-          className="pointer-events-auto"
-          variant="outline"
-          size="icon"
-          aria-label={maximized ? "Exit full screen" : "Full screen"}
-          onClick={() => setMaximized((value) => !value)}
-        >
-          {maximized ? <Minimize2 /> : <Maximize2 />}
-        </Button>
+        <div className="flex flex-col gap-2 pointer-events-auto">
+          <Button
+            variant="outline"
+            size="icon"
+            aria-label={maximized ? "Exit full screen" : "Full screen"}
+            onClick={() => setMaximized((value) => !value)}
+          >
+            {maximized ? <Minimize2 /> : <Maximize2 />}
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            aria-label="Zoom in"
+            onClick={() => zoomBy(ZOOM_STEP)}
+          >
+            <ZoomIn />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            aria-label="Zoom out"
+            onClick={() => zoomBy(-ZOOM_STEP)}
+          >
+            <ZoomOut />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            aria-label="Fit to view"
+            onClick={handleFocus}
+          >
+            <ScanEye />
+          </Button>
+        </div>
+
         <div className="pointer-events-auto flex gap-2">
           <Button
             variant="outline"

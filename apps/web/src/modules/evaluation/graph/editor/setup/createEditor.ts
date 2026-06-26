@@ -1,4 +1,8 @@
-import { GRID } from "@/modules/evaluation/graph/editor/constants";
+import {
+  GRID,
+  ZOOM_MAX,
+  ZOOM_MIN,
+} from "@/modules/evaluation/graph/editor/constants";
 import type { LabelOption } from "@/modules/evaluation/graph/editor/controls/label";
 import type { Schemes } from "@/modules/evaluation/graph/editor/types";
 import { NodeEditor } from "rete";
@@ -31,15 +35,8 @@ export type AreaExtra = ReactArea2D<Schemes> | ContextMenuExtra;
  * otherwise early events may be missed.
  */
 export type CreateEditorOptions = {
-  /** Toggles the host's full-screen state; bound to the `f` keyboard shortcut. */
   toggleFullscreen?: () => void;
-  /** Saves the test case; bound to the `mod+s` keyboard shortcut. */
   save?: () => void;
-  /**
-   * Returns the current selectable label options for Limit nodes. Read lazily
-   * (not snapshotted) so async-loaded project labels are picked up without
-   * recreating the editor.
-   */
   getLabels?: () => LabelOption[];
 };
 
@@ -79,8 +76,8 @@ export async function createEditor(
 
   AreaExtensions.restrictor(area, {
     scaling: {
-      min: 0.4,
-      max: 1,
+      min: ZOOM_MIN,
+      max: ZOOM_MAX,
     },
     translation: false,
   });

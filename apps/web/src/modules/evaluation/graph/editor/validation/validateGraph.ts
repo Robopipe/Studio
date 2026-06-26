@@ -17,7 +17,7 @@ import {
 import { findUselessLogicalNodes } from "./rules/validateLogical";
 import { findInvalidResultNodeCount } from "./rules/validateResult";
 import type { ControlIssues, ValidationIssue, ValidationResult } from "./types";
-import { ValidationGraph } from "./ValidationGraph";
+import { ValidationGraph } from "./validationGraph";
 
 export function validateGraph(editor: NodeEditor<Schemes>): ValidationResult {
   const graph = new ValidationGraph(editor);

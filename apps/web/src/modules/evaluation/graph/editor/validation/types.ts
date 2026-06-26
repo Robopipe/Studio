@@ -1,4 +1,4 @@
-import type { ValidationGraph } from "./ValidationGraph";
+import type { ValidationGraph } from "./validationGraph";
 
 export type ValidationIssueLevel = "error" | "warning";
 

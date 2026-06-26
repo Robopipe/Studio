@@ -4,7 +4,7 @@ import type {
   Schemes,
 } from "@/modules/evaluation/graph/editor/types";
 import type { ValidationContext } from "@/modules/evaluation/graph/editor/validation/types";
-import { ValidationGraph } from "@/modules/evaluation/graph/editor/validation/ValidationGraph";
+import { ValidationGraph } from "@/modules/evaluation/graph/editor/validation/validationGraph";
 import { NodeEditor } from "rete";
 
 export function makeContext(
