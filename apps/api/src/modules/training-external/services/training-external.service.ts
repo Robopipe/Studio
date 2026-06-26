@@ -334,7 +334,12 @@ export class TrainingExternalService {
           type: "pd-ssd",
           ...(useCustomImage ? { image: mlBatchBootDiskImage } : {}),
         },
-        provisioningModel: "SPOT",
+        // FLEX_START (Dynamic Workload Scheduler — Flex Start mode): the job is
+        // queued until GPU capacity becomes available, then runs uninterrupted
+        // to completion (no preemption, unlike SPOT). Avoids the transient
+        // CODE_GCE_ZONE_RESOURCE_POOL_EXHAUSTED fast-fail by waiting instead.
+        // Requires a bounded maxRunDuration (set on taskSpec below, ≤7 days).
+        provisioningModel: "FLEX_START",
       };
       if (mlBatchGpuType && mlBatchGpuCount > 0) {
         instancePolicy.accelerators = [
