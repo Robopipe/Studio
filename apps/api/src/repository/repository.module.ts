@@ -22,6 +22,7 @@ import { EvalTestCaseRepository } from './services/eval-test-case.service';
 import { EvalThresholdRepository } from './services/eval-threshold.service';
 import { CapturedVideoRepository } from './services/captured-video-repository.service';
 import { ProjectPreAnnotateSettingsRepository } from './services/project-pre-annotate-settings-repository.service';
+import { ConfidenceReportRepository } from './services/confidence-report-repository.service';
 
 
 @Global()
@@ -49,6 +50,7 @@ import { ProjectPreAnnotateSettingsRepository } from './services/project-pre-ann
     EvalThresholdRepository,
     CapturedVideoRepository,
     ProjectPreAnnotateSettingsRepository,
+    ConfidenceReportRepository,
   ],
   exports: [
     AnalyticsRepository,
@@ -73,6 +75,7 @@ import { ProjectPreAnnotateSettingsRepository } from './services/project-pre-ann
     EvalThresholdRepository,
     CapturedVideoRepository,
     ProjectPreAnnotateSettingsRepository,
+    ConfidenceReportRepository,
   ],
 })
 export class RepositoryModule {}

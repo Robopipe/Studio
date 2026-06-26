@@ -199,6 +199,11 @@ export const DataSourcePanel = ({
                 rightSlot={
                   <AnnotationChip count={count} status={task.status} />
                 }
+                metrics={{
+                  meanConfidence: task.meanConfidence,
+                  f1At50: task.f1At50,
+                  minIou: task.minIou,
+                }}
               />
             </div>
           );

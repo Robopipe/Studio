@@ -20,6 +20,9 @@ export class TaskEntity {
   readonly deletedAt: Date | null;
   readonly annotationCount: number;
   readonly updatedBy: number | null;
+  readonly meanConfidence: number | null;
+  readonly f1At50: number | null;
+  readonly minIou: number | null;
 
   constructor(data: TaskSelect) {
     this.id = data.id;
@@ -36,6 +39,9 @@ export class TaskEntity {
     this.updatedAt = data.updatedAt;
     this.deletedAt = data.deletedAt;
     this.updatedBy = data.updatedBy ?? null;
+    this.meanConfidence = data.meanConfidence ?? null;
+    this.f1At50 = data.f1At50 ?? null;
+    this.minIou = data.minIou ?? null;
   }
 
   public toResponse(): Task {
@@ -50,6 +56,9 @@ export class TaskEntity {
       height: this.height,
       annotationCount: this.annotationCount,
       updatedBy: this.updatedBy,
+      meanConfidence: this.meanConfidence,
+      f1At50: this.f1At50,
+      minIou: this.minIou,
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),
       deletedAt: this.deletedAt ? this.deletedAt.toISOString() : null,

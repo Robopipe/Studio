@@ -68,4 +68,7 @@ export const studioApiEndpoints = {
   analytics: {
     datasetStats: (projectId: number) => `analytics/${projectId}/dataset-stats`,
   },
+  confidenceReport: {
+    report: (projectId: number) => `confidence-report/${projectId}`,
+  },
 } as const;

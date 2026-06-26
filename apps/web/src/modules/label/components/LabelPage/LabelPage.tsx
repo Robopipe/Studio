@@ -1,6 +1,11 @@
 import { useAuth } from "@/core/auth/hooks/useAuth";
 import { useProfileQuery } from "@/core/auth/services";
 import { cn } from "@/lib/utils";
+import {
+  CONFIDENCE_REPORT_POLL_MS,
+  isReportActive,
+  useGetConfidenceReportQuery,
+} from "@/modules/analytics/services/confidenceReportApi";
 import { useGetTasksQuery } from "@/modules/capture/services/captureApi";
 import { useGetModelsQuery } from "@/modules/model/services/modelApi";
 import { EditProjectModal } from "@/modules/project/components/EditProjectModal";
@@ -72,6 +77,12 @@ export const LabelPage = () => {
     pendingAnchorRef,
   } = useLabelUrlState();
 
+  // Poll the confidence report so we know whether to poll tasks as well.
+  const { data: confidenceReport } = useGetConfidenceReportQuery(
+    { projectId: projectId! },
+    { skip: !projectId },
+  );
+
   const { data: tasksData, isFetching: isFetchingTasks } = useGetTasksQuery(
     {
       projectId: projectId!,
@@ -89,7 +100,15 @@ export const LabelPage = () => {
       sortBy: sort.sortBy,
       sortOrder: sort.sortOrder,
     },
-    { skip: !projectId, refetchOnMountOrArgChange: true },
+    {
+      skip: !projectId,
+      refetchOnMountOrArgChange: true,
+      // While a confidence report is running, poll tasks so metric badges
+      // stream in as the batch job processes each chunk.
+      pollingInterval: isReportActive(confidenceReport)
+        ? CONFIDENCE_REPORT_POLL_MS
+        : 0,
+    },
   );
   const tasks = tasksData?.data ?? [];
   const totalPages = tasksData

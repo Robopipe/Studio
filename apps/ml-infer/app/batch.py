@@ -1,0 +1,531 @@
+"""Batch entrypoint for the Confidence Report.
+
+Reads a signed config URL from $CONFIG_URL, loads the ONNX model once,
+runs detection/segmentation on every project task, computes per-task and
+per-class metrics, and reports results back to the API via webhook.
+
+Run as:  python -m app.batch
+
+Env vars
+--------
+CONFIG_URL    Signed GCS URL for the JSON job config written by the API.
+API_KEY       API secret — echoed as the Authorization header on webhooks.
+
+Config JSON shape
+-----------------
+{
+  "reportId": int,
+  "projectId": int,
+  "modelUrl": str,       # signed GCS URL for the RAW ONNX archive
+  "modelId": int,
+  "conf": float,
+  "iou": float,          # NMS IoU threshold (same as pre-annotate)
+  "gtGeometry": "RECTANGLE" | "POLYGON",
+  "labelIds": [int, ...],   # ordered by labelId ASC (== ONNX class index)
+  "labelNames": [str, ...],
+  "labelColors": [str, ...],
+  "tasks": [
+    {
+      "taskId": int,
+      "imageUrl": str,
+      "width": int,          # original image width in pixels
+      "height": int,
+      "hasGt": bool,         # whether GT of requested geometry exists
+      "gt": [
+        # detection GT (gtGeometry == RECTANGLE):
+        {"labelId": int, "box": {"x", "y", "width", "height"}}   # percentages 0-100
+        # segmentation / polygon GT (gtGeometry == POLYGON):
+        {"labelId": int, "polygon": [[x, y], ...]}               # percentages 0-100
+      ]
+    }, ...
+  ],
+  "progressChunkSize": int,
+  "webhookUrl": str          # base URL (without trailing slash)
+}
+
+Metrics
+-------
+* meanConfidence — mean score over all kept detections in the task (null if none).
+* f1At50         — per-image F1 at IoU threshold 0.5 (null if no GT of the
+                   chosen geometry on this task).
+* minIou         — smallest matched-TP IoU on this task (null if no TP match).
+* Per-class box-stats for confidence scores and matched-TP IoU values are
+  accumulated and sent in the final complete webhook.
+"""
+
+import json
+import logging
+import os
+import ssl
+import sys
+import traceback
+import urllib.request
+from typing import Optional
+
+import certifi
+import numpy as np
+
+from .cache import ModelCache
+from .image_io import fetch_image
+from .output_format import normalize_det_outputs, normalize_outputs
+from .postprocess import decode_yolo_det, decode_yolo_seg
+from .preprocess import preprocess
+
+logging.basicConfig(
+    level=os.environ.get("LOG_LEVEL", "INFO"),
+    format="%(asctime)s %(levelname)s %(name)s  %(message)s",
+)
+_log = logging.getLogger("ml-infer.batch")
+
+_SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
+IOU_MATCH_THRESHOLD = 0.5
+
+
+# ─── HTTP helpers ─────────────────────────────────────────────────────────────
+
+def _post_json(url: str, payload: dict) -> None:
+    """POST a JSON payload to url, raising on non-2xx."""
+    data = json.dumps(payload).encode()
+    req = urllib.request.Request(
+        url,
+        data=data,
+        method="POST",
+        headers={
+            "Content-Type": "application/json",
+            # Read lazily so the HTTP-dispatch path in server.py can set
+            # os.environ["API_KEY"] after module import.
+            "Authorization": os.environ.get("API_KEY", ""),
+        },
+    )
+    with urllib.request.urlopen(req, timeout=30, context=_SSL_CONTEXT) as resp:
+        if resp.status >= 300:
+            raise RuntimeError(f"Webhook POST {url} returned HTTP {resp.status}")
+
+
+def _fetch_config(config_url: str) -> dict:
+    if config_url.startswith("file://"):
+        # Local-dev path: read directly from disk.
+        path = config_url[len("file://"):]
+        with open(path) as f:
+            return json.load(f)
+    req = urllib.request.Request(
+        config_url, headers={"User-Agent": "ml-infer-batch/0.1"}
+    )
+    with urllib.request.urlopen(req, timeout=60, context=_SSL_CONTEXT) as resp:
+        return json.loads(resp.read())
+
+
+# ─── IoU helpers ──────────────────────────────────────────────────────────────
+
+def _box_iou(
+    pred: tuple[float, float, float, float],
+    gt: tuple[float, float, float, float],
+) -> float:
+    """Axis-aligned box IoU. Boxes are (x, y, w, h) in the same coord space."""
+    px, py, pw, ph = pred
+    gx, gy, gw, gh = gt
+
+    px2, py2 = px + pw, py + ph
+    gx2, gy2 = gx + gw, gy + gh
+
+    ix1 = max(px, gx)
+    iy1 = max(py, gy)
+    ix2 = min(px2, gx2)
+    iy2 = min(py2, gy2)
+
+    inter = max(0.0, ix2 - ix1) * max(0.0, iy2 - iy1)
+    if inter == 0.0:
+        return 0.0
+
+    pred_area = pw * ph
+    gt_area = gw * gh
+    union = pred_area + gt_area - inter
+    return inter / union if union > 0 else 0.0
+
+
+def _polygon_iou(
+    pred_pts: list[tuple[float, float]],
+    gt_pts: list[tuple[float, float]],
+) -> float:
+    """IoU between two polygons using shapely (available in batch requirements)."""
+    try:
+        from shapely.geometry import Polygon
+        from shapely.errors import TopologicalError
+    except ImportError:
+        # Fallback: use bounding boxes of the polygon vertices.
+        _log.warning("shapely not available — falling back to bbox IoU for polygon matching")
+        xs_p, ys_p = zip(*pred_pts)
+        xs_g, ys_g = zip(*gt_pts)
+        pred_box = (min(xs_p), min(ys_p), max(xs_p) - min(xs_p), max(ys_p) - min(ys_p))
+        gt_box = (min(xs_g), min(ys_g), max(xs_g) - min(xs_g), max(ys_g) - min(ys_g))
+        return _box_iou(pred_box, gt_box)
+
+    try:
+        p = Polygon(pred_pts).buffer(0)
+        g = Polygon(gt_pts).buffer(0)
+        if not p.is_valid or not g.is_valid or p.is_empty or g.is_empty:
+            return 0.0
+        inter = p.intersection(g).area
+        union = p.union(g).area
+        return inter / union if union > 0 else 0.0
+    except (TopologicalError, Exception):
+        return 0.0
+
+
+def _polygon_to_box(pts: list[tuple[float, float]]) -> tuple[float, float, float, float]:
+    """Bounding box of polygon vertices: (x, y, w, h)."""
+    xs = [p[0] for p in pts]
+    ys = [p[1] for p in pts]
+    x, y = min(xs), min(ys)
+    return x, y, max(xs) - x, max(ys) - y
+
+
+# ─── Greedy matching ──────────────────────────────────────────────────────────
+
+def _match_detections(
+    predictions: list[dict],  # [{classIndex, score, ...}]
+    gt: list[dict],           # [{labelId, box|polygon}]
+    label_ids: list[int],
+    gt_geometry: str,
+    img_w: int,
+    img_h: int,
+    model_type: str,          # "detection" or "segmentation"
+) -> tuple[list[float], list[float], list[float]]:
+    """Greedy matching of predictions to GT at IoU≥0.5.
+
+    Returns:
+        scores      — confidence score for every kept prediction
+        tp_ious     — IoU for each matched true-positive (empty if no match)
+        per_class   — list of (classIndex, score, matched_iou_or_None) tuples
+    """
+    # Sort predictions by descending confidence.
+    preds = sorted(predictions, key=lambda p: p["score"], reverse=True)
+
+    # Convert GT to pixel space.
+    gt_boxes_by_label: dict[int, list[tuple[float, float, float, float]]] = {}
+    gt_polys_by_label: dict[int, list[list[tuple[float, float]]]] = {}
+
+    for g in gt:
+        lid = g["labelId"]
+        if gt_geometry == "RECTANGLE":
+            b = g["box"]
+            px = b["x"] * img_w / 100.0
+            py = b["y"] * img_h / 100.0
+            pw = b["width"] * img_w / 100.0
+            ph = b["height"] * img_h / 100.0
+            gt_boxes_by_label.setdefault(lid, []).append((px, py, pw, ph))
+        else:  # POLYGON
+            pts = [(p[0] * img_w / 100.0, p[1] * img_h / 100.0) for p in g["polygon"]]
+            gt_polys_by_label.setdefault(lid, []).append(pts)
+
+    matched_gt: dict[int, set[int]] = {}  # labelId → set of matched GT indices
+    per_class_results: list[tuple[int, float, Optional[float]]] = []
+
+    for pred in preds:
+        ci = pred["classIndex"]
+        if ci < 0 or ci >= len(label_ids):
+            continue
+        lid = label_ids[ci]
+        score = float(pred["score"])
+
+        # Build the prediction geometry in pixels.
+        if model_type == "detection":
+            pred_box = (float(pred["x"]), float(pred["y"]), float(pred["width"]), float(pred["height"]))
+        else:
+            pred_pts = pred["value"]
+
+        matched_iou: Optional[float] = None
+
+        # Try to match to an unmatched GT object of the same class.
+        if model_type == "detection":
+            gt_boxes = gt_boxes_by_label.get(lid, [])
+            used = matched_gt.setdefault(lid, set())
+            best_iou = 0.0
+            best_idx = -1
+            for gi, gt_box in enumerate(gt_boxes):
+                if gi in used:
+                    continue
+                iou = _box_iou(pred_box, gt_box)
+                if iou > best_iou:
+                    best_iou = iou
+                    best_idx = gi
+            if best_iou >= IOU_MATCH_THRESHOLD:
+                matched_gt[lid].add(best_idx)
+                matched_iou = best_iou
+        else:
+            # Segmentation: compare polygons.
+            gt_polys = gt_polys_by_label.get(lid, [])
+            used = matched_gt.setdefault(lid, set())
+            best_iou = 0.0
+            best_idx = -1
+            for gi, gt_poly in enumerate(gt_polys):
+                if gi in used:
+                    continue
+                iou = _polygon_iou(pred_pts, gt_poly)
+                if iou > best_iou:
+                    best_iou = iou
+                    best_idx = gi
+            if best_iou >= IOU_MATCH_THRESHOLD:
+                matched_gt[lid].add(best_idx)
+                matched_iou = best_iou
+
+        per_class_results.append((ci, score, matched_iou))
+
+    return per_class_results
+
+
+def _task_metrics(
+    per_class_results: list[tuple[int, float, Optional[float]]],
+    gt: list[dict],
+    has_gt: bool,
+    label_ids: list[int],
+) -> tuple[Optional[float], Optional[float], Optional[float]]:
+    """Compute per-task meanConfidence, f1At50, minIou from matching results."""
+    if not per_class_results:
+        # No kept detections.
+        if not has_gt:
+            return None, None, None
+        # GT exists but model found nothing → all misses.
+        return None, 0.0, None
+
+    scores = [s for _, s, _ in per_class_results]
+    mean_conf = float(np.mean(scores)) if scores else None
+
+    if not has_gt:
+        return mean_conf, None, None
+
+    # F1@50
+    tp = sum(1 for _, _, iou in per_class_results if iou is not None)
+    fp = len(per_class_results) - tp
+    fn = len(gt) - tp  # GT objects that were never matched
+
+    precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+    recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+    f1 = (2 * precision * recall / (precision + recall)) if (precision + recall) > 0 else 0.0
+
+    tp_ious = [iou for _, _, iou in per_class_results if iou is not None]
+    min_iou = float(min(tp_ious)) if tp_ious else None
+
+    return mean_conf, float(f1), min_iou
+
+
+# ─── Box-stats helper (mirrors the SQL percentile_cont + IQR logic) ───────────
+
+def _box_stats(values: list[float]) -> Optional[dict]:
+    if not values:
+        return None
+    arr = np.array(values, dtype=float)
+    q1, median, q3 = float(np.percentile(arr, 25)), float(np.percentile(arr, 50)), float(np.percentile(arr, 75))
+    iqr = q3 - q1
+    whisker_low = float(np.min(arr[arr >= q1 - 1.5 * iqr])) if iqr > 0 else float(arr.min())
+    whisker_high = float(np.max(arr[arr <= q3 + 1.5 * iqr])) if iqr > 0 else float(arr.max())
+    outliers = [float(v) for v in arr if v < whisker_low or v > whisker_high]
+    return {
+        "min": float(arr.min()),
+        "q1": q1,
+        "median": median,
+        "q3": q3,
+        "max": float(arr.max()),
+        "whiskerLow": whisker_low,
+        "whiskerHigh": whisker_high,
+        "outliers": outliers[:100],  # cap at 100 for the JSON payload
+        "outlierCount": len(outliers),
+    }
+
+
+# ─── Main ─────────────────────────────────────────────────────────────────────
+
+def main() -> None:
+    config_url = os.environ.get("CONFIG_URL")
+    if not config_url:
+        _log.error("CONFIG_URL env var is required")
+        sys.exit(1)
+
+    _log.info("fetching job config from GCS")
+    cfg = _fetch_config(config_url)
+
+    report_id: int = cfg["reportId"]
+    model_url: str = cfg["modelUrl"]
+    model_id: int = cfg["modelId"]
+    conf: float = cfg["conf"]
+    iou_threshold: float = cfg.get("iou", 0.45)
+    gt_geometry: str = cfg["gtGeometry"]
+    label_ids: list[int] = cfg["labelIds"]
+    label_names: list[str] = cfg["labelNames"]
+    label_colors: list[str] = cfg["labelColors"]
+    tasks: list[dict] = cfg["tasks"]
+    chunk_size: int = cfg.get("progressChunkSize", 10)
+    webhook_url: str = cfg["webhookUrl"].rstrip("/")
+
+    n_classes = len(label_ids)
+    is_detection = gt_geometry == "RECTANGLE"
+    model_type = "detection" if is_detection else "segmentation"
+
+    # Per-class accumulators: {classIndex: {confidence: [], iou: []}}
+    class_confidence: dict[int, list[float]] = {i: [] for i in range(n_classes)}
+    class_iou: dict[int, list[float]] = {i: [] for i in range(n_classes)}
+
+    # Load model once (no LRU needed in batch — single job, single model).
+    _log.info("loading model %d", model_id)
+    cache = ModelCache(capacity=1)
+    loaded = cache.get(model_id, model_url)
+    session = loaded.session
+
+    inputs = session.get_inputs()
+    in_name = inputs[0].name
+    in_shape = inputs[0].shape
+    in_h = in_shape[2] if isinstance(in_shape[2], int) else 640
+    in_w = in_shape[3] if isinstance(in_shape[3], int) else 640
+    output_names = [o.name for o in session.get_outputs()]
+
+    _log.info(
+        "model loaded: %d classes, input %dx%d, running %d tasks",
+        n_classes, in_h, in_w, len(tasks),
+    )
+
+    chunk_results: list[dict] = []
+    processed = 0
+    total = len(tasks)
+
+    for task in tasks:
+        task_id: int = task["taskId"]
+        image_url: str = task["imageUrl"]
+        img_w: int = task["width"]
+        img_h: int = task["height"]
+        gt: list[dict] = task.get("gt", [])
+        has_gt: bool = task.get("hasGt", False)
+
+        try:
+            img = fetch_image(image_url)
+            tensor, meta = preprocess(img, (in_h, in_w))
+            outputs = session.run(None, {in_name: tensor})
+
+            if is_detection:
+                output0 = normalize_det_outputs(outputs, output_names, (in_h, in_w))
+                predictions = decode_yolo_det(
+                    output0,
+                    n_classes=n_classes,
+                    img_shape=(img.shape[0], img.shape[1]),
+                    input_shape=(in_h, in_w),
+                    letterbox_meta=meta,
+                    conf_threshold=conf,
+                    iou_threshold=iou_threshold,
+                )
+            else:
+                output0, output1 = normalize_outputs(outputs, output_names, (in_h, in_w))
+                predictions = decode_yolo_seg(
+                    output0,
+                    output1,
+                    n_classes=n_classes,
+                    img_shape=(img.shape[0], img.shape[1]),
+                    input_shape=(in_h, in_w),
+                    letterbox_meta=meta,
+                    conf_threshold=conf,
+                    iou_threshold=iou_threshold,
+                )
+
+            # For detection model + POLYGON gt: convert gt polygons to boxes.
+            effective_gt = gt
+            if is_detection and gt_geometry == "POLYGON":
+                effective_gt = []
+                for g in gt:
+                    pts = [(p[0], p[1]) for p in g["polygon"]]
+                    if len(pts) >= 3:
+                        x, y, w, h = _polygon_to_box(pts)
+                        effective_gt.append({"labelId": g["labelId"], "box": {"x": x, "y": y, "width": w, "height": h}})
+                # Note: these are already in percentage coords here; we need to
+                # use the original gt list passed to _match_detections which
+                # expects the effective_gt format. For detection, it uses "box".
+                effective_gt_geometry = "RECTANGLE"
+            else:
+                effective_gt_geometry = gt_geometry
+
+            per_class_results = _match_detections(
+                predictions,
+                effective_gt,
+                label_ids,
+                effective_gt_geometry,
+                img_w,
+                img_h,
+                model_type,
+            )
+
+            mean_conf, f1, min_iou = _task_metrics(per_class_results, effective_gt, has_gt, label_ids)
+
+            # Accumulate per-class stats.
+            for ci, score, matched_iou in per_class_results:
+                if 0 <= ci < n_classes:
+                    class_confidence[ci].append(score)
+                    if matched_iou is not None:
+                        class_iou[ci].append(matched_iou)
+
+        except Exception:
+            _log.exception("error processing task %d — treating as null", task_id)
+            mean_conf, f1, min_iou = None, None, None
+
+        chunk_results.append({
+            "taskId": task_id,
+            "meanConfidence": mean_conf,
+            "f1At50": f1,
+            "minIou": min_iou,
+        })
+        processed += 1
+
+        if len(chunk_results) >= chunk_size or processed == total:
+            _log.info("progress %d/%d — sending chunk of %d", processed, total, len(chunk_results))
+            try:
+                _post_json(
+                    f"{webhook_url}/progress/{report_id}",
+                    {
+                        "processed": processed,
+                        "total": total,
+                        "taskResults": chunk_results,
+                    },
+                )
+            except Exception:
+                _log.exception("progress webhook failed (continuing)")
+            chunk_results = []
+
+    # Build per-class box-stats.
+    per_class_stats = []
+    for ci in range(n_classes):
+        confs = class_confidence[ci]
+        ious = class_iou[ci]
+        if not confs:
+            continue  # class never detected — skip
+        per_class_stats.append({
+            "labelId": label_ids[ci],
+            "name": label_names[ci],
+            "color": label_colors[ci],
+            "confidence": _box_stats(confs),
+            "iou": _box_stats(ious),
+            "detectionCount": len(confs),
+            "tpCount": len(ious),
+        })
+
+    _log.info("sending complete webhook with %d class stats", len(per_class_stats))
+    _post_json(
+        f"{webhook_url}/complete/{report_id}",
+        {"perClassStats": per_class_stats},
+    )
+    _log.info("confidence report batch job done")
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as exc:
+        _log.exception("fatal error in confidence report batch job")
+        # Best-effort error webhook — $WEBHOOK_URL and $REPORT_ID not always
+        # available at this point, so we read from env as a fallback.
+        webhook_url = os.environ.get("WEBHOOK_URL", "")
+        report_id = os.environ.get("REPORT_ID", "0")
+        if webhook_url and report_id != "0":
+            try:
+                _post_json(
+                    f"{webhook_url.rstrip('/')}/error/{report_id}",
+                    {"errorMessage": f"{type(exc).__name__}: {exc}"},
+                )
+            except Exception:
+                pass
+        sys.exit(1)

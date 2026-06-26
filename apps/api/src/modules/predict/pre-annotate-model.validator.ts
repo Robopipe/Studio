@@ -1,5 +1,6 @@
 import { BadRequestException } from "@nestjs/common";
 import {
+  ModelBackendEnum,
   ModelOutputTypeEnum,
   ModelStatusEnum,
   PreAnnotateModelTypeEnum,
@@ -12,10 +13,15 @@ import { ModelEntity } from "../model/entity/model.entity";
  *
  * Callers must perform their own existence (null) check before calling this.
  * Throws BadRequestException with a descriptive message on any violation.
+ *
+ * @param requireUltralyticsBackend - When true, also asserts that the model
+ *   uses the Ultralytics (YOLO) backend. Required for confidence reports and
+ *   any other ONNX-based inference paths.
  */
 export function assertModelUsableForPreAnnotation(
   model: ModelEntity,
   modelType: PreAnnotateModelTypeEnum,
+  { requireUltralyticsBackend = false }: { requireUltralyticsBackend?: boolean } = {},
 ): void {
   if (model.status !== ModelStatusEnum.DONE) {
     throw new BadRequestException(
@@ -59,6 +65,12 @@ export function assertModelUsableForPreAnnotation(
   if (!hasRawOutput) {
     throw new BadRequestException(
       "model has no RAW output; retrain with RAW export enabled or wait for export to finish",
+    );
+  }
+
+  if (requireUltralyticsBackend && model.backend !== ModelBackendEnum.ULTRALYTICS) {
+    throw new BadRequestException(
+      "only Ultralytics (YOLO) models can be used here; the selected model uses a different backend",
     );
   }
 }
