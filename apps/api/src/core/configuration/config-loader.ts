@@ -61,23 +61,10 @@ export class ConfigLoader {
     const mlInferUrl = process.env.ML_INFER_URL || undefined;
     const mlInferApiKey = process.env.ML_INFER_API_KEY || "supersecret";
 
-    // ml-infer batch job for the confidence report. Uses a CPU Cloud Batch
-    // VM (no GPU needed). mlHostInfer is the HTTP fallback for local dev.
-    const mlBatchImageInfer = process.env.ML_BATCH_IMAGE_INFER || undefined;
+    // Confidence-report backend. Full Cloud Run Job resource name in deployed
+    // environments; mlHostInfer is the HTTP fallback for local dev.
+    const mlInferJobName = process.env.ML_INFER_JOB_NAME || undefined;
     const mlHostInfer = process.env.ML_HOST_INFER || undefined;
-    const mlBatchInferMachineType = process.env.ML_BATCH_INFER_MACHINE_TYPE || undefined;
-    const mlBatchInferBootDiskGb = process.env.ML_BATCH_INFER_BOOT_DISK_GB
-      ? Number(process.env.ML_BATCH_INFER_BOOT_DISK_GB)
-      : undefined;
-    const mlBatchInferMaxRunSeconds = process.env.ML_BATCH_INFER_MAX_RUN_SECONDS
-      ? Number(process.env.ML_BATCH_INFER_MAX_RUN_SECONDS)
-      : undefined;
-    const mlBatchInferTaskCpuMilli = process.env.ML_BATCH_INFER_TASK_CPU_MILLI
-      ? Number(process.env.ML_BATCH_INFER_TASK_CPU_MILLI)
-      : undefined;
-    const mlBatchInferTaskMemoryMib = process.env.ML_BATCH_INFER_TASK_MEMORY_MIB
-      ? Number(process.env.ML_BATCH_INFER_TASK_MEMORY_MIB)
-      : undefined;
 
     const config:Record<string, string|number|undefined> = {
       env,
@@ -111,13 +98,8 @@ export class ConfigLoader {
       mlBatchSubnetwork,
       mlInferUrl,
       mlInferApiKey,
-      mlBatchImageInfer,
+      mlInferJobName,
       mlHostInfer,
-      mlBatchInferMachineType,
-      mlBatchInferBootDiskGb,
-      mlBatchInferMaxRunSeconds,
-      mlBatchInferTaskCpuMilli,
-      mlBatchInferTaskMemoryMib,
     }
 
     return config;
