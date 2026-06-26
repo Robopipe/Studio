@@ -58,9 +58,9 @@ export class EvalTestCaseController {
     @ProjectId() projectId: number,
     @Param("configId", ParseIntPipe) configId: number,
     @Body() data: EvalTestCaseFullCreateOrUpdateDto
-  ): Promise<EvalTestCaseDetail>{
+  ): Promise<EvalTestCaseFull>{
     const createdTestCase = await this.evalTestCaseService.createTestCaseFull(projectId, configId, data)
-    return createdTestCase.toDetailResponse()
+    return createdTestCase.toFullResponse()
   }
 
 
@@ -82,9 +82,9 @@ export class EvalTestCaseController {
     @Param("configId", ParseIntPipe) configId: number,
     @Param("testCaseId") testCaseId: string,
     @Body() data: EvalTestCaseFullCreateOrUpdateDto
-  ): Promise<EvalTestCaseDetail>{
+  ): Promise<EvalTestCaseFull>{
     const updatedTestCase = await this.evalTestCaseService.updateTestCaseFull(projectId, configId, testCaseId, data)
-    return updatedTestCase.toDetailResponse()
+    return updatedTestCase.toFullResponse()
   }
 
 

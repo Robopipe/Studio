@@ -95,7 +95,7 @@ export class EvalTestCaseService {
     }
   }
 
-  public async createTestCaseFull(projectId: number, configId: number, data: EvalTestCaseFullCreateOrUpdateDto): Promise<EvalTestCaseDetailEntity>{
+  public async createTestCaseFull(projectId: number, configId: number, data: EvalTestCaseFullCreateOrUpdateDto): Promise<EvalTestCaseFullEntity>{
     await this.verifyConfigOwnership(configId, projectId)
     await this.verifyTestCaseFullLabelOwnership(projectId, data)
 
@@ -134,7 +134,7 @@ export class EvalTestCaseService {
 
     }
 
-    return this.getTestCaseDetail(projectId, configId, createdTestCase.id)
+    return this.getTestCaseFull(projectId, configId, createdTestCase.id)
   }
 
   public async updateTestCaseFull(
@@ -142,7 +142,7 @@ export class EvalTestCaseService {
     configId: number,
     testCaseId: string,
     data: EvalTestCaseFullCreateOrUpdateDto
-  ): Promise<EvalTestCaseDetailEntity>{
+  ): Promise<EvalTestCaseFullEntity>{
     const existingTestCase = await this.evalTestCaseRepository.getDetailOrThrow(testCaseId, projectId, configId)
     await this.verifyTestCaseFullLabelOwnership(projectId, data)
 
@@ -190,7 +190,7 @@ export class EvalTestCaseService {
       await this.diffLimitItems(limitId, existingLimit?.limitItems ?? [], limit.limitItems)
     }
 
-    return this.getTestCaseDetail(projectId, configId, testCaseId)
+    return this.getTestCaseFull(projectId, configId, testCaseId)
   }
 
   private async diffLimitItems(
