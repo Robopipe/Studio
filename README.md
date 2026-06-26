@@ -115,3 +115,9 @@ Robopipe values all your feedback. If you encounter any problems with the app, p
 ## 👫 Community
 
 Join our [Robopipe subreddit](https://www.reddit.com/r/robopipe/) to share your apps, ask any questions regarding Robopipe, get help debugging your apps, or simply to read more about Robopipe from our users.
+
+## 📄 License
+
+Robopipe Studio is released under the [MIT License](LICENSE).
+
+This software was created with the support of the Faculty of Information Technology, CTU in Prague. More information at [fit.cvut.cz](https://fit.cvut.cz).
