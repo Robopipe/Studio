@@ -22,6 +22,8 @@ export class TaskEntity {
   readonly updatedBy: number | null;
   readonly meanConfidence: number | null;
   readonly minIou: number | null;
+  readonly precision: number | null;
+  readonly recall: number | null;
 
   constructor(data: TaskSelect) {
     this.id = data.id;
@@ -40,6 +42,8 @@ export class TaskEntity {
     this.updatedBy = data.updatedBy ?? null;
     this.meanConfidence = data.meanConfidence ?? null;
     this.minIou = data.minIou ?? null;
+    this.precision = data.precision ?? null;
+    this.recall = data.recall ?? null;
   }
 
   public toResponse(): Task {
@@ -56,6 +60,8 @@ export class TaskEntity {
       updatedBy: this.updatedBy,
       meanConfidence: this.meanConfidence,
       minIou: this.minIou,
+      precision: this.precision,
+      recall: this.recall,
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),
       deletedAt: this.deletedAt ? this.deletedAt.toISOString() : null,

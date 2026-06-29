@@ -102,6 +102,8 @@ export class ConfidenceReportRepository {
         .set({
           meanConfidence: result.meanConfidence ?? null,
           minIou: result.minIou ?? null,
+          precision: result.precision ?? null,
+          recall: result.recall ?? null,
           updatedAt: new Date(),
         })
         .where(eq(taskTable.id, result.taskId));
@@ -115,7 +117,7 @@ export class ConfidenceReportRepository {
   public async clearTaskScalars(projectId: number): Promise<void> {
     await this.db
       .update(taskTable)
-      .set({ meanConfidence: null, minIou: null })
+      .set({ meanConfidence: null, minIou: null, precision: null, recall: null })
       .where(eq(taskTable.projectId, projectId));
   }
 

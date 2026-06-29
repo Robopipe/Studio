@@ -26,6 +26,10 @@ export const taskTable = p.pgTable("task", {
   // Per-task confidence-report scalars. Null until a report has been run.
   meanConfidence: p.real("mean_confidence"),
   minIou: p.real("min_iou"),
+  /** Micro-averaged precision for the image: TP/(TP+FP) at IoU≥0.5. */
+  precision: p.real("precision"),
+  /** Micro-averaged recall for the image: TP/(TP+FN) at IoU≥0.5. */
+  recall: p.real("recall"),
   ...timestamps,
 }, (t) => [
   p.unique().on(t.projectId, t.iid),

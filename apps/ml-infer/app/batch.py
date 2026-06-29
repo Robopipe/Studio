@@ -47,8 +47,14 @@ Metrics
 -------
 * meanConfidence — mean score over all kept detections in the task (null if none).
 * minIou         — smallest matched-TP IoU on this task (null if no TP match).
+* precision      — micro-averaged precision for the task: TP/(TP+FP). Null when
+                   the model made no predictions (TP+FP=0). 0 when all predictions
+                   are false positives.
+* recall         — micro-averaged recall for the task: TP/(TP+FN). Null when the
+                   task has no ground-truth objects. 0 when the model missed all GT.
 * Per-class box-stats for confidence scores and matched-TP IoU values are
-  accumulated and sent in the final complete webhook.
+  accumulated and sent in the final complete webhook, together with overall
+  dataset-level precision and recall (micro over all tasks).
 """
 
 import json
@@ -274,28 +280,33 @@ def _match_detections(
 
 def _task_metrics(
     per_class_results: list[tuple[int, float, Optional[float]]],
-    gt: list[dict],
-    has_gt: bool,
-    label_ids: list[int],
-) -> tuple[Optional[float], Optional[float]]:
-    """Compute per-task meanConfidence, minIou from matching results."""
-    if not per_class_results:
-        # No kept detections.
-        if not has_gt:
-            return None, None
-        # GT exists but model found nothing → all misses.
-        return None, None
+    total_gt: int,
+) -> tuple[Optional[float], Optional[float], Optional[float], Optional[float], int, int, int]:
+    """Compute per-task metrics from matching results.
+
+    Returns:
+        (meanConfidence, minIou, precision, recall, tp, fp, fn)
+
+    Precision/recall are micro-averaged across all classes on the image.
+    Precision is None when there are no predictions at all (TP+FP=0).
+    Recall is None when there is no ground truth (total_gt == 0).
+    """
+    tp = sum(1 for _, _, iou in per_class_results if iou is not None)
+    fp = len(per_class_results) - tp
+    fn = max(0, total_gt - tp)
 
     scores = [s for _, s, _ in per_class_results]
     mean_conf = float(np.mean(scores)) if scores else None
 
-    if not has_gt:
-        return mean_conf, None
-
     tp_ious = [iou for _, _, iou in per_class_results if iou is not None]
     min_iou = float(min(tp_ious)) if tp_ious else None
 
-    return mean_conf, min_iou
+    # Null when no predictions; 0 when all predictions are false positives.
+    precision: Optional[float] = tp / (tp + fp) if (tp + fp) > 0 else None
+    # Null when no GT; 0 when model missed all GT objects.
+    recall: Optional[float] = tp / (tp + fn) if (tp + fn) > 0 else None
+
+    return mean_conf, min_iou, precision, recall, tp, fp, fn
 
 
 # ─── Box-stats helper (mirrors the SQL percentile_cont + IQR logic) ───────────
@@ -353,6 +364,11 @@ def main() -> None:
     # Per-class accumulators: {classIndex: {confidence: [], iou: []}}
     class_confidence: dict[int, list[float]] = {i: [] for i in range(n_classes)}
     class_iou: dict[int, list[float]] = {i: [] for i in range(n_classes)}
+
+    # Dataset-level TP/FP/FN accumulators for overall precision & recall.
+    dataset_tp = 0
+    dataset_fp = 0
+    dataset_fn = 0
 
     # Load model once (no LRU needed in batch — single job, single model).
     _log.info("loading model %d", model_id)
@@ -467,7 +483,9 @@ def main() -> None:
                 model_type,
             )
 
-            mean_conf, min_iou = _task_metrics(per_class_results, effective_gt, has_gt, label_ids)
+            mean_conf, min_iou, precision, recall, tp, fp, fn = _task_metrics(
+                per_class_results, len(effective_gt)
+            )
 
             # Accumulate per-class stats.
             for ci, score, matched_iou in per_class_results:
@@ -476,14 +494,21 @@ def main() -> None:
                     if matched_iou is not None:
                         class_iou[ci].append(matched_iou)
 
+            # Accumulate dataset-level P/R counts (failed tasks contribute nothing).
+            dataset_tp += tp
+            dataset_fp += fp
+            dataset_fn += fn
+
         except Exception:
             _log.exception("error processing task %d — treating as null", task_id)
-            mean_conf, min_iou = None, None
+            mean_conf, min_iou, precision, recall = None, None, None, None
 
         chunk_results.append({
             "taskId": task_id,
             "meanConfidence": mean_conf,
             "minIou": min_iou,
+            "precision": precision,
+            "recall": recall,
             "regions": task_regions,
         })
         processed += 1
@@ -520,10 +545,27 @@ def main() -> None:
             "tpCount": len(ious),
         })
 
-    _log.info("sending complete webhook with %d class stats", len(per_class_stats))
+    # Compute dataset-level overall precision & recall (micro over all tasks).
+    overall_precision: Optional[float] = (
+        dataset_tp / (dataset_tp + dataset_fp) if (dataset_tp + dataset_fp) > 0 else None
+    )
+    overall_recall: Optional[float] = (
+        dataset_tp / (dataset_tp + dataset_fn) if (dataset_tp + dataset_fn) > 0 else None
+    )
+
+    _log.info(
+        "sending complete webhook with %d class stats (overall precision=%.3f recall=%.3f)",
+        len(per_class_stats),
+        overall_precision if overall_precision is not None else float("nan"),
+        overall_recall if overall_recall is not None else float("nan"),
+    )
     _post_json(
         f"{webhook_url}/complete/{report_id}",
-        {"perClassStats": per_class_stats},
+        {
+            "perClassStats": per_class_stats,
+            "overallPrecision": overall_precision,
+            "overallRecall": overall_recall,
+        },
     )
     _log.info("confidence report batch job done")
 
