@@ -4,6 +4,8 @@ import {
   confidenceReportErrorSchema,
   confidenceReportPerClassStatSchema,
   confidenceReportProgressSchema,
+  confidenceReportRegionInputSchema,
+  confidenceReportRegionResponseSchema,
   confidenceReportSchema,
   confidenceReportTaskResultSchema,
   runConfidenceReportSchema,
@@ -16,3 +18,5 @@ export type ConfidenceReportTaskResult = z.infer<typeof confidenceReportTaskResu
 export type ConfidenceReportProgress = z.infer<typeof confidenceReportProgressSchema>;
 export type ConfidenceReportComplete = z.infer<typeof confidenceReportCompleteSchema>;
 export type ConfidenceReportError = z.infer<typeof confidenceReportErrorSchema>;
+export type ConfidenceReportRegionInput = z.infer<typeof confidenceReportRegionInputSchema>;
+export type ConfidenceReportRegionResponse = z.infer<typeof confidenceReportRegionResponseSchema>;

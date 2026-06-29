@@ -205,5 +205,23 @@ export const relationBase = defineRelations(schema, (r) => ({
       from: r.confidenceReportTable.modelId,
       to: r.modelTable.id,
     }),
+    regions: r.many.confidenceReportRegionTable({
+      from: r.confidenceReportTable.id,
+      to: r.confidenceReportRegionTable.reportId,
+    }),
+  },
+  confidenceReportRegionTable: {
+    report: r.one.confidenceReportTable({
+      from: r.confidenceReportRegionTable.reportId,
+      to: r.confidenceReportTable.id,
+    }),
+    task: r.one.taskTable({
+      from: r.confidenceReportRegionTable.taskId,
+      to: r.taskTable.id,
+    }),
+    label: r.one.projectLabelTable({
+      from: r.confidenceReportRegionTable.labelId,
+      to: r.projectLabelTable.id,
+    }),
   },
 }));

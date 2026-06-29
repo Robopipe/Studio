@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Circle, Line } from "react-konva";
+import { Circle, Line, Text } from "react-konva";
 import Konva from "konva";
 import { Annotation } from "../../types/annotations";
 import { ToolMode } from "../../types/annotations";
@@ -25,6 +25,7 @@ interface PolygonRegionProps {
   isSelected: boolean;
   showHandles: boolean;
   toolMode: ToolMode;
+  readOnly?: boolean;
   stageScale: number;
   selectedVertexIndex: number | null;
   onSelect: (id: string, opts?: { additive?: boolean }) => void;
@@ -40,6 +41,7 @@ export const PolygonRegion = ({
   isSelected,
   showHandles,
   toolMode,
+  readOnly = false,
   stageScale,
   selectedVertexIndex,
   onSelect,
@@ -56,7 +58,7 @@ export const PolygonRegion = ({
   const circleRefs = useRef<(Konva.Circle | null)[]>([]);
   const pendingClickRef = useRef<{ additive: boolean } | null>(null);
 
-  const isInteractive = toolMode === ToolMode.SELECT;
+  const isInteractive = !readOnly && toolMode === ToolMode.SELECT;
 
   useEffect(() => {
     const node = lineRef.current;
@@ -179,6 +181,19 @@ export const PolygonRegion = ({
     onUpdate(annotation.id, { points: newPts });
   };
 
+  // Inferred regions (confidence-report predictions) render with a dashed
+  // outline and a score badge. GT annotations keep the solid style.
+  const isInferred = annotation.inferred === true;
+  const dash = isInferred ? [8, 6] : undefined;
+  const fill = isInferred
+    ? annotation.color + "00"
+    : annotation.color + (isSelected ? "60" : "33");
+
+  // Find the topmost visible point for score badge placement.
+  const topPt = pts.length > 0
+    ? pts.reduce((a, b) => (b[1] < a[1] ? b : a))
+    : null;
+
   return (
     <>
       <Line
@@ -188,7 +203,8 @@ export const PolygonRegion = ({
         stroke={annotation.color}
         strokeWidth={isSelected ? 3 : 2}
         strokeScaleEnabled={false}
-        fill={annotation.color + (isSelected ? "60" : "33")}
+        dash={dash}
+        fill={fill}
         shadowEnabled={isSelected}
         shadowColor={annotation.color}
         shadowBlur={6}
@@ -217,6 +233,21 @@ export const PolygonRegion = ({
           if (!isSelected) onSelect(annotation.id);
         }}
       />
+      {isInferred && annotation.score != null && topPt && (
+        <Text
+          x={(topPt[0] / 100) * imageWidth + 3}
+          y={(topPt[1] / 100) * imageHeight + 3}
+          text={annotation.score.toFixed(2)}
+          fontSize={11}
+          fontStyle="bold"
+          fill="#fff"
+          shadowEnabled={true}
+          shadowColor="#000"
+          shadowBlur={3}
+          shadowOpacity={0.8}
+          listening={false}
+        />
+      )}
       {showHandles &&
         isInteractive &&
         pts.map(([px, py], i) => {

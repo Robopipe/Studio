@@ -70,5 +70,7 @@ export const studioApiEndpoints = {
   },
   confidenceReport: {
     report: (projectId: number) => `confidence-report/${projectId}`,
+    regions: (projectId: number, taskId: number) =>
+      `confidence-report/${projectId}/regions/${taskId}`,
   },
 } as const;

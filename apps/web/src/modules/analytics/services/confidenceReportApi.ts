@@ -3,11 +3,14 @@ import { api } from "@/core/api";
 import { apiCacheTags } from "@/core/api/tags";
 import {
   ConfidenceReport,
+  ConfidenceReportRegionResponse,
   ConfidenceReportStatusEnum,
   RunConfidenceReport,
+  confidenceReportRegionResponseSchema,
   confidenceReportSchema,
 } from "@repo/schema";
 import { HttpMethod } from "@/types";
+import z from "zod";
 
 const { confidenceReport: endpoints } = appConfig.studioApi.endpoints;
 
@@ -47,6 +50,20 @@ export const confidenceReportApi = api.injectEndpoints({
         { type: apiCacheTags.confidenceReport.report, id: projectId },
       ],
     }),
+    getConfidenceReportRegions: builder.query<
+      ConfidenceReportRegionResponse[],
+      { projectId: number; taskId: number }
+    >({
+      query: ({ projectId, taskId }) => ({
+        url: endpoints.regions(projectId, taskId),
+        method: HttpMethod.GET,
+      }),
+      transformResponse: (response) =>
+        z.array(confidenceReportRegionResponseSchema).parse(response),
+      providesTags: (_result, _error, { projectId, taskId }) => [
+        { type: apiCacheTags.confidenceReport.report, id: `${projectId}-regions-${taskId}` },
+      ],
+    }),
   }),
 });
 
@@ -54,6 +71,7 @@ export const {
   useGetConfidenceReportQuery,
   useRunConfidenceReportMutation,
   useCancelConfidenceReportMutation,
+  useGetConfidenceReportRegionsQuery,
 } = confidenceReportApi;
 
 /** Polling interval in ms — active while PENDING or RUNNING, else no polling. */

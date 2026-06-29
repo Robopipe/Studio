@@ -24,6 +24,10 @@ export interface Annotation {
   bbox?: BBox;
   points?: [number, number][];
   groupId?: string | null;
+  /** Confidence score (0–1) — set for inferred regions, undefined for GT annotations. */
+  score?: number;
+  /** True for confidence-report inferred regions; they are read-only and display-only. */
+  inferred?: boolean;
 }
 
 export type AtomicHistoryEntry =

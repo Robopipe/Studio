@@ -65,14 +65,54 @@ export const confidenceReportSchema = z.object({
 
 // ─── Webhook payloads (ML → API) ──────────────────────────────────────────────
 
+// ─── Inferred regions (persisted from the job's predictions) ─────────────────
+
+/**
+ * A single inferred region as sent from the ML job via the progress webhook.
+ * Coordinates are in percentage units (0–100), matching the annotation convention.
+ */
+export const confidenceReportRegionInputSchema = z.object({
+  labelId: z.number(),
+  score: z.number(),
+  geometry: z.enum(ConfidenceReportGtGeometryEnum),
+  x: z.number().optional(),
+  y: z.number().optional(),
+  width: z.number().optional(),
+  height: z.number().optional(),
+  value: z.tuple([z.number(), z.number()]).array().optional(),
+});
+
+/**
+ * A single inferred region as returned to the web client (GET endpoint).
+ * Same as input but with server-assigned id and embedded label info.
+ */
+export const confidenceReportRegionResponseSchema = z.object({
+  id: z.number(),
+  label: z.object({
+    id: z.number(),
+    name: z.string(),
+    color: z.string(),
+  }),
+  score: z.number(),
+  geometry: z.enum(ConfidenceReportGtGeometryEnum),
+  x: z.number().nullish(),
+  y: z.number().nullish(),
+  width: z.number().nullish(),
+  height: z.number().nullish(),
+  value: z.tuple([z.number(), z.number()]).array().nullish(),
+});
+
+// ─── Webhook payloads (ML → API) ──────────────────────────────────────────────
+
 /**
  * Periodic progress webhook — sent every N tasks.
- * Carries per-task scalars for tasks processed in this chunk.
+ * Carries per-task scalars and inferred regions for tasks processed in this chunk.
  */
 export const confidenceReportTaskResultSchema = z.object({
   taskId: z.number(),
   meanConfidence: z.number().nullable(),
   minIou: z.number().nullable(),
+  regions: confidenceReportRegionInputSchema.array().default([]),
 });
 
 export const confidenceReportProgressSchema = z.object({

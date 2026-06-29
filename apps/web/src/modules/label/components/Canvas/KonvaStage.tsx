@@ -25,6 +25,7 @@ interface KonvaStageProps {
   scale: number;
   position: { x: number; y: number };
   toolMode: ToolMode;
+  readOnly?: boolean;
   annotations: Annotation[];
   selectedAnnotationIds: Set<string>;
   primarySelectedId: string | null;
@@ -88,6 +89,7 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
   onZoomAtPoint,
   onSetPosition,
   showCrosshair,
+  readOnly = false,
 }, ref) => {
   const stageRef = useRef<Konva.Stage>(null);
   // Mirror `position` into a ref so the middle-mouse-pan handler can read the
@@ -533,6 +535,8 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
     const stage = e.target.getStage();
     if (!stage) return;
 
+    if (readOnly) return;
+
     if (toolMode === ToolMode.DRAW_BBOX && activeLabel) {
       const coords = getImageCoords(stage);
       if (!coords) return;
@@ -756,6 +760,7 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
                 isSelected={isSelected}
                 showHandles={showHandles}
                 toolMode={toolMode}
+                readOnly={readOnly}
                 onSelect={onSelect}
                 onUpdate={onUpdateAnnotation}
                 groupDrag={groupDragApi}
@@ -769,6 +774,7 @@ export const KonvaStage = forwardRef<KonvaStageHandle, KonvaStageProps>(({
                 isSelected={isSelected}
                 showHandles={showHandles}
                 toolMode={toolMode}
+                readOnly={readOnly}
                 stageScale={scale}
                 selectedVertexIndex={selectedVertex?.annotationId === ann.id ? selectedVertex.index : null}
                 onSelect={onSelect}

@@ -5,6 +5,7 @@ import {
   CONFIDENCE_REPORT_POLL_MS,
   isReportActive,
   useGetConfidenceReportQuery,
+  useGetConfidenceReportRegionsQuery,
 } from "@/modules/analytics/services/confidenceReportApi";
 import { useGetTasksQuery } from "@/modules/capture/services/captureApi";
 import { useGetModelsQuery } from "@/modules/model/services/modelApi";
@@ -17,6 +18,7 @@ import {
   useUpdatePreAnnotateSettingsMutation,
 } from "@/modules/project/services/projectApi";
 import {
+  ConfidenceReportStatusEnum,
   DetectionPreAnnotateSettings,
   Label,
   OrgMemberRoleEnum,
@@ -41,6 +43,7 @@ import {
 import { Annotation } from "../../types/annotations";
 import {
   annotationsToUpdatePayload,
+  regionsToAnnotations,
   taskDetailToAnnotations,
 } from "../../utils/mapAnnotations";
 import {
@@ -76,6 +79,13 @@ export const LabelPage = () => {
     setSort,
     pendingAnchorRef,
   } = useLabelUrlState();
+
+  // ─── Inferred-regions tab ──────────────────────────────────────────────────
+  // Declared early so queries below can reference activeAnnotationTab.
+  const [activeAnnotationTab, setActiveAnnotationTab] = useState<
+    "labels" | "history" | "inferred"
+  >("labels");
+  const [showGtOverlay, setShowGtOverlay] = useState(false);
 
   // Poll the confidence report so we know whether to poll tasks as well.
   const { data: confidenceReport } = useGetConfidenceReportQuery(
@@ -147,6 +157,27 @@ export const LabelPage = () => {
   const { data: taskDetail } = useGetTaskQuery(
     { projectId: projectId!, taskId: selectedTaskId! },
     { skip: !projectId || selectedTaskId === null },
+  );
+
+  // Inferred regions for the selected task — only fetched while on the Inferred tab.
+  const { data: rawRegions = [], isLoading: isLoadingRegions } =
+    useGetConfidenceReportRegionsQuery(
+      { projectId: projectId!, taskId: selectedTaskId! },
+      {
+        skip:
+          activeAnnotationTab !== "inferred" ||
+          !projectId ||
+          selectedTaskId === null,
+        // Poll while the report is running so regions stream in.
+        pollingInterval: isReportActive(confidenceReport)
+          ? CONFIDENCE_REPORT_POLL_MS
+          : 0,
+      },
+    );
+
+  const inferredAnnotations = useMemo(
+    () => regionsToAnnotations(rawRegions),
+    [rawRegions],
   );
 
   const [updateTask] = useUpdateTaskMutation();
@@ -287,6 +318,7 @@ export const LabelPage = () => {
   // Persistent class filter set by clicking a class in the Annotations tab.
   // Acts radio-style: re-click same class or click "Any" to clear.
   const [isolatedLabelId, setIsolatedLabelId] = useState<string | null>(null);
+
   const setIsolatedLabel = useCallback(
     (labelId: string) => {
       setIsolatedLabelId(labelId);
@@ -1011,6 +1043,17 @@ export const LabelPage = () => {
     [activeLabel],
   );
 
+  // When on the Inferred tab the canvas shows only inference predictions
+  // (read-only, dashed), optionally with the GT annotations overlaid (solid).
+  const isInferredView = activeAnnotationTab === "inferred";
+  const canvasAnnotations = useMemo(() => {
+    if (!isInferredView) return visibleAnnotations;
+    return [
+      ...(showGtOverlay ? visibleAnnotations : []),
+      ...inferredAnnotations,
+    ];
+  }, [isInferredView, visibleAnnotations, inferredAnnotations, showGtOverlay]);
+
   return (
     <div className="-m-6 grid min-h-0 flex-1 grid-cols-[320px_280px_1fr] grid-rows-[minmax(0,1fr)] bg-white">
       <DataSourcePanel
@@ -1051,12 +1094,20 @@ export const LabelPage = () => {
         taskId={selectedTaskId}
         isolatedAnnotationId={isolatedAnnotationId}
         onIsolateAnnotation={isolateAnnotation}
+        activeTab={activeAnnotationTab}
+        onTabChange={setActiveAnnotationTab}
+        inferredRegions={rawRegions}
+        isLoadingRegions={isLoadingRegions}
+        reportStatus={confidenceReport?.status as ConfidenceReportStatusEnum | null ?? null}
+        showGtOverlay={showGtOverlay}
+        onToggleGtOverlay={setShowGtOverlay}
       />
       <div className="relative flex min-h-0 flex-col overflow-hidden">
         <Canvas
           ref={canvasRef}
           task={selectedTask ?? taskDetail}
-          annotations={visibleAnnotations}
+          readOnly={isInferredView}
+          annotations={canvasAnnotations}
           selectedAnnotationIds={selectedAnnotationIds}
           primarySelectedId={primarySelectedId}
           toolMode={toolMode}

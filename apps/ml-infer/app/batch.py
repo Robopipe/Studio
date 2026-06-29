@@ -384,6 +384,10 @@ def main() -> None:
         gt: list[dict] = task.get("gt", [])
         has_gt: bool = task.get("hasGt", False)
 
+        # Initialise to empty; populated only on success so failed tasks
+        # contribute no regions (stays empty on exception).
+        task_regions: list[dict] = []
+
         try:
             img = fetch_image(image_url)
             tensor, meta = preprocess(img, (in_h, in_w))
@@ -412,6 +416,30 @@ def main() -> None:
                     conf_threshold=conf,
                     iou_threshold=iou_threshold,
                 )
+
+            # Convert predictions to percentage coords and build region payloads.
+            # img.shape is (height, width, channels), so use img_h/img_w which
+            # are passed from the task payload (original image dimensions in px).
+            for pred in predictions:
+                ci = pred["classIndex"]
+                if ci < 0 or ci >= n_classes:
+                    continue
+                region: dict = {
+                    "labelId": label_ids[ci],
+                    "score": float(pred["score"]),
+                    "geometry": gt_geometry,
+                }
+                if is_detection:
+                    region["x"] = pred["x"] / img_w * 100.0
+                    region["y"] = pred["y"] / img_h * 100.0
+                    region["width"] = pred["width"] / img_w * 100.0
+                    region["height"] = pred["height"] / img_h * 100.0
+                else:
+                    region["value"] = [
+                        [pt[0] / img_w * 100.0, pt[1] / img_h * 100.0]
+                        for pt in pred["value"]
+                    ]
+                task_regions.append(region)
 
             # For detection model + POLYGON gt: convert gt polygons to boxes.
             effective_gt = gt
@@ -456,6 +484,7 @@ def main() -> None:
             "taskId": task_id,
             "meanConfidence": mean_conf,
             "minIou": min_iou,
+            "regions": task_regions,
         })
         processed += 1
 

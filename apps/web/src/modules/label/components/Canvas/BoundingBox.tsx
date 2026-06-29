@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Rect, Transformer } from "react-konva";
+import { Rect, Text, Transformer } from "react-konva";
 import Konva from "konva";
 import { Annotation } from "../../types/annotations";
 import { ToolMode } from "../../types/annotations";
@@ -12,6 +12,7 @@ interface BoundingBoxProps {
   isSelected: boolean;
   showHandles: boolean;
   toolMode: ToolMode;
+  readOnly?: boolean;
   onSelect: (id: string, opts?: { additive?: boolean }) => void;
   onUpdate: (id: string, updates: Partial<Annotation>) => void;
   groupDrag: GroupDragApi;
@@ -24,6 +25,7 @@ export const BoundingBox = ({
   isSelected,
   showHandles,
   toolMode,
+  readOnly = false,
   onSelect,
   onUpdate,
   groupDrag,
@@ -40,12 +42,14 @@ export const BoundingBox = ({
   const w = (bbox.width / 100) * imageWidth;
   const h = (bbox.height / 100) * imageHeight;
 
+  const isInteractive = !readOnly && toolMode === ToolMode.SELECT;
+
   useEffect(() => {
-    if (showHandles && trRef.current && rectRef.current) {
+    if (showHandles && isInteractive && trRef.current && rectRef.current) {
       trRef.current.nodes([rectRef.current]);
       trRef.current.getLayer()?.batchDraw();
     }
-  }, [showHandles]);
+  }, [showHandles, isInteractive]);
 
   useEffect(() => {
     const node = rectRef.current;
@@ -53,8 +57,6 @@ export const BoundingBox = ({
     groupDrag.registerNode(annotation.id, node);
     return () => groupDrag.registerNode(annotation.id, null);
   }, [annotation.id, groupDrag]);
-
-  const isInteractive = toolMode === ToolMode.SELECT;
 
   const handleDragStart = () => {
     pendingClickRef.current = null;
@@ -96,6 +98,14 @@ export const BoundingBox = ({
     });
   };
 
+  // Inferred regions (confidence-report predictions) render with a dashed
+  // outline and a score badge. GT annotations keep the solid style.
+  const isInferred = annotation.inferred === true;
+  const dash = isInferred ? [8, 6] : undefined;
+  const fill = isInferred
+    ? annotation.color + "00"
+    : annotation.color + (isSelected ? "60" : "33");
+
   return (
     <>
       <Rect
@@ -107,7 +117,8 @@ export const BoundingBox = ({
         stroke={annotation.color}
         strokeWidth={isSelected ? 3 : 2}
         strokeScaleEnabled={false}
-        fill={annotation.color + (isSelected ? "60" : "33")}
+        dash={dash}
+        fill={fill}
         shadowEnabled={isSelected}
         shadowColor={annotation.color}
         shadowBlur={6}
@@ -150,6 +161,21 @@ export const BoundingBox = ({
         onDragEnd={handleDragEnd}
         onTransformEnd={handleTransformEnd}
       />
+      {isInferred && annotation.score != null && (
+        <Text
+          x={x + 3}
+          y={y + 3}
+          text={annotation.score.toFixed(2)}
+          fontSize={11}
+          fontStyle="bold"
+          fill="#fff"
+          shadowEnabled={true}
+          shadowColor="#000"
+          shadowBlur={3}
+          shadowOpacity={0.8}
+          listening={false}
+        />
+      )}
       {showHandles && isInteractive && (
         <Transformer
           ref={trRef}
