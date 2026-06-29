@@ -34,6 +34,7 @@ import {
   ProjectTypeEnum,
 } from "@repo/schema";
 import type { ConfidenceReportSelect } from "../../../repository/types/confidence-report";
+import type { ConfidenceReportRegionResponse } from "@repo/schema";
 
 /** Signed-URL TTL for the job config stored in GCS (wide margin for long runs). */
 const CONFIG_URL_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -57,6 +58,16 @@ export class ConfidenceReportService {
   ) {}
 
   // ─── User-facing ──────────────────────────────────────────────────────────
+
+  /**
+   * Get inferred regions for a specific task in a project's confidence report.
+   */
+  public async getRegions(
+    projectId: number,
+    taskId: number,
+  ): Promise<ConfidenceReportRegionResponse[]> {
+    return this.confidenceReportRepository.getRegionsByTask(projectId, taskId);
+  }
 
   /**
    * Get the current confidence report for a project.
@@ -160,7 +171,9 @@ export class ConfidenceReportService {
     // Clear previous per-task scalars from the task table.
     await this.confidenceReportRepository.clearTaskScalars(projectId);
 
-    // Create the report row in PENDING state.
+    // Create / overwrite the report row in PENDING state.
+    // The upsert uses onConflictDoUpdate (keeps the same PK), so clearRegions
+    // must run after to reference the correct report.id.
     const report = await this.confidenceReportRepository.upsert({
       projectId,
       modelId: model.id,
@@ -173,6 +186,9 @@ export class ConfidenceReportService {
       errorMessage: null,
       perClassStats: null,
     });
+
+    // Clear inferred regions from the previous run (replacement semantics).
+    await this.confidenceReportRepository.clearRegions(report.id);
 
     // Build the config payload for the job.
     const jobConfig = {
@@ -264,6 +280,12 @@ export class ConfidenceReportService {
     }
 
     await this.confidenceReportRepository.bulkUpsertTaskScalars(
+      report.projectId,
+      data.taskResults,
+    );
+
+    await this.confidenceReportRepository.bulkInsertRegions(
+      reportId,
       report.projectId,
       data.taskResults,
     );

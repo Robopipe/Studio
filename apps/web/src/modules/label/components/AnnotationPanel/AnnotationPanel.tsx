@@ -11,7 +11,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/modules/shadcn/ui/tabs";
-import { Label } from "@repo/schema";
+import { ConfidenceReportRegionResponse, ConfidenceReportStatusEnum, Label } from "@repo/schema";
 import {
   AlertTriangle,
   ChevronDown,
@@ -27,6 +27,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDraggableList } from "../../hooks/useDraggableList";
 import { Annotation, HistoryEntry } from "../../types/annotations";
 import { AnnotationHistoryTab } from "../AnnotationHistoryTab/AnnotationHistoryTab";
+import { InferredRegionsTab } from "../InferredRegionsTab/InferredRegionsTab";
 
 export interface AnnotationPanelProps {
   annotations: Annotation[];
@@ -59,6 +60,15 @@ export interface AnnotationPanelProps {
   taskId?: number | null;
   isolatedAnnotationId?: string | null;
   onIsolateAnnotation?: (id: string | null) => void;
+  /** Controlled tab value — lifted to LabelPage so it can swap the canvas. */
+  activeTab: "labels" | "history" | "inferred";
+  onTabChange: (tab: "labels" | "history" | "inferred") => void;
+  /** Inferred-regions tab data */
+  inferredRegions: ConfidenceReportRegionResponse[];
+  isLoadingRegions: boolean;
+  reportStatus: ConfidenceReportStatusEnum | null;
+  showGtOverlay: boolean;
+  onToggleGtOverlay: (show: boolean) => void;
 }
 
 type DisplayRow =
@@ -108,6 +118,13 @@ export const AnnotationPanel = ({
   taskId,
   isolatedAnnotationId,
   onIsolateAnnotation,
+  activeTab,
+  onTabChange,
+  inferredRegions,
+  isLoadingRegions,
+  reportStatus,
+  showGtOverlay,
+  onToggleGtOverlay,
 }: AnnotationPanelProps) => {
   const classCounts = labels
     .map((label) => ({
@@ -210,12 +227,14 @@ export const AnnotationPanel = ({
 
   return (
     <Tabs
-      defaultValue="labels"
+      value={activeTab}
+      onValueChange={(v) => onTabChange(v as "labels" | "history" | "inferred")}
       className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden border-r border-border bg-black/[0.03]"
     >
       <TabsList variant="line" className="h-10 shrink-0">
         <TabsTrigger value="labels">Annotations</TabsTrigger>
         <TabsTrigger value="history">History</TabsTrigger>
+        <TabsTrigger value="inferred">Inferred</TabsTrigger>
       </TabsList>
 
       <TabsContent
@@ -638,6 +657,17 @@ export const AnnotationPanel = ({
         ) : (
           <p className="p-4 text-xs text-muted-foreground">No task selected.</p>
         )}
+      </TabsContent>
+
+      <TabsContent value="inferred" className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <InferredRegionsTab
+          regions={inferredRegions}
+          isLoading={isLoadingRegions}
+          reportStatus={reportStatus}
+          showGtOverlay={showGtOverlay}
+          onToggleGtOverlay={onToggleGtOverlay}
+          hasTask={taskId != null}
+        />
       </TabsContent>
     </Tabs>
   );

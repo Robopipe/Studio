@@ -1,4 +1,4 @@
-import { TaskDetail, CreateRectangleAnnotation, CreatePolygonAnnotation, CreateClassificationAnnotation } from "@repo/schema";
+import { ConfidenceReportRegionResponse, TaskDetail, CreateRectangleAnnotation, CreatePolygonAnnotation, CreateClassificationAnnotation } from "@repo/schema";
 import { Annotation } from "../types/annotations";
 import { normalizeGroupOrder } from "./groupAnnotations";
 
@@ -47,6 +47,35 @@ export function taskDetailToAnnotations(detail: TaskDetail): Annotation[] {
   // This keeps the rest of the editing logic (drag-reorder, makeGroupContiguous)
   // consistent and prevents the sidebar from fracturing a group into singletons.
   return normalizeGroupOrder(annotations);
+}
+
+/**
+ * Convert inferred regions from a confidence report into the `Annotation` shape
+ * used by the canvas and sidebar. These are read-only display-only annotations:
+ * - `id` uses an `inferred-` prefix to avoid collisions with real annotation ids.
+ * - `apiId` is left undefined so they are never sent in a save payload.
+ * - `inferred = true` and `score` are set for canvas styling.
+ */
+export function regionsToAnnotations(
+  regions: ConfidenceReportRegionResponse[],
+): Annotation[] {
+  return regions.map((r): Annotation => {
+    const base: Annotation = {
+      id: `inferred-${r.id}`,
+      labelId: String(r.label.id),
+      labelName: r.label.name,
+      color: r.label.color,
+      type: r.geometry === "RECTANGLE" ? "bbox" : "polygon",
+      score: r.score,
+      inferred: true,
+    };
+    if (r.geometry === "RECTANGLE" && r.x != null && r.y != null && r.width != null && r.height != null) {
+      base.bbox = { x: r.x, y: r.y, width: r.width, height: r.height };
+    } else if (r.geometry === "POLYGON" && r.value) {
+      base.points = r.value as [number, number][];
+    }
+    return base;
+  });
 }
 
 export function annotationsToUpdatePayload(annotations: Annotation[]): {
