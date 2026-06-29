@@ -59,6 +59,10 @@ export const confidenceReportSchema = z.object({
   total: z.number(),
   errorMessage: z.string().nullable(),
   perClassStats: confidenceReportPerClassStatSchema.array().nullable(),
+  /** Dataset-level micro precision. Null until run completes or when no predictions. */
+  overallPrecision: z.number().nullable().optional(),
+  /** Dataset-level micro recall. Null until run completes or when no GT. */
+  overallRecall: z.number().nullable().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -112,6 +116,10 @@ export const confidenceReportTaskResultSchema = z.object({
   taskId: z.number(),
   meanConfidence: z.number().nullable(),
   minIou: z.number().nullable(),
+  /** Micro-averaged precision for the image: TP/(TP+FP). Null when no predictions. */
+  precision: z.number().nullable(),
+  /** Micro-averaged recall for the image: TP/(TP+FN). Null when no ground truth. */
+  recall: z.number().nullable(),
   regions: confidenceReportRegionInputSchema.array().default([]),
 });
 
@@ -123,10 +131,14 @@ export const confidenceReportProgressSchema = z.object({
 
 /**
  * Final complete webhook — sent once at the end of a successful run.
- * Carries per-class box-stats and optional error.
+ * Carries per-class box-stats and dataset-level precision/recall.
  */
 export const confidenceReportCompleteSchema = z.object({
   perClassStats: confidenceReportPerClassStatSchema.array(),
+  /** Dataset-level micro precision: ΣTP/(ΣTP+ΣFP). Null when no predictions in the run. */
+  overallPrecision: z.number().nullable(),
+  /** Dataset-level micro recall: ΣTP/(ΣTP+ΣFN). Null when no GT in the run. */
+  overallRecall: z.number().nullable(),
 });
 
 export const confidenceReportErrorSchema = z.object({

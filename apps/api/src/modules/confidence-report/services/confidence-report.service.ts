@@ -185,6 +185,8 @@ export class ConfidenceReportService {
       executionName: null,
       errorMessage: null,
       perClassStats: null,
+      overallPrecision: null,
+      overallRecall: null,
     });
 
     // Clear inferred regions from the previous run (replacement semantics).
@@ -322,6 +324,8 @@ export class ConfidenceReportService {
     await this.confidenceReportRepository.update(reportId, {
       status: ConfidenceReportStatusEnum.DONE,
       perClassStats: data.perClassStats as ConfidenceReportPerClassStat[],
+      overallPrecision: data.overallPrecision ?? null,
+      overallRecall: data.overallRecall ?? null,
       processed: report.total,
     });
   }

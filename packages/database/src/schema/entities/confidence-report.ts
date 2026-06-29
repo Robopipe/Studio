@@ -52,5 +52,15 @@ export const confidenceReportTable = p.pgTable("confidence_report", {
    * Shape: ConfidenceReportPerClassStats[]
    */
   perClassStats: p.jsonb("per_class_stats"),
+  /**
+   * Dataset-level micro precision: ΣTP/(ΣTP+ΣFP) across all tasks in the run.
+   * Written by the final complete webhook. Null when no predictions in the run.
+   */
+  overallPrecision: p.real("overall_precision"),
+  /**
+   * Dataset-level micro recall: ΣTP/(ΣTP+ΣFN) across all tasks in the run.
+   * Written by the final complete webhook. Null when no GT in the run.
+   */
+  overallRecall: p.real("overall_recall"),
   ...timestamps,
 });

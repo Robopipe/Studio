@@ -35,6 +35,7 @@ import {
 import { AlertCircle, Loader2, Play, Square } from "lucide-react";
 import { useState } from "react";
 
+import { metricColor } from "@/modules/analytics/utils/metricColor";
 import { ConfidenceBoxPlot } from "./ConfidenceBoxPlot";
 import { EmptyState } from "./EmptyState";
 
@@ -321,9 +322,23 @@ const ReportResults = ({
     .filter(Boolean)
     .join(" · ");
 
+  const fmtPct = (v: number | null | undefined) =>
+    v == null ? "—" : `${(v * 100).toFixed(0)}%`;
+
   return (
     <div className="flex flex-col gap-3">
       <p className="text-xs text-muted-foreground">{caption}</p>
+      <p className="text-xs text-muted-foreground">
+        Precision{" "}
+        <span className={cn(report.overallPrecision != null ? metricColor(report.overallPrecision) : "text-muted-foreground")}>
+          {fmtPct(report.overallPrecision)}
+        </span>
+        {" · "}
+        Recall{" "}
+        <span className={cn(report.overallRecall != null ? metricColor(report.overallRecall) : "text-muted-foreground")}>
+          {fmtPct(report.overallRecall)}
+        </span>
+      </p>
 
       <Tabs defaultValue="confidence">
         <TabsList variant="line" className="shrink-0">

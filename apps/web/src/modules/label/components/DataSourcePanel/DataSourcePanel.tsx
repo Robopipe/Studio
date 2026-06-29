@@ -202,6 +202,8 @@ export const DataSourcePanel = ({
                 metrics={{
                   meanConfidence: task.meanConfidence,
                   minIou: task.minIou,
+                  precision: task.precision,
+                  recall: task.recall,
                 }}
               />
             </div>
