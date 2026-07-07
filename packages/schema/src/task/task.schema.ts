@@ -75,7 +75,14 @@ export const createTaskSchema = z.object({
   capturedAt: z.iso.datetime().optional(),
 })
 
-export const taskSortBySchema = z.enum(["createdAt", "updatedAt"]);
+export const taskSortBySchema = z.enum([
+  "createdAt",
+  "updatedAt",
+  "meanConfidence",
+  "minIou",
+  "precision",
+  "recall",
+]);
 export type TaskSortBy = z.infer<typeof taskSortBySchema>;
 
 export const taskSchema = z.object({

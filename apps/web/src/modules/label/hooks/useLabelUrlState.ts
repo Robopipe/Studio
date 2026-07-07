@@ -46,8 +46,19 @@ const parseTaskId = (raw: string | null): number | null => {
   return Number.isFinite(n) ? n : null;
 };
 
-const parseSortBy = (raw: string | null): "createdAt" | "updatedAt" =>
-  raw === "updatedAt" ? "updatedAt" : "createdAt";
+const VALID_SORT_KEYS = [
+  "createdAt",
+  "updatedAt",
+  "meanConfidence",
+  "minIou",
+  "precision",
+  "recall",
+] as const;
+
+const parseSortBy = (raw: string | null): TaskSortState["sortBy"] =>
+  (VALID_SORT_KEYS as readonly string[]).includes(raw ?? "")
+    ? (raw as TaskSortState["sortBy"])
+    : "createdAt";
 
 const parseSortOrder = (raw: string | null): "asc" | "desc" =>
   raw === "asc" ? "asc" : "desc";
