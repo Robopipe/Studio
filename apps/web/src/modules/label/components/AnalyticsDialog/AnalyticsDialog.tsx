@@ -43,17 +43,16 @@ export const AnalyticsDialog = ({
         <DialogHeader>
           <DialogTitle>Dataset Analytics</DialogTitle>
         </DialogHeader>
-        <DialogTitle>Statistics</DialogTitle>
-
-        {/* Annotation type selector */}
-        <AnnotationTypeSelector
-          availableTypes={data?.availableTypes}
-          selectedTypes={requestTypes}
-          onToggle={toggleType}
-        />
-
         {/* Charts */}
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
+          <DialogTitle>Statistics</DialogTitle>
+
+          {/* Annotation type selector */}
+          <AnnotationTypeSelector
+            availableTypes={data?.availableTypes}
+            selectedTypes={requestTypes}
+            onToggle={toggleType}
+          />
           {isLoading && (
             <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
               Loading…
