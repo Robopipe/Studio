@@ -1,5 +1,6 @@
 import { AnnotateIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
+import { metricColor } from "@/modules/analytics/utils/metricColor";
 import {
   Collapsible,
   CollapsiblePanel,
@@ -161,6 +162,20 @@ export const AnnotationPanel = ({
   }, []);
 
   const displayRows = useMemo(() => buildDisplayRows(annotations), [annotations]);
+
+  // Build a map from "GEOMETRY:annotationId" → matched IoU so GT region rows can
+  // show the per-region IoU pill when a confidence report has been run.
+  // Only TP predictions carry iou + matchedAnnotationId (FP predictions have nulls).
+  const annotationIouMap = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const r of inferredRegions) {
+      if (r.iou != null && r.matchedAnnotationId != null) {
+        const geo = r.geometry === "RECTANGLE" ? "RECTANGLE" : "POLYGON";
+        map.set(`${geo}:${r.matchedAnnotationId}`, r.iou);
+      }
+    }
+    return map;
+  }, [inferredRegions]);
 
   const classesScrollRef = useRef<HTMLDivElement>(null);
   const [showClassesGradient, setShowClassesGradient] = useState(false);
@@ -517,6 +532,18 @@ export const AnnotationPanel = ({
                             <span className="flex-1 truncate text-xs leading-4 text-foreground/90">
                               {annotation.labelName}
                             </span>
+                            {(() => {
+                              const geo = annotation.type === "bbox" ? "RECTANGLE" : annotation.type === "polygon" ? "POLYGON" : null;
+                              const iou = geo != null && annotation.apiId != null ? annotationIouMap.get(`${geo}:${annotation.apiId}`) : undefined;
+                              return iou != null ? (
+                                <span
+                                  className={cn("shrink-0 rounded px-1.5 py-0.5 font-mono text-[10px] font-semibold tabular-nums", metricColor(iou))}
+                                  title="IoU"
+                                >
+                                  {iou.toFixed(2)}
+                                </span>
+                              ) : null;
+                            })()}
                             <button
                               type="button"
                               title={isHidden ? "Show" : "Hide"}
@@ -608,6 +635,18 @@ export const AnnotationPanel = ({
                   <span className="flex-1 truncate text-xs leading-4 text-foreground/90">
                     {annotation.labelName}
                   </span>
+                  {(() => {
+                    const geo = annotation.type === "bbox" ? "RECTANGLE" : annotation.type === "polygon" ? "POLYGON" : null;
+                    const iou = geo != null && annotation.apiId != null ? annotationIouMap.get(`${geo}:${annotation.apiId}`) : undefined;
+                    return iou != null ? (
+                      <span
+                        className={cn("shrink-0 rounded px-1.5 py-0.5 font-mono text-[10px] font-semibold tabular-nums", metricColor(iou))}
+                        title="IoU"
+                      >
+                        {iou.toFixed(2)}
+                      </span>
+                    ) : null;
+                  })()}
                   <button
                     type="button"
                     title={isHidden ? "Show" : "Hide"}

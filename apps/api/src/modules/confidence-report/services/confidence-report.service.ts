@@ -149,10 +149,12 @@ export class ConfidenceReportService {
         gtGeometry === ConfidenceReportGtGeometryEnum.RECTANGLE
           ? task.rectangleAnnotations.map((a) => ({
               labelId: a.labelId,
+              annotationId: a.id,
               box: { x: a.x, y: a.y, width: a.width, height: a.height },
             }))
           : task.polygonAnnotations.map((a) => ({
               labelId: a.labelId,
+              annotationId: a.id,
               polygon: a.value as [number, number][],
             }));
 

@@ -188,7 +188,7 @@ def _polygon_to_box(pts: list[tuple[float, float]]) -> tuple[float, float, float
 
 def _match_detections(
     predictions: list[dict],  # [{classIndex, score, ...}]
-    gt: list[dict],           # [{labelId, box|polygon}]
+    gt: list[dict],           # [{labelId, annotationId?, box|polygon}]
     label_ids: list[int],
     gt_geometry: str,
     img_w: int,
@@ -197,30 +197,35 @@ def _match_detections(
 ) -> tuple[list[float], list[float], list[float]]:
     """Greedy matching of predictions to GT at IoU≥0.5.
 
+    Side-effect: stamps matched true-positive predictions with two private keys:
+        _matched_iou           — float IoU of the TP match
+        _matched_annotation_id — int DB id of the matched GT annotation (may be None)
+    False-positive predictions are not stamped (keys absent).
+
     Returns:
-        scores      — confidence score for every kept prediction
-        tp_ious     — IoU for each matched true-positive (empty if no match)
-        per_class   — list of (classIndex, score, matched_iou_or_None) tuples
+        per_class — list of (classIndex, score, matched_iou_or_None) tuples
     """
     # Sort predictions by descending confidence.
     preds = sorted(predictions, key=lambda p: p["score"], reverse=True)
 
-    # Convert GT to pixel space.
-    gt_boxes_by_label: dict[int, list[tuple[float, float, float, float]]] = {}
-    gt_polys_by_label: dict[int, list[list[tuple[float, float]]]] = {}
+    # Convert GT to pixel space; store (geometry, annotationId) pairs per label.
+    # Each entry: (box_tuple_or_pts_list, annotation_id_or_None)
+    gt_boxes_by_label: dict[int, list[tuple]] = {}
+    gt_polys_by_label: dict[int, list[tuple]] = {}
 
     for g in gt:
         lid = g["labelId"]
+        ann_id = g.get("annotationId")
         if gt_geometry == "RECTANGLE":
             b = g["box"]
             px = b["x"] * img_w / 100.0
             py = b["y"] * img_h / 100.0
             pw = b["width"] * img_w / 100.0
             ph = b["height"] * img_h / 100.0
-            gt_boxes_by_label.setdefault(lid, []).append((px, py, pw, ph))
+            gt_boxes_by_label.setdefault(lid, []).append(((px, py, pw, ph), ann_id))
         else:  # POLYGON
             pts = [(p[0] * img_w / 100.0, p[1] * img_h / 100.0) for p in g["polygon"]]
-            gt_polys_by_label.setdefault(lid, []).append(pts)
+            gt_polys_by_label.setdefault(lid, []).append((pts, ann_id))
 
     matched_gt: dict[int, set[int]] = {}  # labelId → set of matched GT indices
     per_class_results: list[tuple[int, float, Optional[float]]] = []
@@ -246,7 +251,7 @@ def _match_detections(
             used = matched_gt.setdefault(lid, set())
             best_iou = 0.0
             best_idx = -1
-            for gi, gt_box in enumerate(gt_boxes):
+            for gi, (gt_box, _ann_id) in enumerate(gt_boxes):
                 if gi in used:
                     continue
                 iou = _box_iou(pred_box, gt_box)
@@ -256,13 +261,16 @@ def _match_detections(
             if best_iou >= IOU_MATCH_THRESHOLD:
                 matched_gt[lid].add(best_idx)
                 matched_iou = best_iou
+                # Stamp the prediction dict (same object as in `predictions` list).
+                pred["_matched_iou"] = matched_iou
+                pred["_matched_annotation_id"] = gt_boxes[best_idx][1]
         else:
             # Segmentation: compare polygons.
             gt_polys = gt_polys_by_label.get(lid, [])
             used = matched_gt.setdefault(lid, set())
             best_iou = 0.0
             best_idx = -1
-            for gi, gt_poly in enumerate(gt_polys):
+            for gi, (gt_poly, _ann_id) in enumerate(gt_polys):
                 if gi in used:
                     continue
                 iou = _polygon_iou(pred_pts, gt_poly)
@@ -272,6 +280,9 @@ def _match_detections(
             if best_iou >= IOU_MATCH_THRESHOLD:
                 matched_gt[lid].add(best_idx)
                 matched_iou = best_iou
+                # Stamp the prediction dict (same object as in `predictions` list).
+                pred["_matched_iou"] = matched_iou
+                pred["_matched_annotation_id"] = gt_polys[best_idx][1]
 
         per_class_results.append((ci, score, matched_iou))
 
@@ -433,31 +444,8 @@ def main() -> None:
                     iou_threshold=iou_threshold,
                 )
 
-            # Convert predictions to percentage coords and build region payloads.
-            # img.shape is (height, width, channels), so use img_h/img_w which
-            # are passed from the task payload (original image dimensions in px).
-            for pred in predictions:
-                ci = pred["classIndex"]
-                if ci < 0 or ci >= n_classes:
-                    continue
-                region: dict = {
-                    "labelId": label_ids[ci],
-                    "score": float(pred["score"]),
-                    "geometry": gt_geometry,
-                }
-                if is_detection:
-                    region["x"] = pred["x"] / img_w * 100.0
-                    region["y"] = pred["y"] / img_h * 100.0
-                    region["width"] = pred["width"] / img_w * 100.0
-                    region["height"] = pred["height"] / img_h * 100.0
-                else:
-                    region["value"] = [
-                        [pt[0] / img_w * 100.0, pt[1] / img_h * 100.0]
-                        for pt in pred["value"]
-                    ]
-                task_regions.append(region)
-
             # For detection model + POLYGON gt: convert gt polygons to boxes.
+            # Preserve annotationId so it can be threaded through to matched regions.
             effective_gt = gt
             if is_detection and gt_geometry == "POLYGON":
                 effective_gt = []
@@ -465,7 +453,11 @@ def main() -> None:
                     pts = [(p[0], p[1]) for p in g["polygon"]]
                     if len(pts) >= 3:
                         x, y, w, h = _polygon_to_box(pts)
-                        effective_gt.append({"labelId": g["labelId"], "box": {"x": x, "y": y, "width": w, "height": h}})
+                        effective_gt.append({
+                            "labelId": g["labelId"],
+                            "annotationId": g.get("annotationId"),
+                            "box": {"x": x, "y": y, "width": w, "height": h},
+                        })
                 # Note: these are already in percentage coords here; we need to
                 # use the original gt list passed to _match_detections which
                 # expects the effective_gt format. For detection, it uses "box".
@@ -482,6 +474,33 @@ def main() -> None:
                 img_h,
                 model_type,
             )
+
+            # Build region payloads after matching so _matched_iou/_matched_annotation_id
+            # are already stamped on each TP prediction by _match_detections.
+            # img.shape is (height, width, channels), so use img_h/img_w which
+            # are passed from the task payload (original image dimensions in px).
+            for pred in predictions:
+                ci = pred["classIndex"]
+                if ci < 0 or ci >= n_classes:
+                    continue
+                region: dict = {
+                    "labelId": label_ids[ci],
+                    "score": float(pred["score"]),
+                    "geometry": gt_geometry,
+                    "iou": pred.get("_matched_iou"),
+                    "matchedAnnotationId": pred.get("_matched_annotation_id"),
+                }
+                if is_detection:
+                    region["x"] = pred["x"] / img_w * 100.0
+                    region["y"] = pred["y"] / img_h * 100.0
+                    region["width"] = pred["width"] / img_w * 100.0
+                    region["height"] = pred["height"] / img_h * 100.0
+                else:
+                    region["value"] = [
+                        [pt[0] / img_w * 100.0, pt[1] / img_h * 100.0]
+                        for pt in pred["value"]
+                    ]
+                task_regions.append(region)
 
             mean_conf, min_iou, precision, recall, tp, fp, fn = _task_metrics(
                 per_class_results, len(effective_gt)
