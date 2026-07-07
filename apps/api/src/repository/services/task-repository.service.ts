@@ -8,6 +8,29 @@ import { and, asc, count, desc, eq, inArray, isNotNull, isNull, max, sql, type S
 import type { TaskSortBy } from "@repo/schema";
 import { TaskStatusEnum } from "@repo/schema";
 
+const METRIC_SORT_COLUMNS = {
+  meanConfidence: taskTable.meanConfidence,
+  minIou: taskTable.minIou,
+  precision: taskTable.precision,
+  recall: taskTable.recall,
+} as const;
+
+/**
+ * Build the ORDER BY clause for task list queries.
+ * Metric columns always use NULLS LAST (un-scored tasks sink to the bottom).
+ * A stable `DESC id` tiebreaker is appended for deterministic pagination.
+ */
+function buildTaskOrderBy(sortBy: TaskSortBy, sortOrder: "asc" | "desc"): SQL[] {
+  const orderFn = sortOrder === "desc" ? desc : asc;
+  if (sortBy in METRIC_SORT_COLUMNS) {
+    const col = METRIC_SORT_COLUMNS[sortBy as keyof typeof METRIC_SORT_COLUMNS];
+    const dir = sql.raw(sortOrder === "desc" ? "desc" : "asc");
+    return [sql`${col} ${dir} nulls last`, desc(taskTable.id)];
+  }
+  const col = sortBy === "updatedAt" ? taskTable.updatedAt : taskTable.createdAt;
+  return [orderFn(col), desc(taskTable.id)];
+}
+
 @Injectable()
 export class TaskRepository {
   constructor(@Inject(DB_CONNECTION) private readonly db: DbConnection) {}
@@ -152,13 +175,7 @@ export class TaskRepository {
   ): Promise<{ data: TaskEntity[]; total: number }> {
     const offset = (page - 1) * limit;
 
-    // Build deletedAt filter for relational query
-    const deletedAtFilter: Record<string, boolean> | undefined =
-      deleted === false ? { isNull: true } :
-      deleted === true ? { isNotNull: true } :
-      undefined;
-
-    // Build deletedAt condition for count query
+    // Build deletedAt condition
     const deletedAtCondition: SQL | undefined =
       deleted === false ? isNull(taskTable.deletedAt) :
       deleted === true ? isNotNull(taskTable.deletedAt) :
@@ -188,25 +205,25 @@ export class TaskRepository {
       ? inArray(taskTable.updatedBy, updatedBy)
       : undefined;
 
-    const orderFn = sortOrder === "desc" ? desc : asc;
+    const whereCondition = and(
+      eq(taskTable.projectId, projectId),
+      deletedAtCondition,
+      statusCondition,
+      idsCondition,
+      updatedByCondition,
+      buildLabelCondition?.(taskTable.id),
+    );
 
     const [tasks, totalResult] = await Promise.all([
-      this.db.query.taskTable.findMany({
-        where: {
-          projectId,
-          ...(deletedAtFilter && { deletedAt: deletedAtFilter }),
-          ...(statusValue && { status: statusValue }),
-          ...(ids?.length && { id: { in: ids } }),
-          ...(updatedBy?.length && { updatedBy: { in: updatedBy } }),
-          ...(buildLabelCondition && { RAW: (table: typeof taskTable) => buildLabelCondition(table.id) }),
-        },
-        orderBy: (t) => sortBy === "updatedAt" ? orderFn(t.updatedAt) : orderFn(t.createdAt),
-        limit,
-        offset,
-      }),
+      this.db.select()
+        .from(taskTable)
+        .where(whereCondition)
+        .orderBy(...buildTaskOrderBy(sortBy, sortOrder))
+        .limit(limit)
+        .offset(offset),
       this.db.select({ count: count() })
         .from(taskTable)
-        .where(and(eq(taskTable.projectId, projectId), deletedAtCondition, statusCondition, idsCondition, updatedByCondition, buildLabelCondition?.(taskTable.id))),
+        .where(whereCondition),
     ]);
 
     return {
@@ -240,9 +257,6 @@ export class TaskRepository {
       ? this.buildLabelExistsCondition(labelIds)
       : undefined;
 
-    const sortColumn = sortBy === "updatedAt" ? taskTable.updatedAt : taskTable.createdAt;
-    const orderFn = sortOrder === "desc" ? desc : asc;
-
     const rows = await this.db
       .select({ id: taskTable.id })
       .from(taskTable)
@@ -254,7 +268,7 @@ export class TaskRepository {
           buildLabelCondition?.(taskTable.id),
         ),
       )
-      .orderBy(orderFn(sortColumn));
+      .orderBy(...buildTaskOrderBy(sortBy, sortOrder));
 
     return rows.map((r) => r.id);
   }

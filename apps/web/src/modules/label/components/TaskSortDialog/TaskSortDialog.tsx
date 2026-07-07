@@ -10,7 +10,7 @@ import { ReactNode, useEffect, useState } from "react";
 import { DEFAULT_SORT } from "../../hooks/useLabelUrlState";
 
 export interface TaskSortState {
-  sortBy: "createdAt" | "updatedAt";
+  sortBy: "createdAt" | "updatedAt" | "meanConfidence" | "minIou" | "precision" | "recall";
   sortOrder: "asc" | "desc";
 }
 
@@ -19,27 +19,55 @@ export interface TaskSortDialogProps {
   onOpenChange: (open: boolean) => void;
   sort: TaskSortState;
   onApply: (sort: TaskSortState) => void;
+  metricsAvailable?: boolean;
 }
 
-const SORT_BY_OPTIONS: { value: TaskSortState["sortBy"]; label: string }[] = [
+const DATE_SORT_OPTIONS: { value: TaskSortState["sortBy"]; label: string }[] = [
   { value: "createdAt", label: "Created at" },
   { value: "updatedAt", label: "Updated at" },
 ];
+
+const METRIC_SORT_OPTIONS: { value: TaskSortState["sortBy"]; label: string }[] = [
+  { value: "meanConfidence", label: "Confidence" },
+  { value: "minIou", label: "IoU" },
+  { value: "precision", label: "Precision" },
+  { value: "recall", label: "Recall" },
+];
+
+const METRIC_SORT_KEYS = new Set<TaskSortState["sortBy"]>([
+  "meanConfidence",
+  "minIou",
+  "precision",
+  "recall",
+]);
+
+const isMetricSort = (key: TaskSortState["sortBy"]): boolean => METRIC_SORT_KEYS.has(key);
 
 export const TaskSortDialog = ({
   open,
   onOpenChange,
   sort,
   onApply,
+  metricsAvailable = false,
 }: TaskSortDialogProps) => {
   const [sortBy, setSortBy] = useState<TaskSortState["sortBy"]>(sort.sortBy);
   const [sortOrder, setSortOrder] = useState<TaskSortState["sortOrder"]>(sort.sortOrder);
 
   useEffect(() => {
     if (!open) return;
-    setSortBy(sort.sortBy);
+    // If the URL has a metric sort but metrics are no longer available (e.g. report
+    // was re-run), fall back to the default so no invisible radio is "selected".
+    const effectiveSortBy =
+      isMetricSort(sort.sortBy) && !metricsAvailable ? DEFAULT_SORT.sortBy : sort.sortBy;
+    setSortBy(effectiveSortBy);
     setSortOrder(sort.sortOrder);
-  }, [open, sort]);
+  }, [open, sort, metricsAvailable]);
+
+  const handleSortByChange = (value: TaskSortState["sortBy"]) => {
+    setSortBy(value);
+    // Default to worst-first (asc) for metrics, newest-first (desc) for dates.
+    setSortOrder(isMetricSort(value) ? "asc" : "desc");
+  };
 
   const handleSave = () => {
     onApply({ sortBy, sortOrder });
@@ -51,8 +79,26 @@ export const TaskSortDialog = ({
     setSortOrder(DEFAULT_SORT.sortOrder);
   };
 
-  const newestLabel = "Newest first";
-  const oldestLabel = "Oldest first";
+  const isMetric = isMetricSort(sortBy);
+  const descLabel = isMetric ? "Highest first" : "Newest first";
+  const ascLabel = isMetric ? "Lowest first" : "Oldest first";
+
+  const renderRadioOption = (opt: { value: TaskSortState["sortBy"]; label: string }) => (
+    <label
+      key={opt.value}
+      className="flex cursor-pointer items-center gap-3 text-sm text-foreground"
+    >
+      <input
+        type="radio"
+        name="sortBy"
+        value={opt.value}
+        checked={sortBy === opt.value}
+        onChange={() => handleSortByChange(opt.value)}
+        className="accent-primary"
+      />
+      {opt.label}
+    </label>
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -63,23 +109,16 @@ export const TaskSortDialog = ({
 
         <SortSection title="Sort by">
           <div className="flex flex-col gap-2">
-            {SORT_BY_OPTIONS.map((opt) => (
-              <label
-                key={opt.value}
-                className="flex cursor-pointer items-center gap-3 text-sm text-foreground"
-              >
-                <input
-                  type="radio"
-                  name="sortBy"
-                  value={opt.value}
-                  checked={sortBy === opt.value}
-                  onChange={() => setSortBy(opt.value)}
-                  className="accent-primary"
-                />
-                {opt.label}
-              </label>
-            ))}
+            {DATE_SORT_OPTIONS.map(renderRadioOption)}
           </div>
+          {metricsAvailable && (
+            <div className="flex flex-col gap-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Confidence report
+              </p>
+              {METRIC_SORT_OPTIONS.map(renderRadioOption)}
+            </div>
+          )}
         </SortSection>
 
         <SortSection title="Direction">
@@ -93,7 +132,7 @@ export const TaskSortDialog = ({
                   : "border-input bg-transparent text-muted-foreground hover:bg-black/[0.06] hover:text-foreground"
               }`}
             >
-              {newestLabel}
+              {descLabel}
             </button>
             <button
               type="button"
@@ -104,7 +143,7 @@ export const TaskSortDialog = ({
                   : "border-input bg-transparent text-muted-foreground hover:bg-black/[0.06] hover:text-foreground"
               }`}
             >
-              {oldestLabel}
+              {ascLabel}
             </button>
           </div>
         </SortSection>

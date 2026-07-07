@@ -15,3 +15,6 @@ certifi==2024.8.30
 fastapi==0.115.5
 uvicorn[standard]==0.32.1
 pydantic==2.10.5
+
+# Polygon IoU for the confidence-report batch job.
+shapely==2.0.6

@@ -23,6 +23,7 @@ from fastapi import Depends, FastAPI, HTTPException, status
 from pydantic import BaseModel, Field, HttpUrl
 
 from .auth import require_api_key
+from .batch import main as _batch_main
 from .cache import ModelCache
 from .image_io import fetch_image
 from .output_format import normalize_det_outputs, normalize_outputs
@@ -92,6 +93,55 @@ class DetPredictResponse(BaseModel):
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok", "cachedModels": list(_CACHE._entries.keys())}
+
+
+# ─── Confidence-report batch endpoint (local-dev HTTP fallback) ───────────────
+
+import threading as _threading
+
+class ReportRequest(BaseModel):
+    """Opaque payload — the batch main() reads CONFIG_URL from env, but for the
+    local HTTP path the API posts the full config JSON as the body. We store it
+    as a temp file and run main() in a background thread so the API gets a
+    quick 202 back."""
+    pass  # all fields are dynamic; we accept Any JSON
+
+@app.post("/report/", status_code=202, dependencies=[Depends(require_api_key)])
+def run_report(body: dict) -> dict:
+    """Local-dev HTTP trigger for the confidence-report batch job.
+
+    The full job config JSON is posted as the body. Sets CONFIG_URL to a
+    temporary in-memory URL and launches main() in a background thread.
+    """
+    import json
+    import os
+    import tempfile
+
+    # Serialize the config to a temp file and point CONFIG_URL at it.
+    tmp = tempfile.NamedTemporaryFile(
+        mode="w", suffix=".json", delete=False, prefix="ml-infer-report-"
+    )
+    json.dump(body, tmp)
+    tmp.flush()
+    tmp.close()
+
+    # Set env vars that batch.main() reads.
+    os.environ["CONFIG_URL"] = f"file://{tmp.name}"
+    os.environ.setdefault("API_KEY", os.environ.get("ML_INFER_API_KEY", ""))
+
+    def _run():
+        try:
+            _batch_main()
+        except SystemExit:
+            pass
+        finally:
+            try:
+                os.unlink(tmp.name)
+            except OSError:
+                pass
+
+    _threading.Thread(target=_run, daemon=True).start()
+    return {"status": "accepted"}
 
 
 def _load_and_fetch(model_id: int, model_url: str, image_url: str):
