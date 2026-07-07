@@ -79,6 +79,10 @@ export const confidenceReportRegionInputSchema = z.object({
   labelId: z.number(),
   score: z.number(),
   geometry: z.enum(ConfidenceReportGtGeometryEnum),
+  /** Matched IoU against the ground-truth annotation (TP only; null/absent for false positives). */
+  iou: z.number().nullable().optional(),
+  /** DB id of the matched ground-truth annotation (rectangle or polygon). Null for FP. */
+  matchedAnnotationId: z.number().nullable().optional(),
   x: z.number().optional(),
   y: z.number().optional(),
   width: z.number().optional(),
@@ -99,6 +103,10 @@ export const confidenceReportRegionResponseSchema = z.object({
   }),
   score: z.number(),
   geometry: z.enum(ConfidenceReportGtGeometryEnum),
+  /** Matched IoU against the ground-truth annotation (TP only; null for false positives). */
+  iou: z.number().nullish(),
+  /** DB id of the matched ground-truth annotation. Null for false positives. */
+  matchedAnnotationId: z.number().nullish(),
   x: z.number().nullish(),
   y: z.number().nullish(),
   width: z.number().nullish(),

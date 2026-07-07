@@ -159,13 +159,14 @@ export const LabelPage = () => {
     { skip: !projectId || selectedTaskId === null },
   );
 
-  // Inferred regions for the selected task — only fetched while on the Inferred tab.
+  // Inferred regions for the selected task — fetched while on the Labels or Inferred tab
+  // so the IoU map is available for GT region rows and for the canvas/inferred list.
   const { data: rawRegions = [], isLoading: isLoadingRegions } =
     useGetConfidenceReportRegionsQuery(
       { projectId: projectId!, taskId: selectedTaskId! },
       {
         skip:
-          activeAnnotationTab !== "inferred" ||
+          activeAnnotationTab === "history" ||
           !projectId ||
           selectedTaskId === null,
         // Poll while the report is running so regions stream in.

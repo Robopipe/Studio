@@ -24,6 +24,12 @@ export const confidenceReportRegionTable = p.pgTable(
     geometry: confidenceReportGtGeometryEnum("geometry").notNull(),
     /** Confidence score output by the model (0–1). */
     score: p.real("score").notNull(),
+    /** Matched IoU against the ground-truth annotation (TP only; null for false positives). */
+    iou: p.real("iou"),
+    /** ID of the ground-truth annotation (rectangle_annotation or polygon_annotation) this
+     *  prediction was matched to at IoU≥0.5. Null for false positives. Plain int — not a
+     *  foreign key because GT lives in two separate tables. */
+    matchedAnnotationId: p.integer("matched_annotation_id"),
     /** Rectangle geometry — percentage coords (0–100), null for polygons. */
     x: p.doublePrecision("x"),
     y: p.doublePrecision("y"),
