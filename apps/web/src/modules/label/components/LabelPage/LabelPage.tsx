@@ -1070,6 +1070,7 @@ export const LabelPage = () => {
         onFilterChange={setFilter}
         sort={sort}
         onSortChange={setSort}
+        metricsAvailable={confidenceReport?.status === ConfidenceReportStatusEnum.DONE}
       />
       <AnnotationPanel
         annotations={annotations}

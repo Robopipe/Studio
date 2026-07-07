@@ -33,6 +33,7 @@ export interface DataSourcePanelProps {
   onFilterChange: (filter: TaskFilterState) => void;
   sort: TaskSortState;
   onSortChange: (sort: TaskSortState) => void;
+  metricsAvailable?: boolean;
 }
 
 export const DataSourcePanel = ({
@@ -48,6 +49,7 @@ export const DataSourcePanel = ({
   onFilterChange,
   sort,
   onSortChange,
+  metricsAvailable = false,
 }: DataSourcePanelProps) => {
   const listRef = useRef<HTMLDivElement>(null);
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
@@ -170,6 +172,7 @@ export const DataSourcePanel = ({
         onOpenChange={setSortDialogOpen}
         sort={sort}
         onApply={onSortChange}
+        metricsAvailable={metricsAvailable}
       />
       <TaskFilterDialog
         open={filterDialogOpen}
