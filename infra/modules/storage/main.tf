@@ -45,6 +45,16 @@ resource "google_storage_bucket" "assets" {
       type = "Delete"
     }
   }
+
+  lifecycle_rule {
+    condition {
+      age            = 7
+      matches_prefix = ["confidence-report-configs/"]
+    }
+    action {
+      type = "Delete"
+    }
+  }
 }
 
 resource "google_storage_bucket_iam_member" "assets_public_read" {

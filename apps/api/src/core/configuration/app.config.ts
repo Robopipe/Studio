@@ -64,6 +64,16 @@ export const appConfigSchema = z.object({
   // empty disables the predict endpoint (local dev without the service).
   mlInferUrl: z.string().optional(),
   mlInferApiKey: z.string(),
+  // Confidence-report backend. Two paths:
+  //   mlInferJobName — Cloud Run Job full resource name
+  //                    (projects/<p>/locations/<r>/jobs/<name>).
+  //                    Used in deployed environments. Job is triggered via
+  //                    the Cloud Run Admin API with per-execution env overrides.
+  //   mlHostInfer    — HTTP fallback for local dev (ml-infer FastAPI server);
+  //                    POSTs to the /report/ endpoint (202 Accepted).
+  // Neither set → the confidence report run endpoint returns 503.
+  mlInferJobName: z.string().optional(),
+  mlHostInfer: z.string().optional(),
 });
 
 export class AppConfig extends createZodDto(appConfigSchema) {}

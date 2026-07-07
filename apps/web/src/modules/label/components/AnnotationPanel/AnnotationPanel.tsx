@@ -1,5 +1,6 @@
 import { AnnotateIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
+import { metricColor } from "@/modules/analytics/utils/metricColor";
 import {
   Collapsible,
   CollapsiblePanel,
@@ -11,7 +12,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/modules/shadcn/ui/tabs";
-import { Label } from "@repo/schema";
+import { ConfidenceReportRegionResponse, ConfidenceReportStatusEnum, Label } from "@repo/schema";
 import {
   AlertTriangle,
   ChevronDown,
@@ -27,6 +28,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDraggableList } from "../../hooks/useDraggableList";
 import { Annotation, HistoryEntry } from "../../types/annotations";
 import { AnnotationHistoryTab } from "../AnnotationHistoryTab/AnnotationHistoryTab";
+import { InferredRegionsTab } from "../InferredRegionsTab/InferredRegionsTab";
 
 export interface AnnotationPanelProps {
   annotations: Annotation[];
@@ -59,6 +61,15 @@ export interface AnnotationPanelProps {
   taskId?: number | null;
   isolatedAnnotationId?: string | null;
   onIsolateAnnotation?: (id: string | null) => void;
+  /** Controlled tab value — lifted to LabelPage so it can swap the canvas. */
+  activeTab: "labels" | "history" | "inferred";
+  onTabChange: (tab: "labels" | "history" | "inferred") => void;
+  /** Inferred-regions tab data */
+  inferredRegions: ConfidenceReportRegionResponse[];
+  isLoadingRegions: boolean;
+  reportStatus: ConfidenceReportStatusEnum | null;
+  showGtOverlay: boolean;
+  onToggleGtOverlay: (show: boolean) => void;
 }
 
 type DisplayRow =
@@ -108,6 +119,13 @@ export const AnnotationPanel = ({
   taskId,
   isolatedAnnotationId,
   onIsolateAnnotation,
+  activeTab,
+  onTabChange,
+  inferredRegions,
+  isLoadingRegions,
+  reportStatus,
+  showGtOverlay,
+  onToggleGtOverlay,
 }: AnnotationPanelProps) => {
   const classCounts = labels
     .map((label) => ({
@@ -144,6 +162,20 @@ export const AnnotationPanel = ({
   }, []);
 
   const displayRows = useMemo(() => buildDisplayRows(annotations), [annotations]);
+
+  // Build a map from "GEOMETRY:annotationId" → matched IoU so GT region rows can
+  // show the per-region IoU pill when a confidence report has been run.
+  // Only TP predictions carry iou + matchedAnnotationId (FP predictions have nulls).
+  const annotationIouMap = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const r of inferredRegions) {
+      if (r.iou != null && r.matchedAnnotationId != null) {
+        const geo = r.geometry === "RECTANGLE" ? "RECTANGLE" : "POLYGON";
+        map.set(`${geo}:${r.matchedAnnotationId}`, r.iou);
+      }
+    }
+    return map;
+  }, [inferredRegions]);
 
   const classesScrollRef = useRef<HTMLDivElement>(null);
   const [showClassesGradient, setShowClassesGradient] = useState(false);
@@ -210,12 +242,14 @@ export const AnnotationPanel = ({
 
   return (
     <Tabs
-      defaultValue="labels"
+      value={activeTab}
+      onValueChange={(v) => onTabChange(v as "labels" | "history" | "inferred")}
       className="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden border-r border-border bg-black/[0.03]"
     >
       <TabsList variant="line" className="h-10 shrink-0">
         <TabsTrigger value="labels">Annotations</TabsTrigger>
         <TabsTrigger value="history">History</TabsTrigger>
+        <TabsTrigger value="inferred">Inferred</TabsTrigger>
       </TabsList>
 
       <TabsContent
@@ -498,6 +532,18 @@ export const AnnotationPanel = ({
                             <span className="flex-1 truncate text-xs leading-4 text-foreground/90">
                               {annotation.labelName}
                             </span>
+                            {(() => {
+                              const geo = annotation.type === "bbox" ? "RECTANGLE" : annotation.type === "polygon" ? "POLYGON" : null;
+                              const iou = geo != null && annotation.apiId != null ? annotationIouMap.get(`${geo}:${annotation.apiId}`) : undefined;
+                              return iou != null ? (
+                                <span
+                                  className={cn("shrink-0 rounded px-1.5 py-0.5 font-mono text-[10px] font-semibold tabular-nums", metricColor(iou))}
+                                  title="IoU"
+                                >
+                                  {iou.toFixed(2)}
+                                </span>
+                              ) : null;
+                            })()}
                             <button
                               type="button"
                               title={isHidden ? "Show" : "Hide"}
@@ -589,6 +635,18 @@ export const AnnotationPanel = ({
                   <span className="flex-1 truncate text-xs leading-4 text-foreground/90">
                     {annotation.labelName}
                   </span>
+                  {(() => {
+                    const geo = annotation.type === "bbox" ? "RECTANGLE" : annotation.type === "polygon" ? "POLYGON" : null;
+                    const iou = geo != null && annotation.apiId != null ? annotationIouMap.get(`${geo}:${annotation.apiId}`) : undefined;
+                    return iou != null ? (
+                      <span
+                        className={cn("shrink-0 rounded px-1.5 py-0.5 font-mono text-[10px] font-semibold tabular-nums", metricColor(iou))}
+                        title="IoU"
+                      >
+                        {iou.toFixed(2)}
+                      </span>
+                    ) : null;
+                  })()}
                   <button
                     type="button"
                     title={isHidden ? "Show" : "Hide"}
@@ -638,6 +696,17 @@ export const AnnotationPanel = ({
         ) : (
           <p className="p-4 text-xs text-muted-foreground">No task selected.</p>
         )}
+      </TabsContent>
+
+      <TabsContent value="inferred" className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <InferredRegionsTab
+          regions={inferredRegions}
+          isLoading={isLoadingRegions}
+          reportStatus={reportStatus}
+          showGtOverlay={showGtOverlay}
+          onToggleGtOverlay={onToggleGtOverlay}
+          hasTask={taskId != null}
+        />
       </TabsContent>
     </Tabs>
   );

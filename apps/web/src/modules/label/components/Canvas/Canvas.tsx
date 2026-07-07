@@ -47,6 +47,8 @@ export interface CanvasProps {
   toolbarsVisible: boolean;
   onToggleToolbars: () => void;
   onImageLoad?: (width: number, height: number) => void;
+  /** When true, disables all editing (drawing, save, delete) and renders inferred regions as dashed+score. */
+  readOnly?: boolean;
 }
 
 const isTextInputFocused = (target: EventTarget | null) => {
@@ -92,6 +94,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
   toolbarsVisible,
   onToggleToolbars,
   onImageLoad,
+  readOnly = false,
 }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const stageHandle = useRef<KonvaStageHandle>(null);
@@ -256,7 +259,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
             {toolbarsVisible ? "Hide toolbars" : "Show toolbars"}
           </span>
         </button>
-        {canMarkEmpty && annotations.length === 0 && (
+        {!readOnly && canMarkEmpty && annotations.length === 0 && (
           <button
             type="button"
             title="Mark as empty / background (E)"
@@ -267,15 +270,17 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
             {isSaving ? "Saving..." : "No objects"}
           </button>
         )}
-        <button
-          type="button"
-          title="Save (S)"
-          className="shrink-0 cursor-pointer rounded border-none bg-primary px-3 py-1 text-xs font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-          onClick={onSave}
-          disabled={!isDirty || isSaving}
-        >
-          {isSaving ? "Saving..." : "Save"}
-        </button>
+        {!readOnly && (
+          <button
+            type="button"
+            title="Save (S)"
+            className="shrink-0 cursor-pointer rounded border-none bg-primary px-3 py-1 text-xs font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            onClick={onSave}
+            disabled={!isDirty || isSaving}
+          >
+            {isSaving ? "Saving..." : "Save"}
+          </button>
+        )}
       </div>
 
       <div
@@ -302,6 +307,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
               scale={scale}
               position={position}
               toolMode={toolMode}
+              readOnly={readOnly}
               annotations={loading ? [] : annotations}
               selectedAnnotationIds={loading ? new Set() : selectedAnnotationIds}
               primarySelectedId={loading ? null : primarySelectedId}

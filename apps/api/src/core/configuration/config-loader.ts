@@ -62,6 +62,11 @@ export class ConfigLoader {
     const mlInferUrl = process.env.ML_INFER_URL || undefined;
     const mlInferApiKey = process.env.ML_INFER_API_KEY || "supersecret";
 
+    // Confidence-report backend. Full Cloud Run Job resource name in deployed
+    // environments; mlHostInfer is the HTTP fallback for local dev.
+    const mlInferJobName = process.env.ML_INFER_JOB_NAME || undefined;
+    const mlHostInfer = process.env.ML_HOST_INFER || undefined;
+
     const config:Record<string, string|number|undefined> = {
       env,
       databaseUrl,
@@ -95,6 +100,8 @@ export class ConfigLoader {
       mlBatchSubnetwork,
       mlInferUrl,
       mlInferApiKey,
+      mlInferJobName,
+      mlHostInfer,
     }
 
     return config;

@@ -65,4 +65,12 @@ export const studioApiEndpoints = {
   },
   preAnnotateSettings: (projectId: number, modelType: string) =>
     `projects/${projectId}/pre-annotate-settings/${modelType}`,
+  analytics: {
+    datasetStats: (projectId: number) => `analytics/${projectId}/dataset-stats`,
+  },
+  confidenceReport: {
+    report: (projectId: number) => `confidence-report/${projectId}`,
+    regions: (projectId: number, taskId: number) =>
+      `confidence-report/${projectId}/regions/${taskId}`,
+  },
 } as const;

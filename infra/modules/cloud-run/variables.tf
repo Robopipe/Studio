@@ -167,3 +167,9 @@ variable "ml_infer_api_key_secret" {
   type        = string
   default     = ""
 }
+
+variable "ml_infer_job_name" {
+  description = "Full Cloud Run Job resource name for the confidence-report Job (projects/<p>/locations/<r>/jobs/<name>)"
+  type        = string
+  default     = ""
+}

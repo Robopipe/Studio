@@ -55,9 +55,10 @@ resource "google_secret_manager_secret_iam_member" "ml_access" {
   member    = "serviceAccount:${var.ml_service_account}"
 }
 
-# IAM: allow the ml-infer Cloud Run SA to read its own shared-secret env.
+# IAM: allow the ml-infer Cloud Run SA to read its own shared-secret env and
+# the mlSecret injected as API_KEY into the confidence-report Cloud Run Job.
 resource "google_secret_manager_secret_iam_member" "ml_infer_access" {
-  for_each  = var.ml_infer_service_account != "" ? toset(["mlInferApiKey"]) : toset([])
+  for_each  = var.ml_infer_service_account != "" ? toset(["mlInferApiKey", "mlSecret"]) : toset([])
   project   = var.project_id
   secret_id = google_secret_manager_secret.secrets[each.key].secret_id
   role      = "roles/secretmanager.secretAccessor"

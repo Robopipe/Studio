@@ -1,4 +1,5 @@
 import { Global, Module } from '@nestjs/common';
+import { AnalyticsRepository } from './services/analytics-repository.service';
 import { ModelRepository } from './services/model-repository.service';
 import { OrganizationRepository } from './services/organization-repository.service';
 import { ProjectRepository } from './services/project-repository.service';
@@ -21,11 +22,13 @@ import { EvalTestCaseRepository } from './services/eval-test-case.service';
 import { EvalThresholdRepository } from './services/eval-threshold.service';
 import { CapturedVideoRepository } from './services/captured-video-repository.service';
 import { ProjectPreAnnotateSettingsRepository } from './services/project-pre-annotate-settings-repository.service';
+import { ConfidenceReportRepository } from './services/confidence-report-repository.service';
 
 
 @Global()
 @Module({
   providers: [
+    AnalyticsRepository,
     ModelRepository,
     OrganizationRepository,
     OrganizationMemberRepository,
@@ -47,8 +50,10 @@ import { ProjectPreAnnotateSettingsRepository } from './services/project-pre-ann
     EvalThresholdRepository,
     CapturedVideoRepository,
     ProjectPreAnnotateSettingsRepository,
+    ConfidenceReportRepository,
   ],
   exports: [
+    AnalyticsRepository,
     ModelRepository,
     OrganizationRepository,
     OrganizationMemberRepository,
@@ -70,6 +75,7 @@ import { ProjectPreAnnotateSettingsRepository } from './services/project-pre-ann
     EvalThresholdRepository,
     CapturedVideoRepository,
     ProjectPreAnnotateSettingsRepository,
+    ConfidenceReportRepository,
   ],
 })
 export class RepositoryModule {}

@@ -75,7 +75,14 @@ export const createTaskSchema = z.object({
   capturedAt: z.iso.datetime().optional(),
 })
 
-export const taskSortBySchema = z.enum(["createdAt", "updatedAt"]);
+export const taskSortBySchema = z.enum([
+  "createdAt",
+  "updatedAt",
+  "meanConfidence",
+  "minIou",
+  "precision",
+  "recall",
+]);
 export type TaskSortBy = z.infer<typeof taskSortBySchema>;
 
 export const taskSchema = z.object({
@@ -89,6 +96,13 @@ export const taskSchema = z.object({
   status: z.enum(TaskStatusEnum),
   annotationCount: z.number().nullable(),
   updatedBy: z.number().nullable().optional(),
+  // Per-task confidence report scalars — null until a report has been run.
+  meanConfidence: z.number().nullable().optional(),
+  minIou: z.number().nullable().optional(),
+  /** Micro-averaged precision for this image: TP/(TP+FP). Null when no predictions. */
+  precision: z.number().nullable().optional(),
+  /** Micro-averaged recall for this image: TP/(TP+FN). Null when no ground truth. */
+  recall: z.number().nullable().optional(),
   ...timestampsSchema
 })
 

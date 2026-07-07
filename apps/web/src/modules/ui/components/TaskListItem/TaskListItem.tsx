@@ -1,7 +1,15 @@
+import { metricColor } from "@/modules/analytics/utils/metricColor";
 import { cn } from "@/lib/utils";
 import { Task } from "@repo/schema";
 import { ReactNode } from "react";
 import { MediaListItem, MediaListItemDate } from "./MediaListItem";
+
+export interface TaskMetrics {
+  meanConfidence?: number | null;
+  minIou?: number | null;
+  precision?: number | null;
+  recall?: number | null;
+}
 
 export interface TaskListItemProps {
   task: Pick<Task, "id" | "iid" | "createdAt">;
@@ -11,7 +19,42 @@ export interface TaskListItemProps {
   selected?: boolean;
   onClick?: () => void;
   rightSlot?: ReactNode;
+  /** Optional confidence-report metrics shown as small colored badges below the date. */
+  metrics?: TaskMetrics;
 }
+
+const fmtPct = (v: number | null | undefined) =>
+  v == null ? "—" : `${(v * 100).toFixed(0)}%`;
+
+const MetricBadge = ({
+  label,
+  value,
+}: {
+  label: string;
+  value: number | null | undefined;
+}) => (
+  <span
+    className={cn(
+      "rounded px-1 py-0.5 font-mono text-[9px] leading-none",
+      value == null ? "text-muted-foreground" : metricColor(value),
+    )}
+  >
+    {label} {fmtPct(value)}
+  </span>
+);
+
+const TaskMetricsBadges = ({ metrics }: { metrics: TaskMetrics }) => {
+  const { meanConfidence, minIou, precision, recall } = metrics;
+  if (meanConfidence == null && minIou == null && precision == null && recall == null) return null;
+  return (
+    <div className="flex items-center gap-0.5 flex-wrap">
+      <MetricBadge label="Conf" value={meanConfidence} />
+      <MetricBadge label="IoU" value={minIou} />
+      <MetricBadge label="Prec" value={precision} />
+      <MetricBadge label="Rec" value={recall} />
+    </div>
+  );
+};
 
 /**
  * Task row for the annotate + capture pages. Thin wrapper around
@@ -25,6 +68,7 @@ export const TaskListItem = ({
   selected,
   onClick,
   rightSlot,
+  metrics,
 }: TaskListItemProps) => (
   <MediaListItem
     selected={selected}
@@ -41,6 +85,11 @@ export const TaskListItem = ({
       />
     }
     title={`#${task.iid}`}
-    subtitle={<MediaListItemDate iso={task.createdAt} />}
+    subtitle={
+      <div className="flex flex-col gap-0.5">
+        <MediaListItemDate iso={task.createdAt} />
+        {metrics && <TaskMetricsBadges metrics={metrics} />}
+      </div>
+    }
   />
 );

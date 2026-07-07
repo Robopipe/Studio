@@ -1,5 +1,7 @@
 import { Module } from "@nestjs/common";
 import { APP_FILTER, APP_PIPE } from "@nestjs/core";
+import { AnalyticsModule } from "./modules/analytics/analytics.module";
+import { ConfidenceReportModule } from "./modules/confidence-report/confidence-report.module";
 import { SentryGlobalFilter, SentryModule } from "@sentry/nestjs/setup";
 import { ZodValidationPipe } from "nestjs-zod";
 import { ConfigurationModule } from "./core/configuration/configuration.module";
@@ -22,6 +24,7 @@ import { TrainingExternalModule } from "./modules/training-external/training-ext
 @Module({
   imports: [
     SentryModule.forRoot(),
+    AnalyticsModule,
     AuthModule,
     ConfigurationModule,
     DatabaseModule,
@@ -38,6 +41,7 @@ import { TrainingExternalModule } from "./modules/training-external/training-ext
     EmailModule,
     EvalModule,
     CapturedVideoModule,
+    ConfidenceReportModule,
   ],
   providers: [
     {
