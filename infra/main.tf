@@ -303,8 +303,13 @@ resource "google_cloud_run_v2_job" "confidence_report" {
     template {
       service_account = google_service_account.ml_infer.email
 
-      # 4h matches the old Cloud Batch ML_BATCH_INFER_MAX_RUN_SECONDS=14400.
-      timeout     = "14400s"
+      # 3600s is the hard ceiling Cloud Run enforces for GPU-attached Job
+      # tasks (non-GPU jobs can go up to 7 days) — not tunable. This is
+      # lower than the old 4h Cloud Batch-derived timeout; large projects
+      # that used to finish comfortably could now time out instead. Watch
+      # execution failures after rollout — a report that never reaches
+      # DONE/ERROR and just vanishes is the signature of hitting this cap.
+      timeout     = "3600s"
       max_retries = 0
 
       # Zonal redundancy off: cheaper, and first-use GPU quota (3x
