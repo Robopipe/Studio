@@ -1,10 +1,13 @@
 import json
+import logging
 import tarfile
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
 import onnxruntime as ort
+
+_log = logging.getLogger(__name__)
 
 
 @dataclass
@@ -30,6 +33,7 @@ def load_model(path: Path, classes_override: list[str] | None = None) -> LoadedM
             onnx_path = p
         else:
             session = ort.InferenceSession(str(onnx_path), providers=_providers())
+            _log.info("onnx session created, provider=%s", session.get_providers()[0])
             class_names = (
                 classes_override
                 or archive_classes
@@ -38,14 +42,18 @@ def load_model(path: Path, classes_override: list[str] | None = None) -> LoadedM
             return LoadedModel(session=session, class_names=class_names, source=p)
 
     session = ort.InferenceSession(str(p), providers=_providers())
+    _log.info("onnx session created, provider=%s", session.get_providers()[0])
     class_names = classes_override or _numeric_classes(_infer_n_classes(session))
     return LoadedModel(session=session, class_names=class_names, source=p)
 
 
 def _providers() -> list[str]:
     available = ort.get_available_providers()
-    # CoreML first on Apple Silicon, CPU fallback everywhere else.
-    preferred = ["CoreMLExecutionProvider", "CPUExecutionProvider"]
+    # CUDA on the GPU image (confidence-report job only — see Dockerfile),
+    # CoreML on Apple Silicon dev machines, CPU fallback everywhere else.
+    # The predict service's CPU image never has CUDAExecutionProvider
+    # available, so this list is a no-op change there.
+    preferred = ["CUDAExecutionProvider", "CoreMLExecutionProvider", "CPUExecutionProvider"]
     return [p for p in preferred if p in available] or ["CPUExecutionProvider"]
 
 

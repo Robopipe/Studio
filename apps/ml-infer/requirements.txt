@@ -1,6 +1,10 @@
-# Pins match apps/ml-yolo so wheels resolve identically and we don't drag
-# numpy 2.x in via a transitive bump.
-onnxruntime==1.23.0
+# onnxruntime is intentionally NOT pinned here — the Dockerfile installs it
+# via the ORT_PACKAGE build arg so the CPU image (predict service) gets
+# `onnxruntime` and the GPU image (confidence-report job) gets
+# `onnxruntime-gpu`, both pinned to the same 1.23.0 version. See Dockerfile.
+#
+# Pins below match apps/ml-yolo so wheels resolve identically and we don't
+# drag numpy 2.x in via a transitive bump.
 opencv-python==4.11.0.86
 numpy==1.26.4
 
