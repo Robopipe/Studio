@@ -44,7 +44,7 @@ function isEligibleModel(model: Model): boolean {
   return (
     model.status === ModelStatusEnum.DONE &&
     model.backend === ModelBackendEnum.ULTRALYTICS &&
-    model.outputTypes.includes(ModelOutputTypeEnum.RAW) &&
+    model.outputs.some((o) => o.type === ModelOutputTypeEnum.RAW) &&
     model.trainingType !== ProjectTypeEnum.CLASSIFICATION
   );
 }
