@@ -21,7 +21,12 @@ WORKDIR /app
 # interpreter exactly. `command -v python3.11` is a no-op guard on the CPU
 # image, which already has it — this block only does anything on the CUDA
 # base.
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# noninteractive + explicit TZ: the deadsnakes install below pulls in
+# tzdata transitively, and without these, its postinst script falls back to
+# an interactive Readline prompt asking for a geographic region — which
+# hangs forever in Cloud Build's non-TTY environment (found the hard way).
+RUN export DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC \
+    && apt-get update && apt-get install -y --no-install-recommends \
     libgl1 \
     libglib2.0-0 \
     libsm6 \
