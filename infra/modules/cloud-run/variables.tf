@@ -26,6 +26,18 @@ variable "environment" {
   type = string
 }
 
+variable "api_memory" {
+  description = "Memory limit for the API Cloud Run container (e.g. '512Mi', '1Gi', '2Gi')"
+  type        = string
+  default     = "2Gi"
+}
+
+variable "api_cpu" {
+  description = "CPU limit for the API Cloud Run container (e.g. '1', '2')"
+  type        = string
+  default     = "1"
+}
+
 variable "min_instances" {
   type = number
 }

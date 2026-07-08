@@ -59,6 +59,18 @@ variable "cloud_run_image" {
   default     = ""
 }
 
+variable "cloud_run_api_memory" {
+  description = "Memory limit for the API Cloud Run container (e.g. '512Mi', '1Gi', '2Gi')"
+  type        = string
+  default     = "2Gi"
+}
+
+variable "cloud_run_api_cpu" {
+  description = "CPU limit for the API Cloud Run container (e.g. '1', '2')"
+  type        = string
+  default     = "1"
+}
+
 variable "cloud_run_min_instances" {
   description = "Minimum number of Cloud Run instances"
   type        = number

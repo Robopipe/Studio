@@ -217,6 +217,13 @@ resource "google_cloud_run_v2_service" "api" {
         value = var.ml_infer_job_name
       }
 
+      resources {
+        limits = {
+          cpu    = var.api_cpu
+          memory = var.api_memory
+        }
+      }
+
       volume_mounts {
         name       = "cloudsql"
         mount_path = "/cloudsql"

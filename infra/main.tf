@@ -141,6 +141,8 @@ module "cloud_run" {
   image                = var.cloud_run_image != "" ? var.cloud_run_image : "us-docker.pkg.dev/cloudrun/container/hello:latest"
   cloud_sql_connection = module.cloud_sql.connection_name
   environment          = var.environment
+  api_memory           = var.cloud_run_api_memory
+  api_cpu              = var.cloud_run_api_cpu
   min_instances        = var.cloud_run_min_instances
   max_instances        = var.cloud_run_max_instances
   secret_ids           = module.secrets.secret_ids
