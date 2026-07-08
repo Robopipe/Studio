@@ -279,12 +279,21 @@ resource "google_cloud_run_v2_service_iam_member" "ml_infer_public" {
   member   = "allUsers"
 }
 
-# Cloud Run Job for the confidence report. Runs the same ml-infer image as
-# the service but with `command` overriding the default uvicorn CMD so it
-# executes `python -m app.batch` instead. Each report run triggers a new
-# execution via the Cloud Run Admin API with per-execution env overrides
-# (CONFIG_URL, REPORT_ID, WEBHOOK_URL). The Job is bootstrapped with the
-# hello placeholder image; the ml-infer Cloud Build trigger updates it.
+# Cloud Run Job for the confidence report. Runs the GPU variant of the
+# ml-infer image (built by cloudbuild-ml-infer.yaml from the same
+# Dockerfile as the CPU predict service, via BASE_IMAGE/ORT_PACKAGE build
+# args — see apps/ml-infer/Dockerfile) with `command` overriding the
+# default uvicorn CMD so it executes `python -m app.batch` instead. Each
+# report run triggers a new execution via the Cloud Run Admin API with
+# per-execution env overrides (CONFIG_URL, REPORT_ID, WEBHOOK_URL). The Job
+# is bootstrapped with the hello placeholder image; the ml-infer Cloud
+# Build trigger updates it.
+#
+# NVIDIA L4 is the only GPU Cloud Run offers — attaching it here keeps the
+# existing dispatch/cancel/webhook orchestration untouched (no move to
+# Cloud Batch). The CPU predict service above is deliberately left
+# GPU-less: it scales from zero for interactive pre-annotation, and a GPU
+# would only slow its cold start for no benefit there.
 resource "google_cloud_run_v2_job" "confidence_report" {
   project  = var.project_id
   name     = "${local.name_prefix}-confidence-report"
@@ -298,14 +307,27 @@ resource "google_cloud_run_v2_job" "confidence_report" {
       timeout     = "14400s"
       max_retries = 0
 
+      # Zonal redundancy off: cheaper, and first-use GPU quota (3x
+      # nvidia-l4) is auto-granted in this mode — no manual quota request
+      # needed. Acceptable for a retryable batch job (unlike a
+      # user-facing service where a single zone outage would cause
+      # visible downtime).
+      gpu_zonal_redundancy_disabled = true
+
+      node_selector {
+        accelerator = "nvidia-l4"
+      }
+
       containers {
         image   = "us-docker.pkg.dev/cloudrun/container/hello:latest"
         command = ["python", "-m", "app.batch"]
 
         resources {
           limits = {
-            cpu    = "4"
-            memory = "8Gi"
+            # Cloud Run's L4 GPU requires a minimum of 4 CPU / 16Gi memory.
+            cpu              = "4"
+            memory           = "16Gi"
+            "nvidia.com/gpu" = "1"
           }
         }
 

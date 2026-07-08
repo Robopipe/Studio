@@ -60,8 +60,10 @@ Metrics
 import json
 import logging
 import os
+import queue
 import ssl
 import sys
+import threading
 import traceback
 import urllib.request
 from typing import Optional
@@ -403,21 +405,75 @@ def main() -> None:
     processed = 0
     total = len(tasks)
 
+    # ─── Prefetch pipeline ──────────────────────────────────────────────
+    # Downloading + preprocessing one image at a time left the (GPU) model
+    # idle between images. A small thread pool now downloads/preprocesses
+    # concurrently (network I/O and OpenCV both release the GIL) into a
+    # bounded queue, while a single consumer below runs session.run() back
+    # to back so GPU calls stay serialized and never idle on I/O.
+    #
+    # This does NOT batch multiple images into one session.run() call —
+    # exported models have a static batch axis of 1 (see model.py), and
+    # pre/postprocessing throughout this module hard-assumes N=1. Each
+    # image is still one inference call; only the I/O around it overlaps.
+    #
+    # The queue is bounded so a fast prefetch pool can't outrun the single
+    # inference consumer and pile up preprocessed tensors in memory.
+    prefetch_workers = min(int(os.environ.get("CR_PREFETCH_WORKERS", "8")), max(1, total))
+    in_queue: "queue.Queue[Optional[dict]]" = queue.Queue()
+    out_queue: "queue.Queue[dict]" = queue.Queue(maxsize=max(2, prefetch_workers * 2))
+
     for task in tasks:
+        in_queue.put(task)
+    for _ in range(prefetch_workers):
+        in_queue.put(None)  # one stop sentinel per worker
+
+    def _prefetch_worker() -> None:
+        while True:
+            task = in_queue.get()
+            if task is None:
+                return
+            item: dict = {"task": task}
+            try:
+                img = fetch_image(task["imageUrl"])
+                tensor, meta = preprocess(img, (in_h, in_w))
+                item["tensor"] = tensor
+                item["meta"] = meta
+                item["img_shape"] = (img.shape[0], img.shape[1])
+            except Exception as exc:
+                item["error"] = exc
+            out_queue.put(item)
+
+    _log.info("starting inference with %d prefetch worker(s)", prefetch_workers)
+    prefetch_threads = [
+        threading.Thread(target=_prefetch_worker, daemon=True, name=f"prefetch-{i}")
+        for i in range(prefetch_workers)
+    ]
+    for t in prefetch_threads:
+        t.start()
+
+    for _ in range(total):
+        item = out_queue.get()
+        task = item["task"]
         task_id: int = task["taskId"]
-        image_url: str = task["imageUrl"]
         img_w: int = task["width"]
         img_h: int = task["height"]
         gt: list[dict] = task.get("gt", [])
-        has_gt: bool = task.get("hasGt", False)
 
         # Initialise to empty; populated only on success so failed tasks
         # contribute no regions (stays empty on exception).
         task_regions: list[dict] = []
 
         try:
-            img = fetch_image(image_url)
-            tensor, meta = preprocess(img, (in_h, in_w))
+            if "error" in item:
+                # Fetch/preprocess failed on the prefetch thread — surface
+                # it here so the single except block below handles it the
+                # same way as an inference/decode/matching failure.
+                raise item["error"]
+
+            tensor = item["tensor"]
+            meta = item["meta"]
+            fetched_img_h, fetched_img_w = item["img_shape"]
             outputs = session.run(None, {in_name: tensor})
 
             if is_detection:
@@ -425,7 +481,7 @@ def main() -> None:
                 predictions = decode_yolo_det(
                     output0,
                     n_classes=n_classes,
-                    img_shape=(img.shape[0], img.shape[1]),
+                    img_shape=(fetched_img_h, fetched_img_w),
                     input_shape=(in_h, in_w),
                     letterbox_meta=meta,
                     conf_threshold=conf,
@@ -437,7 +493,7 @@ def main() -> None:
                     output0,
                     output1,
                     n_classes=n_classes,
-                    img_shape=(img.shape[0], img.shape[1]),
+                    img_shape=(fetched_img_h, fetched_img_w),
                     input_shape=(in_h, in_w),
                     letterbox_meta=meta,
                     conf_threshold=conf,
@@ -477,8 +533,8 @@ def main() -> None:
 
             # Build region payloads after matching so _matched_iou/_matched_annotation_id
             # are already stamped on each TP prediction by _match_detections.
-            # img.shape is (height, width, channels), so use img_h/img_w which
-            # are passed from the task payload (original image dimensions in px).
+            # Deliberately uses img_h/img_w (declared original dimensions from
+            # the task payload), not the fetched image's actual decoded shape.
             for pred in predictions:
                 ci = pred["classIndex"]
                 if ci < 0 or ci >= n_classes:
@@ -546,6 +602,11 @@ def main() -> None:
             except Exception:
                 _log.exception("progress webhook failed (continuing)")
             chunk_results = []
+
+    # By this point every prefetch thread has hit its stop sentinel (we
+    # consumed exactly `total` results above) — join is just cleanup.
+    for t in prefetch_threads:
+        t.join()
 
     # Build per-class box-stats.
     per_class_stats = []

@@ -5,6 +5,7 @@ steps:
       - "-c"
       - |
         docker pull ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPO_NAME}/ml-infer:latest || true
+        docker pull ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPO_NAME}/ml-infer:gpu || true
 
   - name: "gcr.io/cloud-builders/docker"
     entrypoint: "bash"
@@ -16,6 +17,26 @@ steps:
           --cache-from ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPO_NAME}/ml-infer:latest \
           -t ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPO_NAME}/ml-infer:${SHORT_SHA} \
           -t ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPO_NAME}/ml-infer:latest \
+          -f apps/ml-infer/Dockerfile apps/ml-infer
+    env:
+      - "DOCKER_BUILDKIT=1"
+
+  # GPU variant — confidence-report Cloud Run Job only, never the predict
+  # service (which stays on the slim CPU image above for cold-start
+  # latency). Same Dockerfile, swapped base image + onnxruntime package —
+  # see apps/ml-infer/Dockerfile for why.
+  - name: "gcr.io/cloud-builders/docker"
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - |
+        docker build \
+          --build-arg BUILDKIT_INLINE_CACHE=1 \
+          --build-arg BASE_IMAGE=nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04 \
+          --build-arg ORT_PACKAGE=onnxruntime-gpu==1.23.0 \
+          --cache-from ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPO_NAME}/ml-infer:gpu \
+          -t ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPO_NAME}/ml-infer:gpu-${SHORT_SHA} \
+          -t ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPO_NAME}/ml-infer:gpu \
           -f apps/ml-infer/Dockerfile apps/ml-infer
     env:
       - "DOCKER_BUILDKIT=1"
@@ -37,15 +58,16 @@ steps:
           --region ${_REGION} \
           --platform managed
 
-  # Update the confidence-report Cloud Run Job to the same image SHA so both
-  # the Service and the Job always run the same code.
+  # Update the confidence-report Cloud Run Job to the GPU image built above.
+  # Job and Service intentionally run different image variants now — see
+  # the comment on the docker build step for the GPU image.
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     entrypoint: "bash"
     args:
       - "-c"
       - |
         gcloud run jobs update ${_JOB_NAME} \
-          --image ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPO_NAME}/ml-infer:${SHORT_SHA} \
+          --image ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPO_NAME}/ml-infer:gpu-${SHORT_SHA} \
           --region ${_REGION}
 
 images:
