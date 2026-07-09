@@ -45,7 +45,7 @@ export const AnalyticsDialog = ({
         </DialogHeader>
         {/* Charts */}
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
-          <DialogTitle>Statistics</DialogTitle>
+          <DialogTitle>Annotation Statistics</DialogTitle>
 
           {/* Annotation type selector */}
           <AnnotationTypeSelector
