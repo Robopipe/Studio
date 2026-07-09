@@ -15,6 +15,7 @@ Plus two ml-yolo-specific keys stripped before passthrough:
     model_variant    — pretrained weights filename (e.g. yolo11m.pt)
 """
 
+import re
 from pathlib import Path
 from typing import Any
 
@@ -34,13 +35,25 @@ _DEFAULT_VARIANT: dict[ModelType, str] = {
     ModelType.SEGMENTATION: "yolo11n-seg.pt",
 }
 
+_VARIANT_SUFFIX: dict[ModelType, str] = {
+    ModelType.DETECTION: "",
+    ModelType.CLASSIFICATION: "-cls",
+    ModelType.SEGMENTATION: "-seg",
+}
+
 
 def get_model_variant(config: ModelConfig) -> str:
     custom = config.training_config.custom_hyperparams or {}
     variant = custom.get("model_variant")
-    if variant:
-        return variant if str(variant).endswith(".pt") else f"{variant}.pt"
-    return _DEFAULT_VARIANT[config.type]
+    if not variant:
+        return _DEFAULT_VARIANT[config.type]
+    stem = str(variant).removesuffix(".pt")
+    # Normalize the task suffix on yolo variants — the UI historically sent
+    # bare detection names (e.g. yolo11l) regardless of the model type.
+    # Custom weight names/paths are passed through untouched.
+    if stem.lower().startswith("yolo"):
+        stem = re.sub(r"-(seg|cls)$", "", stem) + _VARIANT_SUFFIX[config.type]
+    return f"{stem}.pt"
 
 
 def build_data_yaml(config: ModelConfig, workdir: str) -> str:
