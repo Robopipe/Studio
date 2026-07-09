@@ -182,14 +182,14 @@ export const PolygonRegion = ({
   };
 
   // Inferred regions (confidence-report predictions) render with a dashed
-  // outline and a score badge. GT annotations keep the solid style.
+  // outline and a region-id badge. GT annotations keep the solid style.
   const isInferred = annotation.inferred === true;
   const dash = isInferred ? [8, 6] : undefined;
   const fill = isInferred
     ? annotation.color + "00"
     : annotation.color + (isSelected ? "60" : "33");
 
-  // Find the topmost visible point for score badge placement.
+  // Find the topmost visible point for badge placement.
   const topPt = pts.length > 0
     ? pts.reduce((a, b) => (b[1] < a[1] ? b : a))
     : null;
@@ -233,11 +233,11 @@ export const PolygonRegion = ({
           if (!isSelected) onSelect(annotation.id);
         }}
       />
-      {isInferred && annotation.score != null && topPt && (
+      {isInferred && annotation.displayId != null && topPt && (
         <Text
           x={(topPt[0] / 100) * imageWidth + 3}
           y={(topPt[1] / 100) * imageHeight + 3}
-          text={annotation.score.toFixed(2)}
+          text={`#${annotation.displayId}`}
           fontSize={11}
           fontStyle="bold"
           fill="#fff"
