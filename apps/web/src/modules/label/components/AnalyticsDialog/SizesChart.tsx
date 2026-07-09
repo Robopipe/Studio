@@ -138,13 +138,13 @@ export const SizesChart = ({ labels }: { labels: LabelEntry[] }) => {
             ticks={scale === "log" ? logTickValues : undefined}
             tickFormatter={formatPct}
             tick={{ fontSize: 11 }}
-            width={55}
+            width={75}
             label={{
               value: "Area % of image",
               angle: -90,
               position: "insideLeft",
-              offset: 15,
-              style: { fontSize: 11 },
+              offset: 0,
+              style: { fontSize: 11, textAnchor: "middle" },
             }}
           />
           <Tooltip content={<BoxPlotTooltip />} cursor={false} />

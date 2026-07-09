@@ -35,13 +35,13 @@ export const InstancesChart = ({ labels }: { labels: LabelEntry[] }) => {
           <YAxis
             tick={{ fontSize: 11 }}
             allowDecimals={false}
-            width={45}
+            width={65}
             label={{
               value: "Instances",
               angle: -90,
               position: "insideLeft",
-              offset: 10,
-              style: { fontSize: 11 },
+              offset: 0,
+              style: { fontSize: 11, textAnchor: "middle" },
             }}
           />
           <Tooltip

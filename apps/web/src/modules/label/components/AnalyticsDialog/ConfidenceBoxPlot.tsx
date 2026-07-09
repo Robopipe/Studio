@@ -80,13 +80,13 @@ export const ConfidenceBoxPlot = ({
             ticks={[0, 0.25, 0.5, 0.75, 1]}
             tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`}
             tick={{ fontSize: 11 }}
-            width={45}
+            width={60}
             label={{
               value: yAxisLabel,
               angle: -90,
               position: "insideLeft",
-              offset: 15,
-              style: { fontSize: 11 },
+              offset: 0,
+              style: { fontSize: 11, textAnchor: "middle" },
             }}
           />
           <Tooltip content={<BoxPlotTooltip />} cursor={false} />
