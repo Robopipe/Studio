@@ -25,7 +25,10 @@ import {
   useGetModelsQuery,
 } from "../../services";
 import { AdvancedSettings } from "../AdvancedSettings";
-import { getHyperparamsPresets } from "../AdvancedSettings/presets";
+import {
+  applyModelVariantSuffix,
+  getHyperparamsPresets,
+} from "../AdvancedSettings/presets";
 import { AppliedAugmentation } from "../AugmentationSettings/augmentationTypes";
 import { DatasetSplit, DatasetSplitSettings } from "../DatasetSplitSettings";
 import { ModelLayout } from "../ModelLayout/ModelLayout";
@@ -110,9 +113,9 @@ const ModelNewPageInner = () => {
       return duplicateState.customHyperparams;
     }
     // Default to the High Accuracy preset.
-    const preset = getHyperparamsPresets().find(
-      (p) => p.id === "high-accuracy",
-    );
+    const preset = getHyperparamsPresets(
+      duplicateState?.trainingType ?? ProjectTypeEnum.DETECTION,
+    ).find((p) => p.id === "high-accuracy");
     return preset ? JSON.stringify(preset.config, null, 2) : "";
   });
   const [hyperparamsError, setHyperparamsError] = useState<string | null>(null);
@@ -246,6 +249,24 @@ const ModelNewPageInner = () => {
     // checkDataset is a stable mutation trigger — omitted from deps intentionally
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTaskIds, trainingType, annotationsUsed, activeProject?.id]);
+
+  // Keep the model_variant in the hyperparams JSON in sync with the training
+  // type (e.g. yolo11l -> yolo11l-seg when switching to segmentation).
+  const handleTrainingTypeChange = (type: ProjectTypeEnum) => {
+    setTrainingType(type);
+    try {
+      const parsed = JSON.parse(customHyperparams);
+      if (typeof parsed?.model_variant !== "string") return;
+      parsed.model_variant = applyModelVariantSuffix(
+        parsed.model_variant,
+        type,
+      );
+      setCustomHyperparams(JSON.stringify(parsed, null, 2));
+    } catch {
+      // Invalid/empty JSON — nothing to rewrite; the ML service falls back
+      // to a task-correct default when no model_variant is sent.
+    }
+  };
 
   const parseHyperparams = (): Record<string, unknown> | undefined => {
     if (!customHyperparams.trim()) return {};
@@ -394,7 +415,7 @@ const ModelNewPageInner = () => {
         <ModelTypeSettings
           trainingType={trainingType}
           annotationsUsed={annotationsUsed}
-          onTrainingTypeChange={setTrainingType}
+          onTrainingTypeChange={handleTrainingTypeChange}
           onAnnotationsUsedChange={setAnnotationsUsed}
         />
         <SourceImagesSettings
@@ -416,6 +437,7 @@ const ModelNewPageInner = () => {
           }
         />
         <AdvancedSettings
+          trainingType={trainingType}
           outputs={outputs}
           onOutputsChange={setOutputs}
           region={region}
