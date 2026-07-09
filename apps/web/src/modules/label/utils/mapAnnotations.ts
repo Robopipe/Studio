@@ -59,7 +59,7 @@ export function taskDetailToAnnotations(detail: TaskDetail): Annotation[] {
 export function regionsToAnnotations(
   regions: ConfidenceReportRegionResponse[],
 ): Annotation[] {
-  return regions.map((r): Annotation => {
+  return regions.map((r, i): Annotation => {
     const base: Annotation = {
       id: `inferred-${r.id}`,
       labelId: String(r.label.id),
@@ -68,6 +68,7 @@ export function regionsToAnnotations(
       type: r.geometry === "RECTANGLE" ? "bbox" : "polygon",
       score: r.score,
       inferred: true,
+      displayId: i + 1,
     };
     if (r.geometry === "RECTANGLE" && r.x != null && r.y != null && r.width != null && r.height != null) {
       base.bbox = { x: r.x, y: r.y, width: r.width, height: r.height };

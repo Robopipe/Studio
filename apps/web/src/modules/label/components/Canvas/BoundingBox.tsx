@@ -99,7 +99,7 @@ export const BoundingBox = ({
   };
 
   // Inferred regions (confidence-report predictions) render with a dashed
-  // outline and a score badge. GT annotations keep the solid style.
+  // outline and a region-id badge. GT annotations keep the solid style.
   const isInferred = annotation.inferred === true;
   const dash = isInferred ? [8, 6] : undefined;
   const fill = isInferred
@@ -161,11 +161,11 @@ export const BoundingBox = ({
         onDragEnd={handleDragEnd}
         onTransformEnd={handleTransformEnd}
       />
-      {isInferred && annotation.score != null && (
+      {isInferred && annotation.displayId != null && (
         <Text
           x={x + 3}
           y={y + 3}
-          text={annotation.score.toFixed(2)}
+          text={`#${annotation.displayId}`}
           fontSize={11}
           fontStyle="bold"
           fill="#fff"
