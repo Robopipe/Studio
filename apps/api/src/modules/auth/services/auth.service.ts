@@ -339,6 +339,38 @@ export class AuthService {
   }
 
   /**
+   * Change the password of an authenticated user after verifying the current one.
+   * @param userId - user ID
+   * @param currentPassword - current plaintext password
+   * @param newPassword - new plaintext password
+   * @throws {NotFoundException} if user doesn't exist
+   * @throws {BadRequestException} if the current password is wrong or the new one is unchanged
+   */
+  public async changePassword(userId: number, currentPassword: string, newPassword: string): Promise<void> {
+    // The repository's getById strips the password column, so query directly (same as validateUser)
+    const user = await this.db.query.userTable.findFirst({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const isPasswordValid = await this.checkPassword(currentPassword, user.password);
+    if (!isPasswordValid) {
+      // 400 rather than 401 — the web client treats 401 as an expired token and triggers a refresh
+      throw new BadRequestException('Current password is incorrect');
+    }
+
+    if (newPassword === currentPassword) {
+      throw new BadRequestException('New password must be different from the current password');
+    }
+
+    const hashedPassword = await this.hashPassword(newPassword);
+    await this.userRepository.updatePassword(userId, hashedPassword);
+  }
+
+  /**
    * Update user profile fields.
    * @param id - user ID
    * @param data - fields to update
