@@ -1,9 +1,27 @@
+import { ProjectTypeEnum } from "@repo/schema";
+
 export interface HyperparamsPreset {
   id: string;
   name: string;
   description: string;
   config: Record<string, unknown>;
 }
+
+const VARIANT_SUFFIX: Record<ProjectTypeEnum, string> = {
+  [ProjectTypeEnum.DETECTION]: "",
+  [ProjectTypeEnum.SEGMENTATION]: "-seg",
+  [ProjectTypeEnum.CLASSIFICATION]: "-cls",
+};
+
+// Swap the task suffix on a yolo variant, preserving the size (n/s/m/l/x).
+// Leaves non-yolo values (custom weight names/paths) untouched.
+export const applyModelVariantSuffix = (
+  variant: string,
+  trainingType: ProjectTypeEnum,
+): string => {
+  if (!/^yolo/i.test(variant)) return variant;
+  return variant.replace(/-(seg|cls)$/, "") + VARIANT_SUFFIX[trainingType];
+};
 
 // Distilled from training-configs/ultralytics-hyperparams*.json runs.
 // `batch` and `epochs` are intentionally omitted — they're controlled by the
@@ -72,5 +90,16 @@ const ULTRALYTICS_PRESETS: HyperparamsPreset[] = [
   },
 ];
 
-export const getHyperparamsPresets = (): HyperparamsPreset[] =>
-  ULTRALYTICS_PRESETS;
+export const getHyperparamsPresets = (
+  trainingType: ProjectTypeEnum,
+): HyperparamsPreset[] =>
+  ULTRALYTICS_PRESETS.map((preset) => ({
+    ...preset,
+    config: {
+      ...preset.config,
+      model_variant: applyModelVariantSuffix(
+        preset.config.model_variant as string,
+        trainingType,
+      ),
+    },
+  }));

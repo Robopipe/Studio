@@ -9,6 +9,7 @@ import {
 // hyperparamsConfigSchema and createZodLinter imports kept for reference — validation intentionally bypassed
 // import { hyperparamsConfigSchema } from "@repo/schema";
 // import { createZodLinter } from "./zodLinter";
+import { ProjectTypeEnum } from "@repo/schema";
 import { X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 // import { toast } from "sonner";
@@ -22,6 +23,7 @@ import { getHyperparamsPresets } from "../presets";
 import { useCodeMirror } from "./useCodeMirror";
 
 export interface HyperparamsModalProps {
+  trainingType: ProjectTypeEnum;
   value: string;
   onApply: (value: string) => void;
   onClose: () => void;
@@ -58,6 +60,7 @@ function validateJson(text: string): string[] {
 }
 
 export const HyperparamsModal = ({
+  trainingType,
   value,
   onApply,
   onClose,
@@ -65,7 +68,10 @@ export const HyperparamsModal = ({
   const [editorValue, setEditorValue] = useState(value.trim() || "{\n  \n}");
   const [errors, setErrors] = useState<string[]>([]);
   const [selectedPreset, setSelectedPreset] = useState("");
-  const presets = useMemo(() => getHyperparamsPresets(), []);
+  const presets = useMemo(
+    () => getHyperparamsPresets(trainingType),
+    [trainingType],
+  );
   // Reserved paths UI hidden — reserved keys bypass intentionally disabled
   // const [showReservedPaths, setShowReservedPaths] = useState(false);
 

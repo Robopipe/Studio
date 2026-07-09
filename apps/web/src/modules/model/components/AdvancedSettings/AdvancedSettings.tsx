@@ -3,6 +3,7 @@ import {
   ModelOutputTypeEnum,
   ModelQuantizationEnum,
   ModelRegionEnum,
+  ProjectTypeEnum,
 } from "@repo/schema";
 import { useState } from "react";
 import { SettingsCard } from "../SettingsCard";
@@ -19,6 +20,7 @@ const QUANTIZATION_LABELS: Record<ModelQuantizationEnum, string> = {
 };
 
 export interface AdvancedSettingsProps {
+  trainingType: ProjectTypeEnum;
   outputs: ModelOutputTypeEnum[];
   onOutputsChange: (outputs: ModelOutputTypeEnum[]) => void;
   region: ModelRegionEnum;
@@ -32,6 +34,7 @@ export interface AdvancedSettingsProps {
 }
 
 export const AdvancedSettings = ({
+  trainingType,
   outputs,
   onOutputsChange,
   region,
@@ -212,6 +215,7 @@ export const AdvancedSettings = ({
 
       {modalOpen && (
         <HyperparamsModal
+          trainingType={trainingType}
           value={customHyperparams}
           onApply={handleApply}
           onClose={() => setModalOpen(false)}
