@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import {
   CONFIDENCE_REPORT_POLL_MS,
   isReportActive,
-  useGetConfidenceReportQuery,
+  useConfidenceReport,
   useGetConfidenceReportRegionsQuery,
 } from "@/modules/analytics/services/confidenceReportApi";
 import { useGetTasksQuery } from "@/modules/capture/services/captureApi";
@@ -33,7 +33,7 @@ import { useAnnotationNudge } from "../../hooks/useAnnotationNudge";
 import { useCanvasState } from "../../hooks/useCanvasState";
 import { useHistory } from "../../hooks/useHistory";
 import { useLabelShortcuts } from "../../hooks/useLabelShortcuts";
-import { useLabelUrlState } from "../../hooks/useLabelUrlState";
+import { DEFAULT_SORT, useLabelUrlState } from "../../hooks/useLabelUrlState";
 import { useToolMode } from "../../hooks/useToolMode";
 import {
   useGetTaskQuery,
@@ -58,6 +58,7 @@ import { AnnotationPanel } from "../AnnotationPanel";
 import { Canvas, CanvasHandle } from "../Canvas";
 import { ClassSelect } from "../ClassSelect";
 import { DataSourcePanel } from "../DataSourcePanel";
+import { isMetricSort } from "../TaskSortDialog";
 import { LeaveAnnotationsDialog } from "../LeaveAnnotationsDialog";
 import { PreAnnotateSettingsDialog } from "../PreAnnotateSettingsDialog";
 import { Toolbar } from "../Toolbar";
@@ -87,11 +88,23 @@ export const LabelPage = () => {
   >("labels");
   const [showGtOverlay, setShowGtOverlay] = useState(false);
 
-  // Poll the confidence report so we know whether to poll tasks as well.
-  const { data: confidenceReport } = useGetConfidenceReportQuery(
-    { projectId: projectId! },
-    { skip: !projectId },
-  );
+  // Track the confidence report, polling while a run is active, so metric
+  // availability and task polling react to runs without a page refresh.
+  const confidenceReportQuery = useConfidenceReport(projectId);
+  const confidenceReport = confidenceReportQuery.data;
+  const metricsAvailable =
+    confidenceReport?.status === ConfidenceReportStatusEnum.DONE;
+
+  // Drop an applied metric sort once the report is known not to be DONE —
+  // starting a new run wipes the per-task metrics, so the sort would target
+  // empty columns while the sort dialog no longer offers it.
+  const reportResolved =
+    !confidenceReportQuery.isUninitialized && !confidenceReportQuery.isLoading;
+  useEffect(() => {
+    if (reportResolved && !metricsAvailable && isMetricSort(sort.sortBy)) {
+      setSort(DEFAULT_SORT);
+    }
+  }, [reportResolved, metricsAvailable, sort.sortBy, setSort]);
 
   const { data: tasksData, isFetching: isFetchingTasks } = useGetTasksQuery(
     {
@@ -1070,7 +1083,7 @@ export const LabelPage = () => {
         onFilterChange={setFilter}
         sort={sort}
         onSortChange={setSort}
-        metricsAvailable={confidenceReport?.status === ConfidenceReportStatusEnum.DONE}
+        metricsAvailable={metricsAvailable}
       />
       <AnnotationPanel
         annotations={annotations}

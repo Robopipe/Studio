@@ -41,7 +41,8 @@ const METRIC_SORT_KEYS = new Set<TaskSortState["sortBy"]>([
   "recall",
 ]);
 
-const isMetricSort = (key: TaskSortState["sortBy"]): boolean => METRIC_SORT_KEYS.has(key);
+export const isMetricSort = (key: TaskSortState["sortBy"]): boolean =>
+  METRIC_SORT_KEYS.has(key);
 
 export const TaskSortDialog = ({
   open,

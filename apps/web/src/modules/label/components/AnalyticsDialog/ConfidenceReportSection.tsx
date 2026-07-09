@@ -1,10 +1,9 @@
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import { useGetModelsQuery } from "@/modules/model/services/modelApi";
 import {
-  CONFIDENCE_REPORT_POLL_MS,
   isReportActive,
   useCancelConfidenceReportMutation,
-  useGetConfidenceReportQuery,
+  useConfidenceReport,
   useRunConfidenceReportMutation,
 } from "@/modules/analytics/services/confidenceReportApi";
 import {
@@ -59,26 +58,11 @@ export const ConfidenceReportSection = () => {
     { skip: !projectId },
   );
 
-  const eligibleModels = models.filter(isEligibleModel);
+  const eligibleModels = models
+    .filter(isEligibleModel)
+    .toSorted((a, b) => b.createdAt.localeCompare(a.createdAt));
 
-  const { data: report } = useGetConfidenceReportQuery(
-    { projectId: projectId! },
-    {
-      skip: !projectId,
-      pollingInterval: isReportActive(undefined) ? CONFIDENCE_REPORT_POLL_MS : 0,
-    },
-  );
-
-  // Update pollingInterval reactively based on the report status.
-  // RTK Query supports updating options dynamically — we do it via a second
-  // subscription that only activates when the report is active.
-  useGetConfidenceReportQuery(
-    { projectId: projectId! },
-    {
-      skip: !projectId || !isReportActive(report),
-      pollingInterval: CONFIDENCE_REPORT_POLL_MS,
-    },
-  );
+  const { data: report } = useConfidenceReport(projectId);
 
   const [runReport, { isLoading: isRunning }] = useRunConfidenceReportMutation();
   const [cancelReport, { isLoading: isCancelling }] = useCancelConfidenceReportMutation();
@@ -259,7 +243,7 @@ export const ConfidenceReportSection = () => {
 
 // ─── Results sub-component ────────────────────────────────────────────────────
 
-type Report = NonNullable<ReturnType<typeof useGetConfidenceReportQuery>["data"]>;
+type Report = NonNullable<ReturnType<typeof useConfidenceReport>["data"]>;
 
 const ReportResults = ({
   report,
