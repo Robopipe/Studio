@@ -1,4 +1,5 @@
 import { AnnotateIcon } from "@/components/icons";
+import { getContrastTextColor } from "@/lib/color";
 import { cn } from "@/lib/utils";
 import { useGetTaskHistoryQuery } from "@/modules/label/services/labelApi";
 import { Annotation } from "@/modules/label/types/annotations";
@@ -274,8 +275,8 @@ const TimelineObjectRow = ({
         />
         {annotation.type !== "class" && (
           <span
-            className="flex h-3.5 w-6 shrink-0 items-center justify-center rounded-[3px] px-0.5 text-[11px] leading-3 text-foreground/90"
-            style={{ background: annotation.color }}
+            className="flex h-3.5 w-6 shrink-0 items-center justify-center rounded-[3px] px-0.5 text-[11px] leading-3"
+            style={{ background: annotation.color, color: getContrastTextColor(annotation.color) }}
           >
             {index + 1}
           </span>
