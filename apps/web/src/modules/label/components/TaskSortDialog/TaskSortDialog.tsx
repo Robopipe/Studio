@@ -10,7 +10,7 @@ import { ReactNode, useEffect, useState } from "react";
 import { DEFAULT_SORT } from "../../hooks/useLabelUrlState";
 
 export interface TaskSortState {
-  sortBy: "createdAt" | "updatedAt" | "meanConfidence" | "minIou" | "precision" | "recall";
+  sortBy: "createdAt" | "updatedAt" | "meanConfidence" | "meanIou" | "precision" | "recall";
   sortOrder: "asc" | "desc";
 }
 
@@ -29,14 +29,14 @@ const DATE_SORT_OPTIONS: { value: TaskSortState["sortBy"]; label: string }[] = [
 
 const METRIC_SORT_OPTIONS: { value: TaskSortState["sortBy"]; label: string }[] = [
   { value: "meanConfidence", label: "Confidence" },
-  { value: "minIou", label: "IoU" },
+  { value: "meanIou", label: "IoU" },
   { value: "precision", label: "Precision" },
   { value: "recall", label: "Recall" },
 ];
 
 const METRIC_SORT_KEYS = new Set<TaskSortState["sortBy"]>([
   "meanConfidence",
-  "minIou",
+  "meanIou",
   "precision",
   "recall",
 ]);
