@@ -70,6 +70,10 @@ export interface AnnotationPanelProps {
   reportStatus: ConfidenceReportStatusEnum | null;
   showGtOverlay: boolean;
   onToggleGtOverlay: (show: boolean) => void;
+  /** Raw region id of the highlighted inferred region (null = none). */
+  selectedInferredRegionId: number | null;
+  /** Row click — parent toggles (click-again deselects). */
+  onSelectInferredRegion: (regionId: number) => void;
 }
 
 type DisplayRow =
@@ -126,6 +130,8 @@ export const AnnotationPanel = ({
   reportStatus,
   showGtOverlay,
   onToggleGtOverlay,
+  selectedInferredRegionId,
+  onSelectInferredRegion,
 }: AnnotationPanelProps) => {
   const classCounts = labels
     .map((label) => ({
@@ -706,6 +712,8 @@ export const AnnotationPanel = ({
           showGtOverlay={showGtOverlay}
           onToggleGtOverlay={onToggleGtOverlay}
           hasTask={taskId != null}
+          selectedRegionId={selectedInferredRegionId}
+          onSelectRegion={onSelectInferredRegion}
         />
       </TabsContent>
     </Tabs>

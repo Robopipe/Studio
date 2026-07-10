@@ -44,6 +44,14 @@ export const BoundingBox = ({
 
   const isInteractive = !readOnly && toolMode === ToolMode.SELECT;
 
+  // Inferred regions (confidence-report predictions) render with a dashed
+  // outline and a region-id badge. GT annotations keep the solid style.
+  const isInferred = annotation.inferred === true;
+  // Inferred shapes are click-selectable (highlight only) even in read-only
+  // view; all edit affordances stay gated on isInteractive.
+  const canClickSelect =
+    isInteractive || (isInferred && toolMode === ToolMode.SELECT);
+
   useEffect(() => {
     if (showHandles && isInteractive && trRef.current && rectRef.current) {
       trRef.current.nodes([rectRef.current]);
@@ -98,12 +106,9 @@ export const BoundingBox = ({
     });
   };
 
-  // Inferred regions (confidence-report predictions) render with a dashed
-  // outline and a region-id badge. GT annotations keep the solid style.
-  const isInferred = annotation.inferred === true;
   const dash = isInferred ? [8, 6] : undefined;
   const fill = isInferred
-    ? annotation.color + "00"
+    ? annotation.color + (isSelected ? "33" : "00")
     : annotation.color + (isSelected ? "60" : "33");
 
   return (
@@ -125,7 +130,7 @@ export const BoundingBox = ({
         shadowOpacity={0.5}
         draggable={isInteractive && isSelected}
         onMouseDown={(e) => {
-          if (!isInteractive) return;
+          if (!canClickSelect) return;
           e.cancelBubble = true;
           const additive = e.evt.ctrlKey || e.evt.metaKey;
           if (!isSelected) {
@@ -140,7 +145,7 @@ export const BoundingBox = ({
           }
         }}
         onTouchStart={(e) => {
-          if (!isInteractive) return;
+          if (!canClickSelect) return;
           e.cancelBubble = true;
           if (!isSelected) onSelect(annotation.id);
         }}

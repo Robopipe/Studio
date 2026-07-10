@@ -60,6 +60,14 @@ export const PolygonRegion = ({
 
   const isInteractive = !readOnly && toolMode === ToolMode.SELECT;
 
+  // Inferred regions (confidence-report predictions) render with a dashed
+  // outline and a region-id badge. GT annotations keep the solid style.
+  const isInferred = annotation.inferred === true;
+  // Inferred shapes are click-selectable (highlight only) even in read-only
+  // view; all edit affordances stay gated on isInteractive.
+  const canClickSelect =
+    isInteractive || (isInferred && toolMode === ToolMode.SELECT);
+
   useEffect(() => {
     const node = lineRef.current;
     if (!node) return;
@@ -181,12 +189,9 @@ export const PolygonRegion = ({
     onUpdate(annotation.id, { points: newPts });
   };
 
-  // Inferred regions (confidence-report predictions) render with a dashed
-  // outline and a region-id badge. GT annotations keep the solid style.
-  const isInferred = annotation.inferred === true;
   const dash = isInferred ? [8, 6] : undefined;
   const fill = isInferred
-    ? annotation.color + "00"
+    ? annotation.color + (isSelected ? "33" : "00")
     : annotation.color + (isSelected ? "60" : "33");
 
   // Find the topmost visible point for badge placement.
@@ -217,7 +222,7 @@ export const PolygonRegion = ({
         onClick={handleLineClick}
         onTap={handleLineClick}
         onMouseDown={(e) => {
-          if (!isInteractive) return;
+          if (!canClickSelect) return;
           e.cancelBubble = true;
           const additive = e.evt.ctrlKey || e.evt.metaKey;
           if (!isSelected) {
@@ -228,7 +233,7 @@ export const PolygonRegion = ({
           }
         }}
         onTouchStart={(e) => {
-          if (!isInteractive) return;
+          if (!canClickSelect) return;
           e.cancelBubble = true;
           if (!isSelected) onSelect(annotation.id);
         }}

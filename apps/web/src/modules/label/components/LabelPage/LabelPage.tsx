@@ -43,6 +43,8 @@ import {
 import { Annotation } from "../../types/annotations";
 import {
   annotationsToUpdatePayload,
+  INFERRED_ID_PREFIX,
+  inferredAnnotationId,
   regionsToAnnotations,
   taskDetailToAnnotations,
 } from "../../utils/mapAnnotations";
@@ -64,6 +66,10 @@ import { PreAnnotateSettingsDialog } from "../PreAnnotateSettingsDialog";
 import { Toolbar } from "../Toolbar";
 
 const TASKS_PER_PAGE = 50;
+
+// Stable empty selection used to disable GT-selection-driven behavior
+// (e.g. keyboard nudge) while the read-only inferred view is active.
+const EMPTY_SELECTION = new Set<string>();
 
 export const LabelPage = () => {
   const [activeProject] = useActiveProject();
@@ -87,6 +93,35 @@ export const LabelPage = () => {
     "labels" | "history" | "inferred"
   >("labels");
   const [showGtOverlay, setShowGtOverlay] = useState(false);
+
+  // Single-select highlight for inferred regions ("inferred-<regionId>").
+  // Kept separate from selectedAnnotationIds so inferred ids never enter the
+  // GT selection machinery (nudge, delete, group, copy, save payloads).
+  const [selectedInferredId, setSelectedInferredId] = useState<string | null>(
+    null,
+  );
+
+  const handleInferredSelect = useCallback((id: string | null) => {
+    setSelectedInferredId((prev) => {
+      if (id === null) return null;
+      // GT overlay shapes are not selectable in the inferred view.
+      if (!id.startsWith(INFERRED_ID_PREFIX)) return prev;
+      return prev === id ? null : id;
+    });
+  }, []);
+
+  const handleSelectInferredRegion = useCallback(
+    (regionId: number) => handleInferredSelect(inferredAnnotationId(regionId)),
+    [handleInferredSelect],
+  );
+
+  const inferredSelectionSet = useMemo(
+    () => (selectedInferredId ? new Set([selectedInferredId]) : new Set<string>()),
+    [selectedInferredId],
+  );
+  const selectedInferredRegionId = selectedInferredId
+    ? Number(selectedInferredId.slice(INFERRED_ID_PREFIX.length))
+    : null;
 
   // Track the confidence report, polling while a run is active, so metric
   // availability and task polling react to runs without a page refresh.
@@ -547,6 +582,7 @@ export const LabelPage = () => {
     history.reset();
     setSelectedAnnotationIds(new Set());
     setPrimarySelectedId(null);
+    setSelectedInferredId(null);
     imageDimsRef.current = { width: 0, height: 0 };
     if (prevTaskIdRef.current !== taskDetail.id) {
       setIsolatedLabelId(null);
@@ -1005,7 +1041,12 @@ export const LabelPage = () => {
 
   useAnnotationNudge({
     annotations,
-    selectedAnnotationIds,
+    // Nudge is a GT edit — disable it entirely in the read-only inferred view
+    // so a stale GT selection can't be moved invisibly.
+    selectedAnnotationIds:
+      activeAnnotationTab === "inferred"
+        ? EMPTY_SELECTION
+        : selectedAnnotationIds,
     toolMode,
     imageDimsRef,
     setAnnotations: setAnnotationsAndDirty,
@@ -1116,6 +1157,8 @@ export const LabelPage = () => {
         reportStatus={confidenceReport?.status as ConfidenceReportStatusEnum | null ?? null}
         showGtOverlay={showGtOverlay}
         onToggleGtOverlay={setShowGtOverlay}
+        selectedInferredRegionId={selectedInferredRegionId}
+        onSelectInferredRegion={handleSelectInferredRegion}
       />
       <div className="relative flex min-h-0 flex-col overflow-hidden">
         <Canvas
@@ -1123,8 +1166,12 @@ export const LabelPage = () => {
           task={selectedTask ?? taskDetail}
           readOnly={isInferredView}
           annotations={canvasAnnotations}
-          selectedAnnotationIds={selectedAnnotationIds}
-          primarySelectedId={primarySelectedId}
+          selectedAnnotationIds={
+            isInferredView ? inferredSelectionSet : selectedAnnotationIds
+          }
+          primarySelectedId={
+            isInferredView ? selectedInferredId : primarySelectedId
+          }
           toolMode={toolMode}
           activeLabel={activeLabelForCanvas}
           scale={canvasState.scale}
@@ -1137,7 +1184,7 @@ export const LabelPage = () => {
           showCrosshair={showCrosshair}
           toolbarsVisible={toolbarsVisible}
           onToggleToolbars={toggleToolbars}
-          onSelect={handleSelect}
+          onSelect={isInferredView ? handleInferredSelect : handleSelect}
           onAddAnnotation={history.addAnnotation}
           onUpdateAnnotation={history.updateAnnotation}
           onDeleteSelected={handleClear}
