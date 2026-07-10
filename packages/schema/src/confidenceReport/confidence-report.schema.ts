@@ -123,10 +123,11 @@ export const confidenceReportRegionResponseSchema = z.object({
 export const confidenceReportTaskResultSchema = z.object({
   taskId: z.number(),
   meanConfidence: z.number().nullable(),
-  minIou: z.number().nullable(),
-  /** Micro-averaged precision for the image: TP/(TP+FP). Null when no predictions. */
+  /** Mean matched-TP IoU for the image. Null when no TP match or task unannotated. */
+  meanIou: z.number().nullable(),
+  /** Micro-averaged precision for the image: TP/(TP+FP). Null when no predictions or task unannotated. */
   precision: z.number().nullable(),
-  /** Micro-averaged recall for the image: TP/(TP+FN). Null when no ground truth. */
+  /** Micro-averaged recall for the image: TP/(TP+FN). Null when no ground truth or task unannotated. */
   recall: z.number().nullable(),
   regions: confidenceReportRegionInputSchema.array().default([]),
 });

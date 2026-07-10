@@ -167,6 +167,10 @@ export class ConfidenceReportService {
         // Whether this task has GT of the requested geometry (used by the
         // Python job to skip IoU computation without erroring).
         hasGt: gt.length > 0,
+        // TODO tasks have unknown (not empty) GT: the job reports null
+        // meanIou/precision/recall for them and excludes them from
+        // dataset-level P/R.
+        annotated: task.status === TaskStatusEnum.DONE,
       };
     });
 
