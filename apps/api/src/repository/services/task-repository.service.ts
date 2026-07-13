@@ -10,7 +10,7 @@ import { TaskStatusEnum } from "@repo/schema";
 
 const METRIC_SORT_COLUMNS = {
   meanConfidence: taskTable.meanConfidence,
-  minIou: taskTable.minIou,
+  meanIou: taskTable.meanIou,
   precision: taskTable.precision,
   recall: taskTable.recall,
 } as const;

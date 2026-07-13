@@ -18,12 +18,15 @@ interface ConfidenceBoxPlotProps {
   stats: ConfidenceReportPerClassStat[];
   metric: "confidence" | "iou";
   yAxisLabel: string;
+  /** IoU threshold the report was matched at — only used in the empty-state copy. */
+  matchIou?: number;
 }
 
 export const ConfidenceBoxPlot = ({
   stats,
   metric,
   yAxisLabel,
+  matchIou = 0.5,
 }: ConfidenceBoxPlotProps) => {
   const entries = stats.filter((s) =>
     metric === "confidence" ? true : s.iou !== null,
@@ -34,7 +37,7 @@ export const ConfidenceBoxPlot = ({
       <EmptyState
         message={
           metric === "iou"
-            ? "No matched true-positives — IoU data requires annotations that overlap model predictions at IoU ≥ 0.5."
+            ? `No matched true-positives — IoU data requires annotations that overlap model predictions at IoU ≥ ${matchIou}.`
             : "No detection data available."
         }
       />
@@ -80,13 +83,13 @@ export const ConfidenceBoxPlot = ({
             ticks={[0, 0.25, 0.5, 0.75, 1]}
             tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`}
             tick={{ fontSize: 11 }}
-            width={45}
+            width={60}
             label={{
               value: yAxisLabel,
               angle: -90,
               position: "insideLeft",
-              offset: 15,
-              style: { fontSize: 11 },
+              offset: 0,
+              style: { fontSize: 11, textAnchor: "middle" },
             }}
           />
           <Tooltip content={<BoxPlotTooltip />} cursor={false} />

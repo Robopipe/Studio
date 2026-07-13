@@ -21,7 +21,7 @@ export class TaskEntity {
   readonly annotationCount: number;
   readonly updatedBy: number | null;
   readonly meanConfidence: number | null;
-  readonly minIou: number | null;
+  readonly meanIou: number | null;
   readonly precision: number | null;
   readonly recall: number | null;
 
@@ -41,7 +41,7 @@ export class TaskEntity {
     this.deletedAt = data.deletedAt;
     this.updatedBy = data.updatedBy ?? null;
     this.meanConfidence = data.meanConfidence ?? null;
-    this.minIou = data.minIou ?? null;
+    this.meanIou = data.meanIou ?? null;
     this.precision = data.precision ?? null;
     this.recall = data.recall ?? null;
   }
@@ -59,7 +59,7 @@ export class TaskEntity {
       annotationCount: this.annotationCount,
       updatedBy: this.updatedBy,
       meanConfidence: this.meanConfidence,
-      minIou: this.minIou,
+      meanIou: this.meanIou,
       precision: this.precision,
       recall: this.recall,
       createdAt: this.createdAt.toISOString(),

@@ -4,6 +4,7 @@ import { clearCredentials } from "@/core/auth/services/authActions";
 import { cameraApi } from "@/core/cameraApi";
 import "@/core/cameraApi/listener";
 import { organizationApi } from "@/modules/account/services";
+import { confidenceReportVisibilitySlice } from "@/modules/analytics/services/confidenceReportVisibilitySlice";
 import { cameraSelectionSlice } from "@/modules/camera-selection/services/cameraSelectionSlice";
 import { cameraPipelineGenerationSlice } from "@/modules/camera-stream/services/cameraPipelineGenerationSlice";
 import { captureApi } from "@/modules/capture/services/captureApi";
@@ -25,6 +26,7 @@ const slices = {
   [pendingVideoCapturesSlice.name]: pendingVideoCapturesSlice.reducer,
   [cameraSelectionSlice.name]: cameraSelectionSlice.reducer,
   [cameraPipelineGenerationSlice.name]: cameraPipelineGenerationSlice.reducer,
+  [confidenceReportVisibilitySlice.name]: confidenceReportVisibilitySlice.reducer,
 };
 const apis = {
   [api.reducerPath]: api.reducer,

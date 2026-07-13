@@ -50,7 +50,7 @@ const VALID_SORT_KEYS = [
   "createdAt",
   "updatedAt",
   "meanConfidence",
-  "minIou",
+  "meanIou",
   "precision",
   "recall",
 ] as const;

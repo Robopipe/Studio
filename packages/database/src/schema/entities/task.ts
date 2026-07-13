@@ -24,8 +24,10 @@ export const taskTable = p.pgTable("task", {
   annotationCount: p.integer("annotation_count").notNull().default(0),
   updatedBy: p.integer("updated_by").references(() => userTable.id, { onDelete: "set null" }),
   // Per-task confidence-report scalars. Null until a report has been run.
+  // Unannotated (TODO) tasks only ever get meanConfidence; the rest stay null.
   meanConfidence: p.real("mean_confidence"),
-  minIou: p.real("min_iou"),
+  /** Mean matched-TP IoU for the image. Null when no TP match. */
+  meanIou: p.real("mean_iou"),
   /** Micro-averaged precision for the image: TP/(TP+FP) at IoU≥0.5. */
   precision: p.real("precision"),
   /** Micro-averaged recall for the image: TP/(TP+FN) at IoU≥0.5. */

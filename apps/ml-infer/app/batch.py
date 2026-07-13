@@ -20,7 +20,10 @@ Config JSON shape
   "modelId": int,
   "conf": float,
   "iou": float,          # NMS IoU threshold (same as pre-annotate)
+  "matchIou": float,     # TP matching IoU threshold (default 0.5)
   "gtGeometry": "RECTANGLE" | "POLYGON",
+  "modelType": "detection" | "segmentation",  # decides the decode path;
+                         # older configs lack it (fall back to gtGeometry)
   "labelIds": [int, ...],   # ordered by labelId ASC (== ONNX class index)
   "labelNames": [str, ...],
   "labelColors": [str, ...],
@@ -31,6 +34,9 @@ Config JSON shape
       "width": int,          # original image width in pixels
       "height": int,
       "hasGt": bool,         # whether GT of requested geometry exists
+      "annotated": bool,     # whether the task was annotated (status DONE);
+                             # unannotated tasks get no IoU/precision/recall
+                             # and are excluded from dataset-level P/R
       "gt": [
         # detection GT (gtGeometry == RECTANGLE):
         {"labelId": int, "box": {"x", "y", "width", "height"}}   # percentages 0-100
@@ -46,12 +52,15 @@ Config JSON shape
 Metrics
 -------
 * meanConfidence — mean score over all kept detections in the task (null if none).
-* minIou         — smallest matched-TP IoU on this task (null if no TP match).
+* meanIou        — mean matched-TP IoU on this task (null if no TP match).
 * precision      — micro-averaged precision for the task: TP/(TP+FP). Null when
                    the model made no predictions (TP+FP=0). 0 when all predictions
                    are false positives.
 * recall         — micro-averaged recall for the task: TP/(TP+FN). Null when the
                    task has no ground-truth objects. 0 when the model missed all GT.
+* Unannotated tasks (annotated == false) report null meanIou/precision/recall —
+  their GT is unknown, not empty — and contribute nothing to dataset-level P/R.
+  Their detections still count toward the per-class confidence box-stats.
 * Per-class box-stats for confidence scores and matched-TP IoU values are
   accumulated and sent in the final complete webhook, together with overall
   dataset-level precision and recall (micro over all tasks).
@@ -84,7 +93,7 @@ logging.basicConfig(
 _log = logging.getLogger("ml-infer.batch")
 
 _SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
-IOU_MATCH_THRESHOLD = 0.5
+DEFAULT_IOU_MATCH_THRESHOLD = 0.5
 
 
 # ─── HTTP helpers ─────────────────────────────────────────────────────────────
@@ -196,8 +205,9 @@ def _match_detections(
     img_w: int,
     img_h: int,
     model_type: str,          # "detection" or "segmentation"
+    match_iou: float = DEFAULT_IOU_MATCH_THRESHOLD,
 ) -> tuple[list[float], list[float], list[float]]:
-    """Greedy matching of predictions to GT at IoU≥0.5.
+    """Greedy matching of predictions to GT at IoU ≥ match_iou.
 
     Side-effect: stamps matched true-positive predictions with two private keys:
         _matched_iou           — float IoU of the TP match
@@ -260,7 +270,7 @@ def _match_detections(
                 if iou > best_iou:
                     best_iou = iou
                     best_idx = gi
-            if best_iou >= IOU_MATCH_THRESHOLD:
+            if best_iou >= match_iou:
                 matched_gt[lid].add(best_idx)
                 matched_iou = best_iou
                 # Stamp the prediction dict (same object as in `predictions` list).
@@ -279,7 +289,7 @@ def _match_detections(
                 if iou > best_iou:
                     best_iou = iou
                     best_idx = gi
-            if best_iou >= IOU_MATCH_THRESHOLD:
+            if best_iou >= match_iou:
                 matched_gt[lid].add(best_idx)
                 matched_iou = best_iou
                 # Stamp the prediction dict (same object as in `predictions` list).
@@ -298,7 +308,7 @@ def _task_metrics(
     """Compute per-task metrics from matching results.
 
     Returns:
-        (meanConfidence, minIou, precision, recall, tp, fp, fn)
+        (meanConfidence, meanIou, precision, recall, tp, fp, fn)
 
     Precision/recall are micro-averaged across all classes on the image.
     Precision is None when there are no predictions at all (TP+FP=0).
@@ -312,14 +322,14 @@ def _task_metrics(
     mean_conf = float(np.mean(scores)) if scores else None
 
     tp_ious = [iou for _, _, iou in per_class_results if iou is not None]
-    min_iou = float(min(tp_ious)) if tp_ious else None
+    mean_iou = float(np.mean(tp_ious)) if tp_ious else None
 
     # Null when no predictions; 0 when all predictions are false positives.
     precision: Optional[float] = tp / (tp + fp) if (tp + fp) > 0 else None
     # Null when no GT; 0 when model missed all GT objects.
     recall: Optional[float] = tp / (tp + fn) if (tp + fn) > 0 else None
 
-    return mean_conf, min_iou, precision, recall, tp, fp, fn
+    return mean_conf, mean_iou, precision, recall, tp, fp, fn
 
 
 # ─── Box-stats helper (mirrors the SQL percentile_cont + IQR logic) ───────────
@@ -362,6 +372,7 @@ def main() -> None:
     model_id: int = cfg["modelId"]
     conf: float = cfg["conf"]
     iou_threshold: float = cfg.get("iou", 0.45)
+    match_iou: float = cfg.get("matchIou", DEFAULT_IOU_MATCH_THRESHOLD)
     gt_geometry: str = cfg["gtGeometry"]
     label_ids: list[int] = cfg["labelIds"]
     label_names: list[str] = cfg["labelNames"]
@@ -371,8 +382,16 @@ def main() -> None:
     webhook_url: str = cfg["webhookUrl"].rstrip("/")
 
     n_classes = len(label_ids)
-    is_detection = gt_geometry == "RECTANGLE"
-    model_type = "detection" if is_detection else "segmentation"
+    # The model's actual type decides the decode path and the geometry of the
+    # predicted regions. GT geometry is independent: a detection model can be
+    # evaluated against polygon GT (polygons are converted to bounding boxes
+    # below). Older configs lack modelType — infer it from gtGeometry, which
+    # was the only supported pairing back then.
+    model_type: str = cfg.get("modelType") or (
+        "detection" if gt_geometry == "RECTANGLE" else "segmentation"
+    )
+    is_detection = model_type == "detection"
+    pred_geometry = "RECTANGLE" if is_detection else "POLYGON"
 
     # Per-class accumulators: {classIndex: {confidence: [], iou: []}}
     class_confidence: dict[int, list[float]] = {i: [] for i in range(n_classes)}
@@ -459,6 +478,7 @@ def main() -> None:
         img_w: int = task["width"]
         img_h: int = task["height"]
         gt: list[dict] = task.get("gt", [])
+        annotated: bool = bool(task.get("annotated", True))
 
         # Initialise to empty; populated only on success so failed tasks
         # contribute no regions (stays empty on exception).
@@ -500,8 +520,11 @@ def main() -> None:
                     iou_threshold=iou_threshold,
                 )
 
-            # For detection model + POLYGON gt: convert gt polygons to boxes.
-            # Preserve annotationId so it can be threaded through to matched regions.
+            # Detection model + POLYGON gt: evaluate each polygon as its
+            # bounding box. Coords stay in percentages (_match_detections
+            # converts to pixels); annotationId is preserved so matched TP
+            # regions still link to the GT annotation. Degenerate polygons
+            # (< 3 points) are dropped.
             effective_gt = gt
             if is_detection and gt_geometry == "POLYGON":
                 effective_gt = []
@@ -514,9 +537,6 @@ def main() -> None:
                             "annotationId": g.get("annotationId"),
                             "box": {"x": x, "y": y, "width": w, "height": h},
                         })
-                # Note: these are already in percentage coords here; we need to
-                # use the original gt list passed to _match_detections which
-                # expects the effective_gt format. For detection, it uses "box".
                 effective_gt_geometry = "RECTANGLE"
             else:
                 effective_gt_geometry = gt_geometry
@@ -529,6 +549,7 @@ def main() -> None:
                 img_w,
                 img_h,
                 model_type,
+                match_iou,
             )
 
             # Build region payloads after matching so _matched_iou/_matched_annotation_id
@@ -542,7 +563,9 @@ def main() -> None:
                 region: dict = {
                     "labelId": label_ids[ci],
                     "score": float(pred["score"]),
-                    "geometry": gt_geometry,
+                    # Geometry of the *prediction*, not the GT: with a
+                    # detection model + polygon GT the regions are still boxes.
+                    "geometry": pred_geometry,
                     "iou": pred.get("_matched_iou"),
                     "matchedAnnotationId": pred.get("_matched_annotation_id"),
                 }
@@ -558,7 +581,7 @@ def main() -> None:
                     ]
                 task_regions.append(region)
 
-            mean_conf, min_iou, precision, recall, tp, fp, fn = _task_metrics(
+            mean_conf, mean_iou, precision, recall, tp, fp, fn = _task_metrics(
                 per_class_results, len(effective_gt)
             )
 
@@ -569,19 +592,25 @@ def main() -> None:
                     if matched_iou is not None:
                         class_iou[ci].append(matched_iou)
 
-            # Accumulate dataset-level P/R counts (failed tasks contribute nothing).
-            dataset_tp += tp
-            dataset_fp += fp
-            dataset_fn += fn
+            if annotated:
+                # Accumulate dataset-level P/R counts (failed and unannotated
+                # tasks contribute nothing).
+                dataset_tp += tp
+                dataset_fp += fp
+                dataset_fn += fn
+            else:
+                # Unannotated task: GT is unknown (not empty), so evaluation
+                # metrics are meaningless — keep only the detection confidence.
+                mean_iou, precision, recall = None, None, None
 
         except Exception:
             _log.exception("error processing task %d — treating as null", task_id)
-            mean_conf, min_iou, precision, recall = None, None, None, None
+            mean_conf, mean_iou, precision, recall = None, None, None, None
 
         chunk_results.append({
             "taskId": task_id,
             "meanConfidence": mean_conf,
-            "minIou": min_iou,
+            "meanIou": mean_iou,
             "precision": precision,
             "recall": recall,
             "regions": task_regions,
