@@ -1,4 +1,5 @@
 import { AnnotateIcon } from "@/components/icons";
+import { getContrastTextColor } from "@/lib/color";
 import { cn } from "@/lib/utils";
 import { metricColor } from "@/modules/analytics/utils/metricColor";
 import {
@@ -581,8 +582,8 @@ export const AnnotationPanel = ({
                               style={{ color: annotation.color }}
                             />
                             <span
-                              className="flex h-[14px] w-6 shrink-0 items-center justify-center rounded-[3px] px-0.5 text-[11px] leading-3 text-foreground/90"
-                              style={{ background: annotation.color }}
+                              className="flex h-[14px] w-6 shrink-0 items-center justify-center rounded-[3px] px-0.5 text-[11px] leading-3"
+                              style={{ background: annotation.color, color: getContrastTextColor(annotation.color) }}
                             >
                               {memberIndex + 1}
                             </span>
@@ -680,8 +681,8 @@ export const AnnotationPanel = ({
                     style={{ color: annotation.color }}
                   />
                   <span
-                    className="flex h-[14px] w-6 shrink-0 items-center justify-center rounded-[3px] px-0.5 text-[11px] leading-3 text-foreground/90"
-                    style={{ background: annotation.color }}
+                    className="flex h-[14px] w-6 shrink-0 items-center justify-center rounded-[3px] px-0.5 text-[11px] leading-3"
+                    style={{ background: annotation.color, color: getContrastTextColor(annotation.color) }}
                   >
                     {index + 1}
                   </span>

@@ -13,6 +13,7 @@ import { useGetModelsQuery } from "@/modules/model/services/modelApi";
 import { EditProjectModal } from "@/modules/project/components/EditProjectModal";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import {
+  useCreateProjectLabelMutation,
   useDeletePreAnnotateSettingsMutation,
   useGetPreAnnotateSettingsQuery,
   useGetProjectLabelsQuery,
@@ -190,6 +191,7 @@ export const LabelPage = () => {
 
   const { data: labels = [], isLoading: isLoadingLabels } =
     useGetProjectLabelsQuery({ projectId: projectId! }, { skip: !projectId });
+  const [createProjectLabel] = useCreateProjectLabelMutation();
 
   // Whenever there's no task in the URL but the current page has tasks,
   // pick one. Covers two cases:
@@ -854,6 +856,27 @@ export const LabelPage = () => {
     [labels, activeLabel?.id, selectedAnnotationIds, annotations, history, isolatedLabelId],
   );
 
+  // Creates a label inline from the class toolbar. Sets the newly created
+  // label directly as active (rather than routing through handleSelectLabel,
+  // which looks the id up in `labels` — the refetch triggered by the create
+  // mutation's cache invalidation hasn't landed yet, so the lookup would
+  // no-op). The default-selection effect above only fires when activeLabel
+  // is null, so this won't get clobbered once the refetched list arrives.
+  const handleCreateLabel = useCallback(
+    async ({ name, color }: { name: string; color: string }) => {
+      if (!projectId) {
+        throw new Error("Project is not loaded yet");
+      }
+      const created = await createProjectLabel({
+        projectId,
+        name,
+        color,
+      }).unwrap();
+      setActiveLabel(created);
+    },
+    [projectId, createProjectLabel],
+  );
+
   const canMarkEmpty = true;
 
   const [isSaving, setIsSaving] = useState(false);
@@ -1293,6 +1316,7 @@ export const LabelPage = () => {
               labels={labels}
               activeLabelId={chipDisplayedLabelId}
               onSelectLabel={handleSelectLabel}
+              onCreateLabel={handleCreateLabel}
               onOpenSettings={() => setSettingsOpen(true)}
               isLoadingLabels={isLoadingLabels}
             />

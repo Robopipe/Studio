@@ -1,5 +1,6 @@
 import z from "zod";
 import {
+  changePasswordSchema,
   createOrganizationSchema,
   forgotPasswordSchema,
   inviteUserSchema,
@@ -28,6 +29,7 @@ export type Register = z.infer<typeof registerSchema>;
 export type UpdateUserRequest = z.infer<typeof updateUserSchema>;
 export type ForgotPassword = z.infer<typeof forgotPasswordSchema>;
 export type ResetPassword = z.infer<typeof resetPasswordSchema>;
+export type ChangePassword = z.infer<typeof changePasswordSchema>;
 export type InviteUser = z.infer<typeof inviteUserSchema>;
 export type CreateOrganization = z.infer<typeof createOrganizationSchema>;
 export type VerifyEmail = z.infer<typeof verifyEmailSchema>;
