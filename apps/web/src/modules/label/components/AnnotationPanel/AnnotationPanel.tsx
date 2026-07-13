@@ -13,7 +13,12 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/modules/shadcn/ui/tabs";
-import { ConfidenceReportRegionResponse, ConfidenceReportStatusEnum, Label } from "@repo/schema";
+import {
+  ConfidenceReportGtGeometryEnum,
+  ConfidenceReportRegionResponse,
+  ConfidenceReportStatusEnum,
+  Label,
+} from "@repo/schema";
 import {
   AlertTriangle,
   ChevronDown,
@@ -71,6 +76,10 @@ export interface AnnotationPanelProps {
   inferredRegions: ConfidenceReportRegionResponse[];
   isLoadingRegions: boolean;
   reportStatus: ConfidenceReportStatusEnum | null;
+  /** GT geometry of the report — decides which annotation table
+      matchedAnnotationId refers to (may differ from the regions' geometry,
+      e.g. detection model evaluated against polygon GT). */
+  reportGtGeometry: ConfidenceReportGtGeometryEnum | null;
   showGtOverlay: boolean;
   onToggleGtOverlay: (show: boolean) => void;
   /** Raw region id of the highlighted inferred region (null = none). */
@@ -161,6 +170,7 @@ export const AnnotationPanel = ({
   inferredRegions,
   isLoadingRegions,
   reportStatus,
+  reportGtGeometry,
   showGtOverlay,
   onToggleGtOverlay,
   selectedInferredRegionId,
@@ -205,16 +215,20 @@ export const AnnotationPanel = ({
   // Build a map from "GEOMETRY:annotationId" → matched prediction metrics so GT
   // region rows can show per-region Conf/IoU pills when a confidence report has
   // been run. Only TP predictions carry iou + matchedAnnotationId (FP have nulls).
+  // The key uses the report's GT geometry (rectangle and polygon annotation ids
+  // live in separate tables, so the prefix disambiguates) — NOT the region's own
+  // geometry, which describes the prediction and differs from the GT when a
+  // detection model is evaluated against polygon GT.
   const annotationMetricsMap = useMemo(() => {
     const map = new Map<string, { iou: number; score: number }>();
+    if (reportGtGeometry == null) return map;
     for (const r of inferredRegions) {
       if (r.iou != null && r.matchedAnnotationId != null) {
-        const geo = r.geometry === "RECTANGLE" ? "RECTANGLE" : "POLYGON";
-        map.set(`${geo}:${r.matchedAnnotationId}`, { iou: r.iou, score: r.score });
+        map.set(`${reportGtGeometry}:${r.matchedAnnotationId}`, { iou: r.iou, score: r.score });
       }
     }
     return map;
-  }, [inferredRegions]);
+  }, [inferredRegions, reportGtGeometry]);
 
   // Per-region stats follow the "show in dataset" preference, like the Inferred tab.
   const reportActive = showInferredTab && inferredRegions.length > 0;
