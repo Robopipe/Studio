@@ -64,6 +64,8 @@ export interface AnnotationPanelProps {
   /** Controlled tab value — lifted to LabelPage so it can swap the canvas. */
   activeTab: "labels" | "history" | "inferred";
   onTabChange: (tab: "labels" | "history" | "inferred") => void;
+  /** "Show in dataset" preference — hides the Inferred tab when false. */
+  showInferredTab: boolean;
   /** Inferred-regions tab data */
   inferredRegions: ConfidenceReportRegionResponse[];
   isLoadingRegions: boolean;
@@ -125,6 +127,7 @@ export const AnnotationPanel = ({
   onIsolateAnnotation,
   activeTab,
   onTabChange,
+  showInferredTab,
   inferredRegions,
   isLoadingRegions,
   reportStatus,
@@ -255,7 +258,9 @@ export const AnnotationPanel = ({
       <TabsList variant="line" className="h-10 shrink-0">
         <TabsTrigger value="labels">Annotations</TabsTrigger>
         <TabsTrigger value="history">History</TabsTrigger>
-        <TabsTrigger value="inferred">Inferred</TabsTrigger>
+        {showInferredTab && (
+          <TabsTrigger value="inferred">Inferred</TabsTrigger>
+        )}
       </TabsList>
 
       <TabsContent
@@ -704,18 +709,20 @@ export const AnnotationPanel = ({
         )}
       </TabsContent>
 
-      <TabsContent value="inferred" className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <InferredRegionsTab
-          regions={inferredRegions}
-          isLoading={isLoadingRegions}
-          reportStatus={reportStatus}
-          showGtOverlay={showGtOverlay}
-          onToggleGtOverlay={onToggleGtOverlay}
-          hasTask={taskId != null}
-          selectedRegionId={selectedInferredRegionId}
-          onSelectRegion={onSelectInferredRegion}
-        />
-      </TabsContent>
+      {showInferredTab && (
+        <TabsContent value="inferred" className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <InferredRegionsTab
+            regions={inferredRegions}
+            isLoading={isLoadingRegions}
+            reportStatus={reportStatus}
+            showGtOverlay={showGtOverlay}
+            onToggleGtOverlay={onToggleGtOverlay}
+            hasTask={taskId != null}
+            selectedRegionId={selectedInferredRegionId}
+            onSelectRegion={onSelectInferredRegion}
+          />
+        </TabsContent>
+      )}
     </Tabs>
   );
 };
