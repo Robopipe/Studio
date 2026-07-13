@@ -30,7 +30,7 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { LocalAuthGuard } from '../guards/local-auth.guard';
 import { PreAuthGuard } from '../guards/pre-auth.guard';
 import { AuthService } from '../services/auth.service';
-import { CreateOrganizationDto, ForgotPasswordDto, RegisterDto, ResendVerificationDto, ResetPasswordDto, SelectOrganizationDto, UserUpdateRequest, VerifyEmailDto } from "../dto/auth.dto";
+import { ChangePasswordDto, CreateOrganizationDto, ForgotPasswordDto, RegisterDto, ResendVerificationDto, ResetPasswordDto, SelectOrganizationDto, UserUpdateRequest, VerifyEmailDto } from "../dto/auth.dto";
 import type { SessionUser } from '../strategies/jwt.strategy';
 
 @Controller('auth')
@@ -247,6 +247,19 @@ export class AuthController {
   async updateProfile(@User() user: SessionUser, @Body() data: UserUpdateRequest): Promise<UserDto> {
     const updatedUser = await this.authService.updateProfile(user.id, data);
     return updatedUser.toDto();
+  }
+
+  /**
+   * Change the current user's password. Requires the current password.
+   * @param user - session user from JWT
+   * @param data - contains the current and new password
+   * @returns success message
+   */
+  @Post('change-password')
+  @UseGuards(JwtAuthGuard)
+  public async changePassword(@User() user: SessionUser, @Body() data: ChangePasswordDto): Promise<{ message: string }> {
+    await this.authService.changePassword(user.id, data.currentPassword, data.newPassword);
+    return { message: 'Password has been changed successfully.' };
   }
 
   /**

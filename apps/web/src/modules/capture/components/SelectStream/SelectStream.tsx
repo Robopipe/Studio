@@ -17,6 +17,11 @@ export interface SelectStreamProps {
   value?: string | null;
   onSelect: (streamName: string | null) => void;
   onSwitchingChange?: (isSwitching: boolean) => void;
+  /**
+   * Guard for user-initiated changes (not the auto-select effect). Resolving
+   * false swallows the change; the controlled `value` keeps the old selection.
+   */
+  onBeforeUserSelect?: () => Promise<boolean>;
 }
 
 export const SelectStream = ({
@@ -24,6 +29,7 @@ export const SelectStream = ({
   value,
   onSelect,
   onSwitchingChange,
+  onBeforeUserSelect,
 }: SelectStreamProps) => {
   const { data: streams } = useListStreamsQuery(mxid!, {
     skip: !mxid,
@@ -45,6 +51,11 @@ export const SelectStream = ({
     async (newStream: string | null) => {
       if (!mxid || !newStream || newStream === value) return;
 
+      // Ask before locking the dropdown so the confirm dialog can be cancelled
+      // without side effects; the recording is saved from the still-live old
+      // stream before the switch tears it down.
+      if (onBeforeUserSelect && !(await onBeforeUserSelect())) return;
+
       setIsSwitching(true);
       onSwitchingChange?.(true);
       try {
@@ -61,7 +72,7 @@ export const SelectStream = ({
         onSwitchingChange?.(false);
       }
     },
-    [mxid, value, batchUpdateStreams, onSelect, onSwitchingChange],
+    [mxid, value, batchUpdateStreams, onSelect, onSwitchingChange, onBeforeUserSelect],
   );
 
   return (

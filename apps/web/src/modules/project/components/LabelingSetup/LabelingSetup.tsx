@@ -1,4 +1,5 @@
 import { ColorPicker } from "@/components/ColorPicker";
+import { getRandomHex } from "@/lib/color";
 import { Button } from "@/modules/shadcn/ui/button";
 import { Input } from "@/modules/shadcn/ui/input";
 import { Label as ShadcnLabel } from "@/modules/shadcn/ui/label";
@@ -15,10 +16,7 @@ interface LabelingSetupProps {
   onUpdateLabelColor?: (name: string, color: string) => void;
 }
 
-export const getRandomHex = () => {
-  const hex = Math.floor(Math.random() * 16777215).toString(16);
-  return `#${hex.padStart(6, "0")}`;
-};
+export { getRandomHex };
 
 export const LabelingSetup = ({
   labels,

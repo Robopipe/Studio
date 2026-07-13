@@ -86,7 +86,7 @@ export const InferredRegionsTab = ({
                   className="shrink-0 rounded px-1.5 py-0.5 font-mono font-semibold tabular-nums"
                   style={{
                     backgroundColor: region.label.color + "22",
-                    color: region.label.color,
+                    color: `color-mix(in oklab, ${region.label.color}, var(--foreground) 45%)`,
                   }}
                 >
                   {region.score.toFixed(2)}

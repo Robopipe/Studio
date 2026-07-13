@@ -68,6 +68,11 @@ export const resetPasswordSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().nonempty("Enter your current password"),
+  newPassword: z.string().min(8, "Password must be at least 8 characters"),
+});
+
 export const inviteUserSchema = z.object({
   email: z.email(),
   role: assignableRoleEnum,

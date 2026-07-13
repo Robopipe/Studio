@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 const SUPPORTED_MIME_TYPES = [
   "video/webm;codecs=vp9",
@@ -49,6 +50,25 @@ export const useVideoRecorder = (
       }
     };
 
+    // If the recorder dies without stopRecording() being called (the source
+    // stream's tracks end on a camera unplug or WebRTC reconnect), reset state
+    // so the UI doesn't freeze on a dead "Stop recording" button.
+    // stopRecording() replaces onstop before calling stop(), so an intentional
+    // stop never reaches this handler.
+    const handleUnexpectedStop = () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      chunksRef.current = [];
+      mediaRecorderRef.current = null;
+      setIsRecording(false);
+      setRecordingDurationMs(0);
+      toast.warning("Recording stopped — the video stream ended.");
+    };
+    recorder.onstop = handleUnexpectedStop;
+    recorder.onerror = handleUnexpectedStop;
+
     mediaRecorderRef.current = recorder;
     startTimeRef.current = Date.now();
     recorder.start(1000);
@@ -84,6 +104,7 @@ export const useVideoRecorder = (
 
         resolve({ videoBlob, durationMs });
       };
+      recorder.onerror = null;
 
       recorder.stop();
     });
@@ -91,8 +112,12 @@ export const useVideoRecorder = (
 
   useEffect(() => {
     return () => {
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
-        mediaRecorderRef.current.stop();
+      const recorder = mediaRecorderRef.current;
+      if (recorder && recorder.state !== "inactive") {
+        // Detach the unexpected-stop handler; a toast on unmount would be noise.
+        recorder.onstop = null;
+        recorder.onerror = null;
+        recorder.stop();
       }
       if (timerRef.current) {
         clearInterval(timerRef.current);
