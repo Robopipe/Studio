@@ -211,6 +211,10 @@ export class ConfidenceReportService {
       // TP matching IoU threshold (prediction counts as TP at IoU >= matchIou).
       matchIou: body.matchIou,
       gtGeometry: body.gtGeometry,
+      // Decides the decode path in the job ("detection" | "segmentation").
+      // Independent of gtGeometry: a detection model may be evaluated against
+      // polygon GT (the job converts polygons to bounding boxes).
+      modelType,
       // Ordered by labelId ASC — matches ONNX class index convention.
       labelIds: model.labels.map((l) => l.id),
       labelNames: model.labels.map((l) => l.name),
