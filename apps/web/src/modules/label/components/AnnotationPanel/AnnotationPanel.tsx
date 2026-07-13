@@ -104,6 +104,35 @@ function buildDisplayRows(annotations: Annotation[]): DisplayRow[] {
   return rows;
 }
 
+/** Conf + IoU pills for a GT region row. Renders muted "—" when the region has
+    no matched prediction (false negative) while a confidence report is active. */
+const MetricBadges = ({
+  metrics,
+}: {
+  metrics?: { iou: number; score: number };
+}) => (
+  <>
+    <span
+      title="Confidence"
+      className={cn(
+        "w-10 shrink-0 rounded px-1.5 py-0.5 text-right font-mono text-[10px] font-semibold tabular-nums",
+        metricColor(metrics?.score),
+      )}
+    >
+      {metrics ? metrics.score.toFixed(2) : "—"}
+    </span>
+    <span
+      title="IoU"
+      className={cn(
+        "w-10 shrink-0 rounded px-1.5 py-0.5 text-right font-mono text-[10px] font-semibold tabular-nums",
+        metricColor(metrics?.iou),
+      )}
+    >
+      {metrics ? metrics.iou.toFixed(2) : "—"}
+    </span>
+  </>
+);
+
 export const AnnotationPanel = ({
   annotations,
   labels,
@@ -172,19 +201,22 @@ export const AnnotationPanel = ({
 
   const displayRows = useMemo(() => buildDisplayRows(annotations), [annotations]);
 
-  // Build a map from "GEOMETRY:annotationId" → matched IoU so GT region rows can
-  // show the per-region IoU pill when a confidence report has been run.
-  // Only TP predictions carry iou + matchedAnnotationId (FP predictions have nulls).
-  const annotationIouMap = useMemo(() => {
-    const map = new Map<string, number>();
+  // Build a map from "GEOMETRY:annotationId" → matched prediction metrics so GT
+  // region rows can show per-region Conf/IoU pills when a confidence report has
+  // been run. Only TP predictions carry iou + matchedAnnotationId (FP have nulls).
+  const annotationMetricsMap = useMemo(() => {
+    const map = new Map<string, { iou: number; score: number }>();
     for (const r of inferredRegions) {
       if (r.iou != null && r.matchedAnnotationId != null) {
         const geo = r.geometry === "RECTANGLE" ? "RECTANGLE" : "POLYGON";
-        map.set(`${geo}:${r.matchedAnnotationId}`, r.iou);
+        map.set(`${geo}:${r.matchedAnnotationId}`, { iou: r.iou, score: r.score });
       }
     }
     return map;
   }, [inferredRegions]);
+
+  // Per-region stats follow the "show in dataset" preference, like the Inferred tab.
+  const reportActive = showInferredTab && inferredRegions.length > 0;
 
   const classesScrollRef = useRef<HTMLDivElement>(null);
   const [showClassesGradient, setShowClassesGradient] = useState(false);
@@ -352,6 +384,20 @@ export const AnnotationPanel = ({
               </div>
             )}
           </div>
+          {/* Column subheader — mini-labels aligned above the Conf/IoU pills in
+              the rows below (rows share px-2 + w-10 px-1.5 columns); row action
+              buttons are hidden until hover so the pills sit flush right. */}
+          {reportActive && annotations.length > 0 && (
+            <div className="flex shrink-0 items-center gap-1 border-b border-border px-2 py-1">
+              <span className="min-w-0 flex-1" />
+              <span className="w-10 shrink-0 px-1.5 text-right text-[10px] font-medium text-muted-foreground">
+                Conf
+              </span>
+              <span className="w-10 shrink-0 px-1.5 text-right text-[10px] font-medium text-muted-foreground">
+                IoU
+              </span>
+            </div>
+          )}
           {labels.length === 0 && !isLoadingLabels && (
             <div className="flex shrink-0 items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
               <AlertTriangle className="size-4 shrink-0 text-amber-500" />
@@ -511,7 +557,7 @@ export const AnnotationPanel = ({
                               })
                             }
                             className={cn(
-                              "group relative ml-5 flex cursor-pointer select-none items-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-black/5",
+                              "group relative ml-5 flex cursor-pointer select-none items-center gap-1 rounded-md px-2 py-1 transition-colors hover:bg-black/5",
                               isSelected &&
                                 "bg-primary/15 ring-1 ring-inset ring-primary/40 hover:bg-primary/15",
                               dnd.isDragging && "opacity-40",
@@ -545,14 +591,10 @@ export const AnnotationPanel = ({
                             </span>
                             {(() => {
                               const geo = annotation.type === "bbox" ? "RECTANGLE" : annotation.type === "polygon" ? "POLYGON" : null;
-                              const iou = geo != null && annotation.apiId != null ? annotationIouMap.get(`${geo}:${annotation.apiId}`) : undefined;
-                              return iou != null ? (
-                                <span
-                                  className={cn("shrink-0 rounded px-1.5 py-0.5 font-mono text-[10px] font-semibold tabular-nums", metricColor(iou))}
-                                  title="IoU"
-                                >
-                                  {iou.toFixed(2)}
-                                </span>
+                              return reportActive && geo != null ? (
+                                <MetricBadges
+                                  metrics={annotationMetricsMap.get(`${geo}:${annotation.apiId}`)}
+                                />
                               ) : null;
                             })()}
                             <button
@@ -563,10 +605,10 @@ export const AnnotationPanel = ({
                                 onToggleAnnotationVisibility(annotation.id);
                               }}
                               className={cn(
-                                "flex shrink-0 cursor-pointer items-center justify-center rounded p-1 text-muted-foreground transition-opacity hover:bg-black/5 hover:text-foreground [&_svg]:size-3.5",
+                                "shrink-0 cursor-pointer items-center justify-center rounded p-1 text-muted-foreground hover:bg-black/5 hover:text-foreground [&_svg]:size-3.5",
                                 isHidden || isSelected
-                                  ? "opacity-100"
-                                  : "opacity-0 group-hover:opacity-100",
+                                  ? "flex"
+                                  : "hidden group-hover:flex",
                               )}
                             >
                               {isHidden ? <EyeOff /> : <Eye />}
@@ -579,8 +621,8 @@ export const AnnotationPanel = ({
                                 onDeleteAnnotation(annotation.id);
                               }}
                               className={cn(
-                                "flex shrink-0 cursor-pointer items-center justify-center rounded p-1 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive [&_svg]:size-3.5",
-                                isSelected && "opacity-100",
+                                "shrink-0 cursor-pointer items-center justify-center rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive [&_svg]:size-3.5",
+                                isSelected ? "flex" : "hidden group-hover:flex",
                               )}
                             >
                               <Trash2 />
@@ -614,7 +656,7 @@ export const AnnotationPanel = ({
                     })
                   }
                   className={cn(
-                    "group relative flex cursor-pointer select-none items-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-black/5",
+                    "group relative flex cursor-pointer select-none items-center gap-1 rounded-md px-2 py-1 transition-colors hover:bg-black/5",
                     isSelected &&
                       "bg-primary/15 ring-1 ring-inset ring-primary/40 hover:bg-primary/15",
                     dnd.isDragging && "opacity-40",
@@ -648,14 +690,10 @@ export const AnnotationPanel = ({
                   </span>
                   {(() => {
                     const geo = annotation.type === "bbox" ? "RECTANGLE" : annotation.type === "polygon" ? "POLYGON" : null;
-                    const iou = geo != null && annotation.apiId != null ? annotationIouMap.get(`${geo}:${annotation.apiId}`) : undefined;
-                    return iou != null ? (
-                      <span
-                        className={cn("shrink-0 rounded px-1.5 py-0.5 font-mono text-[10px] font-semibold tabular-nums", metricColor(iou))}
-                        title="IoU"
-                      >
-                        {iou.toFixed(2)}
-                      </span>
+                    return reportActive && geo != null ? (
+                      <MetricBadges
+                        metrics={annotationMetricsMap.get(`${geo}:${annotation.apiId}`)}
+                      />
                     ) : null;
                   })()}
                   <button
@@ -666,10 +704,10 @@ export const AnnotationPanel = ({
                       onToggleAnnotationVisibility(annotation.id);
                     }}
                     className={cn(
-                      "flex shrink-0 cursor-pointer items-center justify-center rounded p-1 text-muted-foreground transition-opacity hover:bg-black/5 hover:text-foreground [&_svg]:size-3.5",
+                      "shrink-0 cursor-pointer items-center justify-center rounded p-1 text-muted-foreground hover:bg-black/5 hover:text-foreground [&_svg]:size-3.5",
                       isHidden || isSelected
-                        ? "opacity-100"
-                        : "opacity-0 group-hover:opacity-100",
+                        ? "flex"
+                        : "hidden group-hover:flex",
                     )}
                   >
                     {isHidden ? <EyeOff /> : <Eye />}
@@ -682,8 +720,8 @@ export const AnnotationPanel = ({
                       onDeleteAnnotation(annotation.id);
                     }}
                     className={cn(
-                      "flex shrink-0 cursor-pointer items-center justify-center rounded p-1 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive [&_svg]:size-3.5",
-                      isSelected && "opacity-100",
+                      "shrink-0 cursor-pointer items-center justify-center rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive [&_svg]:size-3.5",
+                      isSelected ? "flex" : "hidden group-hover:flex",
                     )}
                   >
                     <Trash2 />
