@@ -28,6 +28,8 @@ export interface Annotation {
   score?: number;
   /** True for confidence-report inferred regions; they are read-only and display-only. */
   inferred?: boolean;
+  /** 1-based position in the inferred-regions list — matches the #N shown in the sidebar. */
+  displayId?: number;
 }
 
 export type AtomicHistoryEntry =

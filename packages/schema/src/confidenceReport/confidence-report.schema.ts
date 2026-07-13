@@ -24,6 +24,8 @@ export enum ConfidenceReportGtGeometryEnum {
 export const runConfidenceReportSchema = z.object({
   modelId: z.number().int().positive(),
   conf: z.number().min(0).max(1),
+  /** IoU threshold at which a prediction counts as a true-positive match against GT. */
+  matchIou: z.number().min(0).max(1).default(0.5),
   gtGeometry: z.enum(ConfidenceReportGtGeometryEnum),
 });
 
@@ -35,8 +37,9 @@ export const confidenceReportPerClassStatSchema = z.object({
   color: z.string(),
   /** Box-plot stats for the confidence scores of all kept detections of this class. */
   confidence: annotationBoxStatsSchema,
-  /** Box-plot stats for the matched-TP IoU values (IoU≥0.5). Null when there
-   *  are no matched true-positives for this class. */
+  /** Box-plot stats for the matched-TP IoU values (matched at the report's
+   *  matchIou threshold). Null when there are no matched true-positives for
+   *  this class. */
   iou: annotationBoxStatsSchema.nullable(),
   /** Total number of detections (above conf threshold) for this class. */
   detectionCount: z.number(),
@@ -53,6 +56,9 @@ export const confidenceReportSchema = z.object({
   /** Name of the model at run time. Optional so the raw DB row parses without a join. */
   modelName: z.string().nullable().optional(),
   conf: z.number(),
+  /** IoU threshold used for TP matching in this run. Defaults for reports
+   *  generated before the field existed (they all ran at the hardcoded 0.5). */
+  matchIou: z.number().default(0.5),
   gtGeometry: z.enum(ConfidenceReportGtGeometryEnum),
   status: z.enum(ConfidenceReportStatusEnum),
   processed: z.number(),
@@ -123,10 +129,11 @@ export const confidenceReportRegionResponseSchema = z.object({
 export const confidenceReportTaskResultSchema = z.object({
   taskId: z.number(),
   meanConfidence: z.number().nullable(),
-  minIou: z.number().nullable(),
-  /** Micro-averaged precision for the image: TP/(TP+FP). Null when no predictions. */
+  /** Mean matched-TP IoU for the image. Null when no TP match or task unannotated. */
+  meanIou: z.number().nullable(),
+  /** Micro-averaged precision for the image: TP/(TP+FP). Null when no predictions or task unannotated. */
   precision: z.number().nullable(),
-  /** Micro-averaged recall for the image: TP/(TP+FN). Null when no ground truth. */
+  /** Micro-averaged recall for the image: TP/(TP+FN). Null when no ground truth or task unannotated. */
   recall: z.number().nullable(),
   regions: confidenceReportRegionInputSchema.array().default([]),
 });

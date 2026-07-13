@@ -83,3 +83,27 @@ export function isReportActive(report: ConfidenceReport | undefined): boolean {
     report?.status === ConfidenceReportStatusEnum.RUNNING
   );
 }
+
+/**
+ * Subscribe to the project's confidence report, polling while a run is
+ * active (PENDING/RUNNING) so status transitions — run started, finished,
+ * cancelled — propagate to the UI without a page refresh.
+ */
+export function useConfidenceReport(projectId: number | undefined) {
+  const result = useGetConfidenceReportQuery(
+    { projectId: projectId! },
+    { skip: !projectId },
+  );
+  // A hook can't derive pollingInterval from its own result, so a second
+  // subscription to the same cache entry switches polling on while the
+  // report is active — RTK Query polls at the shortest interval among
+  // active subscribers.
+  useGetConfidenceReportQuery(
+    { projectId: projectId! },
+    {
+      skip: !projectId || !isReportActive(result.data),
+      pollingInterval: CONFIDENCE_REPORT_POLL_MS,
+    },
+  );
+  return result;
+}

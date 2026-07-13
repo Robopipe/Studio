@@ -34,6 +34,8 @@ export interface DataSourcePanelProps {
   sort: TaskSortState;
   onSortChange: (sort: TaskSortState) => void;
   metricsAvailable?: boolean;
+  /** "Show in dataset" preference — hides task-card metric badges when false. */
+  showTaskMetrics?: boolean;
 }
 
 export const DataSourcePanel = ({
@@ -50,6 +52,7 @@ export const DataSourcePanel = ({
   sort,
   onSortChange,
   metricsAvailable = false,
+  showTaskMetrics = true,
 }: DataSourcePanelProps) => {
   const listRef = useRef<HTMLDivElement>(null);
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
@@ -202,12 +205,16 @@ export const DataSourcePanel = ({
                 rightSlot={
                   <AnnotationChip count={count} status={task.status} />
                 }
-                metrics={{
-                  meanConfidence: task.meanConfidence,
-                  minIou: task.minIou,
-                  precision: task.precision,
-                  recall: task.recall,
-                }}
+                metrics={
+                  showTaskMetrics
+                    ? {
+                        meanConfidence: task.meanConfidence,
+                        meanIou: task.meanIou,
+                        precision: task.precision,
+                        recall: task.recall,
+                      }
+                    : undefined
+                }
               />
             </div>
           );

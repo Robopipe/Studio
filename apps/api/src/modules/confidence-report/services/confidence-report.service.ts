@@ -167,6 +167,10 @@ export class ConfidenceReportService {
         // Whether this task has GT of the requested geometry (used by the
         // Python job to skip IoU computation without erroring).
         hasGt: gt.length > 0,
+        // TODO tasks have unknown (not empty) GT: the job reports null
+        // meanIou/precision/recall for them and excludes them from
+        // dataset-level P/R.
+        annotated: task.status === TaskStatusEnum.DONE,
       };
     });
 
@@ -180,6 +184,7 @@ export class ConfidenceReportService {
       projectId,
       modelId: model.id,
       conf: body.conf,
+      matchIou: body.matchIou,
       gtGeometry: body.gtGeometry,
       status: ConfidenceReportStatusEnum.PENDING,
       processed: 0,
@@ -201,8 +206,15 @@ export class ConfidenceReportService {
       modelUrl,
       modelId: model.id,
       conf: body.conf,
+      // NMS IoU threshold (duplicate-detection suppression during inference).
       iou: 0.45,
+      // TP matching IoU threshold (prediction counts as TP at IoU >= matchIou).
+      matchIou: body.matchIou,
       gtGeometry: body.gtGeometry,
+      // Decides the decode path in the job ("detection" | "segmentation").
+      // Independent of gtGeometry: a detection model may be evaluated against
+      // polygon GT (the job converts polygons to bounding boxes).
+      modelType,
       // Ordered by labelId ASC — matches ONNX class index convention.
       labelIds: model.labels.map((l) => l.id),
       labelNames: model.labels.map((l) => l.name),

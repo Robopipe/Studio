@@ -1,12 +1,17 @@
-import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
-import { useGetModelsQuery } from "@/modules/model/services/modelApi";
+import { useAuth } from "@/core/auth/hooks";
+import { cn } from "@/lib/utils";
+import { useConfidenceReportVisibility } from "@/modules/analytics/hooks/useConfidenceReportVisibility";
 import {
-  CONFIDENCE_REPORT_POLL_MS,
   isReportActive,
   useCancelConfidenceReportMutation,
-  useGetConfidenceReportQuery,
+  useConfidenceReport,
   useRunConfidenceReportMutation,
 } from "@/modules/analytics/services/confidenceReportApi";
+import { useGetModelsQuery } from "@/modules/model/services/modelApi";
+import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
+import { Button } from "@/modules/shadcn/ui/button";
+import { Checkbox } from "@/modules/shadcn/ui/checkbox";
+import { NumberInput } from "@/modules/shadcn/ui/number-input";
 import {
   Select,
   SelectContent,
@@ -14,15 +19,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/modules/shadcn/ui/select";
-import { Button } from "@/modules/shadcn/ui/button";
-import { NumberInput } from "@/modules/shadcn/ui/number-input";
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from "@/modules/shadcn/ui/tabs";
-import { cn } from "@/lib/utils";
 import {
   ConfidenceReportGtGeometryEnum,
   ConfidenceReportStatusEnum,
@@ -30,6 +32,7 @@ import {
   ModelBackendEnum,
   ModelOutputTypeEnum,
   ModelStatusEnum,
+  OrgMemberRoleEnum,
   ProjectTypeEnum,
 } from "@repo/schema";
 import { AlertCircle, Loader2, Play, Square } from "lucide-react";
@@ -53,40 +56,34 @@ export const ConfidenceReportSection = () => {
   const [activeProject] = useActiveProject();
   const projectId = activeProject?.id;
 
+  const { role } = useAuth();
+  const canManage =
+    role === OrgMemberRoleEnum.ADMIN || role === OrgMemberRoleEnum.OWNER;
+
   // ── data ──────────────────────────────────────────────────────────────────
   const { data: models = [] } = useGetModelsQuery(
     { projectId: projectId! },
-    { skip: !projectId },
+    { skip: !projectId || !canManage },
   );
 
-  const eligibleModels = models.filter(isEligibleModel);
+  const eligibleModels = models
+    .filter(isEligibleModel)
+    .toSorted((a, b) => b.createdAt.localeCompare(a.createdAt));
 
-  const { data: report } = useGetConfidenceReportQuery(
-    { projectId: projectId! },
-    {
-      skip: !projectId,
-      pollingInterval: isReportActive(undefined) ? CONFIDENCE_REPORT_POLL_MS : 0,
-    },
-  );
+  const { data: report } = useConfidenceReport(projectId);
 
-  // Update pollingInterval reactively based on the report status.
-  // RTK Query supports updating options dynamically — we do it via a second
-  // subscription that only activates when the report is active.
-  useGetConfidenceReportQuery(
-    { projectId: projectId! },
-    {
-      skip: !projectId || !isReportActive(report),
-      pollingInterval: CONFIDENCE_REPORT_POLL_MS,
-    },
-  );
+  const { showInDataset, setShowInDataset } = useConfidenceReportVisibility();
 
-  const [runReport, { isLoading: isRunning }] = useRunConfidenceReportMutation();
-  const [cancelReport, { isLoading: isCancelling }] = useCancelConfidenceReportMutation();
+  const [runReport, { isLoading: isRunning }] =
+    useRunConfidenceReportMutation();
+  const [cancelReport, { isLoading: isCancelling }] =
+    useCancelConfidenceReportMutation();
 
   // ── local state ────────────────────────────────────────────────────────────
   const defaultModelId = eligibleModels[0]?.id;
   const [selectedModelId, setSelectedModelId] = useState<number | null>(null);
   const [conf, setConf] = useState<number | null>(0.25);
+  const [matchIou, setMatchIou] = useState<number | null>(0.5);
   const [gtGeometry, setGtGeometry] = useState<ConfidenceReportGtGeometryEnum>(
     ConfidenceReportGtGeometryEnum.RECTANGLE,
   );
@@ -99,12 +96,19 @@ export const ConfidenceReportSection = () => {
 
   // ── handlers ───────────────────────────────────────────────────────────────
   const handleRun = async () => {
-    if (!projectId || effectiveModelId == null || conf == null) return;
+    if (
+      !projectId ||
+      effectiveModelId == null ||
+      conf == null ||
+      matchIou == null
+    )
+      return;
     try {
       await runReport({
         projectId,
         modelId: effectiveModelId,
         conf,
+        matchIou,
         gtGeometry: isDetection
           ? gtGeometry
           : ConfidenceReportGtGeometryEnum.POLYGON,
@@ -128,149 +132,194 @@ export const ConfidenceReportSection = () => {
   // ── render ─────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col gap-4 border-t border-black/10 pt-4">
-      <p className="text-sm font-semibold text-foreground">Confidence Report</p>
-
-      {/* Controls row */}
-      <div className="flex flex-wrap items-end gap-3">
-        {/* Model selector */}
-        <div className="flex flex-col gap-1">
-          <span className="text-xs text-muted-foreground">Model</span>
-          <Select
-            value={effectiveModelId != null ? String(effectiveModelId) : ""}
-            onValueChange={(v) => {
-              if (v !== null) setSelectedModelId(Number(v));
-            }}
-            disabled={active || eligibleModels.length === 0}
-          >
-            <SelectTrigger size="sm" className="w-48">
-              <SelectValue
-                placeholder={
-                  eligibleModels.length === 0
-                    ? "No eligible models"
-                    : "Select model"
-                }
-              >
-                {selectedModel?.name ?? eligibleModels[0]?.name}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {eligibleModels.map((m) => (
-                <SelectItem key={m.id} value={String(m.id)}>
-                  {m.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Confidence threshold */}
-        <div className="flex flex-col gap-1">
-          <span className="text-xs text-muted-foreground">Confidence</span>
-          <NumberInput
-            value={conf}
-            onValueChange={(v) => setConf(v == null ? null : Math.min(1, v))}
-            decimal
-            min={0}
-            max={1}
-            step={0.01}
-            className="h-9 w-24 text-sm"
-            disabled={active}
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-semibold text-foreground">
+          Confidence Report
+        </p>
+        {/* Display preference, not a run parameter — always visible and
+            enabled, applies immediately without re-running the report. */}
+        <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+          <Checkbox
+            checked={showInDataset}
+            onCheckedChange={(value) => setShowInDataset(value === true)}
           />
-        </div>
-
-        {/* GT geometry toggle — detection models only */}
-        {isDetection && (
-          <div className="flex flex-col gap-1">
-            <span className="text-xs text-muted-foreground">Ground truth</span>
-            <div className="flex gap-1">
-              {(
-                [
-                  [ConfidenceReportGtGeometryEnum.RECTANGLE, "Boxes"],
-                  [ConfidenceReportGtGeometryEnum.POLYGON, "Polygons"],
-                ] as const
-              ).map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  disabled={active}
-                  onClick={() => setGtGeometry(value)}
-                  className={cn(
-                    "h-9 cursor-pointer rounded-md border px-3 text-xs font-medium transition-all disabled:cursor-not-allowed disabled:opacity-50",
-                    gtGeometry === value
-                      ? "border-primary/30 bg-primary/10 text-primary"
-                      : "border-black/10 bg-transparent text-muted-foreground hover:bg-black/4",
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Run / Cancel button — label spacer keeps it bottom-aligned with labelled inputs */}
-        <div className="ml-auto flex flex-col gap-1">
-          <span className="invisible text-xs">_</span>
-          <div className="flex items-center gap-2">
-          {active && report && (
-            <span className="text-xs text-muted-foreground">
-              {report.processed} / {report.total} images
-            </span>
-          )}
-          {active ? (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleCancel}
-              disabled={isCancelling}
-            >
-              {isCancelling ? (
-                <Loader2 className="mr-1.5 size-3.5 animate-spin" />
-              ) : (
-                <Square className="mr-1.5 size-3.5" />
-              )}
-              Cancel
-            </Button>
-          ) : (
-            <Button
-              size="sm"
-              onClick={handleRun}
-              disabled={
-                isRunning || eligibleModels.length === 0 || conf == null
-              }
-            >
-              {isRunning ? (
-                <Loader2 className="mr-1.5 size-3.5 animate-spin" />
-              ) : (
-                <Play className="mr-1.5 size-3.5" />
-              )}
-              Run
-            </Button>
-          )}
-          </div>
-        </div>
+          Show in dataset
+        </label>
       </div>
 
+      {/* Controls row — running reports is restricted to admins and owners */}
+      {canManage && (
+        <div className="flex flex-wrap items-end gap-3">
+          {/* Model selector */}
+          <div className="flex flex-col gap-1">
+            <span className="text-xs text-muted-foreground">Model</span>
+            <Select
+              value={effectiveModelId != null ? String(effectiveModelId) : ""}
+              onValueChange={(v) => {
+                if (v !== null) setSelectedModelId(Number(v));
+              }}
+              disabled={active || eligibleModels.length === 0}
+            >
+              <SelectTrigger size="sm" className="w-48">
+                <SelectValue
+                  placeholder={
+                    eligibleModels.length === 0
+                      ? "No eligible models"
+                      : "Select model"
+                  }
+                >
+                  {selectedModel?.name ?? eligibleModels[0]?.name}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {eligibleModels.map((m) => (
+                  <SelectItem key={m.id} value={String(m.id)}>
+                    {m.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Confidence threshold */}
+          <div className="flex flex-col gap-1">
+            <span className="text-xs text-muted-foreground">Confidence</span>
+            <NumberInput
+              value={conf}
+              onValueChange={(v) => setConf(v == null ? null : Math.min(1, v))}
+              decimal
+              min={0}
+              max={1}
+              step={0.01}
+              className="h-9 w-24 text-sm"
+              disabled={active}
+            />
+          </div>
+
+          {/* IoU matching threshold — a prediction counts as a TP at IoU ≥ this */}
+          <div className="flex flex-col gap-1">
+            <span className="text-xs text-muted-foreground">IoU</span>
+            <NumberInput
+              value={matchIou}
+              onValueChange={(v) =>
+                setMatchIou(v == null ? null : Math.min(1, v))
+              }
+              decimal
+              min={0}
+              max={1}
+              step={0.01}
+              className="h-9 w-24 text-sm"
+              disabled={active}
+            />
+          </div>
+
+          {/* GT geometry toggle — detection models only */}
+          {isDetection && (
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-muted-foreground">
+                Ground truth
+              </span>
+              <div className="flex gap-1">
+                {(
+                  [
+                    [ConfidenceReportGtGeometryEnum.RECTANGLE, "Boxes"],
+                    [ConfidenceReportGtGeometryEnum.POLYGON, "Polygons"],
+                  ] as const
+                ).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    disabled={active}
+                    onClick={() => setGtGeometry(value)}
+                    className={cn(
+                      "h-9 cursor-pointer rounded-md border px-3 text-xs font-medium transition-all disabled:cursor-not-allowed disabled:opacity-50",
+                      gtGeometry === value
+                        ? "border-primary/30 bg-primary/10 text-primary"
+                        : "border-black/10 bg-transparent text-muted-foreground hover:bg-black/4",
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Run / Cancel button — label spacer keeps it bottom-aligned with labelled inputs */}
+          <div className="ml-auto flex flex-col gap-1">
+            <span className="invisible text-xs">_</span>
+            <div className="flex items-center gap-2">
+              {active && report && (
+                <span className="text-xs text-muted-foreground">
+                  {report.processed} / {report.total} images
+                </span>
+              )}
+              {active ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleCancel}
+                  disabled={isCancelling}
+                >
+                  {isCancelling ? (
+                    <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+                  ) : (
+                    <Square className="mr-1.5 size-3.5" />
+                  )}
+                  Cancel
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  onClick={handleRun}
+                  disabled={
+                    isRunning ||
+                    eligibleModels.length === 0 ||
+                    conf == null ||
+                    matchIou == null
+                  }
+                >
+                  {isRunning ? (
+                    <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+                  ) : (
+                    <Play className="mr-1.5 size-3.5" />
+                  )}
+                  Run
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Results area */}
-      <ReportResults report={report} active={active} />
+      <ReportResults report={report} active={active} canManage={canManage} />
     </div>
   );
 };
 
 // ─── Results sub-component ────────────────────────────────────────────────────
 
-type Report = NonNullable<ReturnType<typeof useGetConfidenceReportQuery>["data"]>;
+type Report = NonNullable<ReturnType<typeof useConfidenceReport>["data"]>;
 
 const ReportResults = ({
   report,
   active,
+  canManage,
 }: {
   report: Report | undefined;
   active: boolean;
+  canManage: boolean;
 }) => {
   if (!report) {
     return (
-      <EmptyState message="Run a confidence analysis to see results here." />
+      <EmptyState
+        message={
+          canManage
+            ? "Run a confidence analysis to see results here."
+            : "No confidence report yet. An admin can run one from this dialog."
+        }
+      />
     );
   }
 
@@ -298,7 +347,13 @@ const ReportResults = ({
 
   if (report.status === ConfidenceReportStatusEnum.CANCELLED) {
     return (
-      <EmptyState message="Analysis was cancelled. Run again to see results." />
+      <EmptyState
+        message={
+          canManage
+            ? "Analysis was cancelled. Run again to see results."
+            : "Analysis was cancelled."
+        }
+      />
     );
   }
 
@@ -311,6 +366,7 @@ const ReportResults = ({
   const caption = [
     report.modelName && `Model: ${report.modelName}`,
     `Threshold: ${(report.conf * 100).toFixed(0)}%`,
+    `IoU: ≥ ${report.matchIou}`,
     `Ran: ${new Date(report.createdAt).toLocaleString(undefined, {
       day: "2-digit",
       month: "2-digit",
@@ -330,12 +386,24 @@ const ReportResults = ({
       <p className="text-xs text-muted-foreground">{caption}</p>
       <p className="text-xs text-muted-foreground">
         Precision{" "}
-        <span className={cn(report.overallPrecision != null ? metricColor(report.overallPrecision) : "text-muted-foreground")}>
+        <span
+          className={cn(
+            report.overallPrecision != null
+              ? metricColor(report.overallPrecision)
+              : "text-muted-foreground",
+          )}
+        >
           {fmtPct(report.overallPrecision)}
         </span>
         {" · "}
         Recall{" "}
-        <span className={cn(report.overallRecall != null ? metricColor(report.overallRecall) : "text-muted-foreground")}>
+        <span
+          className={cn(
+            report.overallRecall != null
+              ? metricColor(report.overallRecall)
+              : "text-muted-foreground",
+          )}
+        >
           {fmtPct(report.overallRecall)}
         </span>
       </p>
@@ -360,12 +428,14 @@ const ReportResults = ({
 
         <TabsContent value="iou" className="pt-4">
           <p className="mb-3 text-xs text-muted-foreground">
-            IoU distribution for matched true-positives (IoU ≥ 0.5) per class
+            IoU distribution for matched true-positives (IoU ≥{" "}
+            {report.matchIou}) per class
           </p>
           <ConfidenceBoxPlot
             stats={report.perClassStats}
             metric="iou"
             yAxisLabel="IoU"
+            matchIou={report.matchIou}
           />
         </TabsContent>
       </Tabs>

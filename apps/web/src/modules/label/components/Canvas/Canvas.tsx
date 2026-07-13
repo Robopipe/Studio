@@ -157,6 +157,16 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
       const key = e.key;
       const mod = e.ctrlKey || e.metaKey;
 
+      // Read-only view (inferred regions): selection exists but nothing may
+      // mutate — only Escape (deselect) is allowed through.
+      if (readOnly) {
+        if (key === "Escape") {
+          onSelect(null);
+          setSelectedVertex(null);
+        }
+        return;
+      }
+
       if (key === "Delete" || key === "Backspace") {
         if (selectedVertex !== null) {
           const ann = annotations.find((a) => a.id === selectedVertex.annotationId);
@@ -214,6 +224,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(({
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [
+    readOnly,
     selectedAnnotationIds,
     selectedVertex,
     annotations,
