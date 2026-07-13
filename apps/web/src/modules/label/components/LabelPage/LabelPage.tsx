@@ -1196,6 +1196,7 @@ export const LabelPage = () => {
         inferredRegions={rawRegions}
         isLoadingRegions={isLoadingRegions}
         reportStatus={confidenceReport?.status as ConfidenceReportStatusEnum | null ?? null}
+        reportGtGeometry={confidenceReport?.gtGeometry ?? null}
         showGtOverlay={showGtOverlay}
         onToggleGtOverlay={setShowGtOverlay}
         selectedInferredRegionId={selectedInferredRegionId}
