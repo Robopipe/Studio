@@ -2,7 +2,10 @@ import { AnnotateIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { metricColor } from "@/modules/analytics/utils/metricColor";
 import { Switch } from "@/modules/shadcn/ui/switch";
-import { ConfidenceReportRegionResponse, ConfidenceReportStatusEnum } from "@repo/schema";
+import {
+  ConfidenceReportRegionResponse,
+  ConfidenceReportStatusEnum,
+} from "@repo/schema";
 import { useEffect, useRef } from "react";
 
 interface InferredRegionsTabProps {
