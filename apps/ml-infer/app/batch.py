@@ -22,6 +22,8 @@ Config JSON shape
   "iou": float,          # NMS IoU threshold (same as pre-annotate)
   "matchIou": float,     # TP matching IoU threshold (default 0.5)
   "gtGeometry": "RECTANGLE" | "POLYGON",
+  "modelType": "detection" | "segmentation",  # decides the decode path;
+                         # older configs lack it (fall back to gtGeometry)
   "labelIds": [int, ...],   # ordered by labelId ASC (== ONNX class index)
   "labelNames": [str, ...],
   "labelColors": [str, ...],
@@ -380,8 +382,16 @@ def main() -> None:
     webhook_url: str = cfg["webhookUrl"].rstrip("/")
 
     n_classes = len(label_ids)
-    is_detection = gt_geometry == "RECTANGLE"
-    model_type = "detection" if is_detection else "segmentation"
+    # The model's actual type decides the decode path and the geometry of the
+    # predicted regions. GT geometry is independent: a detection model can be
+    # evaluated against polygon GT (polygons are converted to bounding boxes
+    # below). Older configs lack modelType — infer it from gtGeometry, which
+    # was the only supported pairing back then.
+    model_type: str = cfg.get("modelType") or (
+        "detection" if gt_geometry == "RECTANGLE" else "segmentation"
+    )
+    is_detection = model_type == "detection"
+    pred_geometry = "RECTANGLE" if is_detection else "POLYGON"
 
     # Per-class accumulators: {classIndex: {confidence: [], iou: []}}
     class_confidence: dict[int, list[float]] = {i: [] for i in range(n_classes)}
@@ -510,8 +520,11 @@ def main() -> None:
                     iou_threshold=iou_threshold,
                 )
 
-            # For detection model + POLYGON gt: convert gt polygons to boxes.
-            # Preserve annotationId so it can be threaded through to matched regions.
+            # Detection model + POLYGON gt: evaluate each polygon as its
+            # bounding box. Coords stay in percentages (_match_detections
+            # converts to pixels); annotationId is preserved so matched TP
+            # regions still link to the GT annotation. Degenerate polygons
+            # (< 3 points) are dropped.
             effective_gt = gt
             if is_detection and gt_geometry == "POLYGON":
                 effective_gt = []
@@ -524,9 +537,6 @@ def main() -> None:
                             "annotationId": g.get("annotationId"),
                             "box": {"x": x, "y": y, "width": w, "height": h},
                         })
-                # Note: these are already in percentage coords here; we need to
-                # use the original gt list passed to _match_detections which
-                # expects the effective_gt format. For detection, it uses "box".
                 effective_gt_geometry = "RECTANGLE"
             else:
                 effective_gt_geometry = gt_geometry
@@ -553,7 +563,9 @@ def main() -> None:
                 region: dict = {
                     "labelId": label_ids[ci],
                     "score": float(pred["score"]),
-                    "geometry": gt_geometry,
+                    # Geometry of the *prediction*, not the GT: with a
+                    # detection model + polygon GT the regions are still boxes.
+                    "geometry": pred_geometry,
                     "iou": pred.get("_matched_iou"),
                     "matchedAnnotationId": pred.get("_matched_annotation_id"),
                 }
