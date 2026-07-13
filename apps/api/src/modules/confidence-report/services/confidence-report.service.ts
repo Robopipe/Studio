@@ -184,6 +184,7 @@ export class ConfidenceReportService {
       projectId,
       modelId: model.id,
       conf: body.conf,
+      matchIou: body.matchIou,
       gtGeometry: body.gtGeometry,
       status: ConfidenceReportStatusEnum.PENDING,
       processed: 0,
@@ -205,7 +206,10 @@ export class ConfidenceReportService {
       modelUrl,
       modelId: model.id,
       conf: body.conf,
+      // NMS IoU threshold (duplicate-detection suppression during inference).
       iou: 0.45,
+      // TP matching IoU threshold (prediction counts as TP at IoU >= matchIou).
+      matchIou: body.matchIou,
       gtGeometry: body.gtGeometry,
       // Ordered by labelId ASC — matches ONNX class index convention.
       labelIds: model.labels.map((l) => l.id),

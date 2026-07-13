@@ -11,17 +11,23 @@ import {
   Post,
   UseGuards,
 } from "@nestjs/common";
-import { ProjectId } from "../../auth/decorators/project-id.decorator";
-import { ProjectGuard } from "../../auth/guards/project-guard";
-import { ConfidenceReportService } from "../services/confidence-report.service";
-import { RunConfidenceReportDto } from "../dto/confidence-report.dto";
-import type { ConfidenceReportRegionResponse, RunConfidenceReport } from "@repo/schema";
+import type {
+  ConfidenceReportRegionResponse,
+  RunConfidenceReport,
+} from "@repo/schema";
 import type { ConfidenceReportSelect } from "../../../repository/types/confidence-report";
+import { ProjectId } from "../../auth/decorators/project-id.decorator";
+import { AdminGuard } from "../../auth/guards/admin.guard";
+import { ProjectGuard } from "../../auth/guards/project-guard";
+import { RunConfidenceReportDto } from "../dto/confidence-report.dto";
+import { ConfidenceReportService } from "../services/confidence-report.service";
 
 @Controller("confidence-report/:projectId")
 @UseGuards(ProjectGuard)
 export class ConfidenceReportController {
-  constructor(private readonly confidenceReportService: ConfidenceReportService) {}
+  constructor(
+    private readonly confidenceReportService: ConfidenceReportService,
+  ) {}
 
   /** Get the current report (status + box-plot data). Returns 404 when none. */
   @Get()
@@ -30,22 +36,29 @@ export class ConfidenceReportController {
   ): Promise<ConfidenceReportSelect & { modelName: string | null }> {
     const report = await this.confidenceReportService.getReport(projectId);
     if (!report) {
-      throw new NotFoundException("No confidence report found for this project");
+      throw new NotFoundException(
+        "No confidence report found for this project",
+      );
     }
     return report;
   }
 
-  /** Start a new report run (overwrites any existing report). */
+  /** Start a new report run (overwrites any existing report). Admins and owners only. */
   @Post()
+  @UseGuards(AdminGuard)
   public async run(
     @ProjectId() projectId: number,
     @Body() body: RunConfidenceReportDto,
   ): Promise<ConfidenceReportSelect> {
-    return this.confidenceReportService.run(projectId, body as RunConfidenceReport);
+    return this.confidenceReportService.run(
+      projectId,
+      body as RunConfidenceReport,
+    );
   }
 
-  /** Cancel a running report. */
+  /** Cancel a running report. Admins and owners only. */
   @Delete()
+  @UseGuards(AdminGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   public async cancel(@ProjectId() projectId: number): Promise<void> {
     await this.confidenceReportService.cancel(projectId);
