@@ -7,6 +7,7 @@ export const studioApiEndpoints = {
     logout: "auth/logout",
     forgotPassword: "auth/forgot-password",
     resetPassword: "auth/reset-password",
+    changePassword: "auth/change-password",
     verifyEmail: "auth/verify-email",
     resendVerification: "auth/resend-verification",
     selectOrganization: "auth/select-organization",

@@ -3,6 +3,7 @@ import { baseQuery, baseRefreshingQuery } from "@/core/api/baseQuery";
 import { HttpMethod } from "@/types";
 import { createApi, FetchBaseQueryError } from "@reduxjs/toolkit/query/react";
 import {
+  ChangePassword,
   ForgotPassword,
   Invitation,
   Login,
@@ -140,6 +141,13 @@ export const authApi = authApiBase.injectEndpoints({
         body: data,
       }),
     }),
+    changePassword: builder.mutation<{ message: string }, ChangePassword>({
+      query: (data) => ({
+        url: auth.changePassword,
+        method: HttpMethod.POST,
+        body: data,
+      }),
+    }),
     verifyEmail: builder.mutation<{ message: string }, VerifyEmail>({
       query: (data) => ({
         url: auth.verifyEmail,
@@ -174,6 +182,7 @@ export const {
   useUpdateProfileMutation,
   useForgotPasswordMutation,
   useResetPasswordMutation,
+  useChangePasswordMutation,
   useVerifyEmailMutation,
   useResendVerificationMutation,
 } = authApi;

@@ -12,9 +12,18 @@ import { useEffect, useMemo } from "react";
 export interface SelectCameraProps {
   value?: string | null;
   onSelect: (mxid: string | null) => void;
+  /**
+   * Guard for user-initiated changes (not the auto-select effect). Resolving
+   * false swallows the change; the controlled `value` keeps the old selection.
+   */
+  onBeforeUserSelect?: () => Promise<boolean>;
 }
 
-export const SelectCamera = ({ value, onSelect }: SelectCameraProps) => {
+export const SelectCamera = ({
+  value,
+  onSelect,
+  onBeforeUserSelect,
+}: SelectCameraProps) => {
   const { data: cameras } = useListCamerasQuery();
 
   const cameraItems = useMemo(
@@ -36,7 +45,11 @@ export const SelectCamera = ({ value, onSelect }: SelectCameraProps) => {
   return (
     <Select
       value={value}
-      onValueChange={(val) => onSelect(val)}
+      onValueChange={async (val) => {
+        if (val === value) return;
+        if (onBeforeUserSelect && !(await onBeforeUserSelect())) return;
+        onSelect(val);
+      }}
       items={cameraItems}
     >
       <SelectTrigger className="w-full">
