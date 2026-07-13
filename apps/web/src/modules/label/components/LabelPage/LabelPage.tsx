@@ -1,6 +1,7 @@
 import { useAuth } from "@/core/auth/hooks/useAuth";
 import { useProfileQuery } from "@/core/auth/services";
 import { cn } from "@/lib/utils";
+import { useConfidenceReportVisibility } from "@/modules/analytics/hooks/useConfidenceReportVisibility";
 import {
   CONFIDENCE_REPORT_POLL_MS,
   isReportActive,
@@ -94,6 +95,10 @@ export const LabelPage = () => {
   >("labels");
   const [showGtOverlay, setShowGtOverlay] = useState(false);
 
+  // "Show in dataset" preference — gates all confidence-report-derived
+  // per-task UI (task-card metric badges, Inferred tab, region IoU pills).
+  const { showInDataset } = useConfidenceReportVisibility();
+
   // Single-select highlight for inferred regions ("inferred-<regionId>").
   // Kept separate from selectedAnnotationIds so inferred ids never enter the
   // GT selection machinery (nudge, delete, group, copy, save payloads).
@@ -140,6 +145,16 @@ export const LabelPage = () => {
       setSort(DEFAULT_SORT);
     }
   }, [reportResolved, metricsAvailable, sort.sortBy, setSort]);
+
+  // Leave the Inferred tab when "Show in dataset" is switched off — the tab
+  // trigger disappears, so a controlled Tabs stuck on "inferred" would render
+  // an empty panel.
+  useEffect(() => {
+    if (!showInDataset && activeAnnotationTab === "inferred") {
+      setActiveAnnotationTab("labels");
+      setSelectedInferredId(null);
+    }
+  }, [showInDataset, activeAnnotationTab]);
 
   const { data: tasksData, isFetching: isFetchingTasks } = useGetTasksQuery(
     {
@@ -214,6 +229,7 @@ export const LabelPage = () => {
       { projectId: projectId!, taskId: selectedTaskId! },
       {
         skip:
+          !showInDataset ||
           activeAnnotationTab === "history" ||
           !projectId ||
           selectedTaskId === null,
@@ -1100,7 +1116,7 @@ export const LabelPage = () => {
 
   // When on the Inferred tab the canvas shows only inference predictions
   // (read-only, dashed), optionally with the GT annotations overlaid (solid).
-  const isInferredView = activeAnnotationTab === "inferred";
+  const isInferredView = showInDataset && activeAnnotationTab === "inferred";
   const canvasAnnotations = useMemo(() => {
     if (!isInferredView) return visibleAnnotations;
     return [
@@ -1125,6 +1141,7 @@ export const LabelPage = () => {
         sort={sort}
         onSortChange={setSort}
         metricsAvailable={metricsAvailable}
+        showTaskMetrics={showInDataset}
       />
       <AnnotationPanel
         annotations={annotations}
@@ -1152,6 +1169,7 @@ export const LabelPage = () => {
         onIsolateAnnotation={isolateAnnotation}
         activeTab={activeAnnotationTab}
         onTabChange={setActiveAnnotationTab}
+        showInferredTab={showInDataset}
         inferredRegions={rawRegions}
         isLoadingRegions={isLoadingRegions}
         reportStatus={confidenceReport?.status as ConfidenceReportStatusEnum | null ?? null}

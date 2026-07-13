@@ -1,5 +1,6 @@
 import { useAuth } from "@/core/auth/hooks";
 import { cn } from "@/lib/utils";
+import { useConfidenceReportVisibility } from "@/modules/analytics/hooks/useConfidenceReportVisibility";
 import {
   isReportActive,
   useCancelConfidenceReportMutation,
@@ -9,6 +10,7 @@ import {
 import { useGetModelsQuery } from "@/modules/model/services/modelApi";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import { Button } from "@/modules/shadcn/ui/button";
+import { Checkbox } from "@/modules/shadcn/ui/checkbox";
 import { NumberInput } from "@/modules/shadcn/ui/number-input";
 import {
   Select,
@@ -70,6 +72,8 @@ export const ConfidenceReportSection = () => {
 
   const { data: report } = useConfidenceReport(projectId);
 
+  const { showInDataset, setShowInDataset } = useConfidenceReportVisibility();
+
   const [runReport, { isLoading: isRunning }] =
     useRunConfidenceReportMutation();
   const [cancelReport, { isLoading: isCancelling }] =
@@ -128,7 +132,20 @@ export const ConfidenceReportSection = () => {
   // ── render ─────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col gap-4 border-t border-black/10 pt-4">
-      <p className="text-sm font-semibold text-foreground">Confidence Report</p>
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-semibold text-foreground">
+          Confidence Report
+        </p>
+        {/* Display preference, not a run parameter — always visible and
+            enabled, applies immediately without re-running the report. */}
+        <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+          <Checkbox
+            checked={showInDataset}
+            onCheckedChange={(value) => setShowInDataset(value === true)}
+          />
+          Show in dataset
+        </label>
+      </div>
 
       {/* Controls row — running reports is restricted to admins and owners */}
       {canManage && (
