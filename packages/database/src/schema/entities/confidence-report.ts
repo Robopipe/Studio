@@ -37,6 +37,8 @@ export const confidenceReportTable = p.pgTable("confidence_report", {
     .integer("model_id")
     .references(() => modelTable.id, { onDelete: "set null" }),
   conf: p.real("conf").notNull(),
+  /** IoU threshold at which a prediction counts as a true-positive match against GT. */
+  matchIou: p.real("match_iou").notNull().default(0.5),
   gtGeometry: confidenceReportGtGeometryEnum("gt_geometry").notNull(),
   status: confidenceReportStatusEnum("status").notNull(),
   /** Number of tasks fully processed so far. */
