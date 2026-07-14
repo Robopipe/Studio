@@ -20,6 +20,7 @@ import {
   useUpdatePreAnnotateSettingsMutation,
 } from "@/modules/project/services/projectApi";
 import {
+  ConfidenceReportGtGeometryEnum,
   ConfidenceReportStatusEnum,
   DetectionPreAnnotateSettings,
   Label,
@@ -47,6 +48,7 @@ import {
   annotationsToUpdatePayload,
   INFERRED_ID_PREFIX,
   inferredAnnotationId,
+  polygonAnnotationToBbox,
   regionsToAnnotations,
   taskDetailToAnnotations,
 } from "../../utils/mapAnnotations";
@@ -1142,11 +1144,24 @@ export const LabelPage = () => {
   const isInferredView = showInDataset && activeAnnotationTab === "inferred";
   const canvasAnnotations = useMemo(() => {
     if (!isInferredView) return visibleAnnotations;
-    return [
-      ...(showGtOverlay ? visibleAnnotations : []),
-      ...inferredAnnotations,
-    ];
-  }, [isInferredView, visibleAnnotations, inferredAnnotations, showGtOverlay]);
+    // Detection model evaluated against polygon GT: the job matched each
+    // polygon as its bounding box, so overlay the boxes the metrics were
+    // actually computed from rather than the original polygons.
+    const gtOverlay = !showGtOverlay
+      ? []
+      : confidenceReport?.modelType === PreAnnotateModelTypeEnum.DETECTION &&
+          confidenceReport.gtGeometry === ConfidenceReportGtGeometryEnum.POLYGON
+        ? visibleAnnotations.map(polygonAnnotationToBbox)
+        : visibleAnnotations;
+    return [...gtOverlay, ...inferredAnnotations];
+  }, [
+    isInferredView,
+    visibleAnnotations,
+    inferredAnnotations,
+    showGtOverlay,
+    confidenceReport?.modelType,
+    confidenceReport?.gtGeometry,
+  ]);
 
   return (
     <div className="-m-6 grid min-h-0 flex-1 grid-cols-[320px_280px_1fr] grid-rows-[minmax(0,1fr)] bg-white">
