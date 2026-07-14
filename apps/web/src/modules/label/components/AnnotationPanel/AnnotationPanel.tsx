@@ -89,7 +89,13 @@ export interface AnnotationPanelProps {
 }
 
 type DisplayRow =
-  | { type: "group"; groupId: string; color: string; labelName: string; members: Annotation[] }
+  | {
+      type: "group";
+      groupId: string;
+      color: string;
+      labelName: string;
+      members: Annotation[];
+    }
   | { type: "single"; annotation: Annotation };
 
 function buildDisplayRows(annotations: Annotation[]): DisplayRow[] {
@@ -105,7 +111,13 @@ function buildDisplayRows(annotations: Annotation[]): DisplayRow[] {
         (rows[at] as Extract<DisplayRow, { type: "group" }>).members.push(a);
       } else {
         groupRowIndex.set(a.groupId, rows.length);
-        rows.push({ type: "group", groupId: a.groupId, color: a.color, labelName: a.labelName, members: [a] });
+        rows.push({
+          type: "group",
+          groupId: a.groupId,
+          color: a.color,
+          labelName: a.labelName,
+          members: [a],
+        });
       }
     } else {
       rows.push({ type: "single", annotation: a });
@@ -184,7 +196,11 @@ export const AnnotationPanel = ({
     .filter((cls) => cls.count > 0);
 
   const handleMove = useCallback(
-    (event: { fromIndex: number; toIndex: number; targetGroupId: string | null }) => {
+    (event: {
+      fromIndex: number;
+      toIndex: number;
+      targetGroupId: string | null;
+    }) => {
       if (onMoveAnnotation) {
         onMoveAnnotation(event.fromIndex, event.toIndex, event.targetGroupId);
       } else {
@@ -199,7 +215,9 @@ export const AnnotationPanel = ({
     handleMove,
   );
 
-  const [collapsedGroupIds, setCollapsedGroupIds] = useState<Set<string>>(() => new Set());
+  const [collapsedGroupIds, setCollapsedGroupIds] = useState<Set<string>>(
+    () => new Set(),
+  );
 
   const toggleGroupCollapse = useCallback((groupId: string) => {
     setCollapsedGroupIds((prev) => {
@@ -210,7 +228,10 @@ export const AnnotationPanel = ({
     });
   }, []);
 
-  const displayRows = useMemo(() => buildDisplayRows(annotations), [annotations]);
+  const displayRows = useMemo(
+    () => buildDisplayRows(annotations),
+    [annotations],
+  );
 
   // Build a map from "GEOMETRY:annotationId" → matched prediction metrics so GT
   // region rows can show per-region Conf/IoU pills when a confidence report has
@@ -224,7 +245,10 @@ export const AnnotationPanel = ({
     if (reportGtGeometry == null) return map;
     for (const r of inferredRegions) {
       if (r.iou != null && r.matchedAnnotationId != null) {
-        map.set(`${reportGtGeometry}:${r.matchedAnnotationId}`, { iou: r.iou, score: r.score });
+        map.set(`${reportGtGeometry}:${r.matchedAnnotationId}`, {
+          iou: r.iou,
+          score: r.score,
+        });
       }
     }
     return map;
@@ -252,7 +276,9 @@ export const AnnotationPanel = ({
   // Global visibility counts per group (for the semi-checked eye state)
   const groupVisibility = useCallback(
     (members: Annotation[]): "all-visible" | "all-hidden" | "mixed" => {
-      const hidden = members.filter((m) => hiddenAnnotationIds.has(m.id)).length;
+      const hidden = members.filter((m) =>
+        hiddenAnnotationIds.has(m.id),
+      ).length;
       if (hidden === 0) return "all-visible";
       if (hidden === members.length) return "all-hidden";
       return "mixed";
@@ -265,8 +291,10 @@ export const AnnotationPanel = ({
       const vis = groupVisibility(members);
       for (const m of members) {
         const isHidden = hiddenAnnotationIds.has(m.id);
-        if (vis === "all-visible" && !isHidden) onToggleAnnotationVisibility(m.id);
-        else if (vis !== "all-visible" && isHidden) onToggleAnnotationVisibility(m.id);
+        if (vis === "all-visible" && !isHidden)
+          onToggleAnnotationVisibility(m.id);
+        else if (vis !== "all-visible" && isHidden)
+          onToggleAnnotationVisibility(m.id);
       }
     },
     [groupVisibility, hiddenAnnotationIds, onToggleAnnotationVisibility],
@@ -305,9 +333,7 @@ export const AnnotationPanel = ({
       <TabsList variant="line" className="h-10 shrink-0">
         <TabsTrigger value="labels">Annotations</TabsTrigger>
         <TabsTrigger value="history">History</TabsTrigger>
-        {showInferredTab && (
-          <TabsTrigger value="inferred">Inferred</TabsTrigger>
-        )}
+        {showInferredTab && <TabsTrigger value="inferred">Report</TabsTrigger>}
       </TabsList>
 
       <TabsContent
@@ -471,7 +497,9 @@ export const AnnotationPanel = ({
                     >
                       <button
                         type="button"
-                        aria-label={isCollapsed ? "Expand group" : "Collapse group"}
+                        aria-label={
+                          isCollapsed ? "Expand group" : "Collapse group"
+                        }
                         onClick={(e) => {
                           e.stopPropagation();
                           toggleGroupCollapse(groupId);
@@ -480,7 +508,10 @@ export const AnnotationPanel = ({
                       >
                         {isCollapsed ? <ChevronRight /> : <ChevronDown />}
                       </button>
-                      <FolderOpen className="size-4 shrink-0" style={{ color }} />
+                      <FolderOpen
+                        className="size-4 shrink-0"
+                        style={{ color }}
+                      />
                       <span className="flex-1 truncate text-xs leading-4 text-foreground/90">
                         {labelName}
                       </span>
@@ -490,7 +521,9 @@ export const AnnotationPanel = ({
                       {/* Eye toggle */}
                       <button
                         type="button"
-                        title={vis === "all-hidden" ? "Show group" : "Hide group"}
+                        title={
+                          vis === "all-hidden" ? "Show group" : "Hide group"
+                        }
                         onClick={(e) => {
                           e.stopPropagation();
                           toggleGroupVisibility(members);
@@ -554,7 +587,9 @@ export const AnnotationPanel = ({
                     {!isCollapsed &&
                       members.map((annotation) => {
                         const memberIndex = annotations.indexOf(annotation);
-                        const isSelected = selectedAnnotationIds.has(annotation.id);
+                        const isSelected = selectedAnnotationIds.has(
+                          annotation.id,
+                        );
                         const isHidden = hiddenAnnotationIds.has(annotation.id);
                         const dnd = getItemProps(memberIndex, groupId);
                         return (
@@ -567,7 +602,8 @@ export const AnnotationPanel = ({
                             }}
                             onClick={(e) =>
                               onSelectAnnotation(annotation.id, {
-                                additive: !e.shiftKey && (e.ctrlKey || e.metaKey),
+                                additive:
+                                  !e.shiftKey && (e.ctrlKey || e.metaKey),
                                 range: e.shiftKey,
                               })
                             }
@@ -597,7 +633,10 @@ export const AnnotationPanel = ({
                             />
                             <span
                               className="flex h-[14px] w-6 shrink-0 items-center justify-center rounded-[3px] px-0.5 text-[11px] leading-3"
-                              style={{ background: annotation.color, color: getContrastTextColor(annotation.color) }}
+                              style={{
+                                background: annotation.color,
+                                color: getContrastTextColor(annotation.color),
+                              }}
                             >
                               {memberIndex + 1}
                             </span>
@@ -605,10 +644,17 @@ export const AnnotationPanel = ({
                               {annotation.labelName}
                             </span>
                             {(() => {
-                              const geo = annotation.type === "bbox" ? "RECTANGLE" : annotation.type === "polygon" ? "POLYGON" : null;
+                              const geo =
+                                annotation.type === "bbox"
+                                  ? "RECTANGLE"
+                                  : annotation.type === "polygon"
+                                    ? "POLYGON"
+                                    : null;
                               return reportActive && geo != null ? (
                                 <MetricBadges
-                                  metrics={annotationMetricsMap.get(`${geo}:${annotation.apiId}`)}
+                                  metrics={annotationMetricsMap.get(
+                                    `${geo}:${annotation.apiId}`,
+                                  )}
                                 />
                               ) : null;
                             })()}
@@ -696,7 +742,10 @@ export const AnnotationPanel = ({
                   />
                   <span
                     className="flex h-[14px] w-6 shrink-0 items-center justify-center rounded-[3px] px-0.5 text-[11px] leading-3"
-                    style={{ background: annotation.color, color: getContrastTextColor(annotation.color) }}
+                    style={{
+                      background: annotation.color,
+                      color: getContrastTextColor(annotation.color),
+                    }}
                   >
                     {index + 1}
                   </span>
@@ -704,10 +753,17 @@ export const AnnotationPanel = ({
                     {annotation.labelName}
                   </span>
                   {(() => {
-                    const geo = annotation.type === "bbox" ? "RECTANGLE" : annotation.type === "polygon" ? "POLYGON" : null;
+                    const geo =
+                      annotation.type === "bbox"
+                        ? "RECTANGLE"
+                        : annotation.type === "polygon"
+                          ? "POLYGON"
+                          : null;
                     return reportActive && geo != null ? (
                       <MetricBadges
-                        metrics={annotationMetricsMap.get(`${geo}:${annotation.apiId}`)}
+                        metrics={annotationMetricsMap.get(
+                          `${geo}:${annotation.apiId}`,
+                        )}
                       />
                     ) : null;
                   })()}
@@ -763,7 +819,10 @@ export const AnnotationPanel = ({
       </TabsContent>
 
       {showInferredTab && (
-        <TabsContent value="inferred" className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <TabsContent
+          value="inferred"
+          className="flex min-h-0 flex-1 flex-col overflow-hidden"
+        >
           <InferredRegionsTab
             regions={inferredRegions}
             isLoading={isLoadingRegions}
