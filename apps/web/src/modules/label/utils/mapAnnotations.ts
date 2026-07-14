@@ -86,6 +86,26 @@ export function regionsToAnnotations(
   });
 }
 
+/**
+ * Bounding-box view of a polygon annotation — mirrors how the confidence-report
+ * job evaluates polygon GT against a detection model (each polygon becomes its
+ * vertex bounding box; polygons with fewer than 3 points are not evaluated).
+ * Non-polygon annotations pass through unchanged.
+ */
+export function polygonAnnotationToBbox(a: Annotation): Annotation {
+  if (a.type !== "polygon" || !a.points || a.points.length < 3) return a;
+  const xs = a.points.map((p) => p[0]);
+  const ys = a.points.map((p) => p[1]);
+  const x = Math.min(...xs);
+  const y = Math.min(...ys);
+  return {
+    ...a,
+    type: "bbox",
+    bbox: { x, y, width: Math.max(...xs) - x, height: Math.max(...ys) - y },
+    points: undefined,
+  };
+}
+
 export function annotationsToUpdatePayload(annotations: Annotation[]): {
   rectangleAnnotations: CreateRectangleAnnotation[];
   polygonAnnotations: CreatePolygonAnnotation[];

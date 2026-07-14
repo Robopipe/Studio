@@ -13,6 +13,7 @@ import {
 } from "@nestjs/common";
 import type {
   ConfidenceReportRegionResponse,
+  PreAnnotateModelTypeEnum,
   RunConfidenceReport,
 } from "@repo/schema";
 import type { ConfidenceReportSelect } from "../../../repository/types/confidence-report";
@@ -33,7 +34,12 @@ export class ConfidenceReportController {
   @Get()
   public async getReport(
     @ProjectId() projectId: number,
-  ): Promise<ConfidenceReportSelect & { modelName: string | null }> {
+  ): Promise<
+    ConfidenceReportSelect & {
+      modelName: string | null;
+      modelType: PreAnnotateModelTypeEnum | null;
+    }
+  > {
     const report = await this.confidenceReportService.getReport(projectId);
     if (!report) {
       throw new NotFoundException(
