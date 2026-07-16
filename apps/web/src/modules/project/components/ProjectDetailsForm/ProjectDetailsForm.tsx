@@ -1,7 +1,12 @@
+import { isMixedContentScenario } from "@/core/cameraApi/mixedContentWarning";
 import { DiscoverCameraApi } from "@/modules/discovery/components";
 import { Input } from "@/modules/shadcn/ui/input";
 import { Label } from "@/modules/shadcn/ui/label";
 import { Textarea } from "@/modules/shadcn/ui/textarea";
+import { useMemo } from "react";
+import { useDetectCameras } from "../../hooks/useDetectCameras";
+import { validateCameraApiUrl } from "../../utils/validateCameraApiUrl";
+import { CameraSelectField } from "./CameraSelectField";
 
 interface ProjectDetailsFormProps {
   name: string;
@@ -12,6 +17,8 @@ interface ProjectDetailsFormProps {
   setCameraApiUrl: (val: string) => void;
   cameraApiUrlError?: string | null;
   onCameraApiUrlBlur?: () => void;
+  selectedCameraMxid: string | null;
+  setSelectedCameraMxid: (mxid: string | null) => void;
   multipleDashboardConfigs?: boolean;
   setMultipleDashboardConfigs?: (val: boolean) => void;
   localOverride?: string;
@@ -29,6 +36,8 @@ export const ProjectDetailsForm = ({
   setCameraApiUrl,
   cameraApiUrlError,
   onCameraApiUrlBlur,
+  selectedCameraMxid,
+  setSelectedCameraMxid,
   multipleDashboardConfigs,
   setMultipleDashboardConfigs,
   localOverride,
@@ -37,6 +46,27 @@ export const ProjectDetailsForm = ({
   onLocalOverrideBlur,
 }: ProjectDetailsFormProps) => {
   const showLocalOverride = setLocalOverride !== undefined;
+
+  // Detect cameras against the URL the app would actually use for this user:
+  // the local override when filled, else the shared project URL — both as
+  // currently typed, not the saved values. A filled-but-invalid override
+  // yields no detection (no silent fallback to the main URL).
+  const effectiveDetectionUrl = useMemo(() => {
+    const override = (localOverride ?? "").trim();
+    if (override) return validateCameraApiUrl(override) ? null : override;
+    const main = (cameraApiUrl ?? "").trim();
+    if (main) return validateCameraApiUrl(main) ? null : main;
+    return null;
+  }, [localOverride, cameraApiUrl]);
+
+  const detection = useDetectCameras(effectiveDetectionUrl);
+
+  const detectionErrorMessage =
+    detection.isError &&
+    effectiveDetectionUrl &&
+    isMixedContentScenario(effectiveDetectionUrl)
+      ? "Your browser blocked the request: this page is HTTPS but the camera API uses HTTP. Enable insecure content for this site."
+      : undefined;
 
   return (
     <div className="relative flex flex-col gap-8">
@@ -115,6 +145,17 @@ export const ProjectDetailsForm = ({
             </p>
           </div>
         )}
+
+        <CameraSelectField
+          cameras={detection.cameras}
+          isLoading={detection.isLoading}
+          isError={detection.isError}
+          errorMessage={detectionErrorMessage}
+          onRetry={detection.retry}
+          hasUrl={effectiveDetectionUrl != null}
+          value={selectedCameraMxid}
+          onChange={setSelectedCameraMxid}
+        />
 
         {setMultipleDashboardConfigs !== undefined && (
           <label className="flex cursor-pointer items-center gap-2">

@@ -58,13 +58,11 @@ const ConfigurationTabContent = ({
   ref?: Ref<ConfigurationTabHandle>;
 }) => {
   const {
-    cameras,
     streams,
     trainedModels,
     capturedVideos,
     previewImageUrl,
     selectedCamera,
-    setSelectedCamera,
     selectedStream,
     setSelectedStream,
     selectedModelId,
@@ -97,13 +95,8 @@ const ConfigurationTabContent = ({
         onModelClear={() => setSelectedModelId(null)}
         zoneConfig={zoneConfig}
         onZoneConfigChange={setZoneConfig}
-        cameras={cameras}
         streams={streams}
         selectedCamera={selectedCamera}
-        onCameraChange={(mxid) => {
-          setSelectedCamera(mxid);
-          setSelectedStream(null);
-        }}
         selectedStream={selectedStream}
         onStreamChange={setSelectedStream}
         capturedVideos={capturedVideos}
