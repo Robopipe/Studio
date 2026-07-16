@@ -1,5 +1,6 @@
 import { useAuth } from "@/core/auth/hooks";
 import { useAppDispatch } from "@/hooks/redux";
+import { setCamera } from "@/modules/camera-selection/services/cameraSelectionSlice";
 import { Button } from "@/modules/shadcn/ui/button";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -31,6 +32,10 @@ export const CreateProjectModal = ({
   const [cameraApiUrlError, setCameraApiUrlError] = useState<string | null>(null);
   const [localOverride, setLocalOverride] = useState<string>("");
   const [localOverrideError, setLocalOverrideError] = useState<string | null>(null);
+  // Held locally until the project exists — the selection storage key needs a
+  // projectId, so this is dispatched right after creation (same pattern as the
+  // local URL override below).
+  const [selectedCameraMxid, setSelectedCameraMxid] = useState<string | null>(null);
   const [localLabels, setLocalLabels] = useState<LocalLabel[]>([]);
 
   const [createProject, { isLoading: isCreatingProject }] =
@@ -77,6 +82,16 @@ export const CreateProjectModal = ({
       if (user) {
         dispatch(
           setCameraApiOverride({ userId: user.id, projectId: project.id, value: trimmed || null }),
+        );
+      }
+
+      if (user && selectedCameraMxid) {
+        dispatch(
+          setCamera({
+            userId: user.id,
+            projectId: project.id,
+            cameraMxid: selectedCameraMxid,
+          }),
         );
       }
 
@@ -137,6 +152,8 @@ export const CreateProjectModal = ({
           setCameraApiUrl={handleCameraApiUrlChange}
           cameraApiUrlError={cameraApiUrlError}
           onCameraApiUrlBlur={handleCameraApiUrlBlur}
+          selectedCameraMxid={selectedCameraMxid}
+          setSelectedCameraMxid={setSelectedCameraMxid}
           localOverride={localOverride}
           setLocalOverride={handleLocalOverrideChange}
           localOverrideError={localOverrideError}

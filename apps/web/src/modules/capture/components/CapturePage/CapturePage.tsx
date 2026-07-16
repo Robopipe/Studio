@@ -43,7 +43,6 @@ export const CapturePage = ({}: CapturePageProps) => {
   const {
     cameraMxid: selectedCamera,
     streamName: selectedStream,
-    setCamera: handleSelectCamera,
     setStream: setSelectedStream,
   } = useSelectedCameraStream(cameras);
 
@@ -146,7 +145,6 @@ export const CapturePage = ({}: CapturePageProps) => {
         isStreaming={isStreaming}
         isSwitchingStream={isSwitchingStream}
         mediaStream={mediaStream}
-        onSelectCamera={handleSelectCamera}
         onSelectStream={setSelectedStream}
         onStreamSwitchingChange={setIsSwitchingStream}
         onStreamingChange={setIsStreaming}
@@ -163,7 +161,6 @@ interface CapturePageBodyProps {
   isStreaming: boolean;
   isSwitchingStream: boolean;
   mediaStream: MediaStream | null;
-  onSelectCamera: (camera: string | null) => void;
   onSelectStream: (stream: string | null) => void;
   onStreamSwitchingChange: (isSwitching: boolean) => void;
   onStreamingChange: (isStreaming: boolean) => void;
@@ -178,7 +175,6 @@ const CapturePageBody = ({
   isStreaming,
   isSwitchingStream,
   mediaStream,
-  onSelectCamera,
   onSelectStream,
   onStreamSwitchingChange,
   onStreamingChange,
@@ -195,7 +191,6 @@ const CapturePageBody = ({
         isStreaming={isStreaming && !isSwitchingStream}
         isIntervalCapturing={isIntervalCapturing}
         onIntervalCapturingChange={setIsIntervalCapturing}
-        onSelectCamera={onSelectCamera}
         onSelectStream={onSelectStream}
         onStreamSwitchingChange={onStreamSwitchingChange}
         mediaStream={mediaStream}
