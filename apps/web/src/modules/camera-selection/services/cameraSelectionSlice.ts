@@ -25,12 +25,6 @@ const initialState: CameraSelectionState = {
   byProject: {},
 };
 
-interface SetSelectionPayload {
-  userId: number;
-  projectId: number;
-  selection: CameraSelection;
-}
-
 export const cameraSelectionSlice = createSlice({
   name: "cameraSelection",
   initialState,
@@ -44,10 +38,6 @@ export const cameraSelectionSlice = createSlice({
       { payload }: PayloadAction<{ projectId: number; selection: CameraSelection }>,
     ) => {
       state.byProject[payload.projectId] = payload.selection;
-    },
-    setSelection: (state, { payload }: PayloadAction<SetSelectionPayload>) => {
-      state.byProject[payload.projectId] = payload.selection;
-      writeCameraSelection(payload.userId, payload.projectId, payload.selection);
     },
     setCamera: (
       state,
@@ -84,5 +74,5 @@ export const cameraSelectionSlice = createSlice({
   },
 });
 
-export const { hydrateProjectSelection, setSelection, setCamera, setStream } =
+export const { hydrateProjectSelection, setCamera, setStream } =
   cameraSelectionSlice.actions;

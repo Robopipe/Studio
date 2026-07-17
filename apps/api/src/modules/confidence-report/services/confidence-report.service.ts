@@ -3,7 +3,6 @@ import {
   ConflictException,
   Inject,
   Injectable,
-  InternalServerErrorException,
   Logger,
   NotFoundException,
   ServiceUnavailableException,
@@ -75,17 +74,30 @@ export class ConfidenceReportService {
    */
   public async getReport(
     projectId: number,
-  ): Promise<(ConfidenceReportSelect & { modelName: string | null }) | null> {
+  ): Promise<
+    | (ConfidenceReportSelect & {
+        modelName: string | null;
+        modelType: PreAnnotateModelTypeEnum | null;
+      })
+    | null
+  > {
     const report = await this.confidenceReportRepository.findByProjectId(projectId);
     if (!report) return null;
 
     let modelName: string | null = null;
+    let modelType: PreAnnotateModelTypeEnum | null = null;
     if (report.modelId) {
       const model = await this.modelRepository.getByIdAndProjectId(report.modelId, projectId);
       modelName = model?.name ?? null;
+      if (model) {
+        modelType =
+          model.trainingType === ProjectTypeEnum.DETECTION
+            ? PreAnnotateModelTypeEnum.DETECTION
+            : PreAnnotateModelTypeEnum.SEGMENTATION;
+      }
     }
 
-    return { ...report, modelName };
+    return { ...report, modelName, modelType };
   }
 
   /**
