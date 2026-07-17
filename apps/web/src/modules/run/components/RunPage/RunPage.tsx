@@ -9,6 +9,7 @@ import {
   useGetDashboardConfigsQuery,
 } from "@/modules/dashboard/services/dashboardConfigApi";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
+import { ReportsPage } from "@/modules/reports";
 import { Button } from "@/modules/shadcn/ui/button";
 import {
   Dialog,
@@ -141,6 +142,10 @@ export const RunPage = () => {
   // image when no camera/stream is selected, so it stays accessible without
   // a live device. Dashboard contains test-case and evaluation sub-tabs.
   const renderTabContent = () => {
+    if (activeTab === "reports") {
+      return <ReportsPage />;
+    }
+
     if (activeTab === "dashboard") {
       return (
         <DashboardPage

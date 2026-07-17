@@ -1,9 +1,14 @@
+import { cn } from "@/lib/utils";
 import { TableBody, TableCell, TableRow } from "@/modules/shadcn/ui/table";
 import { flexRender } from "@tanstack/react-table";
 import { useTableContext } from "./TableContext";
 
-export function DataTableBody() {
-  const table = useTableContext();
+interface DataTableBodyProps<T> {
+  rowClassName?: (row: T) => string | undefined;
+}
+
+export function DataTableBody<T>({ rowClassName }: DataTableBodyProps<T>) {
+  const table = useTableContext<T>();
   const rows = table.getRowModel().rows;
   const columnCount = table.getAllColumns().length;
 
@@ -25,7 +30,11 @@ export function DataTableBody() {
   return (
     <TableBody>
       {rows.map((row) => (
-        <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+        <TableRow
+          key={row.id}
+          data-state={row.getIsSelected() && "selected"}
+          className={cn(rowClassName?.(row.original))}
+        >
           {row.getVisibleCells().map((cell) => (
             <TableCell key={cell.id} style={{ width: cell.column.getSize() }}>
               {flexRender(cell.column.columnDef.cell, cell.getContext())}
