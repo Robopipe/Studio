@@ -30,8 +30,8 @@ export const CaptureSettings = ({
 }: CaptureSettingsProps) => {
   const { isRecording } = useVideoCapture();
 
-  // Holds the resolver of a camera/stream switch intercepted while a capture
-  // is running; StopCaptureDialog resolves it via onClose.
+  // Holds the resolver of a stream switch intercepted while a capture is
+  // running; StopCaptureDialog resolves it via onClose.
   const [pendingSwitch, setPendingSwitch] = useState<{
     resolve: (proceed: boolean) => void;
   } | null>(null);
@@ -51,10 +51,7 @@ export const CaptureSettings = ({
       <p className="text-[10px] font-bold uppercase tracking-wider text-black">
         Capture Settings
       </p>
-      <SelectedCameraField
-        cameraMxid={selectedCamera}
-        confirmCameraChange={confirmSwitch}
-      />
+      <SelectedCameraField cameraMxid={selectedCamera} />
       <SelectStream
         mxid={selectedCamera}
         value={selectedStream}
