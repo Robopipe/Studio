@@ -1,5 +1,6 @@
 import type { SahiConfig } from "@/core/cameraApi/schemas/nn";
 import { formatDuration } from "@/lib/utils";
+import { SelectedCameraField } from "@/modules/camera-selection";
 import {
   DirectionPicker,
   ZoneConfig,
@@ -22,11 +23,6 @@ import { X } from "lucide-react";
 import type { ReactNode } from "react";
 import { SahiConfigPanel } from "./SahiConfigPanel";
 
-interface Camera {
-  mxid: string;
-  camera_name: string;
-}
-
 interface Stream {
   name: string;
 }
@@ -45,10 +41,8 @@ interface ConfigurationSidebarProps {
   zoneConfig: ZoneConfig;
   onZoneConfigChange: (value: ZoneConfig) => void;
 
-  cameras: Camera[] | undefined;
   streams: Stream[] | undefined;
   selectedCamera: string | null;
-  onCameraChange: (mxid: string | null) => void;
   selectedStream: string | null;
   onStreamChange: (name: string | null) => void;
 
@@ -67,10 +61,8 @@ export const ConfigurationSidebar = ({
   onModelClear,
   zoneConfig,
   onZoneConfigChange,
-  cameras,
   streams,
   selectedCamera,
-  onCameraChange,
   selectedStream,
   onStreamChange,
   capturedVideos,
@@ -190,30 +182,7 @@ export const ConfigurationSidebar = ({
 
       <Section title="Camera Configuration">
         <Field label="Camera">
-          <Select
-            value={selectedCamera ?? undefined}
-            onValueChange={onCameraChange}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select camera">
-                {(value) =>
-                  cameras?.find((c) => c.mxid === value)?.camera_name ?? ""
-                }
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {cameras?.map((camera) => (
-                <SelectItem key={camera.mxid} value={camera.mxid}>
-                  {camera.camera_name}
-                </SelectItem>
-              ))}
-              {(!cameras || cameras.length === 0) && (
-                <p className="px-2 py-1.5 text-sm text-muted-foreground">
-                  No cameras found
-                </p>
-              )}
-            </SelectContent>
-          </Select>
+          <SelectedCameraField cameraMxid={selectedCamera} />
         </Field>
         <Field label="Sensor">
           <Select
