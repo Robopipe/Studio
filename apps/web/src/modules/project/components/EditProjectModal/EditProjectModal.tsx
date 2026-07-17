@@ -1,6 +1,8 @@
 import { useAuth } from "@/core/auth/hooks";
 import { cameraApi } from "@/core/cameraApi";
 import { useAppDispatch } from "@/hooks/redux";
+import { setCamera } from "@/modules/camera-selection/services/cameraSelectionSlice";
+import { readCameraSelection } from "@/modules/camera-selection/utils/cameraSelectionStorage";
 import { Button } from "@/modules/shadcn/ui/button";
 import { Project } from "@repo/schema";
 import { useState } from "react";
@@ -43,6 +45,13 @@ export const EditProjectModal = ({
   );
   const [localOverrideError, setLocalOverrideError] = useState<string | null>(null);
   const [multipleDashboardConfigs] = useState(project.multipleDashboardConfigs);
+  // Read from storage, not the slice — this modal also opens for non-active
+  // projects (ProjectCard) whose slice entry was never hydrated.
+  const [initialCameraMxid] = useState<string | null>(
+    () => readCameraSelection(user?.id, project.id)?.cameraMxid ?? null,
+  );
+  const [selectedCameraMxid, setSelectedCameraMxid] =
+    useState<string | null>(initialCameraMxid);
 
   const { data: existingLabels } = useGetProjectLabelsQuery({
     projectId: project.id,
@@ -81,6 +90,8 @@ export const EditProjectModal = ({
 
     const normalizedUrl = (cameraApiUrl ?? "").trim() || null;
 
+    const cameraChanged = selectedCameraMxid !== initialCameraMxid;
+
     try {
       await updateProject({
         projectId: project.id,
@@ -105,6 +116,18 @@ export const EditProjectModal = ({
       // request against the old URL is aborted before the project list refetches.
       if (cameraApiUrl !== project.cameraApiUrl) {
         dispatch(cameraApi.util.resetApiState());
+      }
+
+      // Only on a real change — setCamera clears streamName by design and the
+      // stream auto-pick then re-picks for the new camera.
+      if (cameraChanged && user) {
+        dispatch(
+          setCamera({
+            userId: user.id,
+            projectId: project.id,
+            cameraMxid: selectedCameraMxid,
+          }),
+        );
       }
 
       onClose();
@@ -138,6 +161,8 @@ export const EditProjectModal = ({
           setCameraApiUrl={handleCameraApiUrlChange}
           cameraApiUrlError={cameraApiUrlError}
           onCameraApiUrlBlur={handleCameraApiUrlBlur}
+          selectedCameraMxid={selectedCameraMxid}
+          setSelectedCameraMxid={setSelectedCameraMxid}
           localOverride={localOverride}
           setLocalOverride={handleLocalOverrideChange}
           localOverrideError={localOverrideError}

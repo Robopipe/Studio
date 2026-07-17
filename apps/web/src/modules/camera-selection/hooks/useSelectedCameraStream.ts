@@ -7,7 +7,6 @@ import { useCallback, useEffect } from "react";
 import {
   hydrateProjectSelection,
   setCamera,
-  setSelection,
   setStream,
 } from "../services/cameraSelectionSlice";
 import type { RootState } from "@/store/types";
@@ -18,7 +17,6 @@ export interface UseSelectedCameraStreamReturn {
   streamName: string | null;
   setCamera: (cameraMxid: string | null) => void;
   setStream: (streamName: string | null) => void;
-  setSelection: (cameraMxid: string | null, streamName: string | null) => void;
 }
 
 /**
@@ -117,25 +115,10 @@ export const useSelectedCameraStream = (
     [dispatch, projectId, userId],
   );
 
-  const setSelectionCb = useCallback(
-    (nextCamera: string | null, nextStream: string | null) => {
-      if (userId == null || projectId == null) return;
-      dispatch(
-        setSelection({
-          userId,
-          projectId,
-          selection: { cameraMxid: nextCamera, streamName: nextStream },
-        }),
-      );
-    },
-    [dispatch, projectId, userId],
-  );
-
   return {
     cameraMxid,
     streamName,
     setCamera: setCameraCb,
     setStream: setStreamCb,
-    setSelection: setSelectionCb,
   };
 };

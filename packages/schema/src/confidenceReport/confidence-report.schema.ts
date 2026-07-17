@@ -1,5 +1,6 @@
 import z from "zod";
 import { annotationBoxStatsSchema } from "../analytics/analytics.schema";
+import { PreAnnotateModelTypeEnum } from "../preAnnotateSettings/preAnnotateSettings.schema";
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
@@ -55,6 +56,10 @@ export const confidenceReportSchema = z.object({
   modelId: z.number().nullable(),
   /** Name of the model at run time. Optional so the raw DB row parses without a join. */
   modelName: z.string().nullable().optional(),
+  /** Type of the model the report ran with — derived from the model row at read
+   *  time. Decides how polygon GT was evaluated (detection converts polygons to
+   *  bounding boxes). Null when the model has been deleted. */
+  modelType: z.enum(PreAnnotateModelTypeEnum).nullable().optional(),
   conf: z.number(),
   /** IoU threshold used for TP matching in this run. Defaults for reports
    *  generated before the field existed (they all ran at the hardcoded 0.5). */
