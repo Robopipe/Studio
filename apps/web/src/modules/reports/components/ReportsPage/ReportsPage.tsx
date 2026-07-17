@@ -1,153 +1,92 @@
-import {
-  useCreateReportMutation,
-  useDeleteReportMutation,
-  useGetNNQuery,
-  useListCamerasQuery,
-  useListReportsQuery,
-} from "@/core/cameraApi";
-import { useCameraApiUrl } from "@/hooks";
-import { useSelectedCameraStream } from "@/modules/camera-selection";
-import { Spinner } from "@/modules/shadcn/ui/spinner";
-import { ModelRunning, NoCameraDetected } from "@/modules/ui";
-import { useEffect, useState } from "react";
+import { TooltipProvider } from "@/modules/shadcn/ui/tooltip";
+import { DataTable } from "@/modules/ui/components/Table";
+import { endOfDay, startOfDay } from "date-fns";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { hasInflightReports } from "../../utils/hasInflightReports";
-import { CreateReportForm } from "../CreateReportForm";
-import { DeleteReportDialog } from "../DeleteReportDialog";
-import { ReportListItem } from "../ReportListItem";
+import { MOCK_RECORDS, MOCK_SESSIONS } from "../../mocks/reportRecords";
+import type { EvaluationRecord } from "../../types";
+import { ReportDetailPanel } from "../ReportDetailPanel";
+import { ALL_SESSIONS, ReportsToolbar } from "../ReportsToolbar";
+import { useReportColumns } from "./useReportColumns";
 
-export interface ReportsPageProps {
-  dashboardId: number;
-  projectId: number;
-}
-
-export const ReportsPage = ({ dashboardId, projectId }: ReportsPageProps) => {
-  const { url: cameraApiUrl } = useCameraApiUrl();
-  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
-  const [pollingInterval, setPollingInterval] = useState(0);
-
-  const { data: cameras } = useListCamerasQuery(undefined, {
-    skip: !cameraApiUrl,
-  });
-  const { cameraMxid: selectedCamera, streamName: selectedStream } =
-    useSelectedCameraStream(cameras);
-  const { data: isModelRunning } = useGetNNQuery(
-    { mxid: selectedCamera!, streamName: selectedStream! },
-    { skip: !selectedCamera || !selectedStream, refetchOnMountOrArgChange: true },
+export const ReportsPage = () => {
+  const [sessionId, setSessionId] = useState<string>(ALL_SESSIONS);
+  const [from, setFrom] = useState<Date | undefined>(undefined);
+  const [to, setTo] = useState<Date | undefined>(undefined);
+  const [checkedRecord, setCheckedRecord] = useState<EvaluationRecord | null>(
+    null,
   );
 
-  const {
-    data: reports = [],
-    refetch,
-    isFetching,
-    isError,
-    isSuccess,
-  } = useListReportsQuery(
-    { dashboardId },
-    {
-      skip: !cameraApiUrl,
-      pollingInterval,
-      skipPollingIfUnfocused: true,
-    },
+  const filteredRecords = useMemo(
+    () =>
+      MOCK_RECORDS.filter((record) => {
+        if (sessionId !== ALL_SESSIONS && record.sessionId !== sessionId) {
+          return false;
+        }
+
+        const sessionStart = new Date(record.sessionStart);
+        if (from && sessionStart < startOfDay(from)) return false;
+        if (to && sessionStart > endOfDay(to)) return false;
+
+        return true;
+      }),
+    [sessionId, from, to],
   );
 
-  const inflight = hasInflightReports(reports);
+  // Close the detail panel when its record gets filtered out.
   useEffect(() => {
-    setPollingInterval(inflight ? 3000 : 0);
-  }, [inflight]);
-
-  const [createReport, { isLoading: isCreating }] = useCreateReportMutation();
-  const [deleteReport, { isLoading: isDeleting }] = useDeleteReportMutation();
-
-  if (!cameraApiUrl || isError) {
-    return <NoCameraDetected onRefresh={refetch} isRefreshing={isFetching} />;
-  }
-
-  if (isModelRunning) {
-    return (
-      <ModelRunning
-        projectId={projectId}
-        message="You cannot use reports while a model is running. Disable it first."
-        hideButton
-      />
-    );
-  }
-
-  if (!isSuccess) {
-    return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8">
-        <Spinner className="size-10 text-black/60" />
-        <p className="text-sm text-black/60">Loading reports…</p>
-      </div>
-    );
-  }
-
-  const handleCreate = async (params: {
-    start: string | null;
-    end: string | null;
-  }) => {
-    try {
-      await createReport({
-        dashboardId,
-        start: params.start,
-        end: params.end,
-      }).unwrap();
-    } catch (err: any) {
-      const data = err?.data;
-      const serverMessage =
-        typeof data === "string"
-          ? data
-          : data?.detail || data?.message || data?.error;
-      toast.error(serverMessage || "Failed to create report");
-      throw err;
+    if (
+      checkedRecord &&
+      !filteredRecords.some((record) => record.id === checkedRecord.id)
+    ) {
+      setCheckedRecord(null);
     }
-  };
+  }, [filteredRecords, checkedRecord]);
 
-  const handleConfirmDelete = async () => {
-    if (pendingDeleteId === null) return;
-    try {
-      await deleteReport({ dashboardId, reportId: pendingDeleteId }).unwrap();
-      setPendingDeleteId(null);
-    } catch {
-      toast.error("Failed to delete report");
-    }
-  };
+  const handleCheck = useCallback((record: EvaluationRecord) => {
+    setCheckedRecord(record);
+  }, []);
+
+  const handleExport = useCallback(() => {
+    toast.info("Export is not available yet");
+  }, []);
+
+  const columns = useReportColumns({ onCheck: handleCheck });
 
   return (
-    <div className="flex flex-col gap-4">
-      <CreateReportForm onSubmit={handleCreate} isSubmitting={isCreating} />
-
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-row items-center justify-between">
-          <span className="text-sm font-bold">Existing reports</span>
-        </div>
-
-        {reports.length === 0 ? (
-          <span className="text-sm text-black/60">No reports yet.</span>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {reports.map((report) => (
-              <ReportListItem
-                key={report.id}
-                report={report}
-                cameraApiUrl={cameraApiUrl}
-                dashboardId={dashboardId}
-                onDelete={() => setPendingDeleteId(report.id)}
-                isDeleting={isDeleting && pendingDeleteId === report.id}
-              />
-            ))}
+    <TooltipProvider delay={400}>
+      <div className="flex min-h-0 flex-1">
+        <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-y-auto p-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <h5 className="text-xl font-semibold">All Test Cases</h5>
+            <ReportsToolbar
+              sessions={MOCK_SESSIONS}
+              sessionId={sessionId}
+              onSessionChange={setSessionId}
+              from={from}
+              onFromChange={setFrom}
+              to={to}
+              onToChange={setTo}
+              onExport={handleExport}
+            />
           </div>
+          <DataTable
+            data={filteredRecords}
+            columns={columns}
+            enableRowSelection
+            pageSize={20}
+            rowClassName={(record) =>
+              record.id === checkedRecord?.id ? "bg-primary/5" : undefined
+            }
+          />
+        </div>
+        {checkedRecord && (
+          <ReportDetailPanel
+            record={checkedRecord}
+            onClose={() => setCheckedRecord(null)}
+          />
         )}
       </div>
-
-      {pendingDeleteId !== null && (
-        <DeleteReportDialog
-          reportId={pendingDeleteId}
-          onCancel={() => setPendingDeleteId(null)}
-          onConfirm={handleConfirmDelete}
-          isLoading={isDeleting}
-        />
-      )}
-    </div>
+    </TooltipProvider>
   );
 };

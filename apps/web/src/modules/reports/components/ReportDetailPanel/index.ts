@@ -1,0 +1,1 @@
+export { ReportDetailPanel } from "./ReportDetailPanel";

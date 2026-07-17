@@ -1,6 +1,7 @@
 import {
   getCoreRowModel,
   getFilteredRowModel,
+  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
   type ColumnDef,
@@ -15,12 +16,14 @@ interface UseDataTableOptions<T> {
   data: T[];
   columns: ColumnDef<T, unknown>[];
   enableRowSelection?: boolean;
+  pageSize?: number;
 }
 
 export function useDataTable<T>({
   data,
   columns,
   enableRowSelection = false,
+  pageSize,
 }: UseDataTableOptions<T>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -38,6 +41,12 @@ export function useDataTable<T>({
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    // Only paginate when a page size is set — tables without one keep
+    // rendering all rows.
+    ...(pageSize !== undefined && {
+      getPaginationRowModel: getPaginationRowModel(),
+      initialState: { pagination: { pageIndex: 0, pageSize } },
+    }),
     enableRowSelection,
     columnResizeMode: "onChange",
   });

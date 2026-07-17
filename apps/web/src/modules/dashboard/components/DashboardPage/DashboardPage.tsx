@@ -19,10 +19,9 @@ import {
   EvaluationThresholdsPage,
   TestCasesOverviewPage,
 } from "@/modules/evaluation";
-import { ReportsPage } from "@/modules/reports";
 import { DashboardRuntimePage } from "../DashboardRuntimePage";
 
-type RightPanelTab = "custom" | "evaluation" | "test-cases" | "reports";
+type RightPanelTab = "custom" | "evaluation" | "test-cases";
 
 export interface DashboardPageProps {
   dashboardUrl: string | null;
@@ -272,7 +271,6 @@ export const DashboardPage = ({
                       { key: "custom", label: "Dashboard" },
                       { key: "test-cases", label: "Test cases" },
                       { key: "evaluation", label: "Evaluation" },
-                      { key: "reports", label: "Reports" },
                     ] as { key: RightPanelTab; label: string }[]
                   ).map((tab) => (
                     <button
@@ -328,12 +326,6 @@ export const DashboardPage = ({
                   <TestCasesOverviewPage
                     projectId={projectId}
                     dashboardConfigurationId={activeConfigId}
-                  />
-                )}
-                {rightTab === "reports" && (
-                  <ReportsPage
-                    dashboardId={activeConfigId}
-                    projectId={projectId}
                   />
                 )}
               </div>
