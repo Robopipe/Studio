@@ -1,9 +1,9 @@
+import { SelectedCameraField } from "@/modules/camera-selection";
 import { useCallback, useState } from "react";
 import { useVideoCapture } from "../../context/VideoCaptureContext";
 import { CaptureStillImage } from "../CaptureStillImage";
 import { CaptureVideo } from "../CaptureVideo";
 import { RestartCameraButton } from "../RestartCameraButton/RestartCameraButton";
-import { SelectCamera } from "../SelectCamera";
 import { SelectStream } from "../SelectStream";
 import { StopCaptureDialog } from "../StopCaptureDialog";
 
@@ -13,7 +13,6 @@ export interface CaptureSettingsProps {
   isStreaming: boolean;
   isIntervalCapturing: boolean;
   onIntervalCapturingChange: (value: boolean) => void;
-  onSelectCamera: (camera: string | null) => void;
   onSelectStream: (stream: string | null) => void;
   onStreamSwitchingChange?: (isSwitching: boolean) => void;
   mediaStream: MediaStream | null;
@@ -25,15 +24,14 @@ export const CaptureSettings = ({
   isStreaming,
   isIntervalCapturing,
   onIntervalCapturingChange: setIsIntervalCapturing,
-  onSelectCamera,
   onSelectStream,
   onStreamSwitchingChange,
   mediaStream,
 }: CaptureSettingsProps) => {
   const { isRecording } = useVideoCapture();
 
-  // Holds the resolver of a camera/stream switch intercepted while a capture
-  // is running; StopCaptureDialog resolves it via onClose.
+  // Holds the resolver of a stream switch intercepted while a capture is
+  // running; StopCaptureDialog resolves it via onClose.
   const [pendingSwitch, setPendingSwitch] = useState<{
     resolve: (proceed: boolean) => void;
   } | null>(null);
@@ -53,11 +51,7 @@ export const CaptureSettings = ({
       <p className="text-[10px] font-bold uppercase tracking-wider text-black">
         Capture Settings
       </p>
-      <SelectCamera
-        value={selectedCamera}
-        onSelect={onSelectCamera}
-        onBeforeUserSelect={confirmSwitch}
-      />
+      <SelectedCameraField cameraMxid={selectedCamera} />
       <SelectStream
         mxid={selectedCamera}
         value={selectedStream}
