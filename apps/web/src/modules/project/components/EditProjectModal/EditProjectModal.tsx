@@ -23,19 +23,12 @@ import { ProjectDetailsForm } from "../ProjectDetailsForm";
 interface EditProjectModalProps {
   project: Project;
   initialTabId?: string;
-  /**
-   * Guard invoked before applying a CHANGED camera on save. Resolving false
-   * aborts the whole save (modal stays open, nothing applied). Used by the
-   * Capture page to confirm stopping an active recording/interval capture.
-   */
-  confirmCameraChange?: () => Promise<boolean>;
   onClose: () => void;
 }
 
 export const EditProjectModal = ({
   project,
   initialTabId,
-  confirmCameraChange,
   onClose,
 }: EditProjectModalProps) => {
   const { user } = useAuth();
@@ -97,12 +90,7 @@ export const EditProjectModal = ({
 
     const normalizedUrl = (cameraApiUrl ?? "").trim() || null;
 
-    // Guard before any mutation: on Capture, switching camera mid-recording
-    // must be confirmed (StopCaptureDialog). Declining aborts the whole save.
     const cameraChanged = selectedCameraMxid !== initialCameraMxid;
-    if (cameraChanged && confirmCameraChange && !(await confirmCameraChange())) {
-      return;
-    }
 
     try {
       await updateProject({
