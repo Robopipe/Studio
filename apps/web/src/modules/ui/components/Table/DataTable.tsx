@@ -1,6 +1,12 @@
 import { PaginationNumbers } from "@/modules/shadcn/ui/pagination";
 import { Table } from "@/modules/shadcn/ui/table";
-import { type ColumnDef } from "@tanstack/react-table";
+import {
+  type ColumnDef,
+  type OnChangeFn,
+  type PaginationState,
+  type RowSelectionState,
+  type SortingState,
+} from "@tanstack/react-table";
 import { DataTableBody } from "./TableBody";
 import { TableProvider } from "./TableContext";
 import { DataTableHeader } from "./TableHeader";
@@ -12,6 +18,17 @@ interface DataTableProps<T> {
   enableRowSelection?: boolean;
   pageSize?: number;
   rowClassName?: (row: T) => string | undefined;
+  isLoading?: boolean;
+  manualPagination?: boolean;
+  pagination?: PaginationState;
+  onPaginationChange?: OnChangeFn<PaginationState>;
+  rowCount?: number;
+  manualSorting?: boolean;
+  sorting?: SortingState;
+  onSortingChange?: OnChangeFn<SortingState>;
+  rowSelection?: RowSelectionState;
+  onRowSelectionChange?: OnChangeFn<RowSelectionState>;
+  getRowId?: (row: T) => string;
 }
 
 export function DataTable<T>({
@@ -20,8 +37,34 @@ export function DataTable<T>({
   enableRowSelection = false,
   pageSize,
   rowClassName,
+  isLoading = false,
+  manualPagination = false,
+  pagination,
+  onPaginationChange,
+  rowCount,
+  manualSorting = false,
+  sorting,
+  onSortingChange,
+  rowSelection,
+  onRowSelectionChange,
+  getRowId,
 }: DataTableProps<T>) {
-  const table = useDataTable({ data, columns, enableRowSelection, pageSize });
+  const table = useDataTable({
+    data,
+    columns,
+    enableRowSelection,
+    pageSize,
+    manualPagination,
+    pagination,
+    onPaginationChange,
+    rowCount,
+    manualSorting,
+    sorting,
+    onSortingChange,
+    rowSelection,
+    onRowSelectionChange,
+    getRowId,
+  });
 
   return (
     <TableProvider table={table}>
@@ -29,10 +72,10 @@ export function DataTable<T>({
         <div className="rounded-lg border">
           <Table>
             <DataTableHeader />
-            <DataTableBody rowClassName={rowClassName} />
+            <DataTableBody rowClassName={rowClassName} isLoading={isLoading} />
           </Table>
         </div>
-        {pageSize !== undefined && (
+        {(pageSize !== undefined || manualPagination) && (
           <PaginationNumbers
             currentPage={table.getState().pagination.pageIndex + 1}
             totalPages={table.getPageCount()}
