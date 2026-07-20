@@ -1,3 +1,7 @@
+import type {
+  EventListItem,
+  EventSortBy,
+} from "@/core/cameraApi/schemas/events";
 import { Button } from "@/modules/shadcn/ui/button";
 import {
   Tooltip,
@@ -8,72 +12,71 @@ import { createSelectColumn } from "@/modules/ui/components/Table";
 import { type ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { useMemo } from "react";
-import type { EvaluationRecord } from "../../types";
 import { formatDefect, formatDefects } from "../../utils/formatDefects";
 
 const formatTimestamp = (value: string | null) =>
   value ? format(new Date(value), "dd.MM.yyyy HH:mm:ss") : "—";
 
+// Column ids the API can sort on; everything else disables sorting.
+export const SORT_KEY_BY_COLUMN: Record<string, EventSortBy> = {
+  detectedAt: "timestamp",
+  sessionStart: "session_start",
+  testCase: "test_case_name",
+  passed: "passed",
+};
+
 interface UseReportColumnsArgs {
-  onCheck: (record: EvaluationRecord) => void;
+  onCheck: (event: EventListItem) => void;
+  getPictureUrl: (event: EventListItem) => string;
 }
 
 export function useReportColumns({
   onCheck,
-}: UseReportColumnsArgs): ColumnDef<EvaluationRecord, unknown>[] {
+  getPictureUrl,
+}: UseReportColumnsArgs): ColumnDef<EventListItem, unknown>[] {
   return useMemo(
     () => [
-      createSelectColumn<EvaluationRecord>(),
+      createSelectColumn<EventListItem>(),
       {
         accessorKey: "id",
         header: "Record id",
         size: 90,
-      },
-      {
-        id: "sessionStart",
-        header: "Session start",
-        accessorFn: (row: EvaluationRecord) => row.sessionStart,
-        size: 170,
+        enableSorting: false,
         enableColumnFilter: false,
-        cell: ({ getValue }) => formatTimestamp(getValue<string>()),
-      },
-      {
-        id: "sessionEnd",
-        header: "Session end",
-        accessorFn: (row: EvaluationRecord) => row.sessionEnd ?? "",
-        size: 170,
-        enableColumnFilter: false,
-        cell: ({ row }) => formatTimestamp(row.original.sessionEnd),
       },
       {
         id: "detectedAt",
         header: "Detected at",
-        accessorFn: (row: EvaluationRecord) => row.detectedAt,
+        accessorFn: (row: EventListItem) => row.timestamp,
         size: 170,
         enableColumnFilter: false,
         cell: ({ getValue }) => formatTimestamp(getValue<string>()),
       },
       {
-        accessorKey: "testCase",
+        id: "testCase",
         header: "Test case",
+        accessorFn: (row: EventListItem) => row.test_case_name,
         size: 220,
+        enableColumnFilter: false,
       },
       {
         id: "passed",
         header: "Passed",
-        accessorFn: (row: EvaluationRecord) => (row.passed ? "True" : "False"),
+        accessorFn: (row: EventListItem) => (row.passed ? "True" : "False"),
         size: 90,
+        enableColumnFilter: false,
       },
       {
         id: "defects",
         header: "Defects",
-        accessorFn: (row: EvaluationRecord) => formatDefects(row.defects),
+        accessorFn: (row: EventListItem) => formatDefects(row.violated_limits),
         size: 280,
         enableSorting: false,
+        enableColumnFilter: false,
         cell: ({ row, getValue }) => {
-          const { defects } = row.original;
+          const { violated_limits: violatedLimits } = row.original;
 
-          if (defects.length === 0) {
+          if (violatedLimits.length === 0) {
             return "—";
           }
 
@@ -86,8 +89,8 @@ export function useReportColumns({
               </TooltipTrigger>
               <TooltipContent side="top" className="max-w-sm">
                 <div className="flex flex-col gap-0.5">
-                  {defects.map((defect, index) => (
-                    <span key={index}>{formatDefect(defect)}</span>
+                  {violatedLimits.map((limit, index) => (
+                    <span key={index}>{formatDefect(limit)}</span>
                   ))}
                 </div>
               </TooltipContent>
@@ -102,13 +105,17 @@ export function useReportColumns({
         enableSorting: false,
         enableColumnFilter: false,
         enableResizing: false,
-        cell: ({ row }) => (
-          <img
-            src={row.original.imageUrl}
-            alt="Captured frame"
-            className="h-[52px] w-[60px] shrink-0 rounded bg-muted object-cover"
-          />
-        ),
+        cell: ({ row }) =>
+          row.original.has_picture ? (
+            <img
+              src={getPictureUrl(row.original)}
+              alt="Captured frame"
+              loading="lazy"
+              className="h-[52px] w-[60px] shrink-0 rounded bg-muted object-cover"
+            />
+          ) : (
+            "—"
+          ),
       },
       {
         id: "check",
@@ -128,6 +135,6 @@ export function useReportColumns({
         ),
       },
     ],
-    [onCheck],
+    [onCheck, getPictureUrl],
   );
 }

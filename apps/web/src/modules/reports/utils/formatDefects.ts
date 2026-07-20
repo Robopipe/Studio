@@ -1,9 +1,9 @@
-import type { ReportDefect } from "../types";
+import type { ViolatedLimit } from "@/core/cameraApi/schemas/events";
 
-export function formatDefect(defect: ReportDefect): string {
-  return `${defect.label} [${defect.detectionId}, ${defect.parentDetectionId ?? "-"}]`;
+export function formatDefect(limit: ViolatedLimit): string {
+  return `${limit.limit_name} [${limit.display_id ?? "-"}, ${limit.parent_display_id ?? "-"}]`;
 }
 
-export function formatDefects(defects: ReportDefect[]): string {
-  return defects.map(formatDefect).join("; ");
+export function formatDefects(limits: ViolatedLimit[]): string {
+  return limits.map(formatDefect).join("; ");
 }

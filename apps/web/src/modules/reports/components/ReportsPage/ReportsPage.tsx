@@ -1,91 +1,305 @@
+import { useListEventsQuery, useListSessionsQuery } from "@/core/cameraApi";
+import type { EventListItem } from "@/core/cameraApi/schemas/events";
+import { useCameraApiUrl } from "@/hooks/useCameraApiUrl";
+import { cn } from "@/lib/utils";
+import { Button } from "@/modules/shadcn/ui/button";
 import { TooltipProvider } from "@/modules/shadcn/ui/tooltip";
 import { DataTable } from "@/modules/ui/components/Table";
+import type {
+  OnChangeFn,
+  PaginationState,
+  RowSelectionState,
+  SortingState,
+} from "@tanstack/react-table";
 import { endOfDay, startOfDay } from "date-fns";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
-import { MOCK_RECORDS, MOCK_SESSIONS } from "../../mocks/reportRecords";
-import type { EvaluationRecord } from "../../types";
+import { useReportExport } from "../../hooks/useReportExport";
 import { ReportDetailPanel } from "../ReportDetailPanel";
-import { ALL_SESSIONS, ReportsToolbar } from "../ReportsToolbar";
-import { useReportColumns } from "./useReportColumns";
+import {
+  ALL_SESSIONS,
+  ReportsToolbar,
+  type PassedFilter,
+} from "../ReportsToolbar";
+import { SORT_KEY_BY_COLUMN, useReportColumns } from "./useReportColumns";
 
-export const ReportsPage = () => {
+const PAGE_SIZE = 20;
+const EVENTS_POLL_INTERVAL_MS = 5000;
+
+interface ReportsPageProps {
+  dashboardId: number | null;
+}
+
+export const ReportsPage = ({ dashboardId }: ReportsPageProps) => {
   const [sessionId, setSessionId] = useState<string>(ALL_SESSIONS);
   const [from, setFrom] = useState<Date | undefined>(undefined);
   const [to, setTo] = useState<Date | undefined>(undefined);
-  const [checkedRecord, setCheckedRecord] = useState<EvaluationRecord | null>(
-    null,
-  );
+  const [passedFilter, setPassedFilter] = useState<PassedFilter>("all");
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: PAGE_SIZE,
+  });
+  // Mirrors the server default (timestamp desc).
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "detectedAt", desc: true },
+  ]);
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const [checkedEventId, setCheckedEventId] = useState<number | null>(null);
+  // Lags behind checkedEventId so the panel stays mounted while it collapses.
+  const [renderedEventId, setRenderedEventId] = useState<number | null>(null);
 
-  const filteredRecords = useMemo(
-    () =>
-      MOCK_RECORDS.filter((record) => {
-        if (sessionId !== ALL_SESSIONS && record.sessionId !== sessionId) {
-          return false;
-        }
+  const { url: cameraApiUrl } = useCameraApiUrl();
+  const { exportReport, isExporting } = useReportExport(dashboardId);
 
-        const sessionStart = new Date(record.sessionStart);
-        if (from && sessionStart < startOfDay(from)) return false;
-        if (to && sessionStart > endOfDay(to)) return false;
-
-        return true;
-      }),
-    [sessionId, from, to],
-  );
-
-  // Close the detail panel when its record gets filtered out.
+  // Filters reset paging and selection; a new dashboard resets everything.
   useEffect(() => {
-    if (
-      checkedRecord &&
-      !filteredRecords.some((record) => record.id === checkedRecord.id)
-    ) {
-      setCheckedRecord(null);
-    }
-  }, [filteredRecords, checkedRecord]);
+    setSessionId(ALL_SESSIONS);
+    setFrom(undefined);
+    setTo(undefined);
+    setPassedFilter("all");
+    setPagination({ pageIndex: 0, pageSize: PAGE_SIZE });
+    setRowSelection({});
+    setCheckedEventId(null);
+    setRenderedEventId(null);
+  }, [dashboardId]);
 
-  const handleCheck = useCallback((record: EvaluationRecord) => {
-    setCheckedRecord(record);
+  useEffect(() => {
+    if (checkedEventId !== null) {
+      setRenderedEventId(checkedEventId);
+    }
+  }, [checkedEventId]);
+
+  const resetPageAndSelection = useCallback(() => {
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+    setRowSelection({});
   }, []);
+
+  const handleSessionChange = useCallback(
+    (value: string) => {
+      setSessionId(value);
+      resetPageAndSelection();
+    },
+    [resetPageAndSelection],
+  );
+
+  const handleFromChange = useCallback(
+    (date: Date | undefined) => {
+      setFrom(date);
+      resetPageAndSelection();
+    },
+    [resetPageAndSelection],
+  );
+
+  const handleToChange = useCallback(
+    (date: Date | undefined) => {
+      setTo(date);
+      resetPageAndSelection();
+    },
+    [resetPageAndSelection],
+  );
+
+  const handlePassedFilterChange = useCallback(
+    (value: PassedFilter) => {
+      setPassedFilter(value);
+      resetPageAndSelection();
+    },
+    [resetPageAndSelection],
+  );
+
+  const handleSortingChange: OnChangeFn<SortingState> = useCallback(
+    (updater) => {
+      setSorting((prev) =>
+        typeof updater === "function" ? updater(prev) : updater,
+      );
+      setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+    },
+    [],
+  );
+
+  const filterArgs = useMemo(
+    () => ({
+      sessionId: sessionId !== ALL_SESSIONS ? Number(sessionId) : undefined,
+      start: from ? startOfDay(from).toISOString() : undefined,
+      end: to ? endOfDay(to).toISOString() : undefined,
+      passed: passedFilter === "all" ? undefined : passedFilter === "passed",
+    }),
+    [sessionId, from, to, passedFilter],
+  );
+
+  const eventArgs = useMemo(
+    () => ({
+      dashboardId: dashboardId!,
+      ...filterArgs,
+      sortBy: sorting[0] ? SORT_KEY_BY_COLUMN[sorting[0].id] : undefined,
+      order: sorting[0]
+        ? sorting[0].desc
+          ? ("desc" as const)
+          : ("asc" as const)
+        : undefined,
+      limit: pagination.pageSize,
+      offset: pagination.pageIndex * pagination.pageSize,
+    }),
+    [dashboardId, filterArgs, sorting, pagination],
+  );
+
+  const { data: sessions = [] } = useListSessionsQuery(
+    { dashboardId: dashboardId! },
+    { skip: dashboardId === null },
+  );
+
+  const {
+    data: events,
+    isLoading,
+    isFetching,
+    isError,
+    refetch,
+  } = useListEventsQuery(eventArgs, {
+    skip: dashboardId === null,
+    pollingInterval: EVENTS_POLL_INTERVAL_MS,
+    skipPollingIfUnfocused: true,
+  });
+
+  const handleCheck = useCallback((event: EventListItem) => {
+    setCheckedEventId(event.id);
+  }, []);
+
+  // Prev/next steps through the rows of the currently loaded page.
+  const checkedIndex = useMemo(
+    () =>
+      checkedEventId === null
+        ? -1
+        : (events?.items ?? []).findIndex((item) => item.id === checkedEventId),
+    [events, checkedEventId],
+  );
+  const hasPrev = checkedIndex > 0;
+  const hasNext =
+    checkedIndex !== -1 && checkedIndex < (events?.items.length ?? 0) - 1;
+
+  const handlePrev = useCallback(() => {
+    const prev = events?.items[checkedIndex - 1];
+    if (prev) setCheckedEventId(prev.id);
+  }, [events, checkedIndex]);
+
+  const handleNext = useCallback(() => {
+    const next = events?.items[checkedIndex + 1];
+    if (next) setCheckedEventId(next.id);
+  }, [events, checkedIndex]);
+
+  const getPictureUrl = useCallback(
+    (event: EventListItem) =>
+      `${cameraApiUrl}/dashboard/${dashboardId}/events/${event.id}/picture`,
+    [cameraApiUrl, dashboardId],
+  );
+
+  const selectedIds = useMemo(
+    () => Object.keys(rowSelection).map(Number),
+    [rowSelection],
+  );
 
   const handleExport = useCallback(() => {
-    toast.info("Export is not available yet");
-  }, []);
+    // The pass/fail filter maps to CreateReportRequest.passed on the API.
+    void exportReport(
+      selectedIds.length > 0
+        ? { event_ids: selectedIds }
+        : {
+            session_id: filterArgs.sessionId,
+            start: filterArgs.start,
+            end: filterArgs.end,
+            passed: filterArgs.passed,
+          },
+    );
+  }, [exportReport, selectedIds, filterArgs]);
 
-  const columns = useReportColumns({ onCheck: handleCheck });
+  const columns = useReportColumns({ onCheck: handleCheck, getPictureUrl });
+
+  if (dashboardId === null) {
+    return (
+      <div className="flex flex-1 items-center justify-center p-6 text-sm text-muted-foreground">
+        No dashboard configuration selected — create one in the Control tab to
+        collect evaluation records.
+      </div>
+    );
+  }
 
   return (
     <TooltipProvider delay={400}>
-      <div className="flex min-h-0 flex-1">
-        <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-y-auto p-6">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <h5 className="text-xl font-semibold">All Test Cases</h5>
-            <ReportsToolbar
-              sessions={MOCK_SESSIONS}
-              sessionId={sessionId}
-              onSessionChange={setSessionId}
-              from={from}
-              onFromChange={setFrom}
-              to={to}
-              onToChange={setTo}
-              onExport={handleExport}
-            />
-          </div>
-          <DataTable
-            data={filteredRecords}
-            columns={columns}
-            enableRowSelection
-            pageSize={20}
-            rowClassName={(record) =>
-              record.id === checkedRecord?.id ? "bg-primary/5" : undefined
-            }
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <h5 className="text-xl font-semibold">All Test Cases</h5>
+          <ReportsToolbar
+            sessions={sessions}
+            sessionId={sessionId}
+            onSessionChange={handleSessionChange}
+            from={from}
+            onFromChange={handleFromChange}
+            to={to}
+            onToChange={handleToChange}
+            passedFilter={passedFilter}
+            onPassedFilterChange={handlePassedFilterChange}
+            onRefresh={refetch}
+            isRefreshing={isFetching}
+            onExport={handleExport}
+            isExporting={isExporting}
+            selectedCount={selectedIds.length}
           />
         </div>
-        {checkedRecord && (
-          <ReportDetailPanel
-            record={checkedRecord}
-            onClose={() => setCheckedRecord(null)}
-          />
-        )}
+        <div className="flex min-h-0 flex-1">
+          <div className="flex min-w-0 flex-1 flex-col">
+            {isError ? (
+              <div className="flex flex-1 flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
+                Failed to load evaluation records — is the camera API reachable?
+                <Button size="sm" variant="outline" onClick={() => refetch()}>
+                  Retry
+                </Button>
+              </div>
+            ) : (
+              <DataTable
+                data={events?.items ?? []}
+                columns={columns}
+                enableRowSelection
+                isLoading={isLoading}
+                manualPagination
+                pagination={pagination}
+                onPaginationChange={setPagination}
+                rowCount={events?.total ?? 0}
+                manualSorting
+                sorting={sorting}
+                onSortingChange={handleSortingChange}
+                rowSelection={rowSelection}
+                onRowSelectionChange={setRowSelection}
+                getRowId={(event) => String(event.id)}
+                rowClassName={(event) =>
+                  event.id === checkedEventId ? "bg-primary/5" : undefined
+                }
+              />
+            )}
+          </div>
+          <div
+            className={cn(
+              "shrink-0 overflow-hidden transition-[width] duration-300 ease-in-out",
+              // 346px card + 16px gap from the table
+              checkedEventId !== null ? "w-[362px]" : "w-0",
+            )}
+            onTransitionEnd={(e) => {
+              if (e.target === e.currentTarget && checkedEventId === null) {
+                setRenderedEventId(null);
+              }
+            }}
+          >
+            {renderedEventId !== null && (
+              <div className="h-full pl-4">
+                <ReportDetailPanel
+                  dashboardId={dashboardId}
+                  eventId={renderedEventId}
+                  onClose={() => setCheckedEventId(null)}
+                  onPrev={handlePrev}
+                  onNext={handleNext}
+                  hasPrev={hasPrev}
+                  hasNext={hasNext}
+                />
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </TooltipProvider>
   );

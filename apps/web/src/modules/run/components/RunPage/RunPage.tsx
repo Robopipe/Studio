@@ -10,6 +10,12 @@ import {
 } from "@/modules/dashboard/services/dashboardConfigApi";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import { ReportsPage } from "@/modules/reports";
+import {
+  ConfigurationTab,
+  RunSubheader,
+  RunTab,
+  type ConfigurationTabHandle,
+} from "@/modules/run";
 import { Button } from "@/modules/shadcn/ui/button";
 import {
   Dialog,
@@ -25,12 +31,7 @@ import { useBlocker } from "react-router";
 import { toast } from "sonner";
 import type { ConfigSelection } from "../../hooks/useRunDeploy";
 import { useRunDeploy } from "../../hooks/useRunDeploy";
-import {
-  ConfigurationTab,
-  type ConfigurationTabHandle,
-} from "@/modules/run";
 import { DeployConfigSelector } from "../DeployConfigSelector/DeployConfigSelector";
-import { RunSubheader, RunTab } from "@/modules/run";
 
 export const RunPage = () => {
   const [activeTab, setActiveTab] = useState<RunTab>("inference");
@@ -113,9 +114,7 @@ export const RunPage = () => {
 
   useEffect(() => {
     if (blocker.state === "blocked") {
-      toast.warning(
-        "Deployment in progress — please wait until it finishes.",
-      );
+      toast.warning("Deployment in progress — please wait until it finishes.");
       blocker.reset?.();
     }
   }, [blocker]);
@@ -143,7 +142,7 @@ export const RunPage = () => {
   // a live device. Dashboard contains test-case and evaluation sub-tabs.
   const renderTabContent = () => {
     if (activeTab === "reports") {
-      return <ReportsPage />;
+      return <ReportsPage dashboardId={activeConfigId} />;
     }
 
     if (activeTab === "dashboard") {
@@ -221,4 +220,3 @@ const DeployConfirmDialog = ({
     </DialogContent>
   </Dialog>
 );
-
