@@ -13,6 +13,8 @@ export const eventListItemSchema = z.object({
   session_id: z.number().int(),
   session_start: z.string(),
   session_end: z.string().nullable(),
+  // Studio model id the event's session ran with; null for legacy sessions.
+  model_id: z.number().int().nullable(),
   timestamp: z.string(),
   test_case_id: z.string(),
   test_case_name: z.string(),

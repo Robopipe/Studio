@@ -33,13 +33,16 @@ const LIST_CAMERAS_TIMEOUT_MS = 5000;
 // fetchBaseQuery comma-joins array params, but the FastAPI camera API expects
 // repeated keys (?test_case_id=a&test_case_id=b), so build the query manually.
 const toRepeatedSearchParams = (
-  params: Record<string, string | number | boolean | string[] | undefined>,
+  params: Record<
+    string,
+    string | number | boolean | string[] | number[] | undefined
+  >,
 ) => {
   const searchParams = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
     if (value === undefined) continue;
     if (Array.isArray(value)) {
-      for (const item of value) searchParams.append(key, item);
+      for (const item of value) searchParams.append(key, String(item));
     } else {
       searchParams.set(key, String(value));
     }
@@ -489,7 +492,8 @@ export const cameraApi = cameraApiBase.injectEndpoints({
       EventListResponse,
       {
         dashboardId: number;
-        sessionId?: number;
+        sessionIds?: number[];
+        modelIds?: number[];
         start?: string;
         end?: string;
         testCaseIds?: string[];
@@ -503,7 +507,8 @@ export const cameraApi = cameraApiBase.injectEndpoints({
     >({
       query: ({
         dashboardId,
-        sessionId,
+        sessionIds,
+        modelIds,
         start,
         end,
         testCaseIds,
@@ -515,7 +520,8 @@ export const cameraApi = cameraApiBase.injectEndpoints({
         offset,
       }) => ({
         url: `/dashboard/${dashboardId}/events?${toRepeatedSearchParams({
-          session_id: sessionId,
+          session_id: sessionIds,
+          model_id: modelIds,
           start,
           end,
           test_case_id: testCaseIds,

@@ -1,6 +1,6 @@
 import { useGetEventQuery } from "@/core/cameraApi";
 import { useCameraApiUrl } from "@/hooks/useCameraApiUrl";
-import { Badge } from "@/modules/shadcn/ui/badge";
+import { useGetModelsQuery } from "@/modules/model/services/modelApi";
 import { Button } from "@/modules/shadcn/ui/button";
 import { Checkbox } from "@/modules/shadcn/ui/checkbox";
 import { Separator } from "@/modules/shadcn/ui/separator";
@@ -14,9 +14,11 @@ import {
   ImagePlusIcon,
   XIcon,
 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useSaveEventToDataset } from "../../hooks/useSaveEventToDataset";
 import { formatDefect } from "../../utils/formatDefects";
+import { ModelCell } from "../ModelCell";
+import { PassedBadge } from "../PassedBadge";
 import { DetectionOverlay } from "./DetectionOverlay";
 
 const formatTimestamp = (value: string | null) =>
@@ -57,6 +59,16 @@ export const ReportDetailPanel = ({
     eventId,
     timestamp: event?.timestamp,
   });
+  // Resolves the event's model_id to a linked model name (RTK Query dedupes
+  // this with the reports table's identical fetch).
+  const { data: models = [] } = useGetModelsQuery(
+    { projectId: projectId! },
+    { skip: projectId === null },
+  );
+  const modelNameById = useMemo(
+    () => new Map(models.map((model) => [model.id, model.name])),
+    [models],
+  );
 
   const pictureUrl = `${cameraApiUrl}/dashboard/${dashboardId}/events/${eventId}/picture`;
 
@@ -133,19 +145,18 @@ export const ReportDetailPanel = ({
           <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 px-5 text-sm">
             <span className="text-muted-foreground">Result</span>
             <span>
-              <Badge
-                variant={event.passed ? "secondary" : "destructive"}
-                className={
-                  event.passed
-                    ? "bg-emerald-500/10 text-emerald-700"
-                    : undefined
-                }
-              >
-                {event.passed ? "Passed" : "Failed"}
-              </Badge>
+              <PassedBadge passed={event.passed} />
             </span>
             <span className="text-muted-foreground">Detected at</span>
             <span>{formatTimestamp(event.timestamp)}</span>
+            <span className="text-muted-foreground">Model</span>
+            <span>
+              <ModelCell
+                modelId={event.model_id}
+                modelNameById={modelNameById}
+                projectId={projectId}
+              />
+            </span>
             <span className="text-muted-foreground">Record id</span>
             <span>{event.id}</span>
           </div>

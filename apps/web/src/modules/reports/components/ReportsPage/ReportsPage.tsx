@@ -3,6 +3,7 @@ import type { EventListItem } from "@/core/cameraApi/schemas/events";
 import { useCameraApiUrl } from "@/hooks/useCameraApiUrl";
 import { cn } from "@/lib/utils";
 import { useGetEvalTestCasesQuery } from "@/modules/evaluation";
+import { useGetModelsQuery } from "@/modules/model/services/modelApi";
 import { Button } from "@/modules/shadcn/ui/button";
 import type { DateTimeRange } from "@/modules/shadcn/ui/date-time-range-picker";
 import { TooltipProvider } from "@/modules/shadcn/ui/tooltip";
@@ -41,9 +42,13 @@ export const ReportsPage = ({
   projectId,
   onExportingChange,
 }: ReportsPageProps) => {
+  // Scopes the export only — the table's session filter lives in the
+  // Session column header (sessionIds below).
   const [sessionId, setSessionId] = useState<string>(ALL_SESSIONS);
   const [range, setRange] = useState<DateTimeRange>({});
   const [passedFilter, setPassedFilter] = useState<PassedFilter>("all");
+  const [sessionIds, setSessionIds] = useState<string[]>([]);
+  const [modelIds, setModelIds] = useState<string[]>([]);
   const [testCaseIds, setTestCaseIds] = useState<string[]>([]);
   const [limitIds, setLimitIds] = useState<string[]>([]);
   // Scopes the export only; the column-header filters never reach the export.
@@ -89,6 +94,8 @@ export const ReportsPage = ({
     setSessionId(ALL_SESSIONS);
     setRange({});
     setPassedFilter("all");
+    setSessionIds([]);
+    setModelIds([]);
     setTestCaseIds([]);
     setLimitIds([]);
     setExportFrom(startOfDay(new Date()));
@@ -109,13 +116,12 @@ export const ReportsPage = ({
     setPagination((prev) => ({ ...prev, pageIndex: 0 }));
   }, []);
 
-  // The select doubles as an export-range shortcut: a session fills the
-  // pickers with its exact bounds (a running one ends "now"), and "All
-  // sessions" restores the default range.
+  // The select is an export-range shortcut only (it doesn't filter the
+  // table): a session fills the pickers with its exact bounds (a running one
+  // ends "now"), and "All sessions" restores the default range.
   const handleSessionChange = useCallback(
     (value: string) => {
       setSessionId(value);
-      resetPage();
       if (value === ALL_SESSIONS) {
         setExportFrom(startOfDay(new Date()));
         setExportTo(new Date());
@@ -127,7 +133,7 @@ export const ReportsPage = ({
         setExportTo(session.end_time ? new Date(session.end_time) : new Date());
       }
     },
-    [resetPage, sessions],
+    [sessions],
   );
 
   // Manual range edits detach the export scope from any picked session.
@@ -136,10 +142,9 @@ export const ReportsPage = ({
       setExportFrom(date);
       if (sessionId !== ALL_SESSIONS) {
         setSessionId(ALL_SESSIONS);
-        resetPage();
       }
     },
-    [sessionId, resetPage],
+    [sessionId],
   );
 
   const handleExportToChange = useCallback(
@@ -147,15 +152,30 @@ export const ReportsPage = ({
       setExportTo(date);
       if (sessionId !== ALL_SESSIONS) {
         setSessionId(ALL_SESSIONS);
-        resetPage();
       }
     },
-    [sessionId, resetPage],
+    [sessionId],
   );
 
   const handleRangeChange = useCallback(
     (value: DateTimeRange) => {
       setRange(value);
+      resetPage();
+    },
+    [resetPage],
+  );
+
+  const handleSessionIdsChange = useCallback(
+    (ids: string[]) => {
+      setSessionIds(ids);
+      resetPage();
+    },
+    [resetPage],
+  );
+
+  const handleModelIdsChange = useCallback(
+    (ids: string[]) => {
+      setModelIds(ids);
       resetPage();
     },
     [resetPage],
@@ -197,7 +217,9 @@ export const ReportsPage = ({
 
   const filterArgs = useMemo(
     () => ({
-      sessionId: sessionId !== ALL_SESSIONS ? Number(sessionId) : undefined,
+      sessionIds:
+        sessionIds.length > 0 ? sessionIds.map(Number) : undefined,
+      modelIds: modelIds.length > 0 ? modelIds.map(Number) : undefined,
       // The range picker owns time-of-day defaults (00:00 / 23:59:59.999).
       start: range.from?.toISOString(),
       end: range.to?.toISOString(),
@@ -205,7 +227,7 @@ export const ReportsPage = ({
       testCaseIds: testCaseIds.length > 0 ? testCaseIds : undefined,
       limitIds: limitIds.length > 0 ? limitIds : undefined,
     }),
-    [sessionId, range, passedFilter, testCaseIds, limitIds],
+    [sessionIds, modelIds, range, passedFilter, testCaseIds, limitIds],
   );
 
   const eventArgs = useMemo(
@@ -230,6 +252,12 @@ export const ReportsPage = ({
   const { data: testCases = [] } = useGetEvalTestCasesQuery(
     { projectId: projectId!, configId: dashboardId! },
     { skip: projectId === null || dashboardId === null },
+  );
+
+  // Model filter options and id→name resolution for the Model column.
+  const { data: models = [] } = useGetModelsQuery(
+    { projectId: projectId! },
+    { skip: projectId === null },
   );
 
   const {
@@ -323,6 +351,12 @@ export const ReportsPage = ({
       onRangeChange: handleRangeChange,
       passed: passedFilter,
       onPassedChange: handlePassedFilterChange,
+      sessionIds,
+      onSessionIdsChange: handleSessionIdsChange,
+      sessions,
+      modelIds,
+      onModelIdsChange: handleModelIdsChange,
+      models,
       testCaseIds,
       onTestCaseIdsChange: handleTestCaseIdsChange,
       limitIds,
@@ -334,6 +368,12 @@ export const ReportsPage = ({
       handleRangeChange,
       passedFilter,
       handlePassedFilterChange,
+      sessionIds,
+      handleSessionIdsChange,
+      sessions,
+      modelIds,
+      handleModelIdsChange,
+      models,
       testCaseIds,
       handleTestCaseIdsChange,
       limitIds,
@@ -346,6 +386,7 @@ export const ReportsPage = ({
     onCheck: handleCheck,
     getPictureUrl,
     filters: columnFilters,
+    projectId,
   });
 
   if (dashboardId === null) {
