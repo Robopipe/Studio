@@ -1,6 +1,5 @@
 import type { SahiConfig } from "@/core/cameraApi/schemas/nn";
 import { formatDuration } from "@/lib/utils";
-import { SelectedCameraField } from "@/modules/camera-selection";
 import {
   DirectionPicker,
   ZoneConfig,
@@ -181,9 +180,6 @@ export const ConfigurationSidebar = ({
       </Section>
 
       <Section title="Camera Configuration">
-        <Field label="Camera">
-          <SelectedCameraField cameraMxid={selectedCamera} />
-        </Field>
         <Field label="Sensor">
           <Select
             value={selectedStream ?? undefined}
@@ -205,7 +201,7 @@ export const ConfigurationSidebar = ({
                 <p className="px-2 py-1.5 text-sm text-muted-foreground">
                   {selectedCamera
                     ? "No sensors found"
-                    : "Select a camera first"}
+                    : "Select a camera in project settings"}
                 </p>
               )}
             </SelectContent>

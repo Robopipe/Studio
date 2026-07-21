@@ -1,7 +1,10 @@
 import { useGetNNQuery, useListStreamsQuery } from "@/core/cameraApi";
 import { useCameraApiUrl } from "@/hooks";
 import { useAppSelector } from "@/hooks/redux";
-import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
+import {
+  selectActiveCameraMxid,
+  selectActiveStreamName,
+} from "@/modules/camera-selection/services/cameraSelectionSlice";
 import type { NNDetections } from "@/modules/run/types/detections";
 import type { RootState } from "@/store/types";
 import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
@@ -38,24 +41,20 @@ export interface CameraStreamProviderProps {
 
 /**
  * Owns a single WebRTC peer connection + a single detections WebSocket per
- * active project, keyed on the camera selection slice's (mxid, streamName)
- * tuple. Navigating between Capture and Run for the same camera no longer
- * rebuilds these — components just attach to the shared streams via the
- * context (see useWebRTCStream / useDetections, which are now thin shims).
+ * active project, keyed on the (mxid, streamName) tuple — the project's
+ * camera (DB) plus the session's stream selection. Navigating between
+ * Capture and Run for the same camera no longer rebuilds these — components
+ * just attach to the shared streams via the context (see useWebRTCStream /
+ * useDetections, which are now thin shims).
  *
  * Mount this once inside the authenticated layout. The provider skips setup
  * until a project is active and a camera/stream is selected.
  */
 export const CameraStreamProvider = ({ children }: CameraStreamProviderProps) => {
-  const [activeProject] = useActiveProject();
-  const { url: apiHost } = useCameraApiUrl();
-  const projectId = activeProject?.id;
+  const apiHost = useCameraApiUrl();
 
-  const selection = useAppSelector((state: RootState) =>
-    projectId != null ? state.cameraSelection.byProject[projectId] : undefined,
-  );
-  const mxid = selection?.cameraMxid ?? null;
-  const streamName = selection?.streamName ?? null;
+  const mxid = useAppSelector(selectActiveCameraMxid);
+  const streamName = useAppSelector(selectActiveStreamName);
 
   // Bumped whenever the server restarts its pipeline for this stream
   // (deploy/stop NN, add/remove replay video, etc.) — see

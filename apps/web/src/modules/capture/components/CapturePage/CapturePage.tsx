@@ -7,6 +7,7 @@ import { EditProjectModal } from "@/modules/project/components/EditProjectModal"
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
 import {
   ModelRunning,
+  NoCameraConfigured,
   NoCameraDetected,
   SearchingForCamera,
 } from "@/modules/ui";
@@ -24,7 +25,7 @@ import { LiveCapture } from "../LiveCapture";
 export interface CapturePageProps {}
 
 export const CapturePage = ({}: CapturePageProps) => {
-  const { url: cameraApiUrl, isOverride } = useCameraApiUrl();
+  const cameraApiUrl = useCameraApiUrl();
   const [activeProject] = useActiveProject();
   const { projectId: urlProjectId } = useParams<{ projectId: string }>();
   const isSwitchingProject =
@@ -44,7 +45,7 @@ export const CapturePage = ({}: CapturePageProps) => {
     cameraMxid: selectedCamera,
     streamName: selectedStream,
     setStream: setSelectedStream,
-  } = useSelectedCameraStream(cameras);
+  } = useSelectedCameraStream();
 
   const [isStreaming, setIsStreaming] = useState(false);
   const [isSwitchingStream, setIsSwitchingStream] = useState(false);
@@ -90,7 +91,6 @@ export const CapturePage = ({}: CapturePageProps) => {
       hasLoadedDashboardOnceRef.current = true;
   }, [isModelRunning, isModelError]);
 
-  const needsSelection = !selectedCamera || !selectedStream;
   const isInitialModelLoad =
     isModelLoading && !hasLoadedDashboardOnceRef.current;
 
@@ -114,6 +114,18 @@ export const CapturePage = ({}: CapturePageProps) => {
     </>
   );
 
+  const renderNoCameraConfigured = () => (
+    <>
+      <NoCameraConfigured onOpenSettings={openSettings} />
+      {settingsOpen && activeProject && (
+        <EditProjectModal
+          project={activeProject}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
+    </>
+  );
+
   if (isSwitchingProject) {
     return <SearchingForCamera />;
   }
@@ -122,12 +134,24 @@ export const CapturePage = ({}: CapturePageProps) => {
     return renderNoCamera();
   }
 
-  if (isLoading || (needsSelection && hasCameras) || isInitialModelLoad) {
-    return <SearchingForCamera url={cameraApiUrl} isOverride={isOverride} />;
+  if (isLoading) {
+    return <SearchingForCamera url={cameraApiUrl} />;
   }
 
   if (!hasCameras) {
     return renderNoCamera();
+  }
+
+  // Cameras detected but the project has no camera set — deliberately no
+  // fallback: the camera is picked explicitly in the project settings.
+  if (!selectedCamera) {
+    return renderNoCameraConfigured();
+  }
+
+  // Stream auto-pick pending, or the saved camera isn't reachable (stale
+  // mxid: streams never load). Also covers the initial model-status load.
+  if (!selectedStream || isInitialModelLoad) {
+    return <SearchingForCamera url={cameraApiUrl} />;
   }
 
   if (isModelRunning && activeProject) {

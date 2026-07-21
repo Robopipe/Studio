@@ -6,6 +6,7 @@ export const projectSchema = z.object({
   name: z.string(),
   description: z.string(),
   cameraApiUrl: z.url().nullable(),
+  cameraMxid: z.string().nullable(),
   multipleDashboardConfigs: z.boolean(),
   hasLicense: z.boolean(),
   organizationId: z.number(),
@@ -18,12 +19,14 @@ export const createProjectRequestSchema = z.object({
   name: z.string().min(1).max(256),
   description: z.string(),
   cameraApiUrl: z.url().nullable(),
+  cameraMxid: z.string().max(256).nullish(),
 });
 
 export const updateProjectRequestSchema = z.object({
   name: z.string().min(1).max(256),
   description: z.string(),
   cameraApiUrl: z.url().nullable(),
+  cameraMxid: z.string().max(256).nullish(),
   multipleDashboardConfigs: z.boolean().optional(),
 });
 

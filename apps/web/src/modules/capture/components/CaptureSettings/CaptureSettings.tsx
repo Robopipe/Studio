@@ -1,4 +1,3 @@
-import { SelectedCameraField } from "@/modules/camera-selection";
 import { useCallback, useState } from "react";
 import { useVideoCapture } from "../../context/VideoCaptureContext";
 import { CaptureStillImage } from "../CaptureStillImage";
@@ -51,7 +50,6 @@ export const CaptureSettings = ({
       <p className="text-[10px] font-bold uppercase tracking-wider text-black">
         Capture Settings
       </p>
-      <SelectedCameraField cameraMxid={selectedCamera} />
       <SelectStream
         mxid={selectedCamera}
         value={selectedStream}

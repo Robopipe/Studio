@@ -1,0 +1,324 @@
+import type {
+  EventListItem,
+  EventSortBy,
+  SessionSummary,
+} from "@/core/cameraApi/schemas/events";
+import { Button } from "@/modules/shadcn/ui/button";
+import {
+  DateTimeRangePanel,
+  type DateTimeRange,
+} from "@/modules/shadcn/ui/date-time-range-picker";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/modules/shadcn/ui/tooltip";
+import { FacetedFilterList } from "@/modules/ui/components/FacetedFilter";
+import type { EvalTestCase, Model } from "@repo/schema";
+import { type ColumnDef } from "@tanstack/react-table";
+import { format } from "date-fns";
+import { useMemo } from "react";
+import { formatDefect, formatDefects } from "../../utils/formatDefects";
+import { formatSessionLabel } from "../../utils/formatSessionLabel";
+import { ModelCell } from "../ModelCell";
+import { PassedBadge } from "../PassedBadge";
+import type { PassedFilter } from "../ReportsToolbar";
+
+const formatTimestamp = (value: string | null) =>
+  value ? format(new Date(value), "dd.MM.yyyy HH:mm:ss") : "—";
+
+// Column ids the API can sort on; everything else disables sorting.
+export const SORT_KEY_BY_COLUMN: Record<string, EventSortBy> = {
+  detectedAt: "timestamp",
+  sessionStart: "session_start",
+  testCase: "test_case_name",
+  passed: "passed",
+};
+
+const PASSED_OPTIONS = [
+  { value: "passed", label: "Passed" },
+  { value: "failed", label: "Failed" },
+];
+
+export interface ReportColumnFilters {
+  range: DateTimeRange;
+  onRangeChange: (range: DateTimeRange) => void;
+  passed: PassedFilter;
+  onPassedChange: (value: PassedFilter) => void;
+  sessionIds: string[];
+  onSessionIdsChange: (ids: string[]) => void;
+  sessions: SessionSummary[];
+  modelIds: string[];
+  onModelIdsChange: (ids: string[]) => void;
+  models: Model[];
+  testCaseIds: string[];
+  onTestCaseIdsChange: (ids: string[]) => void;
+  limitIds: string[];
+  onLimitIdsChange: (ids: string[]) => void;
+  testCases: EvalTestCase[];
+}
+
+interface UseReportColumnsArgs {
+  onCheck: (event: EventListItem) => void;
+  getPictureUrl: (event: EventListItem) => string;
+  filters: ReportColumnFilters;
+  projectId: number | null;
+}
+
+export function useReportColumns({
+  onCheck,
+  getPictureUrl,
+  filters,
+  projectId,
+}: UseReportColumnsArgs): ColumnDef<EventListItem, unknown>[] {
+  return useMemo(() => {
+    const testCaseGroups = [
+      {
+        options: filters.testCases.map((testCase) => ({
+          value: testCase.id,
+          label: testCase.name,
+        })),
+      },
+    ];
+
+    // Defects (limits) are defined per test case, so group them under their
+    // owning test case — the same defect name can repeat across test cases.
+    const defectGroups = filters.testCases.map((testCase) => ({
+      label: testCase.name,
+      options: testCase.limits.map((limit) => ({
+        value: limit.id,
+        label: limit.name,
+      })),
+    }));
+
+    // Bare ids are hard to tell apart, so label each session with its time range.
+    const sessionGroups = [
+      {
+        options: filters.sessions.map((session) => ({
+          value: String(session.id),
+          label: `#${session.id} · ${formatSessionLabel(session)}`,
+        })),
+      },
+    ];
+
+    const modelGroups = [
+      {
+        options: filters.models.map((model) => ({
+          value: String(model.id),
+          label: model.name,
+        })),
+      },
+    ];
+
+    const modelNameById = new Map(
+      filters.models.map((model) => [model.id, model.name]),
+    );
+
+    return [
+      {
+        accessorKey: "id",
+        header: "Record id",
+        size: 90,
+        enableSorting: false,
+        enableColumnFilter: false,
+      },
+      {
+        // The API can't sort by session id, but ids are assigned
+        // chronologically, so session_start yields the same order.
+        id: "sessionStart",
+        header: "Session",
+        accessorFn: (row: EventListItem) => row.session_id,
+        size: 100,
+        enableColumnFilter: false,
+        meta: {
+          headerFilter: {
+            content: (
+              <FacetedFilterList
+                groups={sessionGroups}
+                selected={filters.sessionIds}
+                onChange={filters.onSessionIdsChange}
+                emptyText="No sessions"
+              />
+            ),
+            active: filters.sessionIds.length > 0,
+          },
+        },
+      },
+      {
+        id: "model",
+        header: "Model",
+        accessorFn: (row: EventListItem) => row.model_id,
+        size: 160,
+        enableSorting: false,
+        enableColumnFilter: false,
+        meta: {
+          headerFilter: {
+            content: (
+              <FacetedFilterList
+                groups={modelGroups}
+                selected={filters.modelIds}
+                onChange={filters.onModelIdsChange}
+                emptyText="No models"
+              />
+            ),
+            active: filters.modelIds.length > 0,
+          },
+        },
+        cell: ({ row }) => (
+          <ModelCell
+            modelId={row.original.model_id}
+            modelNameById={modelNameById}
+            projectId={projectId}
+          />
+        ),
+      },
+      {
+        id: "detectedAt",
+        header: "Detected at",
+        accessorFn: (row: EventListItem) => row.timestamp,
+        size: 170,
+        enableColumnFilter: false,
+        meta: {
+          headerFilter: {
+            content: (
+              <DateTimeRangePanel
+                value={filters.range}
+                onChange={filters.onRangeChange}
+              />
+            ),
+            active: Boolean(filters.range.from || filters.range.to),
+            contentClassName: "w-auto p-0",
+          },
+        },
+        cell: ({ getValue }) => formatTimestamp(getValue<string>()),
+      },
+      {
+        id: "testCase",
+        header: "Test case",
+        accessorFn: (row: EventListItem) => row.test_case_name,
+        size: 220,
+        enableColumnFilter: false,
+        meta: {
+          headerFilter: {
+            content: (
+              <FacetedFilterList
+                groups={testCaseGroups}
+                selected={filters.testCaseIds}
+                onChange={filters.onTestCaseIdsChange}
+                emptyText="No test cases"
+              />
+            ),
+            active: filters.testCaseIds.length > 0,
+          },
+        },
+      },
+      {
+        id: "passed",
+        header: "Passed",
+        accessorFn: (row: EventListItem) => row.passed,
+        size: 90,
+        enableColumnFilter: false,
+        cell: ({ row }) => <PassedBadge passed={row.original.passed} />,
+        meta: {
+          headerFilter: {
+            content: (
+              <FacetedFilterList
+                multiple={false}
+                groups={[{ options: PASSED_OPTIONS }]}
+                selected={filters.passed === "all" ? [] : [filters.passed]}
+                onChange={(values) =>
+                  filters.onPassedChange(
+                    (values[0] as PassedFilter | undefined) ?? "all",
+                  )
+                }
+              />
+            ),
+            active: filters.passed !== "all",
+            contentClassName: "w-40",
+          },
+        },
+      },
+      {
+        id: "defects",
+        header: "Defects",
+        accessorFn: (row: EventListItem) => formatDefects(row.violated_limits),
+        size: 280,
+        enableSorting: false,
+        enableColumnFilter: false,
+        meta: {
+          headerFilter: {
+            content: (
+              <FacetedFilterList
+                groups={defectGroups}
+                selected={filters.limitIds}
+                onChange={filters.onLimitIdsChange}
+                emptyText="No defects"
+              />
+            ),
+            active: filters.limitIds.length > 0,
+          },
+        },
+        cell: ({ row, getValue }) => {
+          const { violated_limits: violatedLimits } = row.original;
+
+          if (violatedLimits.length === 0) {
+            return "—";
+          }
+
+          return (
+            <Tooltip>
+              <TooltipTrigger
+                render={<span className="block max-w-[260px] truncate" />}
+              >
+                {getValue<string>()}
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-sm">
+                <div className="flex flex-col gap-0.5">
+                  {violatedLimits.map((limit, index) => (
+                    <span key={index}>{formatDefect(limit)}</span>
+                  ))}
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          );
+        },
+      },
+      {
+        id: "image",
+        header: "Img",
+        size: 80,
+        enableSorting: false,
+        enableColumnFilter: false,
+        enableResizing: false,
+        cell: ({ row }) =>
+          row.original.has_picture ? (
+            <img
+              src={getPictureUrl(row.original)}
+              alt="Captured frame"
+              loading="lazy"
+              className="h-[52px] w-[60px] shrink-0 rounded bg-muted object-cover"
+            />
+          ) : (
+            "—"
+          ),
+      },
+      {
+        id: "check",
+        header: "Action",
+        size: 90,
+        enableSorting: false,
+        enableColumnFilter: false,
+        enableResizing: false,
+        cell: ({ row }) => (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onCheck(row.original)}
+          >
+            Check
+          </Button>
+        ),
+      },
+    ];
+  }, [onCheck, getPictureUrl, filters, projectId]);
+}

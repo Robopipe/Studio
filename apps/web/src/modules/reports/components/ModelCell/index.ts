@@ -1,0 +1,1 @@
+export { ModelCell } from "./ModelCell";

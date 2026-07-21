@@ -5,7 +5,7 @@ import { Play, Square } from "lucide-react";
 import type { ReactNode } from "react";
 import type { DeployPhase } from "../../hooks/useRunDeploy";
 
-export type RunTab = "inference" | "dashboard";
+export type RunTab = "inference" | "dashboard" | "reports";
 
 interface RunSubheaderProps {
   activeTab: RunTab;
@@ -21,6 +21,7 @@ interface RunSubheaderProps {
 const TABS: { key: RunTab; label: string }[] = [
   { key: "inference", label: "Inference" },
   { key: "dashboard", label: "Control" },
+  { key: "reports", label: "Reports" },
 ];
 
 const PHASE_MESSAGES: Record<Exclude<DeployPhase, "idle">, string> = {

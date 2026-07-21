@@ -24,4 +24,7 @@ export type DashboardReportSummary = z.infer<
 export type CreateReportRequest = {
   start?: string | null;
   end?: string | null;
+  session_id?: number | null;
+  event_ids?: number[] | null;
+  passed?: boolean | null;
 };

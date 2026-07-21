@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import * as p from "drizzle-orm/pg-core";
 import { id, timestamps } from "../helpers";
 import { projectTable } from "./project";
@@ -32,8 +33,16 @@ export const taskTable = p.pgTable("task", {
   precision: p.real("precision"),
   /** Micro-averaged recall for the image: TP/(TP+FN) at IoU≥0.5. */
   recall: p.real("recall"),
+  // Camera-API report event this image was imported from ("save to dataset").
+  // Null for regular captures.
+  sourceDashboardId: p.integer("source_dashboard_id"),
+  sourceEventId: p.integer("source_event_id"),
   ...timestamps,
 }, (t) => [
   p.unique().on(t.projectId, t.iid),
   p.index("task_project_created_idx").on(t.projectId, t.createdAt),
+  // Partial so soft-deleting an imported task frees the slot for re-import.
+  p.uniqueIndex("task_source_event_unique_idx")
+    .on(t.projectId, t.sourceDashboardId, t.sourceEventId)
+    .where(sql`${t.deletedAt} IS NULL`),
 ]);

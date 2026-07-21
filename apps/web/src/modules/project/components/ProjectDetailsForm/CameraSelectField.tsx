@@ -18,7 +18,7 @@ interface CameraSelectFieldProps {
   isError: boolean;
   errorMessage?: string;
   onRetry: () => void;
-  /** False when neither URL field holds a valid URL. */
+  /** False when the URL field doesn't hold a valid URL. */
   hasUrl: boolean;
   value: string | null;
   onChange: (mxid: string | null) => void;
@@ -62,7 +62,7 @@ export const CameraSelectField = ({
   return (
     <div className="flex flex-col gap-1.5">
       <Label htmlFor="projectCamera" className="font-semibold">
-        Camera (stored locally)
+        Camera
       </Label>
       <div className="flex flex-row items-center gap-2">
         <Select
@@ -116,7 +116,7 @@ export const CameraSelectField = ({
         </p>
       )}
       <p className="text-xs text-black/50">
-        Applies only to you on this browser. Used by the Capture and Run pages.
+        Used by the Capture and Run pages for this project.
         {!hasUrl && " Enter a Camera API URL to detect cameras."}
       </p>
     </div>

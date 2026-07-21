@@ -21,10 +21,6 @@ interface ProjectDetailsFormProps {
   setSelectedCameraMxid: (mxid: string | null) => void;
   multipleDashboardConfigs?: boolean;
   setMultipleDashboardConfigs?: (val: boolean) => void;
-  localOverride?: string;
-  setLocalOverride?: (val: string) => void;
-  localOverrideError?: string | null;
-  onLocalOverrideBlur?: () => void;
 }
 
 export const ProjectDetailsForm = ({
@@ -40,24 +36,14 @@ export const ProjectDetailsForm = ({
   setSelectedCameraMxid,
   multipleDashboardConfigs,
   setMultipleDashboardConfigs,
-  localOverride,
-  setLocalOverride,
-  localOverrideError,
-  onLocalOverrideBlur,
 }: ProjectDetailsFormProps) => {
-  const showLocalOverride = setLocalOverride !== undefined;
-
-  // Detect cameras against the URL the app would actually use for this user:
-  // the local override when filled, else the shared project URL — both as
-  // currently typed, not the saved values. A filled-but-invalid override
-  // yields no detection (no silent fallback to the main URL).
+  // Detect cameras against the URL as currently typed, not the saved value.
+  // An invalid URL yields no detection.
   const effectiveDetectionUrl = useMemo(() => {
-    const override = (localOverride ?? "").trim();
-    if (override) return validateCameraApiUrl(override) ? null : override;
     const main = (cameraApiUrl ?? "").trim();
-    if (main) return validateCameraApiUrl(main) ? null : main;
-    return null;
-  }, [localOverride, cameraApiUrl]);
+    if (!main) return null;
+    return validateCameraApiUrl(main) ? null : main;
+  }, [cameraApiUrl]);
 
   const detection = useDetectCameras(effectiveDetectionUrl);
 
@@ -118,33 +104,6 @@ export const ProjectDetailsForm = ({
             <p className="text-xs text-destructive">{cameraApiUrlError}</p>
           )}
         </div>
-
-        {showLocalOverride && (
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="cameraApiUrlOverride" className="font-semibold">
-              Local camera API URL override (stored locally)
-            </Label>
-            <div className="flex flex-row gap-2">
-              <Input
-                id="cameraApiUrlOverride"
-                className="flex-1"
-                placeholder="Leave empty to use the shared project URL"
-                value={localOverride ?? ""}
-                aria-invalid={!!localOverrideError}
-                onChange={(e) => setLocalOverride!(e.target.value)}
-                onBlur={onLocalOverrideBlur}
-              />
-              <DiscoverCameraApi onSelect={(url) => setLocalOverride!(url)} />
-            </div>
-            {localOverrideError && (
-              <p className="text-xs text-destructive">{localOverrideError}</p>
-            )}
-            <p className="text-xs text-black/50">
-              Applies only to you on this browser. Overrides the project URL
-              above for all camera communication.
-            </p>
-          </div>
-        )}
 
         <CameraSelectField
           cameras={detection.cameras}
