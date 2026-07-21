@@ -64,6 +64,11 @@ export const ReportsPage = ({
   const [checkedEventId, setCheckedEventId] = useState<number | null>(null);
   // Lags behind checkedEventId so the panel stays mounted while it collapses.
   const [renderedEventId, setRenderedEventId] = useState<number | null>(null);
+  // Set when prev/next crosses a page boundary: which row of the freshly
+  // fetched page to select once its data lands.
+  const [pendingSelect, setPendingSelect] = useState<"first" | "last" | null>(
+    null,
+  );
 
   const { url: cameraApiUrl } = useCameraApiUrl();
   const { exportReport, isExporting } = useReportExport(dashboardId);
@@ -91,6 +96,7 @@ export const ReportsPage = ({
     setPagination({ pageIndex: 0, pageSize: PAGE_SIZE });
     setCheckedEventId(null);
     setRenderedEventId(null);
+    setPendingSelect(null);
   }, [dashboardId]);
 
   useEffect(() => {
@@ -118,9 +124,7 @@ export const ReportsPage = ({
       const session = sessions.find((s) => String(s.id) === value);
       if (session) {
         setExportFrom(new Date(session.start_time));
-        setExportTo(
-          session.end_time ? new Date(session.end_time) : new Date(),
-        );
+        setExportTo(session.end_time ? new Date(session.end_time) : new Date());
       }
     },
     [resetPage, sessions],
@@ -242,9 +246,13 @@ export const ReportsPage = ({
 
   const handleCheck = useCallback((event: EventListItem) => {
     setCheckedEventId(event.id);
+    // Picking a row directly cancels any in-flight page-boundary selection.
+    setPendingSelect(null);
   }, []);
 
-  // Prev/next steps through the rows of the currently loaded page.
+  // Prev/next walks the whole result set: within the loaded page it selects
+  // the adjacent row, and at a page boundary it flips the table's page and
+  // selects the incoming edge row once that page's data lands.
   const checkedIndex = useMemo(
     () =>
       checkedEventId === null
@@ -252,19 +260,47 @@ export const ReportsPage = ({
         : (events?.items ?? []).findIndex((item) => item.id === checkedEventId),
     [events, checkedEventId],
   );
-  const hasPrev = checkedIndex > 0;
+  const globalIndex = pagination.pageIndex * pagination.pageSize + checkedIndex;
+  // pendingSelect === null guards double-clicks while a page flip is in flight.
+  const hasPrev =
+    checkedIndex !== -1 && pendingSelect === null && globalIndex > 0;
   const hasNext =
-    checkedIndex !== -1 && checkedIndex < (events?.items.length ?? 0) - 1;
+    checkedIndex !== -1 &&
+    pendingSelect === null &&
+    globalIndex < (events?.total ?? 0) - 1;
 
   const handlePrev = useCallback(() => {
     const prev = events?.items[checkedIndex - 1];
-    if (prev) setCheckedEventId(prev.id);
+    if (prev) {
+      setCheckedEventId(prev.id);
+    } else {
+      setPagination((p) => ({ ...p, pageIndex: p.pageIndex - 1 }));
+      setPendingSelect("last");
+    }
   }, [events, checkedIndex]);
 
   const handleNext = useCallback(() => {
     const next = events?.items[checkedIndex + 1];
-    if (next) setCheckedEventId(next.id);
+    if (next) {
+      setCheckedEventId(next.id);
+    } else {
+      setPagination((p) => ({ ...p, pageIndex: p.pageIndex + 1 }));
+      setPendingSelect("first");
+    }
   }, [events, checkedIndex]);
+
+  useEffect(() => {
+    if (pendingSelect === null || !events) return;
+    // RTK Query keeps the previous page's data while the new one fetches; the
+    // echoed offset tells the target page apart from that stale data.
+    if (events.offset !== pagination.pageIndex * pagination.pageSize) return;
+    const item =
+      pendingSelect === "first"
+        ? events.items[0]
+        : events.items[events.items.length - 1];
+    if (item) setCheckedEventId(item.id);
+    setPendingSelect(null);
+  }, [pendingSelect, events, pagination]);
 
   const getPictureUrl = useCallback(
     (event: EventListItem) =>

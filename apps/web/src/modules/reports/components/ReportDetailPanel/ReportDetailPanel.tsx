@@ -44,7 +44,7 @@ export const ReportDetailPanel = ({
   hasNext,
 }: ReportDetailPanelProps) => {
   const { url: cameraApiUrl } = useCameraApiUrl();
-  const [showAllDetections, setShowAllDetections] = useState(false);
+  const [hideDetections, setHideDetections] = useState(false);
   const {
     data: event,
     isLoading,
@@ -98,7 +98,7 @@ export const ReportDetailPanel = ({
               pictureUrl={pictureUrl}
               detections={event.detections}
               violatedLimits={event.violated_limits}
-              showAll={showAllDetections}
+              hidden={hideDetections}
             />
           ) : (
             <div className="flex aspect-video w-full items-center justify-center bg-muted text-sm text-muted-foreground">
@@ -109,10 +109,10 @@ export const ReportDetailPanel = ({
           {event.has_picture && event.detections.length > 0 && (
             <label className="flex cursor-pointer items-center gap-2 px-5 text-xs text-muted-foreground">
               <Checkbox
-                checked={showAllDetections}
-                onCheckedChange={(v) => setShowAllDetections(v === true)}
+                checked={hideDetections}
+                onCheckedChange={(v) => setHideDetections(v === true)}
               />
-              Show all detections
+              Hide detections
             </label>
           )}
 
@@ -136,7 +136,9 @@ export const ReportDetailPanel = ({
               <Badge
                 variant={event.passed ? "secondary" : "destructive"}
                 className={
-                  event.passed ? "bg-emerald-500/10 text-emerald-700" : undefined
+                  event.passed
+                    ? "bg-emerald-500/10 text-emerald-700"
+                    : undefined
                 }
               >
                 {event.passed ? "Passed" : "Failed"}
@@ -167,7 +169,13 @@ export const ReportDetailPanel = ({
             onClick={save}
             disabled={isSaved || isSaving || projectId === null}
           >
-            {isSaving ? <Spinner /> : isSaved ? <CheckIcon /> : <ImagePlusIcon />}
+            {isSaving ? (
+              <Spinner />
+            ) : isSaved ? (
+              <CheckIcon />
+            ) : (
+              <ImagePlusIcon />
+            )}
             {isSaved ? "Saved to dataset" : "Save to dataset"}
           </Button>
         )}

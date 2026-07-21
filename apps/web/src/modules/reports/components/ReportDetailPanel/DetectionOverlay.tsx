@@ -8,7 +8,7 @@ interface DetectionOverlayProps {
   pictureUrl: string;
   detections: EventDetection[];
   violatedLimits: ViolatedLimit[];
-  showAll: boolean;
+  hidden: boolean;
 }
 
 // Detection coordinates are normalized 0-1, so percentage positioning keeps
@@ -17,7 +17,7 @@ export const DetectionOverlay = ({
   pictureUrl,
   detections,
   violatedLimits,
-  showAll,
+  hidden,
 }: DetectionOverlayProps) => {
   const violatedDisplayIds = new Set<number>();
   for (const limit of violatedLimits) {
@@ -31,7 +31,7 @@ export const DetectionOverlay = ({
     detection.display_id != null &&
     violatedDisplayIds.has(detection.display_id);
 
-  const visibleDetections = showAll ? detections : detections.filter(isViolated);
+  const visibleDetections = hidden ? [] : detections;
 
   return (
     // overflow-hidden clips edge labels, but it also drops the flex-item
@@ -71,7 +71,12 @@ export const DetectionOverlay = ({
                 detection.x_min > 0.65 ? "right-0" : "left-0",
               )}
             >
-              {detection.label_name} {(detection.confidence * 100).toFixed(0)}%
+              {detection.label_name}{" "}
+              {violated
+                ? // The #id matches the ids in the Defects list, so a red box
+                  // can be traced back to the limit it violated.
+                  `#${detection.display_id}`
+                : `${(detection.confidence * 100).toFixed(0)}%`}
             </span>
           </div>
         );
