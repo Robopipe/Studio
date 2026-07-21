@@ -9,6 +9,13 @@ import {
   useGetDashboardConfigsQuery,
 } from "@/modules/dashboard/services/dashboardConfigApi";
 import { useActiveProject } from "@/modules/project/hooks/useActiveProject";
+import { ReportsPage } from "@/modules/reports";
+import {
+  ConfigurationTab,
+  RunSubheader,
+  RunTab,
+  type ConfigurationTabHandle,
+} from "@/modules/run";
 import { Button } from "@/modules/shadcn/ui/button";
 import {
   Dialog,
@@ -24,15 +31,11 @@ import { useBlocker } from "react-router";
 import { toast } from "sonner";
 import type { ConfigSelection } from "../../hooks/useRunDeploy";
 import { useRunDeploy } from "../../hooks/useRunDeploy";
-import {
-  ConfigurationTab,
-  type ConfigurationTabHandle,
-} from "@/modules/run";
 import { DeployConfigSelector } from "../DeployConfigSelector/DeployConfigSelector";
-import { RunSubheader, RunTab } from "@/modules/run";
 
 export const RunPage = () => {
   const [activeTab, setActiveTab] = useState<RunTab>("inference");
+  const [isReportExporting, setIsReportExporting] = useState(false);
   const [activeConfigId, setActiveConfigId] = useState<number | null>(null);
   const [selectedConfigs, setSelectedConfigs] = useState<ConfigSelection[]>([]);
   const [sahiConfig, setSahiConfig] = useState<SahiConfig | null>(null);
@@ -40,7 +43,7 @@ export const RunPage = () => {
 
   const [activeProject] = useActiveProject();
   const projectId = activeProject?.id;
-  const { url: cameraApiUrl } = useCameraApiUrl();
+  const cameraApiUrl = useCameraApiUrl();
 
   // Fetch configs list so we can auto-select on mount (regardless of active tab)
   const { data: configs = [] } = useGetDashboardConfigsQuery(
@@ -57,9 +60,10 @@ export const RunPage = () => {
   const { data: cameras, isLoading: camerasLoading } = useListCamerasQuery();
 
   // Unified selection across Capture and Run — see useSelectedCameraStream.
-  // Changing camera here immediately reflects on Capture and vice versa.
+  // The camera is the project's DB setting; the stream is session state
+  // shared with Capture.
   const { cameraMxid: selectedCamera, streamName: selectedStream } =
-    useSelectedCameraStream(cameras);
+    useSelectedCameraStream();
 
   const { data: dashboardConfig } = useGetDashboardConfigQuery(
     { projectId: projectId!, configId: activeConfigId! },
@@ -103,31 +107,48 @@ export const RunPage = () => {
     />
   ) : undefined;
 
-  // Block in-app navigation while a deploy is in flight; bouncing the user
-  // away mid-deploy can leave the camera in an inconsistent state.
+  // Block in-app navigation while a deploy is in flight (bouncing the user
+  // away mid-deploy can leave the camera in an inconsistent state) or while a
+  // report export is generating (ReportsPage unmounting drops the download).
   const blocker = useBlocker(
     ({ currentLocation, nextLocation }) =>
-      isDeploying && currentLocation.pathname !== nextLocation.pathname,
+      (isDeploying || isReportExporting) &&
+      currentLocation.pathname !== nextLocation.pathname,
   );
 
   useEffect(() => {
     if (blocker.state === "blocked") {
       toast.warning(
-        "Deployment in progress — please wait until it finishes.",
+        isDeploying
+          ? "Deployment in progress — please wait until it finishes."
+          : "Export in progress — please wait until it finishes.",
       );
       blocker.reset?.();
     }
-  }, [blocker]);
+  }, [blocker, isDeploying]);
 
   useEffect(() => {
-    if (!isDeploying) return;
+    if (!isDeploying && !isReportExporting) return;
     const handler = (e: BeforeUnloadEvent) => {
       e.preventDefault();
       e.returnValue = "";
     };
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
-  }, [isDeploying]);
+  }, [isDeploying, isReportExporting]);
+
+  // The tabs are local state, invisible to the router blocker above — gate
+  // them here so an in-flight export can't lose its Reports tab.
+  const handleTabChange = useCallback(
+    (tab: RunTab) => {
+      if (isReportExporting && tab !== "reports") {
+        toast.warning("Export in progress — please wait until it finishes.");
+        return;
+      }
+      setActiveTab(tab);
+    },
+    [isReportExporting],
+  );
 
   const handleConfigChange = useCallback((configId: number | null) => {
     setActiveConfigId(configId);
@@ -141,6 +162,16 @@ export const RunPage = () => {
   // image when no camera/stream is selected, so it stays accessible without
   // a live device. Dashboard contains test-case and evaluation sub-tabs.
   const renderTabContent = () => {
+    if (activeTab === "reports") {
+      return (
+        <ReportsPage
+          dashboardId={activeConfigId}
+          projectId={projectId ?? null}
+          onExportingChange={setIsReportExporting}
+        />
+      );
+    }
+
     if (activeTab === "dashboard") {
       return (
         <DashboardPage
@@ -165,7 +196,7 @@ export const RunPage = () => {
     <div className="-m-6 flex min-h-0 flex-1 flex-col bg-white">
       <RunSubheader
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={handleTabChange}
         onDeploy={handleDeploy}
         onStop={handleStop}
         deployPhase={deployPhase}
@@ -216,4 +247,3 @@ const DeployConfirmDialog = ({
     </DialogContent>
   </Dialog>
 );
-

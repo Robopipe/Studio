@@ -1,21 +1,16 @@
-import { useAuth } from "@/core/auth/hooks";
 import { cameraApi } from "@/core/cameraApi";
 import { useAppDispatch } from "@/hooks/redux";
-import { setCamera } from "@/modules/camera-selection/services/cameraSelectionSlice";
-import { readCameraSelection } from "@/modules/camera-selection/utils/cameraSelectionStorage";
 import { Button } from "@/modules/shadcn/ui/button";
 import { Project } from "@repo/schema";
 import { useState } from "react";
 import { toast } from "sonner";
 import { validateCameraApiUrl } from "../../utils/validateCameraApiUrl";
-import { setCameraApiOverride } from "../../services/cameraApiOverrideSlice";
 import {
   useCreateProjectLabelMutation,
   useGetProjectLabelsQuery,
   useUpdateProjectLabelMutation,
   useUpdateProjectMutation,
 } from "../../services/projectApi";
-import { readCameraApiOverride } from "../../utils/cameraApiOverride";
 import { LabelingSetup, LocalLabel } from "../LabelingSetup";
 import { Modal, ModalTab } from "../Modal";
 import { ProjectDetailsForm } from "../ProjectDetailsForm";
@@ -31,7 +26,6 @@ export const EditProjectModal = ({
   initialTabId,
   onClose,
 }: EditProjectModalProps) => {
-  const { user } = useAuth();
   const dispatch = useAppDispatch();
 
   const [name, setName] = useState(project.name);
@@ -40,18 +34,10 @@ export const EditProjectModal = ({
     project.cameraApiUrl,
   );
   const [cameraApiUrlError, setCameraApiUrlError] = useState<string | null>(null);
-  const [localOverride, setLocalOverride] = useState<string>(
-    () => readCameraApiOverride(user?.id, project.id) ?? "",
-  );
-  const [localOverrideError, setLocalOverrideError] = useState<string | null>(null);
   const [multipleDashboardConfigs] = useState(project.multipleDashboardConfigs);
-  // Read from storage, not the slice — this modal also opens for non-active
-  // projects (ProjectCard) whose slice entry was never hydrated.
-  const [initialCameraMxid] = useState<string | null>(
-    () => readCameraSelection(user?.id, project.id)?.cameraMxid ?? null,
+  const [selectedCameraMxid, setSelectedCameraMxid] = useState<string | null>(
+    project.cameraMxid,
   );
-  const [selectedCameraMxid, setSelectedCameraMxid] =
-    useState<string | null>(initialCameraMxid);
 
   const { data: existingLabels } = useGetProjectLabelsQuery({
     projectId: project.id,
@@ -70,27 +56,16 @@ export const EditProjectModal = ({
     setCameraApiUrlError(validateCameraApiUrl(cameraApiUrl));
   };
 
-  const handleLocalOverrideChange = (val: string) => {
-    setLocalOverride(val);
-    if (localOverrideError) setLocalOverrideError(validateCameraApiUrl(val));
-  };
-
-  const handleLocalOverrideBlur = () => {
-    setLocalOverrideError(validateCameraApiUrl(localOverride));
-  };
-
   const handleSave = async () => {
     if (!name.trim()) return;
 
     const urlError = validateCameraApiUrl(cameraApiUrl);
-    const overrideError = validateCameraApiUrl(localOverride);
-    if (urlError) setCameraApiUrlError(urlError);
-    if (overrideError) setLocalOverrideError(overrideError);
-    if (urlError || overrideError) return;
+    if (urlError) {
+      setCameraApiUrlError(urlError);
+      return;
+    }
 
     const normalizedUrl = (cameraApiUrl ?? "").trim() || null;
-
-    const cameraChanged = selectedCameraMxid !== initialCameraMxid;
 
     try {
       await updateProject({
@@ -98,36 +73,14 @@ export const EditProjectModal = ({
         name,
         description,
         cameraApiUrl: normalizedUrl,
+        cameraMxid: selectedCameraMxid,
         multipleDashboardConfigs,
       }).unwrap();
-
-      if (user) {
-        const trimmed = localOverride.trim();
-        dispatch(
-          setCameraApiOverride({
-            userId: user.id,
-            projectId: project.id,
-            value: trimmed || null,
-          }),
-        );
-      }
 
       // Eagerly reset cameraApi when the project URL changes so any in-flight
       // request against the old URL is aborted before the project list refetches.
       if (cameraApiUrl !== project.cameraApiUrl) {
         dispatch(cameraApi.util.resetApiState());
-      }
-
-      // Only on a real change — setCamera clears streamName by design and the
-      // stream auto-pick then re-picks for the new camera.
-      if (cameraChanged && user) {
-        dispatch(
-          setCamera({
-            userId: user.id,
-            projectId: project.id,
-            cameraMxid: selectedCameraMxid,
-          }),
-        );
       }
 
       onClose();
@@ -163,10 +116,6 @@ export const EditProjectModal = ({
           onCameraApiUrlBlur={handleCameraApiUrlBlur}
           selectedCameraMxid={selectedCameraMxid}
           setSelectedCameraMxid={setSelectedCameraMxid}
-          localOverride={localOverride}
-          setLocalOverride={handleLocalOverrideChange}
-          localOverrideError={localOverrideError}
-          onLocalOverrideBlur={handleLocalOverrideBlur}
           multipleDashboardConfigs={multipleDashboardConfigs}
         />
       ),
@@ -204,12 +153,7 @@ export const EditProjectModal = ({
       <Button
         size="sm"
         onClick={handleSave}
-        disabled={
-          isUpdating ||
-          !name.trim() ||
-          !!cameraApiUrlError ||
-          !!localOverrideError
-        }
+        disabled={isUpdating || !name.trim() || !!cameraApiUrlError}
       >
         {isUpdating ? "Saving..." : "Save Changes"}
       </Button>

@@ -80,6 +80,7 @@ export const projectApi = projectApiBase.injectEndpoints({
         name: string;
         description: string;
         cameraApiUrl: string | null;
+        cameraMxid: string | null;
         multipleDashboardConfigs?: boolean;
       }
     >({

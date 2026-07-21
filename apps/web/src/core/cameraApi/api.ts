@@ -14,11 +14,41 @@ import {
   DeployConfigEntry,
   DeployDashboardResponse,
 } from "./schemas/dashboard";
+import type {
+  EventDetail,
+  EventListResponse,
+  EventSortBy,
+  SessionSummary,
+  SortOrder,
+} from "./schemas/events";
 import { NNConfig } from "./schemas/nn";
-import type { DashboardReportSummary } from "./schemas/report";
+import type {
+  CreateReportRequest,
+  DashboardReportSummary,
+} from "./schemas/report";
 import { CameraApiTagType } from "./tagType";
 
 const LIST_CAMERAS_TIMEOUT_MS = 5000;
+
+// fetchBaseQuery comma-joins array params, but the FastAPI camera API expects
+// repeated keys (?test_case_id=a&test_case_id=b), so build the query manually.
+const toRepeatedSearchParams = (
+  params: Record<
+    string,
+    string | number | boolean | string[] | number[] | undefined
+  >,
+) => {
+  const searchParams = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined) continue;
+    if (Array.isArray(value)) {
+      for (const item of value) searchParams.append(key, String(item));
+    } else {
+      searchParams.set(key, String(value));
+    }
+  }
+  return searchParams.toString();
+};
 
 const cameraApiBase = createApi({
   reducerPath: "cameraApi",
@@ -411,12 +441,18 @@ export const cameraApi = cameraApiBase.injectEndpoints({
 
     createReport: builder.mutation<
       DashboardReportSummary,
-      { dashboardId: number; start?: string | null; end?: string | null }
+      { dashboardId: number } & CreateReportRequest
     >({
-      query: ({ dashboardId, start, end }) => ({
+      query: ({ dashboardId, start, end, session_id, event_ids, passed }) => ({
         url: `/dashboard/${dashboardId}/report`,
         method: HttpMethod.POST,
-        body: { start: start ?? null, end: end ?? null },
+        body: {
+          start: start ?? null,
+          end: end ?? null,
+          session_id: session_id ?? null,
+          event_ids: event_ids ?? null,
+          passed: passed ?? null,
+        },
       }),
       invalidatesTags: (_result, _error, { dashboardId }) => [
         { type: CameraApiTagType.Reports, id: dashboardId },
@@ -433,6 +469,89 @@ export const cameraApi = cameraApiBase.injectEndpoints({
       }),
       invalidatesTags: (_result, _error, { dashboardId }) => [
         { type: CameraApiTagType.Reports, id: dashboardId },
+      ],
+    }),
+
+    // ========== Dashboard Sessions & Events Endpoints ==========
+
+    listSessions: builder.query<
+      SessionSummary[],
+      { dashboardId: number; start?: string; end?: string }
+    >({
+      query: ({ dashboardId, start, end }) => ({
+        url: `/dashboard/${dashboardId}/sessions`,
+        method: HttpMethod.GET,
+        params: { start, end },
+      }),
+      providesTags: (_result, _error, { dashboardId }) => [
+        { type: CameraApiTagType.Sessions, id: dashboardId },
+      ],
+    }),
+
+    listEvents: builder.query<
+      EventListResponse,
+      {
+        dashboardId: number;
+        sessionIds?: number[];
+        modelIds?: number[];
+        start?: string;
+        end?: string;
+        testCaseIds?: string[];
+        limitIds?: string[];
+        passed?: boolean;
+        sortBy?: EventSortBy;
+        order?: SortOrder;
+        limit: number;
+        offset: number;
+      }
+    >({
+      query: ({
+        dashboardId,
+        sessionIds,
+        modelIds,
+        start,
+        end,
+        testCaseIds,
+        limitIds,
+        passed,
+        sortBy,
+        order,
+        limit,
+        offset,
+      }) => ({
+        url: `/dashboard/${dashboardId}/events?${toRepeatedSearchParams({
+          session_id: sessionIds,
+          model_id: modelIds,
+          start,
+          end,
+          test_case_id: testCaseIds,
+          limit_id: limitIds,
+          passed,
+          sort_by: sortBy,
+          order,
+          limit,
+          offset,
+        })}`,
+        method: HttpMethod.GET,
+      }),
+      providesTags: (_result, _error, { dashboardId }) => [
+        { type: CameraApiTagType.Events, id: dashboardId },
+      ],
+    }),
+
+    getEvent: builder.query<
+      EventDetail,
+      { dashboardId: number; eventId: number }
+    >({
+      query: ({ dashboardId, eventId }) => ({
+        url: `/dashboard/${dashboardId}/events/${eventId}`,
+        method: HttpMethod.GET,
+      }),
+      providesTags: (_result, _error, { dashboardId, eventId }) => [
+        {
+          type: CameraApiTagType.Events,
+          id: `${dashboardId}-event-${eventId}`,
+        },
       ],
     }),
   }),
@@ -480,4 +599,9 @@ export const {
   useListReportsQuery,
   useCreateReportMutation,
   useDeleteReportMutation,
+
+  // Session & event hooks
+  useListSessionsQuery,
+  useListEventsQuery,
+  useGetEventQuery,
 } = cameraApi;

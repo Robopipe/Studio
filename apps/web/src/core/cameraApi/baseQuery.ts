@@ -1,4 +1,4 @@
-import { selectEffectiveCameraApiUrl } from "@/modules/project/services/cameraApiOverrideSlice";
+import { selectCameraApiUrl } from "@/modules/project/services/projectSlice";
 import { RootState } from "@/store";
 import {
   BaseQueryFn,
@@ -10,8 +10,7 @@ import {
 export type CameraApiExtraOptions = { timeoutMs?: number };
 
 /**
- * Dynamic base query that resolves the camera API URL from the active project,
- * preferring the current user's local override when set.
+ * Dynamic base query that resolves the camera API URL from the active project.
  */
 export const baseQuery: BaseQueryFn<
   string | FetchArgs,
@@ -20,7 +19,7 @@ export const baseQuery: BaseQueryFn<
   CameraApiExtraOptions
 > = async (args, api, extraOptions) => {
   const state = api.getState() as RootState;
-  const baseUrl = selectEffectiveCameraApiUrl(state) ?? "";
+  const baseUrl = selectCameraApiUrl(state) ?? "";
 
   const dynamicBaseQuery = fetchBaseQuery({
     baseUrl,

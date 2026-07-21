@@ -7,6 +7,8 @@ import {
   createPolygonAnnotationSchema,
   createRectangleAnnotationSchema,
   createTaskSchema,
+  importedEventIdsResponseSchema,
+  importedEventsQuerySchema,
   paginatedTaskSchema,
   polygonAnnotationSchema,
   polygonAnnotationHistoryGroupSchema,
@@ -43,6 +45,8 @@ export type PaginatedTasks = z.infer<typeof paginatedTaskSchema>
 export type RequestTaskUpload = z.infer<typeof requestTaskUploadSchema>
 export type TaskUploadUrl = z.infer<typeof taskUploadUrlSchema>
 export type ConfirmTaskUpload = z.infer<typeof confirmTaskUploadSchema>
+export type ImportedEventsQuery = z.infer<typeof importedEventsQuerySchema>
+export type ImportedEventIdsResponse = z.infer<typeof importedEventIdsResponseSchema>
 export type TaskExport = z.infer<typeof taskExportSchema>
 export type TaskExportQuery = z.infer<typeof taskExportQuerySchema>
 export type TaskIdsQuery = z.infer<typeof taskIdsQuerySchema>

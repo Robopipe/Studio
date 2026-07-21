@@ -6,6 +6,7 @@ import {
   ChevronUpIcon,
 } from "lucide-react";
 import { ColumnFilter } from "./ColumnFilter";
+import { HeaderFilterPopover } from "./HeaderFilterPopover";
 import { useTableContext } from "./TableContext";
 
 function SortIndicator({ direction }: { direction: false | "asc" | "desc" }) {
@@ -26,6 +27,7 @@ export function DataTableHeader() {
           {headerGroup.headers.map((header) => {
             const canSort = header.column.getCanSort();
             const canFilter = header.column.getCanFilter();
+            const headerFilter = header.column.columnDef.meta?.headerFilter;
 
             return (
               <TableHead
@@ -46,9 +48,13 @@ export function DataTableHeader() {
                         )}
                   </span>
 
-                  {(canFilter || canSort) && (
+                  {(headerFilter || canFilter || canSort) && (
                     <div className="flex shrink-0 items-center gap-1">
-                      {canFilter && <ColumnFilter column={header.column} />}
+                      {headerFilter ? (
+                        <HeaderFilterPopover {...headerFilter} />
+                      ) : (
+                        canFilter && <ColumnFilter column={header.column} />
+                      )}
                       {canSort && (
                         <button
                           type="button"
