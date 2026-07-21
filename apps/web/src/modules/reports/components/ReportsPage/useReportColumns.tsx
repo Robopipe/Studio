@@ -1,6 +1,7 @@
 import type {
   EventListItem,
   EventSortBy,
+  SessionSummary,
 } from "@/core/cameraApi/schemas/events";
 import { Button } from "@/modules/shadcn/ui/button";
 import {
@@ -13,11 +14,14 @@ import {
   TooltipTrigger,
 } from "@/modules/shadcn/ui/tooltip";
 import { FacetedFilterList } from "@/modules/ui/components/FacetedFilter";
-import type { EvalTestCase } from "@repo/schema";
+import type { EvalTestCase, Model } from "@repo/schema";
 import { type ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { useMemo } from "react";
 import { formatDefect, formatDefects } from "../../utils/formatDefects";
+import { formatSessionLabel } from "../../utils/formatSessionLabel";
+import { ModelCell } from "../ModelCell";
+import { PassedBadge } from "../PassedBadge";
 import type { PassedFilter } from "../ReportsToolbar";
 
 const formatTimestamp = (value: string | null) =>
@@ -41,6 +45,12 @@ export interface ReportColumnFilters {
   onRangeChange: (range: DateTimeRange) => void;
   passed: PassedFilter;
   onPassedChange: (value: PassedFilter) => void;
+  sessionIds: string[];
+  onSessionIdsChange: (ids: string[]) => void;
+  sessions: SessionSummary[];
+  modelIds: string[];
+  onModelIdsChange: (ids: string[]) => void;
+  models: Model[];
   testCaseIds: string[];
   onTestCaseIdsChange: (ids: string[]) => void;
   limitIds: string[];
@@ -52,12 +62,14 @@ interface UseReportColumnsArgs {
   onCheck: (event: EventListItem) => void;
   getPictureUrl: (event: EventListItem) => string;
   filters: ReportColumnFilters;
+  projectId: number | null;
 }
 
 export function useReportColumns({
   onCheck,
   getPictureUrl,
   filters,
+  projectId,
 }: UseReportColumnsArgs): ColumnDef<EventListItem, unknown>[] {
   return useMemo(() => {
     const testCaseGroups = [
@@ -79,6 +91,29 @@ export function useReportColumns({
       })),
     }));
 
+    // Bare ids are hard to tell apart, so label each session with its time range.
+    const sessionGroups = [
+      {
+        options: filters.sessions.map((session) => ({
+          value: String(session.id),
+          label: `#${session.id} · ${formatSessionLabel(session)}`,
+        })),
+      },
+    ];
+
+    const modelGroups = [
+      {
+        options: filters.models.map((model) => ({
+          value: String(model.id),
+          label: model.name,
+        })),
+      },
+    ];
+
+    const modelNameById = new Map(
+      filters.models.map((model) => [model.id, model.name]),
+    );
+
     return [
       {
         accessorKey: "id",
@@ -86,6 +121,56 @@ export function useReportColumns({
         size: 90,
         enableSorting: false,
         enableColumnFilter: false,
+      },
+      {
+        // The API can't sort by session id, but ids are assigned
+        // chronologically, so session_start yields the same order.
+        id: "sessionStart",
+        header: "Session",
+        accessorFn: (row: EventListItem) => row.session_id,
+        size: 100,
+        enableColumnFilter: false,
+        meta: {
+          headerFilter: {
+            content: (
+              <FacetedFilterList
+                groups={sessionGroups}
+                selected={filters.sessionIds}
+                onChange={filters.onSessionIdsChange}
+                emptyText="No sessions"
+              />
+            ),
+            active: filters.sessionIds.length > 0,
+          },
+        },
+      },
+      {
+        id: "model",
+        header: "Model",
+        accessorFn: (row: EventListItem) => row.model_id,
+        size: 160,
+        enableSorting: false,
+        enableColumnFilter: false,
+        meta: {
+          headerFilter: {
+            content: (
+              <FacetedFilterList
+                groups={modelGroups}
+                selected={filters.modelIds}
+                onChange={filters.onModelIdsChange}
+                emptyText="No models"
+              />
+            ),
+            active: filters.modelIds.length > 0,
+          },
+        },
+        cell: ({ row }) => (
+          <ModelCell
+            modelId={row.original.model_id}
+            modelNameById={modelNameById}
+            projectId={projectId}
+          />
+        ),
       },
       {
         id: "detectedAt",
@@ -130,9 +215,10 @@ export function useReportColumns({
       {
         id: "passed",
         header: "Passed",
-        accessorFn: (row: EventListItem) => (row.passed ? "True" : "False"),
+        accessorFn: (row: EventListItem) => row.passed,
         size: 90,
         enableColumnFilter: false,
+        cell: ({ row }) => <PassedBadge passed={row.original.passed} />,
         meta: {
           headerFilter: {
             content: (
@@ -234,5 +320,5 @@ export function useReportColumns({
         ),
       },
     ];
-  }, [onCheck, getPictureUrl, filters]);
+  }, [onCheck, getPictureUrl, filters, projectId]);
 }

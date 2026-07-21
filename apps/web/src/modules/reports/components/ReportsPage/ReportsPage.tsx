@@ -75,7 +75,7 @@ export const ReportsPage = ({
     null,
   );
 
-  const { url: cameraApiUrl } = useCameraApiUrl();
+  const cameraApiUrl = useCameraApiUrl();
   const { exportReport, isExporting } = useReportExport(dashboardId);
 
   const { data: sessions = [] } = useListSessionsQuery(

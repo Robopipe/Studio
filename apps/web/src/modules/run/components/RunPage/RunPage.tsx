@@ -43,7 +43,7 @@ export const RunPage = () => {
 
   const [activeProject] = useActiveProject();
   const projectId = activeProject?.id;
-  const { url: cameraApiUrl } = useCameraApiUrl();
+  const cameraApiUrl = useCameraApiUrl();
 
   // Fetch configs list so we can auto-select on mount (regardless of active tab)
   const { data: configs = [] } = useGetDashboardConfigsQuery(
@@ -60,9 +60,10 @@ export const RunPage = () => {
   const { data: cameras, isLoading: camerasLoading } = useListCamerasQuery();
 
   // Unified selection across Capture and Run — see useSelectedCameraStream.
-  // Changing camera here immediately reflects on Capture and vice versa.
+  // The camera is the project's DB setting; the stream is session state
+  // shared with Capture.
   const { cameraMxid: selectedCamera, streamName: selectedStream } =
-    useSelectedCameraStream(cameras);
+    useSelectedCameraStream();
 
   const { data: dashboardConfig } = useGetDashboardConfigQuery(
     { projectId: projectId!, configId: activeConfigId! },

@@ -1,3 +1,4 @@
+import type { RootState } from "@/store";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { Project } from "@repo/schema";
 
@@ -19,3 +20,7 @@ export const projectSlice = createSlice({
     },
   },
 });
+
+/** The active project's camera API URL — the single source for camera API requests. */
+export const selectCameraApiUrl = (state: RootState): string | null =>
+  state.project.activeProject?.cameraApiUrl ?? null;

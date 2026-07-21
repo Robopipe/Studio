@@ -1,6 +1,3 @@
-import { useAuth } from "@/core/auth/hooks";
-import { useAppDispatch } from "@/hooks/redux";
-import { setCamera } from "@/modules/camera-selection/services/cameraSelectionSlice";
 import { Button } from "@/modules/shadcn/ui/button";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -9,7 +6,6 @@ import {
   useCreateProjectLabelMutation,
   useCreateProjectMutation,
 } from "../../services/projectApi";
-import { setCameraApiOverride } from "../../services/cameraApiOverrideSlice";
 import { LabelingSetup, LocalLabel } from "../LabelingSetup/LabelingSetup";
 import { Modal, ModalTab } from "../Modal";
 import { ProjectDetailsForm } from "../ProjectDetailsForm";
@@ -23,18 +19,10 @@ export const CreateProjectModal = ({
   onClose,
   initialName,
 }: CreateProjectModalProps) => {
-  const { user } = useAuth();
-  const dispatch = useAppDispatch();
-
   const [name, setName] = useState(initialName ?? "");
   const [description, setDescription] = useState("");
   const [cameraApiUrl, setCameraApiUrl] = useState<string | null>(null);
   const [cameraApiUrlError, setCameraApiUrlError] = useState<string | null>(null);
-  const [localOverride, setLocalOverride] = useState<string>("");
-  const [localOverrideError, setLocalOverrideError] = useState<string | null>(null);
-  // Held locally until the project exists — the selection storage key needs a
-  // projectId, so this is dispatched right after creation (same pattern as the
-  // local URL override below).
   const [selectedCameraMxid, setSelectedCameraMxid] = useState<string | null>(null);
   const [localLabels, setLocalLabels] = useState<LocalLabel[]>([]);
 
@@ -51,23 +39,14 @@ export const CreateProjectModal = ({
     setCameraApiUrlError(validateCameraApiUrl(cameraApiUrl));
   };
 
-  const handleLocalOverrideChange = (val: string) => {
-    setLocalOverride(val);
-    if (localOverrideError) setLocalOverrideError(validateCameraApiUrl(val));
-  };
-
-  const handleLocalOverrideBlur = () => {
-    setLocalOverrideError(validateCameraApiUrl(localOverride));
-  };
-
   const handleSave = async () => {
     if (!name.trim()) return;
 
     const urlError = validateCameraApiUrl(cameraApiUrl);
-    const overrideError = validateCameraApiUrl(localOverride);
-    if (urlError) setCameraApiUrlError(urlError);
-    if (overrideError) setLocalOverrideError(overrideError);
-    if (urlError || overrideError) return;
+    if (urlError) {
+      setCameraApiUrlError(urlError);
+      return;
+    }
 
     const normalizedUrl = (cameraApiUrl ?? "").trim() || null;
 
@@ -76,24 +55,8 @@ export const CreateProjectModal = ({
         name,
         description,
         cameraApiUrl: normalizedUrl,
+        cameraMxid: selectedCameraMxid,
       }).unwrap();
-
-      const trimmed = localOverride.trim();
-      if (user) {
-        dispatch(
-          setCameraApiOverride({ userId: user.id, projectId: project.id, value: trimmed || null }),
-        );
-      }
-
-      if (user && selectedCameraMxid) {
-        dispatch(
-          setCamera({
-            userId: user.id,
-            projectId: project.id,
-            cameraMxid: selectedCameraMxid,
-          }),
-        );
-      }
 
       if (localLabels.length > 0) {
         await Promise.all(
@@ -154,10 +117,6 @@ export const CreateProjectModal = ({
           onCameraApiUrlBlur={handleCameraApiUrlBlur}
           selectedCameraMxid={selectedCameraMxid}
           setSelectedCameraMxid={setSelectedCameraMxid}
-          localOverride={localOverride}
-          setLocalOverride={handleLocalOverrideChange}
-          localOverrideError={localOverrideError}
-          onLocalOverrideBlur={handleLocalOverrideBlur}
         />
       ),
     },
@@ -188,12 +147,7 @@ export const CreateProjectModal = ({
       <Button
         size="sm"
         onClick={handleSave}
-        disabled={
-          isCreatingProject ||
-          !name.trim() ||
-          !!cameraApiUrlError ||
-          !!localOverrideError
-        }
+        disabled={isCreatingProject || !name.trim() || !!cameraApiUrlError}
       >
         {isCreatingProject ? "Saving..." : "Save"}
       </Button>

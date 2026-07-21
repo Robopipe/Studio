@@ -31,7 +31,7 @@ export const useSaveEventToDataset = ({
   eventId,
   timestamp,
 }: UseSaveEventToDatasetOptions) => {
-  const { url: cameraApiUrl } = useCameraApiUrl();
+  const cameraApiUrl = useCameraApiUrl();
   const dispatch = useAppDispatch();
   const [requestUploadUrl] = useRequestTaskUploadUrlMutation();
   const [confirmUpload] = useConfirmTaskUploadMutation();

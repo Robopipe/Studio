@@ -45,7 +45,7 @@ export const ReportDetailPanel = ({
   hasPrev,
   hasNext,
 }: ReportDetailPanelProps) => {
-  const { url: cameraApiUrl } = useCameraApiUrl();
+  const cameraApiUrl = useCameraApiUrl();
   const [hideDetections, setHideDetections] = useState(false);
   const {
     data: event,

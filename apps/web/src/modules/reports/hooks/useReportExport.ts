@@ -26,7 +26,7 @@ const sleep = (ms: number) =>
  */
 export function useReportExport(dashboardId: number | null) {
   const dispatch = useAppDispatch();
-  const { url: cameraApiUrl } = useCameraApiUrl();
+  const cameraApiUrl = useCameraApiUrl();
   const [createReport] = useCreateReportMutation();
   const [deleteReport] = useDeleteReportMutation();
   const [isExporting, setIsExporting] = useState(false);
