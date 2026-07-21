@@ -90,9 +90,9 @@ export function useDataTable<T>({
       onPaginationChange,
       rowCount,
     }),
-    // Without removal the header toggle cycles asc/desc only — an "unsorted"
-    // state would misrepresent the server's default order.
-    ...(manualSorting && { manualSorting: true, enableSortingRemoval: false }),
+    // Header toggles cycle asc → desc → unsorted; in manual mode the unsorted
+    // state sends no sort params, i.e. the server's default order.
+    ...(manualSorting && { manualSorting: true }),
     ...(getRowId && { getRowId }),
     enableRowSelection,
     columnResizeMode: "onChange",

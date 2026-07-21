@@ -2,7 +2,9 @@ import { useListEventsQuery, useListSessionsQuery } from "@/core/cameraApi";
 import type { EventListItem } from "@/core/cameraApi/schemas/events";
 import { useCameraApiUrl } from "@/hooks/useCameraApiUrl";
 import { cn } from "@/lib/utils";
+import { useGetEvalTestCasesQuery } from "@/modules/evaluation";
 import { Button } from "@/modules/shadcn/ui/button";
+import type { DateTimeRange } from "@/modules/shadcn/ui/date-time-range-picker";
 import { TooltipProvider } from "@/modules/shadcn/ui/tooltip";
 import { DataTable } from "@/modules/ui/components/Table";
 import type {
@@ -20,20 +22,29 @@ import {
   ReportsToolbar,
   type PassedFilter,
 } from "../ReportsToolbar";
-import { SORT_KEY_BY_COLUMN, useReportColumns } from "./useReportColumns";
+import {
+  SORT_KEY_BY_COLUMN,
+  useReportColumns,
+  type ReportColumnFilters,
+} from "./useReportColumns";
 
 const PAGE_SIZE = 20;
 const EVENTS_POLL_INTERVAL_MS = 5000;
 
 interface ReportsPageProps {
   dashboardId: number | null;
+  projectId: number | null;
 }
 
-export const ReportsPage = ({ dashboardId }: ReportsPageProps) => {
+export const ReportsPage = ({ dashboardId, projectId }: ReportsPageProps) => {
   const [sessionId, setSessionId] = useState<string>(ALL_SESSIONS);
-  const [from, setFrom] = useState<Date | undefined>(undefined);
-  const [to, setTo] = useState<Date | undefined>(undefined);
+  const [range, setRange] = useState<DateTimeRange>({});
   const [passedFilter, setPassedFilter] = useState<PassedFilter>("all");
+  const [testCaseIds, setTestCaseIds] = useState<string[]>([]);
+  const [limitIds, setLimitIds] = useState<string[]>([]);
+  // Scopes the export only; the column-header filters never reach the export.
+  const [exportFrom, setExportFrom] = useState<Date | undefined>(undefined);
+  const [exportTo, setExportTo] = useState<Date | undefined>(undefined);
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: PAGE_SIZE,
@@ -53,9 +64,12 @@ export const ReportsPage = ({ dashboardId }: ReportsPageProps) => {
   // Filters reset paging and selection; a new dashboard resets everything.
   useEffect(() => {
     setSessionId(ALL_SESSIONS);
-    setFrom(undefined);
-    setTo(undefined);
+    setRange({});
     setPassedFilter("all");
+    setTestCaseIds([]);
+    setLimitIds([]);
+    setExportFrom(undefined);
+    setExportTo(undefined);
     setPagination({ pageIndex: 0, pageSize: PAGE_SIZE });
     setRowSelection({});
     setCheckedEventId(null);
@@ -81,17 +95,25 @@ export const ReportsPage = ({ dashboardId }: ReportsPageProps) => {
     [resetPageAndSelection],
   );
 
-  const handleFromChange = useCallback(
-    (date: Date | undefined) => {
-      setFrom(date);
+  const handleRangeChange = useCallback(
+    (value: DateTimeRange) => {
+      setRange(value);
       resetPageAndSelection();
     },
     [resetPageAndSelection],
   );
 
-  const handleToChange = useCallback(
-    (date: Date | undefined) => {
-      setTo(date);
+  const handleTestCaseIdsChange = useCallback(
+    (ids: string[]) => {
+      setTestCaseIds(ids);
+      resetPageAndSelection();
+    },
+    [resetPageAndSelection],
+  );
+
+  const handleLimitIdsChange = useCallback(
+    (ids: string[]) => {
+      setLimitIds(ids);
       resetPageAndSelection();
     },
     [resetPageAndSelection],
@@ -118,11 +140,14 @@ export const ReportsPage = ({ dashboardId }: ReportsPageProps) => {
   const filterArgs = useMemo(
     () => ({
       sessionId: sessionId !== ALL_SESSIONS ? Number(sessionId) : undefined,
-      start: from ? startOfDay(from).toISOString() : undefined,
-      end: to ? endOfDay(to).toISOString() : undefined,
+      // The range picker owns time-of-day defaults (00:00 / 23:59:59.999).
+      start: range.from?.toISOString(),
+      end: range.to?.toISOString(),
       passed: passedFilter === "all" ? undefined : passedFilter === "passed",
+      testCaseIds: testCaseIds.length > 0 ? testCaseIds : undefined,
+      limitIds: limitIds.length > 0 ? limitIds : undefined,
     }),
-    [sessionId, from, to, passedFilter],
+    [sessionId, range, passedFilter, testCaseIds, limitIds],
   );
 
   const eventArgs = useMemo(
@@ -144,6 +169,14 @@ export const ReportsPage = ({ dashboardId }: ReportsPageProps) => {
   const { data: sessions = [] } = useListSessionsQuery(
     { dashboardId: dashboardId! },
     { skip: dashboardId === null },
+  );
+
+  // Filter options come from the eval config — the dashboard id doubles as
+  // the studio config id (see RunPage), and events reference the same
+  // test-case/limit ids the deploy payload carries.
+  const { data: testCases = [] } = useGetEvalTestCasesQuery(
+    { projectId: projectId!, configId: dashboardId! },
+    { skip: projectId === null || dashboardId === null },
   );
 
   const {
@@ -196,20 +229,48 @@ export const ReportsPage = ({ dashboardId }: ReportsPageProps) => {
   );
 
   const handleExport = useCallback(() => {
-    // The pass/fail filter maps to CreateReportRequest.passed on the API.
+    // The export is scoped only by the toolbar date range (or an explicit row
+    // selection) — the column-header filters intentionally don't apply to it.
     void exportReport(
       selectedIds.length > 0
         ? { event_ids: selectedIds }
         : {
-            session_id: filterArgs.sessionId,
-            start: filterArgs.start,
-            end: filterArgs.end,
-            passed: filterArgs.passed,
+            start: exportFrom ? startOfDay(exportFrom).toISOString() : undefined,
+            end: exportTo ? endOfDay(exportTo).toISOString() : undefined,
           },
     );
-  }, [exportReport, selectedIds, filterArgs]);
+  }, [exportReport, selectedIds, exportFrom, exportTo]);
 
-  const columns = useReportColumns({ onCheck: handleCheck, getPictureUrl });
+  const columnFilters = useMemo<ReportColumnFilters>(
+    () => ({
+      range,
+      onRangeChange: handleRangeChange,
+      passed: passedFilter,
+      onPassedChange: handlePassedFilterChange,
+      testCaseIds,
+      onTestCaseIdsChange: handleTestCaseIdsChange,
+      limitIds,
+      onLimitIdsChange: handleLimitIdsChange,
+      testCases,
+    }),
+    [
+      range,
+      handleRangeChange,
+      passedFilter,
+      handlePassedFilterChange,
+      testCaseIds,
+      handleTestCaseIdsChange,
+      limitIds,
+      handleLimitIdsChange,
+      testCases,
+    ],
+  );
+
+  const columns = useReportColumns({
+    onCheck: handleCheck,
+    getPictureUrl,
+    filters: columnFilters,
+  });
 
   if (dashboardId === null) {
     return (
@@ -229,12 +290,10 @@ export const ReportsPage = ({ dashboardId }: ReportsPageProps) => {
             sessions={sessions}
             sessionId={sessionId}
             onSessionChange={handleSessionChange}
-            from={from}
-            onFromChange={handleFromChange}
-            to={to}
-            onToChange={handleToChange}
-            passedFilter={passedFilter}
-            onPassedFilterChange={handlePassedFilterChange}
+            exportFrom={exportFrom}
+            onExportFromChange={setExportFrom}
+            exportTo={exportTo}
+            onExportToChange={setExportTo}
             onRefresh={refetch}
             isRefreshing={isFetching}
             onExport={handleExport}

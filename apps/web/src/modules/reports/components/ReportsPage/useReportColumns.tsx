@@ -4,15 +4,22 @@ import type {
 } from "@/core/cameraApi/schemas/events";
 import { Button } from "@/modules/shadcn/ui/button";
 import {
+  DateTimeRangePanel,
+  type DateTimeRange,
+} from "@/modules/shadcn/ui/date-time-range-picker";
+import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/modules/shadcn/ui/tooltip";
+import { FacetedFilterList } from "@/modules/ui/components/FacetedFilter";
 import { createSelectColumn } from "@/modules/ui/components/Table";
+import type { EvalTestCase } from "@repo/schema";
 import { type ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { useMemo } from "react";
 import { formatDefect, formatDefects } from "../../utils/formatDefects";
+import type { PassedFilter } from "../ReportsToolbar";
 
 const formatTimestamp = (value: string | null) =>
   value ? format(new Date(value), "dd.MM.yyyy HH:mm:ss") : "—";
@@ -25,17 +32,55 @@ export const SORT_KEY_BY_COLUMN: Record<string, EventSortBy> = {
   passed: "passed",
 };
 
+const PASSED_OPTIONS = [
+  { value: "passed", label: "Passed" },
+  { value: "failed", label: "Failed" },
+];
+
+export interface ReportColumnFilters {
+  range: DateTimeRange;
+  onRangeChange: (range: DateTimeRange) => void;
+  passed: PassedFilter;
+  onPassedChange: (value: PassedFilter) => void;
+  testCaseIds: string[];
+  onTestCaseIdsChange: (ids: string[]) => void;
+  limitIds: string[];
+  onLimitIdsChange: (ids: string[]) => void;
+  testCases: EvalTestCase[];
+}
+
 interface UseReportColumnsArgs {
   onCheck: (event: EventListItem) => void;
   getPictureUrl: (event: EventListItem) => string;
+  filters: ReportColumnFilters;
 }
 
 export function useReportColumns({
   onCheck,
   getPictureUrl,
+  filters,
 }: UseReportColumnsArgs): ColumnDef<EventListItem, unknown>[] {
-  return useMemo(
-    () => [
+  return useMemo(() => {
+    const testCaseGroups = [
+      {
+        options: filters.testCases.map((testCase) => ({
+          value: testCase.id,
+          label: testCase.name,
+        })),
+      },
+    ];
+
+    // Defects (limits) are defined per test case, so group them under their
+    // owning test case — the same defect name can repeat across test cases.
+    const defectGroups = filters.testCases.map((testCase) => ({
+      label: testCase.name,
+      options: testCase.limits.map((limit) => ({
+        value: limit.id,
+        label: limit.name,
+      })),
+    }));
+
+    return [
       createSelectColumn<EventListItem>(),
       {
         accessorKey: "id",
@@ -50,6 +95,18 @@ export function useReportColumns({
         accessorFn: (row: EventListItem) => row.timestamp,
         size: 170,
         enableColumnFilter: false,
+        meta: {
+          headerFilter: {
+            content: (
+              <DateTimeRangePanel
+                value={filters.range}
+                onChange={filters.onRangeChange}
+              />
+            ),
+            active: Boolean(filters.range.from || filters.range.to),
+            contentClassName: "w-auto p-0",
+          },
+        },
         cell: ({ getValue }) => formatTimestamp(getValue<string>()),
       },
       {
@@ -58,6 +115,19 @@ export function useReportColumns({
         accessorFn: (row: EventListItem) => row.test_case_name,
         size: 220,
         enableColumnFilter: false,
+        meta: {
+          headerFilter: {
+            content: (
+              <FacetedFilterList
+                groups={testCaseGroups}
+                selected={filters.testCaseIds}
+                onChange={filters.onTestCaseIdsChange}
+                emptyText="No test cases"
+              />
+            ),
+            active: filters.testCaseIds.length > 0,
+          },
+        },
       },
       {
         id: "passed",
@@ -65,6 +135,24 @@ export function useReportColumns({
         accessorFn: (row: EventListItem) => (row.passed ? "True" : "False"),
         size: 90,
         enableColumnFilter: false,
+        meta: {
+          headerFilter: {
+            content: (
+              <FacetedFilterList
+                multiple={false}
+                groups={[{ options: PASSED_OPTIONS }]}
+                selected={filters.passed === "all" ? [] : [filters.passed]}
+                onChange={(values) =>
+                  filters.onPassedChange(
+                    (values[0] as PassedFilter | undefined) ?? "all",
+                  )
+                }
+              />
+            ),
+            active: filters.passed !== "all",
+            contentClassName: "w-40",
+          },
+        },
       },
       {
         id: "defects",
@@ -73,6 +161,19 @@ export function useReportColumns({
         size: 280,
         enableSorting: false,
         enableColumnFilter: false,
+        meta: {
+          headerFilter: {
+            content: (
+              <FacetedFilterList
+                groups={defectGroups}
+                selected={filters.limitIds}
+                onChange={filters.onLimitIdsChange}
+                emptyText="No defects"
+              />
+            ),
+            active: filters.limitIds.length > 0,
+          },
+        },
         cell: ({ row, getValue }) => {
           const { violated_limits: violatedLimits } = row.original;
 
@@ -134,7 +235,6 @@ export function useReportColumns({
           </Button>
         ),
       },
-    ],
-    [onCheck, getPictureUrl],
-  );
+    ];
+  }, [onCheck, getPictureUrl, filters]);
 }

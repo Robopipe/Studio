@@ -15,22 +15,15 @@ export const ALL_SESSIONS = "all";
 
 export type PassedFilter = "all" | "passed" | "failed";
 
-const PASSED_FILTER_LABELS: Record<PassedFilter, string> = {
-  all: "All results",
-  passed: "Passed",
-  failed: "Failed",
-};
-
 interface ReportsToolbarProps {
   sessions: SessionSummary[];
   sessionId: string;
   onSessionChange: (sessionId: string) => void;
-  from: Date | undefined;
-  onFromChange: (date: Date | undefined) => void;
-  to: Date | undefined;
-  onToChange: (date: Date | undefined) => void;
-  passedFilter: PassedFilter;
-  onPassedFilterChange: (value: PassedFilter) => void;
+  /** Date range scoping the export only — table filtering lives in the column headers. */
+  exportFrom: Date | undefined;
+  onExportFromChange: (date: Date | undefined) => void;
+  exportTo: Date | undefined;
+  onExportToChange: (date: Date | undefined) => void;
   onRefresh: () => void;
   isRefreshing?: boolean;
   onExport: () => void;
@@ -42,12 +35,10 @@ export const ReportsToolbar = ({
   sessions,
   sessionId,
   onSessionChange,
-  from,
-  onFromChange,
-  to,
-  onToChange,
-  passedFilter,
-  onPassedFilterChange,
+  exportFrom,
+  onExportFromChange,
+  exportTo,
+  onExportToChange,
   onRefresh,
   isRefreshing = false,
   onExport,
@@ -84,27 +75,16 @@ export const ReportsToolbar = ({
           ))}
         </SelectContent>
       </Select>
-      <DatePicker value={from} onChange={onFromChange} placeholder="From" />
-      <DatePicker value={to} onChange={onToChange} placeholder="To" />
-      <Select
-        value={passedFilter}
-        onValueChange={(value) => {
-          if (value !== null) onPassedFilterChange(value as PassedFilter);
-        }}
-      >
-        <SelectTrigger size="sm" className="w-32">
-          <SelectValue>{PASSED_FILTER_LABELS[passedFilter]}</SelectValue>
-        </SelectTrigger>
-        <SelectContent>
-          {(Object.keys(PASSED_FILTER_LABELS) as PassedFilter[]).map(
-            (value) => (
-              <SelectItem key={value} value={value}>
-                {PASSED_FILTER_LABELS[value]}
-              </SelectItem>
-            ),
-          )}
-        </SelectContent>
-      </Select>
+      <DatePicker
+        value={exportFrom}
+        onChange={onExportFromChange}
+        placeholder="From"
+      />
+      <DatePicker
+        value={exportTo}
+        onChange={onExportToChange}
+        placeholder="To"
+      />
       <Button
         size="sm"
         variant="outline"
