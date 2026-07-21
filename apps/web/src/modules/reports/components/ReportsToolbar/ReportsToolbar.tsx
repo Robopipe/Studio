@@ -28,7 +28,6 @@ interface ReportsToolbarProps {
   isRefreshing?: boolean;
   onExport: () => void;
   isExporting?: boolean;
-  selectedCount?: number;
 }
 
 export const ReportsToolbar = ({
@@ -43,7 +42,6 @@ export const ReportsToolbar = ({
   isRefreshing = false,
   onExport,
   isExporting = false,
-  selectedCount = 0,
 }: ReportsToolbarProps) => {
   const selectedLabel =
     sessionId === ALL_SESSIONS
@@ -95,7 +93,7 @@ export const ReportsToolbar = ({
       </Button>
       <Button size="sm" onClick={onExport} disabled={isExporting}>
         {isExporting && <Loader2Icon className="animate-spin" />}
-        {selectedCount > 0 ? `Export (${selectedCount})` : "Export"}
+        Export
       </Button>
     </div>
   );

@@ -8,6 +8,7 @@ interface DetectionOverlayProps {
   pictureUrl: string;
   detections: EventDetection[];
   violatedLimits: ViolatedLimit[];
+  showAll: boolean;
 }
 
 // Detection coordinates are normalized 0-1, so percentage positioning keeps
@@ -16,6 +17,7 @@ export const DetectionOverlay = ({
   pictureUrl,
   detections,
   violatedLimits,
+  showAll,
 }: DetectionOverlayProps) => {
   const violatedDisplayIds = new Set<number>();
   for (const limit of violatedLimits) {
@@ -25,24 +27,31 @@ export const DetectionOverlay = ({
     }
   }
 
+  const isViolated = (detection: EventDetection) =>
+    detection.display_id != null &&
+    violatedDisplayIds.has(detection.display_id);
+
+  const visibleDetections = showAll ? detections : detections.filter(isViolated);
+
   return (
-    <div className="relative">
+    // overflow-hidden clips edge labels, but it also drops the flex-item
+    // automatic minimum size — shrink-0 keeps the panel's column from
+    // squashing the image instead of scrolling.
+    <div className="relative shrink-0 overflow-hidden">
       <img
         src={pictureUrl}
         alt="Event capture"
         className="h-auto w-full bg-muted"
       />
-      {detections.map((detection, index) => {
-        const isViolated =
-          detection.display_id != null &&
-          violatedDisplayIds.has(detection.display_id);
+      {visibleDetections.map((detection, index) => {
+        const violated = isViolated(detection);
 
         return (
           <div
             key={index}
             className={cn(
               "absolute border-2",
-              isViolated ? "border-red-500" : "border-emerald-500",
+              violated ? "border-red-500" : "border-emerald-500",
             )}
             style={{
               left: `${detection.x_min * 100}%`,
@@ -53,10 +62,13 @@ export const DetectionOverlay = ({
           >
             <span
               className={cn(
-                "absolute left-0 whitespace-nowrap rounded-sm px-1 text-[10px] font-medium text-white",
-                isViolated ? "bg-red-500" : "bg-emerald-500",
+                "absolute whitespace-nowrap rounded-sm px-1 text-[10px] font-medium text-white",
+                violated ? "bg-red-500" : "bg-emerald-500",
                 // Keep the label visible when the box touches the top edge.
                 detection.y_min < 0.06 ? "top-0" : "-top-4.5",
+                // Grow the label leftward near the right edge so the clipped
+                // overlay doesn't cut its text.
+                detection.x_min > 0.65 ? "right-0" : "left-0",
               )}
             >
               {detection.label_name} {(detection.confidence * 100).toFixed(0)}%

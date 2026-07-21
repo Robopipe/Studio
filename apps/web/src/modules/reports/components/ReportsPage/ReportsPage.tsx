@@ -10,7 +10,6 @@ import { DataTable } from "@/modules/ui/components/Table";
 import type {
   OnChangeFn,
   PaginationState,
-  RowSelectionState,
   SortingState,
 } from "@tanstack/react-table";
 import { endOfDay, startOfDay } from "date-fns";
@@ -53,7 +52,6 @@ export const ReportsPage = ({ dashboardId, projectId }: ReportsPageProps) => {
   const [sorting, setSorting] = useState<SortingState>([
     { id: "detectedAt", desc: true },
   ]);
-  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [checkedEventId, setCheckedEventId] = useState<number | null>(null);
   // Lags behind checkedEventId so the panel stays mounted while it collapses.
   const [renderedEventId, setRenderedEventId] = useState<number | null>(null);
@@ -71,7 +69,6 @@ export const ReportsPage = ({ dashboardId, projectId }: ReportsPageProps) => {
     setExportFrom(undefined);
     setExportTo(undefined);
     setPagination({ pageIndex: 0, pageSize: PAGE_SIZE });
-    setRowSelection({});
     setCheckedEventId(null);
     setRenderedEventId(null);
   }, [dashboardId]);
@@ -82,49 +79,48 @@ export const ReportsPage = ({ dashboardId, projectId }: ReportsPageProps) => {
     }
   }, [checkedEventId]);
 
-  const resetPageAndSelection = useCallback(() => {
+  const resetPage = useCallback(() => {
     setPagination((prev) => ({ ...prev, pageIndex: 0 }));
-    setRowSelection({});
   }, []);
 
   const handleSessionChange = useCallback(
     (value: string) => {
       setSessionId(value);
-      resetPageAndSelection();
+      resetPage();
     },
-    [resetPageAndSelection],
+    [resetPage],
   );
 
   const handleRangeChange = useCallback(
     (value: DateTimeRange) => {
       setRange(value);
-      resetPageAndSelection();
+      resetPage();
     },
-    [resetPageAndSelection],
+    [resetPage],
   );
 
   const handleTestCaseIdsChange = useCallback(
     (ids: string[]) => {
       setTestCaseIds(ids);
-      resetPageAndSelection();
+      resetPage();
     },
-    [resetPageAndSelection],
+    [resetPage],
   );
 
   const handleLimitIdsChange = useCallback(
     (ids: string[]) => {
       setLimitIds(ids);
-      resetPageAndSelection();
+      resetPage();
     },
-    [resetPageAndSelection],
+    [resetPage],
   );
 
   const handlePassedFilterChange = useCallback(
     (value: PassedFilter) => {
       setPassedFilter(value);
-      resetPageAndSelection();
+      resetPage();
     },
-    [resetPageAndSelection],
+    [resetPage],
   );
 
   const handleSortingChange: OnChangeFn<SortingState> = useCallback(
@@ -223,23 +219,14 @@ export const ReportsPage = ({ dashboardId, projectId }: ReportsPageProps) => {
     [cameraApiUrl, dashboardId],
   );
 
-  const selectedIds = useMemo(
-    () => Object.keys(rowSelection).map(Number),
-    [rowSelection],
-  );
-
   const handleExport = useCallback(() => {
-    // The export is scoped only by the toolbar date range (or an explicit row
-    // selection) — the column-header filters intentionally don't apply to it.
-    void exportReport(
-      selectedIds.length > 0
-        ? { event_ids: selectedIds }
-        : {
-            start: exportFrom ? startOfDay(exportFrom).toISOString() : undefined,
-            end: exportTo ? endOfDay(exportTo).toISOString() : undefined,
-          },
-    );
-  }, [exportReport, selectedIds, exportFrom, exportTo]);
+    // The export is scoped only by the toolbar date range — the column-header
+    // filters intentionally don't apply to it.
+    void exportReport({
+      start: exportFrom ? startOfDay(exportFrom).toISOString() : undefined,
+      end: exportTo ? endOfDay(exportTo).toISOString() : undefined,
+    });
+  }, [exportReport, exportFrom, exportTo]);
 
   const columnFilters = useMemo<ReportColumnFilters>(
     () => ({
@@ -298,7 +285,6 @@ export const ReportsPage = ({ dashboardId, projectId }: ReportsPageProps) => {
             isRefreshing={isFetching}
             onExport={handleExport}
             isExporting={isExporting}
-            selectedCount={selectedIds.length}
           />
         </div>
         <div className="flex min-h-0 flex-1">
@@ -314,7 +300,6 @@ export const ReportsPage = ({ dashboardId, projectId }: ReportsPageProps) => {
               <DataTable
                 data={events?.items ?? []}
                 columns={columns}
-                enableRowSelection
                 isLoading={isLoading}
                 manualPagination
                 pagination={pagination}
@@ -323,8 +308,6 @@ export const ReportsPage = ({ dashboardId, projectId }: ReportsPageProps) => {
                 manualSorting
                 sorting={sorting}
                 onSortingChange={handleSortingChange}
-                rowSelection={rowSelection}
-                onRowSelectionChange={setRowSelection}
                 getRowId={(event) => String(event.id)}
                 rowClassName={(event) =>
                   event.id === checkedEventId ? "bg-primary/5" : undefined
@@ -335,8 +318,9 @@ export const ReportsPage = ({ dashboardId, projectId }: ReportsPageProps) => {
           <div
             className={cn(
               "shrink-0 overflow-hidden transition-[width] duration-300 ease-in-out",
-              // 346px card + 16px gap from the table
-              checkedEventId !== null ? "w-[362px]" : "w-0",
+              // 346px card + 16px gap from the table + 4px gutter so the
+              // card's ring/shadow aren't clipped by overflow-hidden
+              checkedEventId !== null ? "w-[366px]" : "w-0",
             )}
             onTransitionEnd={(e) => {
               if (e.target === e.currentTarget && checkedEventId === null) {
@@ -345,9 +329,10 @@ export const ReportsPage = ({ dashboardId, projectId }: ReportsPageProps) => {
             }}
           >
             {renderedEventId !== null && (
-              <div className="h-full pl-4">
+              <div className="h-full py-1 pr-1 pl-4">
                 <ReportDetailPanel
                   dashboardId={dashboardId}
+                  projectId={projectId}
                   eventId={renderedEventId}
                   onClose={() => setCheckedEventId(null)}
                   onPrev={handlePrev}

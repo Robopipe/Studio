@@ -2,10 +2,20 @@ import { useGetEventQuery } from "@/core/cameraApi";
 import { useCameraApiUrl } from "@/hooks/useCameraApiUrl";
 import { Badge } from "@/modules/shadcn/ui/badge";
 import { Button } from "@/modules/shadcn/ui/button";
+import { Checkbox } from "@/modules/shadcn/ui/checkbox";
 import { Separator } from "@/modules/shadcn/ui/separator";
 import { Skeleton } from "@/modules/shadcn/ui/skeleton";
+import { Spinner } from "@/modules/shadcn/ui/spinner";
 import { format } from "date-fns";
-import { ChevronLeftIcon, ChevronRightIcon, XIcon } from "lucide-react";
+import {
+  CheckIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ImagePlusIcon,
+  XIcon,
+} from "lucide-react";
+import { useState } from "react";
+import { useSaveEventToDataset } from "../../hooks/useSaveEventToDataset";
 import { formatDefect } from "../../utils/formatDefects";
 import { DetectionOverlay } from "./DetectionOverlay";
 
@@ -14,6 +24,7 @@ const formatTimestamp = (value: string | null) =>
 
 interface ReportDetailPanelProps {
   dashboardId: number;
+  projectId: number | null;
   eventId: number;
   onClose: () => void;
   onPrev: () => void;
@@ -24,6 +35,7 @@ interface ReportDetailPanelProps {
 
 export const ReportDetailPanel = ({
   dashboardId,
+  projectId,
   eventId,
   onClose,
   onPrev,
@@ -32,12 +44,19 @@ export const ReportDetailPanel = ({
   hasNext,
 }: ReportDetailPanelProps) => {
   const { url: cameraApiUrl } = useCameraApiUrl();
+  const [showAllDetections, setShowAllDetections] = useState(false);
   const {
     data: event,
     isLoading,
     isError,
     refetch,
   } = useGetEventQuery({ dashboardId, eventId });
+  const { save, isSaving, isSaved } = useSaveEventToDataset({
+    projectId,
+    dashboardId,
+    eventId,
+    timestamp: event?.timestamp,
+  });
 
   const pictureUrl = `${cameraApiUrl}/dashboard/${dashboardId}/events/${eventId}/picture`;
 
@@ -73,17 +92,28 @@ export const ReportDetailPanel = ({
       )}
 
       {event && (
-        <div className="flex flex-1 flex-col gap-4 overflow-y-auto pb-4">
+        <div className="flex flex-1 flex-col gap-4 overflow-y-auto overflow-x-hidden pb-4">
           {event.has_picture ? (
             <DetectionOverlay
               pictureUrl={pictureUrl}
               detections={event.detections}
               violatedLimits={event.violated_limits}
+              showAll={showAllDetections}
             />
           ) : (
             <div className="flex aspect-video w-full items-center justify-center bg-muted text-sm text-muted-foreground">
               No picture captured
             </div>
+          )}
+
+          {event.has_picture && event.detections.length > 0 && (
+            <label className="flex cursor-pointer items-center gap-2 px-5 text-xs text-muted-foreground">
+              <Checkbox
+                checked={showAllDetections}
+                onCheckedChange={(v) => setShowAllDetections(v === true)}
+              />
+              Show all detections
+            </label>
           )}
 
           {event.violated_limits.length > 0 && (
@@ -103,20 +133,19 @@ export const ReportDetailPanel = ({
           <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 px-5 text-sm">
             <span className="text-muted-foreground">Result</span>
             <span>
-              <Badge variant={event.passed ? "secondary" : "destructive"}>
+              <Badge
+                variant={event.passed ? "secondary" : "destructive"}
+                className={
+                  event.passed ? "bg-emerald-500/10 text-emerald-700" : undefined
+                }
+              >
                 {event.passed ? "Passed" : "Failed"}
               </Badge>
             </span>
             <span className="text-muted-foreground">Detected at</span>
             <span>{formatTimestamp(event.timestamp)}</span>
-            <span className="text-muted-foreground">Session start</span>
-            <span>{formatTimestamp(event.session_start)}</span>
-            <span className="text-muted-foreground">Session end</span>
-            <span>{formatTimestamp(event.session_end)}</span>
             <span className="text-muted-foreground">Record id</span>
             <span>{event.id}</span>
-            <span className="text-muted-foreground">Session id</span>
-            <span>{event.session_id}</span>
           </div>
         </div>
       )}
@@ -132,6 +161,16 @@ export const ReportDetailPanel = ({
         >
           <ChevronLeftIcon />
         </Button>
+        {event?.has_picture && (
+          <Button
+            size="sm"
+            onClick={save}
+            disabled={isSaved || isSaving || projectId === null}
+          >
+            {isSaving ? <Spinner /> : isSaved ? <CheckIcon /> : <ImagePlusIcon />}
+            {isSaved ? "Saved to dataset" : "Save to dataset"}
+          </Button>
+        )}
         <Button
           size="icon-sm"
           variant="outline"

@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Inject, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { AssetsService } from "../../assets/services/assets.service";
 import { TaskRepository } from "../../../repository/services/task-repository.service";
 import { PendingTaskRepository } from "../../../repository/services/pending-task-repository.service";
@@ -74,19 +74,32 @@ export class TaskService {
 
     const filePath = this.assetsService.getPublicUrl(pending.objectPath);
 
-    const task = await this.taskRepository.create({
-      projectId,
-      iid: pending.iid,
-      fileType: TaskFileTypeEnum.GS,
-      filePath,
-      // Placeholder: full image serves as thumbnail until the async job finishes.
-      thumbnailUrl: filePath,
-      width: data.width,
-      height: data.height,
-      status: TaskStatusEnum.TODO,
-      updatedBy: userId,
-      ...(pending.capturedAt && { createdAt: pending.capturedAt }),
-    });
+    let task: TaskEntity;
+    try {
+      task = await this.taskRepository.create({
+        projectId,
+        iid: pending.iid,
+        fileType: TaskFileTypeEnum.GS,
+        filePath,
+        // Placeholder: full image serves as thumbnail until the async job finishes.
+        thumbnailUrl: filePath,
+        width: data.width,
+        height: data.height,
+        status: TaskStatusEnum.TODO,
+        updatedBy: userId,
+        sourceDashboardId: data.sourceDashboardId ?? null,
+        sourceEventId: data.sourceEventId ?? null,
+        ...(pending.capturedAt && { createdAt: pending.capturedAt }),
+      });
+    } catch (e) {
+      if (isSourceEventConflict(e)) {
+        // Another save of the same report event won the race — drop the
+        // pending reservation so it doesn't linger as an orphan.
+        await this.pendingTaskRepository.delete(pending.id);
+        throw new ConflictException("Event is already saved to the dataset");
+      }
+      throw e;
+    }
 
     await this.pendingTaskRepository.delete(pending.id);
 
@@ -128,6 +141,10 @@ export class TaskService {
 
   public async getTaskIds(projectId: number, annotated?: boolean, labelIds?: number[], sortBy: TaskSortBy = "createdAt", sortOrder: "asc" | "desc" = "desc"): Promise<number[]> {
     return this.taskRepository.getAllIdsByProjectId(projectId, annotated, labelIds, sortBy, sortOrder);
+  }
+
+  public async getImportedEventIds(projectId: number, dashboardId: number, eventIds: number[]): Promise<number[]> {
+    return this.taskRepository.getImportedEventIds(projectId, dashboardId, eventIds);
   }
 
   public async updateTask(id: number, projectId: number, data: TaskUpdateRequest, userId: number): Promise<TaskDetailEntity>{
@@ -203,4 +220,16 @@ export class TaskService {
       })),
     };
   }
+}
+
+/**
+ * Postgres unique violation on the partial (project, dashboard, event) index —
+ * i.e. the report event is already imported. Narrowed by constraint name so an
+ * unrelated collision (e.g. project/iid) still surfaces as a 500.
+ */
+function isSourceEventConflict(e: unknown): boolean {
+  const err = e as { code?: string; constraint?: string; cause?: { code?: string; constraint?: string } };
+  const code = err?.code ?? err?.cause?.code;
+  const constraint = err?.constraint ?? err?.cause?.constraint;
+  return code === "23505" && constraint === "task_source_event_unique_idx";
 }

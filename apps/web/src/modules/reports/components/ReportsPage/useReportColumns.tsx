@@ -13,7 +13,6 @@ import {
   TooltipTrigger,
 } from "@/modules/shadcn/ui/tooltip";
 import { FacetedFilterList } from "@/modules/ui/components/FacetedFilter";
-import { createSelectColumn } from "@/modules/ui/components/Table";
 import type { EvalTestCase } from "@repo/schema";
 import { type ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
@@ -81,7 +80,6 @@ export function useReportColumns({
     }));
 
     return [
-      createSelectColumn<EventListItem>(),
       {
         accessorKey: "id",
         header: "Record id",
