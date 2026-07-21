@@ -1,6 +1,6 @@
 import type { SessionSummary } from "@/core/cameraApi/schemas/events";
 import { Button } from "@/modules/shadcn/ui/button";
-import { DatePicker } from "@/modules/shadcn/ui/date-picker";
+import { DateTimePicker } from "@/modules/shadcn/ui/date-time-picker";
 import {
   Select,
   SelectContent,
@@ -59,7 +59,9 @@ export const ReportsToolbar = ({
           if (value !== null) onSessionChange(value);
         }}
       >
-        <SelectTrigger size="sm" className="w-64">
+        {/* h-8! aligns with the sm buttons/pickers — the trigger's own
+            data-[size=sm]:h-9 outweighs a plain h-8. */}
+        <SelectTrigger size="sm" className="h-8! w-64">
           <SelectValue placeholder="Select session">
             {selectedLabel}
           </SelectValue>
@@ -73,12 +75,14 @@ export const ReportsToolbar = ({
           ))}
         </SelectContent>
       </Select>
-      <DatePicker
+      <DateTimePicker
+        edge="from"
         value={exportFrom}
         onChange={onExportFromChange}
         placeholder="From"
       />
-      <DatePicker
+      <DateTimePicker
+        edge="to"
         value={exportTo}
         onChange={onExportToChange}
         placeholder="To"

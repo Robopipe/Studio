@@ -12,7 +12,7 @@ import type {
   PaginationState,
   SortingState,
 } from "@tanstack/react-table";
-import { endOfDay, startOfDay } from "date-fns";
+import { startOfDay } from "date-fns";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useReportExport } from "../../hooks/useReportExport";
 import { ReportDetailPanel } from "../ReportDetailPanel";
@@ -33,17 +33,26 @@ const EVENTS_POLL_INTERVAL_MS = 5000;
 interface ReportsPageProps {
   dashboardId: number | null;
   projectId: number | null;
+  onExportingChange?: (exporting: boolean) => void;
 }
 
-export const ReportsPage = ({ dashboardId, projectId }: ReportsPageProps) => {
+export const ReportsPage = ({
+  dashboardId,
+  projectId,
+  onExportingChange,
+}: ReportsPageProps) => {
   const [sessionId, setSessionId] = useState<string>(ALL_SESSIONS);
   const [range, setRange] = useState<DateTimeRange>({});
   const [passedFilter, setPassedFilter] = useState<PassedFilter>("all");
   const [testCaseIds, setTestCaseIds] = useState<string[]>([]);
   const [limitIds, setLimitIds] = useState<string[]>([]);
   // Scopes the export only; the column-header filters never reach the export.
-  const [exportFrom, setExportFrom] = useState<Date | undefined>(undefined);
-  const [exportTo, setExportTo] = useState<Date | undefined>(undefined);
+  // Defaults to "today so far", frozen at mount — the page remounts on every
+  // tab visit, so the range re-freshens each time Reports is opened.
+  const [exportFrom, setExportFrom] = useState<Date | undefined>(() =>
+    startOfDay(new Date()),
+  );
+  const [exportTo, setExportTo] = useState<Date | undefined>(() => new Date());
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: PAGE_SIZE,
@@ -59,6 +68,17 @@ export const ReportsPage = ({ dashboardId, projectId }: ReportsPageProps) => {
   const { url: cameraApiUrl } = useCameraApiUrl();
   const { exportReport, isExporting } = useReportExport(dashboardId);
 
+  const { data: sessions = [] } = useListSessionsQuery(
+    { dashboardId: dashboardId! },
+    { skip: dashboardId === null },
+  );
+
+  // Lets RunPage block tab switches away from an in-flight export.
+  useEffect(() => {
+    onExportingChange?.(isExporting);
+    return () => onExportingChange?.(false);
+  }, [isExporting, onExportingChange]);
+
   // Filters reset paging and selection; a new dashboard resets everything.
   useEffect(() => {
     setSessionId(ALL_SESSIONS);
@@ -66,8 +86,8 @@ export const ReportsPage = ({ dashboardId, projectId }: ReportsPageProps) => {
     setPassedFilter("all");
     setTestCaseIds([]);
     setLimitIds([]);
-    setExportFrom(undefined);
-    setExportTo(undefined);
+    setExportFrom(startOfDay(new Date()));
+    setExportTo(new Date());
     setPagination({ pageIndex: 0, pageSize: PAGE_SIZE });
     setCheckedEventId(null);
     setRenderedEventId(null);
@@ -83,12 +103,50 @@ export const ReportsPage = ({ dashboardId, projectId }: ReportsPageProps) => {
     setPagination((prev) => ({ ...prev, pageIndex: 0 }));
   }, []);
 
+  // The select doubles as an export-range shortcut: a session fills the
+  // pickers with its exact bounds (a running one ends "now"), and "All
+  // sessions" restores the default range.
   const handleSessionChange = useCallback(
     (value: string) => {
       setSessionId(value);
       resetPage();
+      if (value === ALL_SESSIONS) {
+        setExportFrom(startOfDay(new Date()));
+        setExportTo(new Date());
+        return;
+      }
+      const session = sessions.find((s) => String(s.id) === value);
+      if (session) {
+        setExportFrom(new Date(session.start_time));
+        setExportTo(
+          session.end_time ? new Date(session.end_time) : new Date(),
+        );
+      }
     },
-    [resetPage],
+    [resetPage, sessions],
+  );
+
+  // Manual range edits detach the export scope from any picked session.
+  const handleExportFromChange = useCallback(
+    (date: Date | undefined) => {
+      setExportFrom(date);
+      if (sessionId !== ALL_SESSIONS) {
+        setSessionId(ALL_SESSIONS);
+        resetPage();
+      }
+    },
+    [sessionId, resetPage],
+  );
+
+  const handleExportToChange = useCallback(
+    (date: Date | undefined) => {
+      setExportTo(date);
+      if (sessionId !== ALL_SESSIONS) {
+        setSessionId(ALL_SESSIONS);
+        resetPage();
+      }
+    },
+    [sessionId, resetPage],
   );
 
   const handleRangeChange = useCallback(
@@ -162,11 +220,6 @@ export const ReportsPage = ({ dashboardId, projectId }: ReportsPageProps) => {
     [dashboardId, filterArgs, sorting, pagination],
   );
 
-  const { data: sessions = [] } = useListSessionsQuery(
-    { dashboardId: dashboardId! },
-    { skip: dashboardId === null },
-  );
-
   // Filter options come from the eval config — the dashboard id doubles as
   // the studio config id (see RunPage), and events reference the same
   // test-case/limit ids the deploy payload carries.
@@ -223,8 +276,8 @@ export const ReportsPage = ({ dashboardId, projectId }: ReportsPageProps) => {
     // The export is scoped only by the toolbar date range — the column-header
     // filters intentionally don't apply to it.
     void exportReport({
-      start: exportFrom ? startOfDay(exportFrom).toISOString() : undefined,
-      end: exportTo ? endOfDay(exportTo).toISOString() : undefined,
+      start: exportFrom?.toISOString(),
+      end: exportTo?.toISOString(),
     });
   }, [exportReport, exportFrom, exportTo]);
 
@@ -278,9 +331,9 @@ export const ReportsPage = ({ dashboardId, projectId }: ReportsPageProps) => {
             sessionId={sessionId}
             onSessionChange={handleSessionChange}
             exportFrom={exportFrom}
-            onExportFromChange={setExportFrom}
+            onExportFromChange={handleExportFromChange}
             exportTo={exportTo}
-            onExportToChange={setExportTo}
+            onExportToChange={handleExportToChange}
             onRefresh={refetch}
             isRefreshing={isFetching}
             onExport={handleExport}

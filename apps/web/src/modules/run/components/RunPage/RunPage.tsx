@@ -35,6 +35,7 @@ import { DeployConfigSelector } from "../DeployConfigSelector/DeployConfigSelect
 
 export const RunPage = () => {
   const [activeTab, setActiveTab] = useState<RunTab>("inference");
+  const [isReportExporting, setIsReportExporting] = useState(false);
   const [activeConfigId, setActiveConfigId] = useState<number | null>(null);
   const [selectedConfigs, setSelectedConfigs] = useState<ConfigSelection[]>([]);
   const [sahiConfig, setSahiConfig] = useState<SahiConfig | null>(null);
@@ -105,29 +106,48 @@ export const RunPage = () => {
     />
   ) : undefined;
 
-  // Block in-app navigation while a deploy is in flight; bouncing the user
-  // away mid-deploy can leave the camera in an inconsistent state.
+  // Block in-app navigation while a deploy is in flight (bouncing the user
+  // away mid-deploy can leave the camera in an inconsistent state) or while a
+  // report export is generating (ReportsPage unmounting drops the download).
   const blocker = useBlocker(
     ({ currentLocation, nextLocation }) =>
-      isDeploying && currentLocation.pathname !== nextLocation.pathname,
+      (isDeploying || isReportExporting) &&
+      currentLocation.pathname !== nextLocation.pathname,
   );
 
   useEffect(() => {
     if (blocker.state === "blocked") {
-      toast.warning("Deployment in progress — please wait until it finishes.");
+      toast.warning(
+        isDeploying
+          ? "Deployment in progress — please wait until it finishes."
+          : "Export in progress — please wait until it finishes.",
+      );
       blocker.reset?.();
     }
-  }, [blocker]);
+  }, [blocker, isDeploying]);
 
   useEffect(() => {
-    if (!isDeploying) return;
+    if (!isDeploying && !isReportExporting) return;
     const handler = (e: BeforeUnloadEvent) => {
       e.preventDefault();
       e.returnValue = "";
     };
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
-  }, [isDeploying]);
+  }, [isDeploying, isReportExporting]);
+
+  // The tabs are local state, invisible to the router blocker above — gate
+  // them here so an in-flight export can't lose its Reports tab.
+  const handleTabChange = useCallback(
+    (tab: RunTab) => {
+      if (isReportExporting && tab !== "reports") {
+        toast.warning("Export in progress — please wait until it finishes.");
+        return;
+      }
+      setActiveTab(tab);
+    },
+    [isReportExporting],
+  );
 
   const handleConfigChange = useCallback((configId: number | null) => {
     setActiveConfigId(configId);
@@ -146,6 +166,7 @@ export const RunPage = () => {
         <ReportsPage
           dashboardId={activeConfigId}
           projectId={projectId ?? null}
+          onExportingChange={setIsReportExporting}
         />
       );
     }
@@ -174,7 +195,7 @@ export const RunPage = () => {
     <div className="-m-6 flex min-h-0 flex-1 flex-col bg-white">
       <RunSubheader
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={handleTabChange}
         onDeploy={handleDeploy}
         onStop={handleStop}
         deployPhase={deployPhase}
