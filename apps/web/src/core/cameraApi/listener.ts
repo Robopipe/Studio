@@ -1,12 +1,12 @@
-import { selectEffectiveCameraApiUrl } from "@/modules/project/services/cameraApiOverrideSlice";
+import { selectCameraApiUrl } from "@/modules/project/services/projectSlice";
 import type { RootState } from "@/store";
 import { listenerMiddleware } from "@/store/listenerMiddleware";
 import { cameraApi } from ".";
 
 listenerMiddleware.startListening({
   predicate: (_action, currentState, previousState) => {
-    const prev = selectEffectiveCameraApiUrl(previousState as RootState);
-    const curr = selectEffectiveCameraApiUrl(currentState as RootState);
+    const prev = selectCameraApiUrl(previousState as RootState);
+    const curr = selectCameraApiUrl(currentState as RootState);
     // Only reset when switching between two non-null URLs. The null → URL
     // transition at initial project load should not trigger a reset: no
     // camera API requests have been made yet so there is no stale data, and

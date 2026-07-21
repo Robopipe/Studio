@@ -10,6 +10,7 @@ export const projectTable = p.pgTable("project", {
   name: p.varchar("name", {length:256}).notNull(),
   description: p.text("description").notNull(),
   cameraApiUrl: p.text("camera_api_url"),
+  cameraMxid: p.varchar("camera_mxid", {length: 256}),
   multipleDashboardConfigs: p.boolean("multiple_dashboard_configs").notNull().default(false),
   hasLicense: p.boolean("has_license").notNull().default(false),
   organizationId: p.integer("organization_id").references(() => organizationTable.id, {onDelete: 'cascade'}).notNull(),

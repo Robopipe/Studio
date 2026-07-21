@@ -30,7 +30,7 @@ export const useCaptureImageFromCamera = () => {
   const [requestUploadUrl] = useRequestTaskUploadUrlMutation();
   const [confirmUpload] = useConfirmTaskUploadMutation();
   const [activeProject] = useActiveProject();
-  const { url: cameraApiUrl } = useCameraApiUrl();
+  const cameraApiUrl = useCameraApiUrl();
   const dispatch = useAppDispatch();
   const [isLoading, setIsLoading] = useState(false);
   const [uploadQueue, setUploadQueue] = useState<QueuedUpload[]>([]);

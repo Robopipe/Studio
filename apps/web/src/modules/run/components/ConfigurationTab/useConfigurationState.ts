@@ -1,4 +1,4 @@
-import { useListCamerasQuery, useListStreamsQuery } from "@/core/cameraApi";
+import { useListStreamsQuery } from "@/core/cameraApi";
 import { useSelectedCameraStream } from "@/modules/camera-selection";
 import {
   useGetCapturedVideosQuery,
@@ -28,7 +28,6 @@ export const useConfigurationState = (
   configId: number,
 ) => {
   const { data: config } = useGetDashboardConfigQuery({ projectId, configId });
-  const { data: cameras } = useListCamerasQuery();
   const { data: models = [] } = useGetModelsQuery({ projectId });
   const [updateConfig, { isLoading: isSaving }] =
     useUpdateDashboardConfigMutation();
@@ -42,15 +41,15 @@ export const useConfigurationState = (
 
   const trainedModels = models.filter((m) => m.status === ModelStatusEnum.DONE);
 
-  // Camera + stream come from the project-wide selection slice so changes
-  // here propagate to Capture and vice versa (per client spec). The camera
-  // itself is a project-modal setting; configs only carry the stream. Model
-  // and replay video stay local — they're per-config, not per-project.
+  // Camera + stream come from the project-wide selection so changes here
+  // propagate to Capture and vice versa (per client spec). The camera is the
+  // project's DB setting (project modal); configs only carry the stream.
+  // Model and replay video stay local — they're per-config, not per-project.
   const {
     cameraMxid: selectedCamera,
     streamName: selectedStream,
     setStream: setSelectedStream,
-  } = useSelectedCameraStream(cameras);
+  } = useSelectedCameraStream();
 
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
   const [selectedVideoId, setSelectedVideoId] = useState<number | null>(null);

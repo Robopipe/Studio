@@ -13,7 +13,6 @@ import { pendingVideoCapturesSlice } from "@/modules/capture/services/pendingVid
 import { dashboardConfigApi } from "@/modules/dashboard/services";
 import { modelApi } from "@/modules/model/services";
 import { projectApi } from "@/modules/project/services/projectApi";
-import { cameraApiOverrideSlice } from "@/modules/project/services/cameraApiOverrideSlice";
 import { projectSlice } from "@/modules/project/services/projectSlice";
 import { combineReducers, configureStore } from "@reduxjs/toolkit";
 import { listenerMiddleware } from "./listenerMiddleware";
@@ -21,7 +20,6 @@ import { listenerMiddleware } from "./listenerMiddleware";
 const slices = {
   [authSlice.name]: authSlice.reducer,
   [projectSlice.name]: projectSlice.reducer,
-  [cameraApiOverrideSlice.name]: cameraApiOverrideSlice.reducer,
   [pendingCapturesSlice.name]: pendingCapturesSlice.reducer,
   [pendingVideoCapturesSlice.name]: pendingVideoCapturesSlice.reducer,
   [cameraSelectionSlice.name]: cameraSelectionSlice.reducer,
