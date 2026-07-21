@@ -20,7 +20,11 @@ interface DateTimeRangePanelProps {
 
 // Calendar clicks land at midnight; keep any time the user already picked,
 // otherwise span the whole day so date-only usage keeps working.
-function mergeTime(day: Date, prev: Date | undefined, edge: "from" | "to") {
+export function mergeTime(
+  day: Date,
+  prev: Date | undefined,
+  edge: "from" | "to",
+) {
   const merged = new Date(day)
   if (prev) {
     merged.setHours(
@@ -37,7 +41,7 @@ function mergeTime(day: Date, prev: Date | undefined, edge: "from" | "to") {
   return merged
 }
 
-function withTimeString(date: Date, time: string, edge: "from" | "to") {
+export function withTimeString(date: Date, time: string, edge: "from" | "to") {
   const [hours, minutes] = time.split(":").map(Number)
   const updated = new Date(date)
   if (edge === "to") updated.setHours(hours, minutes, 59, 999)
