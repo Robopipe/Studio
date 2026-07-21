@@ -30,6 +30,23 @@ import { CameraApiTagType } from "./tagType";
 
 const LIST_CAMERAS_TIMEOUT_MS = 5000;
 
+// fetchBaseQuery comma-joins array params, but the FastAPI camera API expects
+// repeated keys (?test_case_id=a&test_case_id=b), so build the query manually.
+const toRepeatedSearchParams = (
+  params: Record<string, string | number | boolean | string[] | undefined>,
+) => {
+  const searchParams = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined) continue;
+    if (Array.isArray(value)) {
+      for (const item of value) searchParams.append(key, item);
+    } else {
+      searchParams.set(key, String(value));
+    }
+  }
+  return searchParams.toString();
+};
+
 const cameraApiBase = createApi({
   reducerPath: "cameraApi",
   baseQuery: baseQuery,
@@ -475,7 +492,8 @@ export const cameraApi = cameraApiBase.injectEndpoints({
         sessionId?: number;
         start?: string;
         end?: string;
-        testCaseId?: string;
+        testCaseIds?: string[];
+        limitIds?: string[];
         passed?: boolean;
         sortBy?: EventSortBy;
         order?: SortOrder;
@@ -488,26 +506,27 @@ export const cameraApi = cameraApiBase.injectEndpoints({
         sessionId,
         start,
         end,
-        testCaseId,
+        testCaseIds,
+        limitIds,
         passed,
         sortBy,
         order,
         limit,
         offset,
       }) => ({
-        url: `/dashboard/${dashboardId}/events`,
-        method: HttpMethod.GET,
-        params: {
+        url: `/dashboard/${dashboardId}/events?${toRepeatedSearchParams({
           session_id: sessionId,
           start,
           end,
-          test_case_id: testCaseId,
+          test_case_id: testCaseIds,
+          limit_id: limitIds,
           passed,
           sort_by: sortBy,
           order,
           limit,
           offset,
-        },
+        })}`,
+        method: HttpMethod.GET,
       }),
       providesTags: (_result, _error, { dashboardId }) => [
         { type: CameraApiTagType.Events, id: dashboardId },

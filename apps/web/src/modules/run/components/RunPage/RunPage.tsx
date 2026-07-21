@@ -142,7 +142,12 @@ export const RunPage = () => {
   // a live device. Dashboard contains test-case and evaluation sub-tabs.
   const renderTabContent = () => {
     if (activeTab === "reports") {
-      return <ReportsPage dashboardId={activeConfigId} />;
+      return (
+        <ReportsPage
+          dashboardId={activeConfigId}
+          projectId={projectId ?? null}
+        />
+      );
     }
 
     if (activeTab === "dashboard") {

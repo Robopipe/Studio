@@ -39,8 +39,14 @@ function Calendar({
         day: "relative p-0 text-center text-sm focus-within:relative focus-within:z-20",
         day_button: cn(
           buttonVariants({ variant: "ghost" }),
-          "size-8 p-0 font-normal aria-selected:bg-primary aria-selected:text-primary-foreground aria-selected:hover:bg-primary aria-selected:hover:text-primary-foreground",
+          "size-8 p-0 font-normal",
         ),
+        // v9 marks selection on the day cell (td), not the button — style the
+        // inner button from there. range_middle uses ! to beat `selected`.
+        selected:
+          "rounded-md [&>button]:bg-primary [&>button]:text-primary-foreground [&>button]:hover:bg-primary [&>button]:hover:text-primary-foreground",
+        range_middle:
+          "[&>button]:bg-accent! [&>button]:text-accent-foreground! [&>button]:hover:bg-accent! [&>button]:hover:text-accent-foreground!",
         today: "rounded-md bg-accent text-accent-foreground",
         outside: "text-muted-foreground opacity-50",
         disabled: "text-muted-foreground opacity-50",
