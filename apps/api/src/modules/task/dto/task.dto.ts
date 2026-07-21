@@ -1,6 +1,8 @@
 import { createZodDto } from "nestjs-zod";
 import {
   confirmTaskUploadSchema,
+  importedEventIdsResponseSchema,
+  importedEventsQuerySchema,
   paginatedTaskSchema,
   requestTaskUploadSchema,
   taskDetailSchema,
@@ -23,6 +25,8 @@ export class PaginatedTaskResponse extends createZodDto(paginatedTaskSchema){}
 export class RequestTaskUploadDto extends createZodDto(requestTaskUploadSchema){}
 export class TaskUploadUrlResponse extends createZodDto(taskUploadUrlSchema){}
 export class ConfirmTaskUploadDto extends createZodDto(confirmTaskUploadSchema){}
+export class ImportedEventsQueryDto extends createZodDto(importedEventsQuerySchema){}
+export class ImportedEventIdsResponseDto extends createZodDto(importedEventIdsResponseSchema){}
 export class TaskExportQuery extends createZodDto(taskExportQuerySchema){}
 export class TaskExportResponse extends createZodDto(taskExportSchema){}
 export class TaskIdsQuery extends createZodDto(taskIdsQuerySchema){}

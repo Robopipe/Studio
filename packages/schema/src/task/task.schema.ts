@@ -105,6 +105,9 @@ export const taskSchema = z.object({
   precision: z.number().nullable().optional(),
   /** Micro-averaged recall for this image: TP/(TP+FN). Null when no ground truth. */
   recall: z.number().nullable().optional(),
+  // Camera-API report event the image was imported from. Null for regular captures.
+  sourceDashboardId: z.number().nullable().optional(),
+  sourceEventId: z.number().nullable().optional(),
   ...timestampsSchema
 })
 
@@ -188,6 +191,27 @@ export const confirmTaskUploadSchema = z.object({
   pendingTaskId: z.number(),
   width: z.number().int().positive(),
   height: z.number().int().positive(),
+  // Set when importing a camera-API report event ("save to dataset");
+  // enforces one non-deleted task per (project, dashboard, event).
+  sourceDashboardId: z.number().int().positive().optional(),
+  sourceEventId: z.number().int().positive().optional(),
+});
+
+/**
+ * Which of the given camera-API event ids are already imported into the
+ * project's dataset as non-deleted tasks.
+ */
+export const importedEventsQuerySchema = z.object({
+  dashboardId: z.coerce.number().int().positive(),
+  eventIds: z
+    .string()
+    .transform((val): number[] =>
+      val.split(",").map(Number).filter((n) => !isNaN(n)),
+    ),
+});
+
+export const importedEventIdsResponseSchema = z.object({
+  eventIds: z.number().array(),
 });
 
 /**
