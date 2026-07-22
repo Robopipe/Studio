@@ -14,10 +14,15 @@ import { TaskService } from "../services/task.service";
 import { ProjectGuard } from "../../auth/guards/project-guard";
 import { ProjectId } from "../../auth/decorators/project-id.decorator";
 import { User } from "../../auth/decorators/user.decorator";
+import type { SessionUser } from "../../auth/strategies/jwt.strategy";
 import {
   ConfirmTaskUploadDto,
   ImportedEventIdsResponseDto,
   ImportedEventsQueryDto,
+  ImportedSourceTaskIdsQueryDto,
+  ImportedSourceTaskIdsResponseDto,
+  ImportTasksDto,
+  ImportTasksResponseDto,
   PaginatedTaskResponse,
   RequestTaskUploadDto,
   TaskDetailResponse,
@@ -42,7 +47,7 @@ export class TaskController {
     @ProjectId() projectId: number,
     @Body() body: RequestTaskUploadDto,
   ): Promise<TaskUploadUrlResponse> {
-    return this.taskService.requestUploadUrl(projectId, body.capturedAt);
+    return this.taskService.requestUploadUrl(projectId, body.capturedAt, body.contentType);
   }
 
   @Post("confirm")
@@ -79,6 +84,25 @@ export class TaskController {
   ): Promise<ImportedEventIdsResponseDto> {
     const eventIds = await this.taskService.getImportedEventIds(projectId, query.dashboardId, query.eventIds);
     return { eventIds };
+  }
+
+  @Post("import")
+  public async importTasks(
+    @ProjectId() projectId: number,
+    @Body() body: ImportTasksDto,
+    @User() user: SessionUser,
+  ): Promise<ImportTasksResponseDto> {
+    const { imported, failed } = await this.taskService.importTasks(projectId, body, user.id, user.organizationId);
+    return { imported: imported.map((task) => task.toResponse()), failed };
+  }
+
+  @Get("imported-source-tasks")
+  public async listImportedSourceTasks(
+    @ProjectId() projectId: number,
+    @Query() query: ImportedSourceTaskIdsQueryDto,
+  ): Promise<ImportedSourceTaskIdsResponseDto> {
+    const taskIds = await this.taskService.getImportedSourceTaskIds(projectId, query.sourceProjectId);
+    return { taskIds };
   }
 
   @Get()

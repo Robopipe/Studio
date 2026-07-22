@@ -108,6 +108,8 @@ export const taskSchema = z.object({
   // Camera-API report event the image was imported from. Null for regular captures.
   sourceDashboardId: z.number().nullable().optional(),
   sourceEventId: z.number().nullable().optional(),
+  // Task in another project the image was copied from. Null for regular captures.
+  sourceTaskId: z.number().nullable().optional(),
   ...timestampsSchema
 })
 
@@ -177,8 +179,15 @@ export const paginatedTaskSchema = paginatedResponseSchema(taskSchema);
  *  2. browser PUTs image bytes directly to GCS
  *  3. POST confirm → promotes pending row into a real Task
  */
+export const taskUploadContentTypeSchema = z.enum([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
+
 export const requestTaskUploadSchema = z.object({
   capturedAt: z.iso.datetime().optional(),
+  contentType: taskUploadContentTypeSchema.default("image/jpeg"),
 });
 
 export const taskUploadUrlSchema = z.object({
@@ -195,6 +204,38 @@ export const confirmTaskUploadSchema = z.object({
   // enforces one non-deleted task per (project, dashboard, event).
   sourceDashboardId: z.number().int().positive().optional(),
   sourceEventId: z.number().int().positive().optional(),
+});
+
+/**
+ * Cross-project import — server-side GCS copy of images from another project
+ * in the caller's organization. Images only; annotations are never copied.
+ * Best-effort batch: each task is imported independently.
+ */
+export const importTasksSchema = z.object({
+  sourceProjectId: z.number().int().positive(),
+  taskIds: z.number().int().positive().array().min(1).max(100),
+});
+
+export const importTasksResponseSchema = z.object({
+  imported: taskSchema.array(),
+  failed: z
+    .object({
+      sourceTaskId: z.number(),
+      reason: z.string(),
+    })
+    .array(),
+});
+
+/**
+ * All task ids from the given source project already imported into the
+ * project as non-deleted tasks. Powers the picker's "already imported" state.
+ */
+export const importedSourceTaskIdsQuerySchema = z.object({
+  sourceProjectId: z.coerce.number().int().positive(),
+});
+
+export const importedSourceTaskIdsResponseSchema = z.object({
+  taskIds: z.number().array(),
 });
 
 /**

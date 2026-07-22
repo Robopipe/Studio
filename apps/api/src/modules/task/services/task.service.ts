@@ -4,7 +4,7 @@ import { TaskRepository } from "../../../repository/services/task-repository.ser
 import { PendingTaskRepository } from "../../../repository/services/pending-task-repository.service";
 import { ProjectRepository } from "../../../repository/services/project-repository.service";
 import { ProjectLabelRepository } from "../../../repository/services/project-label-repository.service";
-import { TaskFileTypeEnum, TaskStatusEnum, TaskSortBy, type ConfirmTaskUpload, type TaskExport, type TaskUploadUrl } from "@repo/schema";
+import { TaskFileTypeEnum, TaskStatusEnum, TaskSortBy, type ConfirmTaskUpload, type ImportTasks, type TaskExport, type TaskUploadContentType, type TaskUploadUrl } from "@repo/schema";
 import { TaskDetailEntity, TaskEntity } from "../entity/task.entity";
 import { TaskUpdateRequest } from "../dto/task.dto";
 import { DB_CONNECTION } from "../../../core/database/database.constant";
@@ -33,8 +33,13 @@ export class TaskService {
    * Step 1 of the capture upload flow: reserve an iid, stash the GCS object
    * path in `pending_task`, and hand the browser a signed PUT URL.
    */
-  public async requestUploadUrl(projectId: number, capturedAt?: string): Promise<TaskUploadUrl> {
-    const filename = `image-${Date.now()}.jpeg`;
+  public async requestUploadUrl(
+    projectId: number,
+    capturedAt?: string,
+    contentType: TaskUploadContentType = "image/jpeg",
+  ): Promise<TaskUploadUrl> {
+    const extension = contentType.split("/")[1];
+    const filename = `image-${Date.now()}.${extension}`;
     const objectPath = this.assetsService.getAssetName(filename, projectId, "asset");
 
     // Run the DB reservation and the IAM signBlob round-trip in parallel —
@@ -45,7 +50,7 @@ export class TaskService {
         objectPath,
         capturedAt: capturedAt ? new Date(capturedAt) : null,
       }),
-      this.assetsService.generateSignedUploadUrl(objectPath, "image/jpeg"),
+      this.assetsService.generateSignedUploadUrl(objectPath, contentType),
     ]);
 
     return { pendingTaskId: pending.id, uploadUrl, objectPath };
@@ -147,6 +152,106 @@ export class TaskService {
     return this.taskRepository.getImportedEventIds(projectId, dashboardId, eventIds);
   }
 
+  public async getImportedSourceTaskIds(projectId: number, sourceProjectId: number): Promise<number[]> {
+    return this.taskRepository.getImportedSourceTaskIds(projectId, sourceProjectId);
+  }
+
+  /**
+   * Cross-project import: server-side copy of images from another project in
+   * the caller's organization. Images only — annotations never travel (labels
+   * are project-specific). Best-effort: each task imports independently and
+   * per-item problems land in `failed` instead of aborting the batch.
+   *
+   * `sourceTaskId` records the immediate parent only, so dedup is per source:
+   * importing the same underlying image into C from both A and an A-derived
+   * copy in B creates two tasks in C by design.
+   */
+  public async importTasks(
+    targetProjectId: number,
+    data: ImportTasks,
+    userId: number,
+    organizationId: number,
+  ): Promise<{ imported: TaskEntity[]; failed: { sourceTaskId: number; reason: string }[] }> {
+    if (data.sourceProjectId === targetProjectId) {
+      throw new BadRequestException("Cannot import from the same project");
+    }
+
+    // ProjectGuard only authorizes the target :projectId route param — the
+    // source project must be org-checked here. 404 (not 403) so the endpoint
+    // doesn't leak which project ids exist in other organizations.
+    const sourceProject = await this.projectRepository.getById(data.sourceProjectId);
+    if (!sourceProject || sourceProject.deletedAt || sourceProject.organizationId !== organizationId) {
+      throw new NotFoundException("Source project not found");
+    }
+
+    const requestedIds = [...new Set(data.taskIds)];
+    const sourceTasks = await this.taskRepository.getAllByIdsAndProjectId(requestedIds, data.sourceProjectId);
+    const foundIds = new Set(sourceTasks.map((t) => t.id));
+
+    const imported: TaskEntity[] = [];
+    const failed: { sourceTaskId: number; reason: string }[] = requestedIds
+      .filter((id) => !foundIds.has(id))
+      .map((id) => ({ sourceTaskId: id, reason: "Source task not found" }));
+
+    // Sequential: keeps GCS pressure low and avoids the tasks contending for
+    // the target project's iid advisory lock against themselves.
+    for (const source of sourceTasks) {
+      const copiedPaths: string[] = [];
+      try {
+        const extension = extractExtension(source.filePath);
+        const destAssetPath = this.assetsService.getAssetName(
+          `task-${source.id}${extension}`,
+          targetProjectId,
+          "asset",
+        );
+        const filePath = await this.assetsService.copyFile(source.filePath, destAssetPath);
+        copiedPaths.push(destAssetPath);
+
+        // thumbnailUrl === filePath means the async thumbnail job never ran;
+        // reuse the copied full image rather than duplicating the object.
+        let thumbnailUrl = filePath;
+        if (source.thumbnailUrl !== source.filePath) {
+          try {
+            const destThumbPath = this.assetsService.getAssetName(
+              `task-${source.id}.webp`,
+              targetProjectId,
+              "thumbnail",
+            );
+            thumbnailUrl = await this.assetsService.copyFile(source.thumbnailUrl, destThumbPath);
+            copiedPaths.push(destThumbPath);
+          } catch (e) {
+            this.logger.warn(`Thumbnail copy failed for source task ${source.id}, falling back to full image`, e);
+          }
+        }
+
+        const task = await this.taskRepository.createWithNextIid(targetProjectId, {
+          projectId: targetProjectId,
+          fileType: TaskFileTypeEnum.GS,
+          filePath,
+          thumbnailUrl,
+          width: source.width,
+          height: source.height,
+          status: TaskStatusEnum.TODO,
+          updatedBy: userId,
+          sourceTaskId: source.id,
+        });
+        imported.push(task);
+      } catch (e) {
+        // Don't leak the copied objects when the task row never materialized.
+        await Promise.all(copiedPaths.map((path) => this.assetsService.deleteFile(this.assetsService.getPublicUrl(path))));
+
+        if (isSourceTaskConflict(e)) {
+          failed.push({ sourceTaskId: source.id, reason: "Already imported" });
+        } else {
+          this.logger.error(`Import of task ${source.id} into project ${targetProjectId} failed`, e);
+          failed.push({ sourceTaskId: source.id, reason: "Import failed" });
+        }
+      }
+    }
+
+    return { imported, failed };
+  }
+
   public async updateTask(id: number, projectId: number, data: TaskUpdateRequest, userId: number): Promise<TaskDetailEntity>{
     await this.taskRepository.getByIdAndProjectIdOrThrow(id, projectId);
 
@@ -232,4 +337,21 @@ function isSourceEventConflict(e: unknown): boolean {
   const code = err?.code ?? err?.cause?.code;
   const constraint = err?.constraint ?? err?.cause?.constraint;
   return code === "23505" && constraint === "task_source_event_unique_idx";
+}
+
+/**
+ * Postgres unique violation on the partial (project, source task) index —
+ * i.e. this source task already has a non-deleted copy in the target project.
+ */
+function isSourceTaskConflict(e: unknown): boolean {
+  const err = e as { code?: string; constraint?: string; cause?: { code?: string; constraint?: string } };
+  const code = err?.code ?? err?.cause?.code;
+  const constraint = err?.constraint ?? err?.cause?.constraint;
+  return code === "23505" && constraint === "task_source_task_unique_idx";
+}
+
+/** ".jpeg" from ".../uuid_image-123.jpeg"; empty string when there is none. */
+function extractExtension(filePath: string): string {
+  const match = /\.[a-zA-Z0-9]+$/.exec(filePath);
+  return match ? match[0] : "";
 }
