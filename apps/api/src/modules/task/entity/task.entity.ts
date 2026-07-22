@@ -26,6 +26,7 @@ export class TaskEntity {
   readonly recall: number | null;
   readonly sourceDashboardId: number | null;
   readonly sourceEventId: number | null;
+  readonly sourceTaskId: number | null;
 
   constructor(data: TaskSelect) {
     this.id = data.id;
@@ -48,6 +49,7 @@ export class TaskEntity {
     this.recall = data.recall ?? null;
     this.sourceDashboardId = data.sourceDashboardId ?? null;
     this.sourceEventId = data.sourceEventId ?? null;
+    this.sourceTaskId = data.sourceTaskId ?? null;
   }
 
   public toResponse(): Task {
@@ -68,6 +70,7 @@ export class TaskEntity {
       recall: this.recall,
       sourceDashboardId: this.sourceDashboardId,
       sourceEventId: this.sourceEventId,
+      sourceTaskId: this.sourceTaskId,
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),
       deletedAt: this.deletedAt ? this.deletedAt.toISOString() : null,

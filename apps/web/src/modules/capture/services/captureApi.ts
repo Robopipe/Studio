@@ -7,6 +7,9 @@ import {
   ConfirmTaskUpload,
   ConfirmVideoUpload,
   ImportedEventIdsResponse,
+  ImportedSourceTaskIdsResponse,
+  ImportTasks,
+  ImportTasksResponse,
   PaginatedCapturedVideos,
   PaginatedTasks,
   RequestTaskUploadInput,
@@ -119,6 +122,34 @@ export const captureApi = captureApiBase.injectEndpoints({
         { type: CaptureApiTagType.Tasks, id: projectId },
       ],
     }),
+    importTasks: builder.mutation<
+      ImportTasksResponse,
+      { projectId: number } & ImportTasks
+    >({
+      query: ({ projectId, ...body }) => ({
+        url: tasks.import(projectId),
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: (_result, _error, { projectId }) => [
+        { type: CaptureApiTagType.Tasks, id: projectId },
+      ],
+    }),
+    getImportedSourceTaskIds: builder.query<
+      ImportedSourceTaskIdsResponse,
+      { projectId: number; sourceProjectId: number }
+    >({
+      query: ({ projectId, sourceProjectId }) => ({
+        url: tasks.importedSourceTasks(projectId),
+        method: HttpMethod.GET,
+        params: { sourceProjectId },
+      }),
+      // Provided under the target project's Tasks tag so a successful import
+      // or a dataset delete refreshes the picker's "already imported" state.
+      providesTags: (_result, _error, { projectId }) => [
+        { type: CaptureApiTagType.Tasks, id: projectId },
+      ],
+    }),
     exportTasks: builder.query<
       TaskExport,
       { projectId: number; annotated?: string; labelIds?: string }
@@ -209,6 +240,8 @@ export const {
   useLazyGetTasksQuery,
   useGetTaskIdsQuery,
   useGetImportedEventsQuery,
+  useImportTasksMutation,
+  useGetImportedSourceTaskIdsQuery,
   useLazyExportTasksQuery,
   useDeleteTaskMutation,
   useRequestVideoUploadUrlsMutation,
