@@ -122,6 +122,19 @@ export class AssetsService {
     return signedUrl;
   }
 
+  /**
+   * Server-side GCS object-to-object copy — no bytes leave the bucket.
+   * @param source - GCS object path or full public URL
+   * @param destObjectPath - destination GCS object path
+   * @returns public URL of the copied object
+   */
+  public async copyFile(source: string, destObjectPath: string): Promise<string> {
+    const sourcePath = this.toObjectPath(source);
+    const [copied] = await this.bucket.file(sourcePath).copy(this.bucket.file(destObjectPath));
+    await copied.makePublic();
+    return decodeURIComponent(copied.publicUrl());
+  }
+
   private toObjectPath(input: string): string {
     if (!input.startsWith("http")) return input;
     try {

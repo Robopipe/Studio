@@ -106,7 +106,10 @@ const ModelNewPageInner = () => {
     duplicateState?.trainingType ?? ProjectTypeEnum.DETECTION,
   );
   const [annotationsUsed, setAnnotationsUsed] = useState<ProjectTypeEnum[]>(
-    duplicateState?.annotationsUsed ?? [ProjectTypeEnum.DETECTION],
+    duplicateState?.annotationsUsed ?? [
+      ProjectTypeEnum.DETECTION,
+      ProjectTypeEnum.SEGMENTATION,
+    ],
   );
   const [customHyperparams, setCustomHyperparams] = useState(() => {
     if (duplicateState?.customHyperparams !== undefined) {

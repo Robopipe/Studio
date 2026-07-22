@@ -35,6 +35,9 @@ export const studioApiEndpoints = {
     ids: (projectId: number) => `task/${projectId}/ids`,
     history: (projectId: number, taskId: number) => `task/${projectId}/${taskId}/history`,
     importedEvents: (projectId: number) => `task/${projectId}/imported-events`,
+    import: (projectId: number) => `task/${projectId}/import`,
+    importedSourceTasks: (projectId: number) =>
+      `task/${projectId}/imported-source-tasks`,
   },
   projects: {
     projects: "projects",

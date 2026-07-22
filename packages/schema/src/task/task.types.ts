@@ -9,6 +9,10 @@ import {
   createTaskSchema,
   importedEventIdsResponseSchema,
   importedEventsQuerySchema,
+  importedSourceTaskIdsQuerySchema,
+  importedSourceTaskIdsResponseSchema,
+  importTasksResponseSchema,
+  importTasksSchema,
   paginatedTaskSchema,
   polygonAnnotationSchema,
   polygonAnnotationHistoryGroupSchema,
@@ -25,6 +29,7 @@ import {
   taskIdsResponseSchema,
   taskPaginationQuerySchema,
   taskSchema,
+  taskUploadContentTypeSchema,
   taskUploadUrlSchema,
   updateTaskSchema,
 } from "./task.schema";
@@ -43,10 +48,17 @@ export type UpdateTask = z.infer<typeof updateTaskSchema>
 export type TaskPaginationQuery = z.infer<typeof taskPaginationQuerySchema>
 export type PaginatedTasks = z.infer<typeof paginatedTaskSchema>
 export type RequestTaskUpload = z.infer<typeof requestTaskUploadSchema>
+// Input type: contentType has a schema default, so callers may omit it.
+export type RequestTaskUploadInput = z.input<typeof requestTaskUploadSchema>
+export type TaskUploadContentType = z.infer<typeof taskUploadContentTypeSchema>
 export type TaskUploadUrl = z.infer<typeof taskUploadUrlSchema>
 export type ConfirmTaskUpload = z.infer<typeof confirmTaskUploadSchema>
 export type ImportedEventsQuery = z.infer<typeof importedEventsQuerySchema>
 export type ImportedEventIdsResponse = z.infer<typeof importedEventIdsResponseSchema>
+export type ImportTasks = z.infer<typeof importTasksSchema>
+export type ImportTasksResponse = z.infer<typeof importTasksResponseSchema>
+export type ImportedSourceTaskIdsQuery = z.infer<typeof importedSourceTaskIdsQuerySchema>
+export type ImportedSourceTaskIdsResponse = z.infer<typeof importedSourceTaskIdsResponseSchema>
 export type TaskExport = z.infer<typeof taskExportSchema>
 export type TaskExportQuery = z.infer<typeof taskExportQuerySchema>
 export type TaskIdsQuery = z.infer<typeof taskIdsQuerySchema>

@@ -1,5 +1,6 @@
 import { Inject, Injectable, InternalServerErrorException, NotFoundException } from "@nestjs/common";
 import { taskTable, rectangleAnnotationTable, polygonAnnotationTable, classificationAnnotationTable } from "@repo/database/schema";
+import { alias } from "drizzle-orm/pg-core";
 import { DB_CONNECTION } from "src/core/database/database.constant";
 import type { DbConnection } from "src/core/database/types/database.types";
 import { TaskDetailEntity, TaskEntity } from "../../modules/task/entity/task.entity";
@@ -325,6 +326,55 @@ export class TaskRepository {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-expect-error
     return tasks.map((t) => new TaskDetailEntity(t));
+  }
+
+  /**
+   * Non-deleted tasks matching the given ids, scoped to a project.
+   * Ids from other projects or soft-deleted tasks are silently omitted.
+   */
+  public async getAllByIdsAndProjectId(ids: number[], projectId: number): Promise<TaskEntity[]> {
+    if (ids.length === 0) return [];
+
+    const tasks = await this.db
+      .select()
+      .from(taskTable)
+      .where(
+        and(
+          inArray(taskTable.id, ids),
+          eq(taskTable.projectId, projectId),
+          isNull(taskTable.deletedAt),
+        ),
+      );
+
+    return tasks.map((t) => new TaskEntity(t));
+  }
+
+  /**
+   * Ids of tasks in the source project that already have a non-deleted copy
+   * in the target project (via cross-project import). Powers the picker's
+   * "already imported" state.
+   */
+  public async getImportedSourceTaskIds(
+    targetProjectId: number,
+    sourceProjectId: number,
+  ): Promise<number[]> {
+    const sourceTask = alias(taskTable, "source_task");
+
+    const rows = await this.db
+      .select({ id: taskTable.sourceTaskId })
+      .from(taskTable)
+      .innerJoin(sourceTask, eq(sourceTask.id, taskTable.sourceTaskId))
+      .where(
+        and(
+          eq(taskTable.projectId, targetProjectId),
+          eq(sourceTask.projectId, sourceProjectId),
+          isNull(taskTable.deletedAt),
+        ),
+      );
+
+    return rows
+      .map((r) => r.id)
+      .filter((id): id is number => id !== null);
   }
 
   /**

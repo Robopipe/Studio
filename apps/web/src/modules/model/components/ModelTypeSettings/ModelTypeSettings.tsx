@@ -54,7 +54,10 @@ export const ModelTypeSettings = ({
   const handleTrainingTypeChange = (type: ProjectTypeEnum) => {
     onTrainingTypeChange(type);
     if (type === ProjectTypeEnum.DETECTION) {
-      onAnnotationsUsedChange([ProjectTypeEnum.DETECTION]);
+      onAnnotationsUsedChange([
+        ProjectTypeEnum.DETECTION,
+        ProjectTypeEnum.SEGMENTATION,
+      ]);
     } else {
       onAnnotationsUsedChange([type]);
     }

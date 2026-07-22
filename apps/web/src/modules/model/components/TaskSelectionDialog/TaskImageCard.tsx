@@ -7,28 +7,34 @@ export interface TaskImageCardProps {
   task: Task;
   selected: boolean;
   onToggle: (taskId: number, shiftKey: boolean) => void;
+  /** Non-interactive and dimmed, with an "Imported" badge (cross-project import picker). */
+  disabled?: boolean;
 }
 
 export const TaskImageCard = ({
   task,
   selected,
   onToggle,
+  disabled = false,
 }: TaskImageCardProps) => (
   <div
     role="button"
-    tabIndex={0}
-    onClick={(e) => onToggle(task.id, e.shiftKey)}
+    tabIndex={disabled ? -1 : 0}
+    aria-disabled={disabled}
+    onClick={disabled ? undefined : (e) => onToggle(task.id, e.shiftKey)}
     onKeyDown={(e) => {
-      if (e.key === "Enter" || e.key === " ") {
+      if (!disabled && (e.key === "Enter" || e.key === " ")) {
         e.preventDefault();
         onToggle(task.id, e.shiftKey);
       }
     }}
     className={cn(
       "group relative flex cursor-pointer flex-col gap-2 rounded-sm border p-2 transition-colors select-none focus-visible:outline-2 focus-visible:outline-emerald-500",
-      selected
-        ? "border-emerald-500 bg-emerald-500/10"
-        : "border-black/10 bg-black/2 hover:border-black/20",
+      disabled
+        ? "cursor-default border-black/10 bg-black/2 opacity-60"
+        : selected
+          ? "border-emerald-500 bg-emerald-500/10"
+          : "border-black/10 bg-black/2 hover:border-black/20",
     )}
   >
     {/* Top row: checkbox (left) + iid (center) + annotation chip (right) */}
@@ -57,6 +63,11 @@ export const TaskImageCard = ({
         alt={`#${task.iid}`}
         className="size-full object-cover"
       />
+      {disabled && (
+        <span className="absolute right-1 bottom-1 rounded-xs bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white">
+          Imported
+        </span>
+      )}
     </div>
   </div>
 );
