@@ -4,7 +4,7 @@ import { TaskRepository } from "../../../repository/services/task-repository.ser
 import { PendingTaskRepository } from "../../../repository/services/pending-task-repository.service";
 import { ProjectRepository } from "../../../repository/services/project-repository.service";
 import { ProjectLabelRepository } from "../../../repository/services/project-label-repository.service";
-import { TaskFileTypeEnum, TaskStatusEnum, TaskSortBy, type ConfirmTaskUpload, type TaskExport, type TaskUploadUrl } from "@repo/schema";
+import { TaskFileTypeEnum, TaskStatusEnum, TaskSortBy, type ConfirmTaskUpload, type TaskExport, type TaskUploadContentType, type TaskUploadUrl } from "@repo/schema";
 import { TaskDetailEntity, TaskEntity } from "../entity/task.entity";
 import { TaskUpdateRequest } from "../dto/task.dto";
 import { DB_CONNECTION } from "../../../core/database/database.constant";
@@ -33,8 +33,13 @@ export class TaskService {
    * Step 1 of the capture upload flow: reserve an iid, stash the GCS object
    * path in `pending_task`, and hand the browser a signed PUT URL.
    */
-  public async requestUploadUrl(projectId: number, capturedAt?: string): Promise<TaskUploadUrl> {
-    const filename = `image-${Date.now()}.jpeg`;
+  public async requestUploadUrl(
+    projectId: number,
+    capturedAt?: string,
+    contentType: TaskUploadContentType = "image/jpeg",
+  ): Promise<TaskUploadUrl> {
+    const extension = contentType.split("/")[1];
+    const filename = `image-${Date.now()}.${extension}`;
     const objectPath = this.assetsService.getAssetName(filename, projectId, "asset");
 
     // Run the DB reservation and the IAM signBlob round-trip in parallel —
@@ -45,7 +50,7 @@ export class TaskService {
         objectPath,
         capturedAt: capturedAt ? new Date(capturedAt) : null,
       }),
-      this.assetsService.generateSignedUploadUrl(objectPath, "image/jpeg"),
+      this.assetsService.generateSignedUploadUrl(objectPath, contentType),
     ]);
 
     return { pendingTaskId: pending.id, uploadUrl, objectPath };

@@ -9,7 +9,7 @@ import {
   ImportedEventIdsResponse,
   PaginatedCapturedVideos,
   PaginatedTasks,
-  RequestTaskUpload,
+  RequestTaskUploadInput,
   RequestVideoUploadUrls,
   Task,
   TaskExport,
@@ -35,7 +35,7 @@ export const captureApi = captureApiBase.injectEndpoints({
   endpoints: (builder) => ({
     requestTaskUploadUrl: builder.mutation<
       TaskUploadUrl,
-      { projectId: number } & RequestTaskUpload
+      { projectId: number } & RequestTaskUploadInput
     >({
       query: ({ projectId, ...body }) => ({
         url: tasks.uploadUrl(projectId),

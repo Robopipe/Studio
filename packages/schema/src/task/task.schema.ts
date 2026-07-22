@@ -177,8 +177,15 @@ export const paginatedTaskSchema = paginatedResponseSchema(taskSchema);
  *  2. browser PUTs image bytes directly to GCS
  *  3. POST confirm → promotes pending row into a real Task
  */
+export const taskUploadContentTypeSchema = z.enum([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
+
 export const requestTaskUploadSchema = z.object({
   capturedAt: z.iso.datetime().optional(),
+  contentType: taskUploadContentTypeSchema.default("image/jpeg"),
 });
 
 export const taskUploadUrlSchema = z.object({

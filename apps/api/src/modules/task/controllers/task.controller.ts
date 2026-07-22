@@ -42,7 +42,7 @@ export class TaskController {
     @ProjectId() projectId: number,
     @Body() body: RequestTaskUploadDto,
   ): Promise<TaskUploadUrlResponse> {
-    return this.taskService.requestUploadUrl(projectId, body.capturedAt);
+    return this.taskService.requestUploadUrl(projectId, body.capturedAt, body.contentType);
   }
 
   @Post("confirm")
