@@ -5,6 +5,7 @@ import { CaptureVideo } from "../CaptureVideo";
 import { RestartCameraButton } from "../RestartCameraButton/RestartCameraButton";
 import { SelectStream } from "../SelectStream";
 import { StopCaptureDialog } from "../StopCaptureDialog";
+import { UploadImages } from "../UploadImages";
 
 export interface CaptureSettingsProps {
   selectedCamera: string | null;
@@ -68,15 +69,14 @@ export const CaptureSettings = ({
             onIntervalCapturingChange={setIsIntervalCapturing}
           />
 
-          <CaptureVideo
-            mediaStream={mediaStream}
-            isStreaming={isStreaming}
-          />
+          <CaptureVideo mediaStream={mediaStream} isStreaming={isStreaming} />
         </>
       )}
 
       {selectedCamera && (
-        <div className="mt-auto border-t border-black/10 pt-4">
+        <div className="mt-auto flex flex-col gap-3 pt-4">
+          <UploadImages />
+          <div className="border-t border-black/10" />
           <RestartCameraButton
             mxid={selectedCamera}
             streamName={selectedStream}
