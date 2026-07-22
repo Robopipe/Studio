@@ -37,6 +37,11 @@ export const taskTable = p.pgTable("task", {
   // Null for regular captures.
   sourceDashboardId: p.integer("source_dashboard_id"),
   sourceEventId: p.integer("source_event_id"),
+  // Task in another project this image was copied from ("import from project").
+  // Null for regular captures. Points at the immediate parent only.
+  sourceTaskId: p
+    .integer("source_task_id")
+    .references((): p.AnyPgColumn => taskTable.id, { onDelete: "set null" }),
   ...timestamps,
 }, (t) => [
   p.unique().on(t.projectId, t.iid),
@@ -44,5 +49,8 @@ export const taskTable = p.pgTable("task", {
   // Partial so soft-deleting an imported task frees the slot for re-import.
   p.uniqueIndex("task_source_event_unique_idx")
     .on(t.projectId, t.sourceDashboardId, t.sourceEventId)
+    .where(sql`${t.deletedAt} IS NULL`),
+  p.uniqueIndex("task_source_task_unique_idx")
+    .on(t.projectId, t.sourceTaskId)
     .where(sql`${t.deletedAt} IS NULL`),
 ]);
