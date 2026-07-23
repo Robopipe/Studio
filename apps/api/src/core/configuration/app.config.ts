@@ -74,6 +74,12 @@ export const appConfigSchema = z.object({
   // Neither set → the confidence report run endpoint returns 503.
   mlInferJobName: z.string().optional(),
   mlHostInfer: z.string().optional(),
+  // Gemini via Vertex AI (ADC auth) — hyperparameter suggestions. The feature
+  // is enabled when gcpProject is set; without it the suggest endpoint
+  // returns 503. europe-west4 keeps LLM processing in the EU alongside the
+  // training region; verify model availability there before switching models.
+  geminiModel: z.string().default("gemini-2.5-flash"),
+  geminiLocation: z.string().default("europe-west4"),
 });
 
 export class AppConfig extends createZodDto(appConfigSchema) {}

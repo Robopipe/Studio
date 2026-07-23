@@ -58,6 +58,8 @@ resource "google_project_service" "apis" {
     "artifactregistry.googleapis.com",
     "servicenetworking.googleapis.com",
     "cloudkms.googleapis.com",
+    # Vertex AI — Gemini calls for AI hyperparameter suggestions (API service)
+    "aiplatform.googleapis.com",
   ])
 
   project            = var.project_id

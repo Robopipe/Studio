@@ -10,6 +10,13 @@ resource "google_project_iam_member" "api_sign_blob" {
   member  = "serviceAccount:${var.service_account}"
 }
 
+# Vertex AI (Gemini) — AI hyperparameter suggestions in the API service.
+resource "google_project_iam_member" "api_aiplatform_user" {
+  project = var.project_id
+  role    = "roles/aiplatform.user"
+  member  = "serviceAccount:${var.service_account}"
+}
+
 resource "google_cloud_run_v2_service" "api" {
   project  = var.project_id
   name     = "${var.name_prefix}-api"
@@ -135,6 +142,18 @@ resource "google_cloud_run_v2_service" "api" {
       env {
         name  = "GCP_PROJECT"
         value = var.gcp_project
+      }
+
+      # Empty values fall through to the code defaults (config-loader treats
+      # "" as unset), so these only matter as overrides.
+      env {
+        name  = "GEMINI_MODEL"
+        value = var.gemini_model
+      }
+
+      env {
+        name  = "GEMINI_LOCATION"
+        value = var.gemini_location
       }
 
       env {

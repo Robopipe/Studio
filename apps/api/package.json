@@ -21,6 +21,7 @@
     "@google-cloud/run": "^3.3.0",
     "@google-cloud/secret-manager": "^6.1.1",
     "@google-cloud/storage": "^7.18.0",
+    "@google/genai": "^2.13.0",
     "@nestjs/axios": "^4.0.1",
     "@nestjs/common": "^11.0.0",
     "@nestjs/config": "^4.0.2",

@@ -22,7 +22,8 @@ export const studioApiEndpoints = {
     members: "organizations/current/members",
     invite: "organizations/current/invite",
     member: (userId: number) => `organizations/current/members/${userId}`,
-    memberRole: (userId: number) => `organizations/current/members/${userId}/role`,
+    memberRole: (userId: number) =>
+      `organizations/current/members/${userId}/role`,
     invitations: "organizations/current/invitations",
     invitation: (id: number) => `organizations/current/invitations/${id}`,
   },
@@ -33,7 +34,8 @@ export const studioApiEndpoints = {
     confirm: (projectId: number) => `task/${projectId}/confirm`,
     export: (projectId: number) => `task/${projectId}/export`,
     ids: (projectId: number) => `task/${projectId}/ids`,
-    history: (projectId: number, taskId: number) => `task/${projectId}/${taskId}/history`,
+    history: (projectId: number, taskId: number) =>
+      `task/${projectId}/${taskId}/history`,
     importedEvents: (projectId: number) => `task/${projectId}/imported-events`,
     import: (projectId: number) => `task/${projectId}/import`,
     importedSourceTasks: (projectId: number) =>
@@ -73,6 +75,8 @@ export const studioApiEndpoints = {
   analytics: {
     datasetStats: (projectId: number) => `analytics/${projectId}/dataset-stats`,
   },
+  hyperparamSuggestion: (projectId: number) =>
+    `hyperparam-suggestion/${projectId}`,
   confidenceReport: {
     report: (projectId: number) => `confidence-report/${projectId}`,
     regions: (projectId: number, taskId: number) =>

@@ -185,3 +185,15 @@ variable "ml_infer_job_name" {
   type        = string
   default     = ""
 }
+
+variable "gemini_model" {
+  description = "Gemini model for AI hyperparameter suggestions (empty = code default)"
+  type        = string
+  default     = ""
+}
+
+variable "gemini_location" {
+  description = "Vertex AI location for Gemini calls (empty = code default, europe-west4)"
+  type        = string
+  default     = ""
+}
