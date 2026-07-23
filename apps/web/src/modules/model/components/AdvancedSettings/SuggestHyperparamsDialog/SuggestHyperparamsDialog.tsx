@@ -25,7 +25,9 @@ import {
   SuggestionWarningSeverityEnum,
 } from "@repo/schema";
 import { AlertCircle, AlertTriangle, Info } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useBlocker } from "react-router";
+import { toast } from "sonner";
 import { useSuggestHyperparamsMutation } from "../../../services";
 import { SuggestedParamRow, SuggestedValue } from "./SuggestedParamRow";
 
@@ -98,6 +100,7 @@ export const SuggestHyperparamsDialog = ({
   onApply,
 }: SuggestHyperparamsDialogProps) => {
   const [suggest, { data, isLoading, error }] = useSuggestHyperparamsMutation();
+  const requestRef = useRef<ReturnType<typeof suggest> | null>(null);
   const [edited, setEdited] = useState<Record<string, SuggestedValue>>({});
   const [editedEpochs, setEditedEpochs] = useState<number | null>(null);
   const [applyError, setApplyError] = useState<string | null>(null);
@@ -107,10 +110,39 @@ export const SuggestHyperparamsDialog = ({
   useEffect(() => {
     if (!open) return;
     setApplyError(null);
-    suggest(context);
+    requestRef.current = suggest(context);
     // Fire once per dialog open — the context snapshot is taken at open time.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  // The Gemini result only exists in this dialog — losing it mid-request means
+  // paying for the call again. Block in-app navigation while it's in flight.
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      isLoading && currentLocation.pathname !== nextLocation.pathname,
+  );
+
+  useEffect(() => {
+    if (blocker.state === "blocked") {
+      toast.warning("AI suggestion in progress — cancel it before leaving.");
+      blocker.reset?.();
+    }
+  }, [blocker]);
+
+  useEffect(() => {
+    if (!isLoading) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isLoading]);
+
+  const handleCancel = () => {
+    if (isLoading) requestRef.current?.abort();
+    onOpenChange(false);
+  };
 
   useEffect(() => {
     if (!data) return;
@@ -149,8 +181,19 @@ export const SuggestHyperparamsDialog = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[90vh] flex-col gap-0 sm:max-w-[760px]">
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        // While the request is in flight, only the Cancel button (which
+        // aborts) may close the dialog — not escape, backdrop, or the X.
+        if (!next && isLoading) return;
+        onOpenChange(next);
+      }}
+    >
+      <DialogContent
+        className="flex max-h-[90vh] flex-col gap-0 sm:max-w-[760px]"
+        showCloseButton={!isLoading}
+      >
         <DialogHeader>
           <DialogTitle>AI Suggested Training Settings</DialogTitle>
         </DialogHeader>
@@ -170,7 +213,12 @@ export const SuggestHyperparamsDialog = ({
               <span className="text-sm text-red-600">
                 {extractErrorMessage(error)}
               </span>
-              <Button variant="outline" onClick={() => suggest(context)}>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  requestRef.current = suggest(context);
+                }}
+              >
                 Retry
               </Button>
             </div>
@@ -251,7 +299,7 @@ export const SuggestHyperparamsDialog = ({
           {applyError && (
             <span className="mr-auto text-xs text-red-600">{applyError}</span>
           )}
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={handleCancel}>
             Cancel
           </Button>
           <Button onClick={handleApply} disabled={isLoading || !data}>

@@ -66,7 +66,26 @@ export const AdvancedSettings = ({
     setModalOpen(false);
   };
 
+  const handleApplySuggestion = (result: AppliedSuggestion) => {
+    setAdvancedOpen(true);
+    onApplySuggestion(result);
+  };
+
   const hasSummary = customHyperparams.trim().length > 0;
+
+  const suggestButton = (className?: string) => (
+    <button
+      type="button"
+      onClick={() => setSuggestOpen(true)}
+      className={cn(
+        "flex cursor-pointer flex-row items-center gap-1 text-sm font-medium leading-5 text-emerald-700 hover:underline",
+        className,
+      )}
+    >
+      <Sparkles className="size-3.5" />
+      Suggest with AI
+    </button>
+  );
 
   return (
     <>
@@ -77,6 +96,7 @@ export const AdvancedSettings = ({
         collapsible
         open={advancedOpen}
         onOpenChange={setAdvancedOpen}
+        headerActions={suggestButton("py-1")}
       >
         <div className="flex flex-1 flex-col gap-4">
           <div className="flex flex-col gap-0.5">
@@ -193,14 +213,7 @@ export const AdvancedSettings = ({
               >
                 {hasSummary ? "Edit" : "Configure"}
               </button>
-              <button
-                type="button"
-                onClick={() => setSuggestOpen(true)}
-                className="flex cursor-pointer flex-row items-center gap-1 text-sm font-medium leading-5 text-emerald-700 hover:underline"
-              >
-                <Sparkles className="size-3.5" />
-                Suggest with AI
-              </button>
+              {suggestButton()}
               {hasSummary && (
                 <button
                   type="button"
@@ -246,7 +259,7 @@ export const AdvancedSettings = ({
           open={suggestOpen}
           onOpenChange={setSuggestOpen}
           context={suggestionContext}
-          onApply={onApplySuggestion}
+          onApply={handleApplySuggestion}
         />
       )}
     </>
