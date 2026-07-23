@@ -1,13 +1,44 @@
-import { Inject, Injectable, InternalServerErrorException, NotFoundException } from "@nestjs/common";
-import { taskTable, rectangleAnnotationTable, polygonAnnotationTable, classificationAnnotationTable } from "@repo/database/schema";
+import {
+  Inject,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from "@nestjs/common";
+import {
+  classificationAnnotationTable,
+  polygonAnnotationTable,
+  rectangleAnnotationTable,
+  taskTable,
+} from "@repo/database/schema";
+import type { AnnotationType, TaskSortBy } from "@repo/schema";
+import { TaskStatusEnum } from "@repo/schema";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  inArray,
+  isNotNull,
+  isNull,
+  max,
+  sql,
+  type SQL,
+} from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { DB_CONNECTION } from "src/core/database/database.constant";
 import type { DbConnection } from "src/core/database/types/database.types";
-import { TaskDetailEntity, TaskEntity } from "../../modules/task/entity/task.entity";
+import {
+  TaskDetailEntity,
+  TaskEntity,
+} from "../../modules/task/entity/task.entity";
 import { TaskInsert } from "../types/task";
-import { and, asc, count, desc, eq, inArray, isNotNull, isNull, max, sql, type SQL } from "drizzle-orm";
-import type { TaskSortBy } from "@repo/schema";
-import { TaskStatusEnum } from "@repo/schema";
+
+export interface LabelCoverageRow {
+  taskId: number;
+  labelId: number;
+  count: number;
+}
 
 const METRIC_SORT_COLUMNS = {
   meanConfidence: taskTable.meanConfidence,
@@ -21,14 +52,18 @@ const METRIC_SORT_COLUMNS = {
  * Metric columns always use NULLS LAST (un-scored tasks sink to the bottom).
  * A stable `DESC id` tiebreaker is appended for deterministic pagination.
  */
-function buildTaskOrderBy(sortBy: TaskSortBy, sortOrder: "asc" | "desc"): SQL[] {
+function buildTaskOrderBy(
+  sortBy: TaskSortBy,
+  sortOrder: "asc" | "desc",
+): SQL[] {
   const orderFn = sortOrder === "desc" ? desc : asc;
   if (sortBy in METRIC_SORT_COLUMNS) {
     const col = METRIC_SORT_COLUMNS[sortBy as keyof typeof METRIC_SORT_COLUMNS];
     const dir = sql.raw(sortOrder === "desc" ? "desc" : "asc");
     return [sql`${col} ${dir} nulls last`, desc(taskTable.id)];
   }
-  const col = sortBy === "updatedAt" ? taskTable.updatedAt : taskTable.createdAt;
+  const col =
+    sortBy === "updatedAt" ? taskTable.updatedAt : taskTable.createdAt;
   return [orderFn(col), desc(taskTable.id)];
 }
 
@@ -42,33 +77,36 @@ export class TaskRepository {
    * @param projectId
    * @returns TaskEntity
    */
-  public async getByIdAndProjectId(id: number, projectId: number): Promise<TaskDetailEntity | null> {
+  public async getByIdAndProjectId(
+    id: number,
+    projectId: number,
+  ): Promise<TaskDetailEntity | null> {
     const foundTask = await this.db.query.taskTable.findFirst({
       where: {
         id,
         projectId,
         deletedAt: {
-          isNull: true
-        }
+          isNull: true,
+        },
       },
       with: {
         rectangleAnnotations: {
           with: {
             label: true,
-          }
+          },
         },
         polygonAnnotations: {
           with: {
-            label: true
-          }
+            label: true,
+          },
         },
         classificationAnnotations: {
           with: {
-            label: true
-          }
-        }
-      }
-    })
+            label: true,
+          },
+        },
+      },
+    });
 
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-expect-error
@@ -82,13 +120,16 @@ export class TaskRepository {
    * @throws NotFoundException - Task not found
    * @returns TaskDetailEntity
    */
-  public async getByIdAndProjectIdOrThrow(id: number, projectId: number): Promise<TaskDetailEntity> {
+  public async getByIdAndProjectIdOrThrow(
+    id: number,
+    projectId: number,
+  ): Promise<TaskDetailEntity> {
     const task = await this.getByIdAndProjectId(id, projectId);
-    if(!task){
-      throw new NotFoundException('Task not found');
+    if (!task) {
+      throw new NotFoundException("Task not found");
     }
 
-    return task
+    return task;
   }
 
   /**
@@ -98,12 +139,15 @@ export class TaskRepository {
    * @returns TaskEntity
    */
   public async create(data: TaskInsert): Promise<TaskEntity> {
-    const [createdTask] = await this.db.insert(taskTable).values(data).returning()
-    if(!createdTask){
-      throw new InternalServerErrorException("Failed creating task")
+    const [createdTask] = await this.db
+      .insert(taskTable)
+      .values(data)
+      .returning();
+    if (!createdTask) {
+      throw new InternalServerErrorException("Failed creating task");
     }
 
-    return new TaskEntity(createdTask)
+    return new TaskEntity(createdTask);
   }
 
   /**
@@ -113,29 +157,36 @@ export class TaskRepository {
    * @param data - TaskInsert without iid
    * @returns TaskEntity
    */
-  public async createWithNextIid(projectId: number, data: Omit<TaskInsert, 'iid'>): Promise<TaskEntity> {
+  public async createWithNextIid(
+    projectId: number,
+    data: Omit<TaskInsert, "iid">,
+  ): Promise<TaskEntity> {
     return this.db.transaction(async (tx) => {
-      await tx.execute(sql`SELECT pg_advisory_xact_lock(${projectId})`)
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(${projectId})`);
 
       const result = await tx
         .select({
-          maxIid: max(sql`CASE WHEN ${taskTable.iid} ~ '^[0-9]+$' THEN ${taskTable.iid}::int END`),
+          maxIid: max(
+            sql`CASE WHEN ${taskTable.iid} ~ '^[0-9]+$' THEN ${taskTable.iid}::int END`,
+          ),
         })
         .from(taskTable)
-        .where(eq(taskTable.projectId, projectId))
+        .where(eq(taskTable.projectId, projectId));
 
-      const maxNumeric = result[0]?.maxIid ?? 0
-      const nextIid = String(Number(maxNumeric) + 1)
+      const maxNumeric = result[0]?.maxIid ?? 0;
+      const nextIid = String(Number(maxNumeric) + 1);
 
-      const [createdTask] = await tx.insert(taskTable).values({ ...data, iid: nextIid }).returning()
+      const [createdTask] = await tx
+        .insert(taskTable)
+        .values({ ...data, iid: nextIid })
+        .returning();
       if (!createdTask) {
-        throw new InternalServerErrorException("Failed creating task")
+        throw new InternalServerErrorException("Failed creating task");
       }
 
-      return new TaskEntity(createdTask)
-    })
+      return new TaskEntity(createdTask);
+    });
   }
-
 
   /**
    * Get all tasks by project ID
@@ -146,11 +197,11 @@ export class TaskRepository {
   public async getAllByProjectId(projectId: number): Promise<TaskEntity[]> {
     const tasks = await this.db.query.taskTable.findMany({
       where: {
-        projectId
+        projectId,
       },
-    })
+    });
 
-    return tasks.map((t) => new TaskEntity(t))
+    return tasks.map((t) => new TaskEntity(t));
   }
 
   /**
@@ -178,14 +229,19 @@ export class TaskRepository {
 
     // Build deletedAt condition
     const deletedAtCondition: SQL | undefined =
-      deleted === false ? isNull(taskTable.deletedAt) :
-      deleted === true ? isNotNull(taskTable.deletedAt) :
-      undefined;
+      deleted === false
+        ? isNull(taskTable.deletedAt)
+        : deleted === true
+          ? isNotNull(taskTable.deletedAt)
+          : undefined;
 
     // Build status filter based on annotated param
-    const statusValue = annotated === true ? TaskStatusEnum.DONE
-      : annotated === false ? TaskStatusEnum.TODO
-      : undefined;
+    const statusValue =
+      annotated === true
+        ? TaskStatusEnum.DONE
+        : annotated === false
+          ? TaskStatusEnum.TODO
+          : undefined;
 
     const statusCondition: SQL | undefined = statusValue
       ? eq(taskTable.status, statusValue)
@@ -216,15 +272,14 @@ export class TaskRepository {
     );
 
     const [tasks, totalResult] = await Promise.all([
-      this.db.select()
+      this.db
+        .select()
         .from(taskTable)
         .where(whereCondition)
         .orderBy(...buildTaskOrderBy(sortBy, sortOrder))
         .limit(limit)
         .offset(offset),
-      this.db.select({ count: count() })
-        .from(taskTable)
-        .where(whereCondition),
+      this.db.select({ count: count() }).from(taskTable).where(whereCondition),
     ]);
 
     return {
@@ -246,9 +301,12 @@ export class TaskRepository {
     sortBy: TaskSortBy = "createdAt",
     sortOrder: "asc" | "desc" = "desc",
   ): Promise<number[]> {
-    const statusValue = annotated === true ? TaskStatusEnum.DONE
-      : annotated === false ? TaskStatusEnum.TODO
-      : undefined;
+    const statusValue =
+      annotated === true
+        ? TaskStatusEnum.DONE
+        : annotated === false
+          ? TaskStatusEnum.TODO
+          : undefined;
 
     const statusCondition: SQL | undefined = statusValue
       ? eq(taskTable.status, statusValue)
@@ -274,8 +332,13 @@ export class TaskRepository {
     return rows.map((r) => r.id);
   }
 
-  private buildLabelExistsCondition(labelIds: number[]): (taskId: SQL | typeof taskTable.id) => SQL {
-    const inList = sql.join(labelIds.map((id) => sql`${id}`), sql`, `);
+  private buildLabelExistsCondition(
+    labelIds: number[],
+  ): (taskId: SQL | typeof taskTable.id) => SQL {
+    const inList = sql.join(
+      labelIds.map((id) => sql`${id}`),
+      sql`, `,
+    );
     const labelCount = sql`${labelIds.length}`;
     return (taskId) => {
       return sql`(
@@ -300,9 +363,12 @@ export class TaskRepository {
     annotated?: boolean,
     labelIds?: number[],
   ): Promise<TaskDetailEntity[]> {
-    const statusValue = annotated === true ? TaskStatusEnum.DONE
-      : annotated === false ? TaskStatusEnum.TODO
-      : undefined;
+    const statusValue =
+      annotated === true
+        ? TaskStatusEnum.DONE
+        : annotated === false
+          ? TaskStatusEnum.TODO
+          : undefined;
 
     const buildLabelCondition = labelIds?.length
       ? this.buildLabelExistsCondition(labelIds)
@@ -313,9 +379,91 @@ export class TaskRepository {
         projectId,
         deletedAt: { isNull: true },
         ...(statusValue && { status: statusValue }),
-        ...(buildLabelCondition && { RAW: (table: typeof taskTable) => buildLabelCondition(table.id) }),
+        ...(buildLabelCondition && {
+          RAW: (table: typeof taskTable) => buildLabelCondition(table.id),
+        }),
       },
       orderBy: (t) => asc(t.createdAt),
+      with: {
+        rectangleAnnotations: { with: { label: true } },
+        polygonAnnotations: { with: { label: true } },
+        classificationAnnotations: { with: { label: true } },
+      },
+    });
+
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
+    return tasks.map((t) => new TaskDetailEntity(t));
+  }
+
+  /**
+   * Per-task, per-label annotation counts for DONE, non-deleted tasks —
+   * a compact feed for the AI-suggestion image sampler (no annotation rows
+   * are loaded). Scoped to `taskIds` when non-empty.
+   */
+  public async getLabelCoverage(
+    projectId: number,
+    taskIds: number[],
+    types: AnnotationType[],
+  ): Promise<LabelCoverageRow[]> {
+    const parts: SQL[] = [];
+    if (types.includes("rectangle")) {
+      parts.push(
+        sql`SELECT task_id, label_id FROM ${rectangleAnnotationTable}`,
+      );
+    }
+    if (types.includes("polygon")) {
+      parts.push(sql`SELECT task_id, label_id FROM ${polygonAnnotationTable}`);
+    }
+    if (types.includes("classification")) {
+      parts.push(
+        sql`SELECT task_id, label_id FROM ${classificationAnnotationTable}`,
+      );
+    }
+    if (parts.length === 0) return [];
+
+    const annotationUnion = sql.join(parts, sql` UNION ALL `);
+    const taskScope = taskIds.length
+      ? sql`AND t.id IN (${sql.join(
+          taskIds.map((id) => sql`${id}`),
+          sql`, `,
+        )})`
+      : sql``;
+
+    const result = await this.db.execute(sql`
+      SELECT a.task_id, a.label_id, COUNT(*) AS cnt
+      FROM (${annotationUnion}) a
+      JOIN ${taskTable} t ON t.id = a.task_id
+      WHERE t.project_id = ${projectId}
+        AND t.deleted_at IS NULL
+        AND t.status = 'DONE'
+        ${taskScope}
+      GROUP BY a.task_id, a.label_id
+    `);
+
+    return (result.rows as Record<string, unknown>[]).map((r) => ({
+      taskId: Number(r.task_id),
+      labelId: Number(r.label_id),
+      count: Number(r.cnt),
+    }));
+  }
+
+  /**
+   * Non-deleted tasks matching the given ids with their full annotation set
+   * (labels included). Used to build the AI-suggestion example images.
+   */
+  public async getAllByIdsWithAnnotations(
+    ids: number[],
+    projectId: number,
+  ): Promise<TaskDetailEntity[]> {
+    if (ids.length === 0) return [];
+
+    const tasks = await this.db.query.taskTable.findMany({
+      where: {
+        id: { in: ids },
+        projectId,
+        deletedAt: { isNull: true },
+      },
       with: {
         rectangleAnnotations: { with: { label: true } },
         polygonAnnotations: { with: { label: true } },
@@ -332,7 +480,10 @@ export class TaskRepository {
    * Non-deleted tasks matching the given ids, scoped to a project.
    * Ids from other projects or soft-deleted tasks are silently omitted.
    */
-  public async getAllByIdsAndProjectId(ids: number[], projectId: number): Promise<TaskEntity[]> {
+  public async getAllByIdsAndProjectId(
+    ids: number[],
+    projectId: number,
+  ): Promise<TaskEntity[]> {
     if (ids.length === 0) return [];
 
     const tasks = await this.db
@@ -372,9 +523,7 @@ export class TaskRepository {
         ),
       );
 
-    return rows
-      .map((r) => r.id)
-      .filter((id): id is number => id !== null);
+    return rows.map((r) => r.id).filter((id): id is number => id !== null);
   }
 
   /**
@@ -400,18 +549,19 @@ export class TaskRepository {
         ),
       );
 
-    return rows
-      .map((r) => r.eventId)
-      .filter((id): id is number => id !== null);
+    return rows.map((r) => r.eventId).filter((id): id is number => id !== null);
   }
 
   /**
    * Delete task by id
    * @param id
    */
-  public async delete(id: number): Promise<void>{
-    await this.db.update(taskTable).set({
-      deletedAt: new Date(),
-    }).where(eq(taskTable.id, id))
+  public async delete(id: number): Promise<void> {
+    await this.db
+      .update(taskTable)
+      .set({
+        deletedAt: new Date(),
+      })
+      .where(eq(taskTable.id, id));
   }
 }
