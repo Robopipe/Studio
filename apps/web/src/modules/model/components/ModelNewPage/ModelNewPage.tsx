@@ -16,8 +16,9 @@ import {
   // hyperparamsConfigSchema,
   Label as ProjectLabel,
   ProjectTypeEnum,
+  SuggestHyperparamsRequest,
 } from "@repo/schema";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import {
   useCreateModelMutation,
@@ -271,6 +272,59 @@ const ModelNewPageInner = () => {
     }
   };
 
+  // Best-effort parse of the hyperparams JSON for the AI-suggestion flow —
+  // invalid/partial JSON degrades to {} instead of blocking the dialog.
+  const currentHyperparamsObject = useMemo((): Record<string, unknown> => {
+    try {
+      const parsed = JSON.parse(customHyperparams);
+      return typeof parsed === "object" &&
+        parsed !== null &&
+        !Array.isArray(parsed)
+        ? parsed
+        : {};
+    } catch {
+      return {};
+    }
+  }, [customHyperparams]);
+
+  const suggestionContext: SuggestHyperparamsRequest & { projectId: number } = {
+    projectId: activeProject?.id!,
+    backend: ModelBackendEnum.ULTRALYTICS,
+    taskIds: selectedTaskIds,
+    labelIds: activeLabels.map((label) => label.id),
+    trainingType,
+    annotationsUsed,
+    epochs,
+    currentHyperparams: currentHyperparamsObject,
+    splitTrain: datasetSplit.train,
+    splitValidate: datasetSplit.validation,
+    splitTest: datasetSplit.test,
+    quantization,
+    outputTypes: outputs,
+    useGroups,
+  };
+
+  const handleApplySuggestion = ({
+    epochs: suggestedEpochs,
+    params,
+  }: {
+    epochs: number;
+    params: Record<string, unknown>;
+  }) => {
+    setEpochs(suggestedEpochs);
+    setEpochsError(null);
+    // Suggested values win; keys the suggestion didn't touch are preserved.
+    const merged = { ...currentHyperparamsObject, ...params };
+    if (typeof merged.model_variant === "string") {
+      merged.model_variant = applyModelVariantSuffix(
+        merged.model_variant,
+        trainingType,
+      );
+    }
+    setCustomHyperparams(JSON.stringify(merged, null, 2));
+    setHyperparamsError(null);
+  };
+
   const parseHyperparams = (): Record<string, unknown> | undefined => {
     if (!customHyperparams.trim()) return {};
     try {
@@ -451,6 +505,8 @@ const ModelNewPageInner = () => {
           onCustomHyperparamsChange={setCustomHyperparams}
           hyperparamsError={hyperparamsError}
           onHyperparamsErrorChange={setHyperparamsError}
+          suggestionContext={suggestionContext}
+          onApplySuggestion={handleApplySuggestion}
         />
 
         {saveError && <span className="text-xs text-red-600">{saveError}</span>}

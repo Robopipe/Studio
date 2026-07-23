@@ -9,13 +9,15 @@ import {
   Model,
   ModelLog,
   ModelOutput,
+  SuggestHyperparamsRequest,
+  SuggestHyperparamsResponse,
 } from "@repo/schema";
 
 export enum ModelApiTagType {
   Model = "Models",
 }
 
-const { projects } = appConfig.studioApi.endpoints;
+const { projects, hyperparamSuggestion } = appConfig.studioApi.endpoints;
 const modelApiBase = createApi({
   reducerPath: "modelApi",
   baseQuery: baseRefreshingQuery,
@@ -113,6 +115,16 @@ export const modelApi = modelApiBase.injectEndpoints({
         body: payload,
       }),
     }),
+    suggestHyperparams: builder.mutation<
+      SuggestHyperparamsResponse,
+      SuggestHyperparamsRequest & { projectId: number }
+    >({
+      query: ({ projectId, ...payload }) => ({
+        url: hyperparamSuggestion(projectId),
+        method: HttpMethod.POST,
+        body: payload,
+      }),
+    }),
   }),
   overrideExisting: true,
 });
@@ -128,4 +140,5 @@ export const {
   useGetModelOutputsQuery,
   useLazyGetModelOutputsQuery,
   useDatasetStatsMutation,
+  useSuggestHyperparamsMutation,
 } = modelApi;
