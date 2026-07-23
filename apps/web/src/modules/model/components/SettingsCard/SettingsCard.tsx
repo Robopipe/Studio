@@ -12,10 +12,20 @@ export interface SettingsCardProps {
   collapsible?: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  headerActions?: ReactNode;
 }
 
 export const SettingsCard = (props: SettingsCardProps) => {
-  const { title, children, state, stepNumber, collapsible, open, onOpenChange } = props;
+  const {
+    title,
+    children,
+    state,
+    stepNumber,
+    collapsible,
+    open,
+    onOpenChange,
+    headerActions,
+  } = props;
 
   const badge = (
     <div className="flex items-center p-0.5">
@@ -65,6 +75,7 @@ export const SettingsCard = (props: SettingsCardProps) => {
             {titleContent}
           </div>
         )}
+        {headerActions}
         {(!collapsible || open) && children}
       </div>
     </div>
