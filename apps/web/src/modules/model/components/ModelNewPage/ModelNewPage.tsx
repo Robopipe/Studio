@@ -455,14 +455,12 @@ const ModelNewPageInner = () => {
           <Button onClick={() => saveModel()} disabled={Boolean(datasetError)}>
             Save
           </Button>
-          {activeProject?.hasLicense && (
-            <Button
-              onClick={() => saveModel(true)}
-              disabled={Boolean(datasetError)}
-            >
-              Save &amp; Train
-            </Button>
-          )}
+          <Button
+            onClick={() => saveModel(true)}
+            disabled={Boolean(datasetError)}
+          >
+            Save &amp; Train
+          </Button>
         </div>
       </div>
 
