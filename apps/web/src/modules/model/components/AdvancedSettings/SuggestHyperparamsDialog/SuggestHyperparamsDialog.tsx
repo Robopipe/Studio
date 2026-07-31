@@ -191,14 +191,14 @@ export const SuggestHyperparamsDialog = ({
       }}
     >
       <DialogContent
-        className="flex max-h-[90vh] flex-col gap-0 sm:max-w-[760px]"
+        className="flex max-h-[90vh] flex-col gap-0 overflow-y-auto sm:max-w-[760px]"
         showCloseButton={!isLoading}
       >
         <DialogHeader>
           <DialogTitle>AI Suggested Training Settings</DialogTitle>
         </DialogHeader>
 
-        <div className="flex flex-1 flex-col gap-3 overflow-y-auto py-4">
+        <div className="flex flex-col gap-3 py-4">
           {isLoading && (
             <div className="flex flex-col items-center gap-3 py-10">
               <Spinner className="size-6 text-emerald-700" />
