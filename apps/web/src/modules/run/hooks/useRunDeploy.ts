@@ -20,7 +20,10 @@ import {
 } from "@/modules/evaluation/api/evaluationApi";
 
 import { useLazyGetCapturedVideoQuery } from "@/modules/capture/services/captureApi";
-import { useLazyGetModelOutputsQuery } from "@/modules/model/services/modelApi";
+import {
+  useLazyGetModelOutputsQuery,
+  useLazyGetModelQuery,
+} from "@/modules/model/services/modelApi";
 import {
   useLazyGetProjectLabelsQuery,
   useLazyGetProjectsQuery,
@@ -90,6 +93,7 @@ interface ConfigIntermediate {
   assembledTestCases: DeployConfigEntry["dashboard_config"]["testCases"];
   masterThresholds: DeployConfigEntry["dashboard_config"]["thresholds"];
   labels: DeployConfigEntry["dashboard_config"]["labels"];
+  modelName: string;
 }
 
 export const useRunDeploy = ({
@@ -155,6 +159,7 @@ export const useRunDeploy = ({
   const [triggerGetProjects] = useLazyGetProjectsQuery();
   const [triggerGetDashboardConfigs] = useLazyGetDashboardConfigsQuery();
   const [triggerGetModelOutputs] = useLazyGetModelOutputsQuery();
+  const [triggerGetModel] = useLazyGetModelQuery();
   const [triggerGetProjectLabels] = useLazyGetProjectLabelsQuery();
   const [triggerGetEvalTestCases] = useLazyGetEvalTestCasesQuery();
   const [triggerGetEvalThresholds] = useLazyGetEvalThresholdsQuery();
@@ -394,7 +399,7 @@ export const useRunDeploy = ({
     config: DashboardConfiguration,
     requiredOutputType: string | undefined,
   ): Promise<ConfigIntermediate | null> {
-    const [evalTestCases, evalThresholds, labels, modelOutputs] =
+    const [evalTestCases, evalThresholds, labels, modelOutputs, model] =
       await Promise.all([
         triggerGetEvalTestCases({
           projectId: pid,
@@ -406,6 +411,10 @@ export const useRunDeploy = ({
         }).unwrap(),
         triggerGetProjectLabels({ projectId: pid }).unwrap(),
         triggerGetModelOutputs({
+          projectId: pid,
+          modelId: config.modelId!,
+        }).unwrap(),
+        triggerGetModel({
           projectId: pid,
           modelId: config.modelId!,
         }).unwrap(),
@@ -497,6 +506,7 @@ export const useRunDeploy = ({
         color: t.color,
       })),
       labels,
+      modelName: model.name,
     };
   }
 
@@ -511,6 +521,7 @@ export const useRunDeploy = ({
       assembledTestCases,
       masterThresholds,
       labels,
+      modelName,
     } = intermediate;
     const modelBuffer = await fetch(intermediate.compatibleOutputFilePath).then(
       (res) => res.arrayBuffer(),
@@ -534,6 +545,7 @@ export const useRunDeploy = ({
         nn_config: {
           type: "Generic",
           model_id: config.modelId,
+          model_name: modelName,
           num_inference_threads: runtimeConfig.num_inference_threads,
           throttle_hz: runtimeConfig.throttle_hz,
           nn_config: sahiConfig ? { sahi_config: sahiConfig } : {},

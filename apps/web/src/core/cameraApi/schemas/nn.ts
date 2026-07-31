@@ -6,6 +6,7 @@ export type NNType = z.infer<typeof nnTypeEnum>;
 export const nnConfigSchema = z.object({
     type: nnTypeEnum,
     model_id: z.number().nullable().optional(),
+    model_name: z.string().nullable().optional(),
     num_inference_threads: z.number().optional(),
     nn_config: z.record(z.string(), z.unknown()),
     mask_max_dim: z.number().nullable().optional(),

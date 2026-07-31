@@ -135,6 +135,7 @@ export const {
   useCancelTrainingMutation,
   useGetModelsQuery,
   useGetModelQuery,
+  useLazyGetModelQuery,
   useDeleteModelMutation,
   useGetModelLogsQuery,
   useGetModelOutputsQuery,
