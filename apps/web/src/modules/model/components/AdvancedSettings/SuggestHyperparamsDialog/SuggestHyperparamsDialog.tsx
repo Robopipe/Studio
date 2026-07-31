@@ -203,7 +203,7 @@ export const SuggestHyperparamsDialog = ({
             <div className="flex flex-col items-center gap-3 py-10">
               <Spinner className="size-6 text-emerald-700" />
               <span className="text-sm text-black/60">
-                Analyzing your dataset with Gemini…
+                Analyzing your dataset…
               </span>
             </div>
           )}
