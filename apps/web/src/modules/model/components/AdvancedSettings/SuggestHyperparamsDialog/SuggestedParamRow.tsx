@@ -49,7 +49,7 @@ export const SuggestedParamRow = ({
       <TableCell className="align-top">
         {def.input === "enum" && (
           <Select
-            value={typeof value === "string" ? value : undefined}
+            value={typeof value === "string" ? value : null}
             onValueChange={(v) => onChange(v)}
           >
             <SelectTrigger className="w-32">
