@@ -48,7 +48,6 @@ export interface DuplicateModelState {
     labels: ProjectLabel[];
     outputs: ModelOutputTypeEnum[];
     region: ModelRegionEnum;
-    quantization: ModelQuantizationEnum;
     datasetSplit: DatasetSplit;
     augmentations: AppliedAugmentation[];
     preprocessings: AppliedAugmentation[];
@@ -87,9 +86,6 @@ const ModelNewPageInner = () => {
   );
   const [region, setRegion] = useState<ModelRegionEnum>(
     duplicateState?.region ?? ModelRegionEnum.EUROPE_WEST4,
-  );
-  const [quantization, setQuantization] = useState<ModelQuantizationEnum>(
-    duplicateState?.quantization ?? ModelQuantizationEnum.FP16,
   );
   const [activeLabels, setActiveLabels] = useState<ProjectLabel[]>(
     duplicateState?.labels ?? [],
@@ -299,7 +295,7 @@ const ModelNewPageInner = () => {
     splitTrain: datasetSplit.train,
     splitValidate: datasetSplit.validation,
     splitTest: datasetSplit.test,
-    quantization,
+    quantization: ModelQuantizationEnum.FP16,
     outputTypes: outputs,
     useGroups,
   };
@@ -393,7 +389,7 @@ const ModelNewPageInner = () => {
         outputTypes: outputs,
         backend: ModelBackendEnum.ULTRALYTICS,
         region,
-        quantization,
+        quantization: ModelQuantizationEnum.FP16,
         trainingType,
         annotationsUsed,
         augmentations: normalAugs.map((a) => ({
@@ -499,8 +495,6 @@ const ModelNewPageInner = () => {
           onOutputsChange={setOutputs}
           region={region}
           onRegionChange={setRegion}
-          quantization={quantization}
-          onQuantizationChange={setQuantization}
           customHyperparams={customHyperparams}
           onCustomHyperparamsChange={setCustomHyperparams}
           hyperparamsError={hyperparamsError}
