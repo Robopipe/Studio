@@ -18,6 +18,7 @@ import {
   ProjectTypeEnum,
   SuggestHyperparamsRequest,
 } from "@repo/schema";
+import { Sparkles } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import {
@@ -38,6 +39,10 @@ import {
   MAX_VISIBLE_THUMBNAILS,
   SourceImagesSettings,
 } from "../SourceImagesSettings";
+import {
+  AppliedSuggestion,
+  SuggestHyperparamsDialog,
+} from "../SuggestHyperparamsDialog";
 import { TaskSelectionDialog } from "../TaskSelectionDialog";
 
 export interface DuplicateModelState {
@@ -48,7 +53,6 @@ export interface DuplicateModelState {
     labels: ProjectLabel[];
     outputs: ModelOutputTypeEnum[];
     region: ModelRegionEnum;
-    quantization: ModelQuantizationEnum;
     datasetSplit: DatasetSplit;
     augmentations: AppliedAugmentation[];
     preprocessings: AppliedAugmentation[];
@@ -87,9 +91,6 @@ const ModelNewPageInner = () => {
   );
   const [region, setRegion] = useState<ModelRegionEnum>(
     duplicateState?.region ?? ModelRegionEnum.EUROPE_WEST4,
-  );
-  const [quantization, setQuantization] = useState<ModelQuantizationEnum>(
-    duplicateState?.quantization ?? ModelQuantizationEnum.FP16,
   );
   const [activeLabels, setActiveLabels] = useState<ProjectLabel[]>(
     duplicateState?.labels ?? [],
@@ -132,6 +133,7 @@ const ModelNewPageInner = () => {
 
   // Task selection state — modal-controlled
   const [selectionDialogOpen, setSelectionDialogOpen] = useState(false);
+  const [suggestOpen, setSuggestOpen] = useState(false);
   const [selectedTaskIds, setSelectedTaskIds] = useState<number[]>(
     duplicateState?.taskIds ?? [],
   );
@@ -299,22 +301,24 @@ const ModelNewPageInner = () => {
     splitTrain: datasetSplit.train,
     splitValidate: datasetSplit.validation,
     splitTest: datasetSplit.test,
-    quantization,
+    quantization: ModelQuantizationEnum.FP16,
     outputTypes: outputs,
     useGroups,
   };
 
   const handleApplySuggestion = ({
     epochs: suggestedEpochs,
+    split,
     params,
-  }: {
-    epochs: number;
-    params: Record<string, unknown>;
-  }) => {
+  }: AppliedSuggestion) => {
     setEpochs(suggestedEpochs);
     setEpochsError(null);
+    setDatasetSplit(split);
     // Suggested values win; keys the suggestion didn't touch are preserved.
-    const merged = { ...currentHyperparamsObject, ...params };
+    const merged: Record<string, unknown> = {
+      ...currentHyperparamsObject,
+      ...params,
+    };
     if (typeof merged.model_variant === "string") {
       merged.model_variant = applyModelVariantSuffix(
         merged.model_variant,
@@ -393,7 +397,7 @@ const ModelNewPageInner = () => {
         outputTypes: outputs,
         backend: ModelBackendEnum.ULTRALYTICS,
         region,
-        quantization,
+        quantization: ModelQuantizationEnum.FP16,
         trainingType,
         annotationsUsed,
         augmentations: normalAugs.map((a) => ({
@@ -423,9 +427,18 @@ const ModelNewPageInner = () => {
     <ModelLayout>
       <div className="flex flex-col gap-6 pb-4">
         <div className="flex flex-col gap-2">
-          <h2 className="text-base font-bold leading-6 text-black/90">
-            Create new version
-          </h2>
+          <div className="flex flex-row items-center justify-between">
+            <h2 className="text-base font-bold leading-6 text-black/90">
+              Create new version
+            </h2>
+            <Button
+              onClick={() => setSuggestOpen(true)}
+              disabled={Boolean(datasetError)}
+            >
+              <Sparkles />
+              Suggest with AI
+            </Button>
+          </div>
           <p className="text-sm leading-5 text-black/60">
             Prepare your images and data for training by compiling them into a
             dataset. Experiment with different configurations to achieve better
@@ -499,14 +512,10 @@ const ModelNewPageInner = () => {
           onOutputsChange={setOutputs}
           region={region}
           onRegionChange={setRegion}
-          quantization={quantization}
-          onQuantizationChange={setQuantization}
           customHyperparams={customHyperparams}
           onCustomHyperparamsChange={setCustomHyperparams}
           hyperparamsError={hyperparamsError}
           onHyperparamsErrorChange={setHyperparamsError}
-          suggestionContext={suggestionContext}
-          onApplySuggestion={handleApplySuggestion}
         />
 
         {saveError && <span className="text-xs text-red-600">{saveError}</span>}
@@ -533,6 +542,15 @@ const ModelNewPageInner = () => {
           setSelectedTaskPreviews(previews);
         }}
       />
+
+      {suggestOpen && (
+        <SuggestHyperparamsDialog
+          open={suggestOpen}
+          onOpenChange={setSuggestOpen}
+          context={suggestionContext}
+          onApply={handleApplySuggestion}
+        />
+      )}
     </ModelLayout>
   );
 };

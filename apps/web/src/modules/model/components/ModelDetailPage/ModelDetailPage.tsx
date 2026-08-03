@@ -101,7 +101,6 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
         labels: model.labels,
         outputs: model.outputTypes,
         region: model.region,
-        quantization: model.quantization,
         datasetSplit: {
           train: model.splitTrain,
           validation: model.splitValidate,

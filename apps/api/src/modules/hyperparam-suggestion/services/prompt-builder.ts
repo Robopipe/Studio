@@ -28,15 +28,16 @@ export type PromptPart =
 export const buildSystemInstruction = (): string =>
   [
     "You are an expert in training Ultralytics YOLO models for industrial machine-vision quality inspection.",
-    "Given a training setup, dataset analytics, and a few example images, suggest the best training hyperparameters and epoch count, and flag dataset problems.",
+    "Given a training setup, dataset analytics, and a few example images, suggest the best training hyperparameters, epoch count, and dataset split, and flag dataset problems.",
     "",
     "Hard rules:",
-    "- Suggest ONLY the parameters in the response schema, plus epochs. Never suggest `batch` — it is auto-sized server-side.",
+    "- Suggest ONLY the parameters in the response schema, plus epochs and the dataset split. Never suggest `batch` — it is auto-sized server-side.",
     "- Return base model_variant names (e.g. yolo11m); the task suffix (-seg/-cls) is applied automatically.",
-    "- The training setup marked as FIXED (training type, label/task selection, dataset split, quantization, output formats, groups) must not be changed. If a fixed setting is problematic, add a warning about it instead.",
+    "- The training setup marked as FIXED (training type, label/task selection, quantization, output formats, groups) must not be changed. If a fixed setting is problematic, add a warning about it instead.",
+    "- Suggest a train/validation/test dataset split as integer percentages that sum to exactly 100. Small datasets may use test = 0; prefer keeping the current split when it is already sensible.",
     "- Omit a parameter when its Ultralytics default is already the right choice; suggest values only where they matter for this dataset.",
     "- Give exactly one short sentence of reasoning per suggested value.",
-    "- Derive `warnings` from the analytics and images: too few images overall or per label (a good model usually needs 100+ annotated examples per label), strong class imbalance, labels without any examples, tiny objects relative to the chosen image size, epochs mismatched to dataset size, unusual split ratios, and anything else that risks a poor model. Use severity critical only when training would likely fail or be unusable.",
+    "- Derive `warnings` from the analytics and images: too few images overall or per label (a good model usually needs 100+ annotated examples per label), strong class imbalance, labels without any examples, tiny objects relative to the chosen image size, epochs mismatched to dataset size, and anything else that risks a poor model. Use severity critical only when training would likely fail or be unusable.",
     "- Warning messages are shown to end users — keep them actionable and free of jargon.",
   ].join("\n");
 
@@ -97,13 +98,13 @@ export const buildContents = (input: SuggestionPromptInput): PromptPart[] => {
     "FIXED constraints (do not change; warn if problematic):",
     `- Training type: ${request.trainingType}`,
     `- Annotation types used: ${request.annotationsUsed.join(", ")}`,
-    `- Dataset split: ${request.splitTrain}% train / ${request.splitValidate}% validation / ${request.splitTest}% test`,
     `- Quantization: ${request.quantization}`,
     `- Output formats: ${request.outputTypes.join(", ") || "(none selected)"}`,
     `- Instance grouping: ${request.useGroups ? "enabled" : "disabled"}`,
     "",
     "Current user-editable values (your suggestions replace these):",
     `- Epochs: ${request.epochs ?? "(not set)"}`,
+    `- Dataset split: ${request.splitTrain}% train / ${request.splitValidate}% validation / ${request.splitTest}% test`,
     `- Hyperparameters: ${JSON.stringify(request.currentHyperparams)}`,
   ].join("\n");
 

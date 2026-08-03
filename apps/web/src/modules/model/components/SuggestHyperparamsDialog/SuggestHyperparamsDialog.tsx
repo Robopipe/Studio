@@ -28,11 +28,13 @@ import { AlertCircle, AlertTriangle, Info } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useBlocker } from "react-router";
 import { toast } from "sonner";
-import { useSuggestHyperparamsMutation } from "../../../services";
+import { useSuggestHyperparamsMutation } from "../../services";
+import { DatasetSplit } from "../DatasetSplitSettings";
 import { SuggestedParamRow, SuggestedValue } from "./SuggestedParamRow";
 
 export interface AppliedSuggestion {
   epochs: number;
+  split: DatasetSplit;
   params: Record<string, string | number | boolean>;
 }
 
@@ -103,6 +105,11 @@ export const SuggestHyperparamsDialog = ({
   const requestRef = useRef<ReturnType<typeof suggest> | null>(null);
   const [edited, setEdited] = useState<Record<string, SuggestedValue>>({});
   const [editedEpochs, setEditedEpochs] = useState<number | null>(null);
+  const [editedSplit, setEditedSplit] = useState<{
+    train: number | null;
+    validation: number | null;
+    test: number | null;
+  }>({ train: null, validation: null, test: null });
   const [applyError, setApplyError] = useState<string | null>(null);
 
   const entry = HYPERPARAM_SUGGESTION_REGISTRY[context.backend];
@@ -147,6 +154,11 @@ export const SuggestHyperparamsDialog = ({
   useEffect(() => {
     if (!data) return;
     setEditedEpochs(data.epochs.value);
+    setEditedSplit({
+      train: data.split.train,
+      validation: data.split.validation,
+      test: data.split.test,
+    });
     setEdited(
       Object.fromEntries(
         Object.entries(data.params).map(([name, param]) => [name, param.value]),
@@ -165,6 +177,21 @@ export const SuggestHyperparamsDialog = ({
       setApplyError("Epochs must be greater than 0");
       return;
     }
+    const { train, validation, test } = editedSplit;
+    if (
+      train === null ||
+      validation === null ||
+      test === null ||
+      !Number.isInteger(train) ||
+      !Number.isInteger(validation) ||
+      !Number.isInteger(test) ||
+      train + validation + test !== 100
+    ) {
+      setApplyError(
+        "Dataset split percentages must be whole numbers summing to 100",
+      );
+      return;
+    }
     const params = Object.fromEntries(
       Object.entries(edited).filter(([, value]) => value !== null),
     ) as Record<string, string | number | boolean>;
@@ -176,7 +203,16 @@ export const SuggestHyperparamsDialog = ({
       );
       return;
     }
-    onApply({ epochs: editedEpochs, params });
+    onApply({
+      epochs: editedEpochs,
+      split: { train, validation, test },
+      params,
+    });
+    const paramCount = Object.keys(params).length;
+    toast.success(
+      `AI suggestion applied — epochs ${editedEpochs}, split ${train}/${validation}/${test}, ` +
+        `${paramCount} hyperparameter${paramCount === 1 ? "" : "s"}`,
+    );
     onOpenChange(false);
   };
 
@@ -191,19 +227,19 @@ export const SuggestHyperparamsDialog = ({
       }}
     >
       <DialogContent
-        className="flex max-h-[90vh] flex-col gap-0 sm:max-w-[760px]"
+        className="flex max-h-[90vh] flex-col gap-0 overflow-y-auto sm:max-w-[760px]"
         showCloseButton={!isLoading}
       >
         <DialogHeader>
           <DialogTitle>AI Suggested Training Settings</DialogTitle>
         </DialogHeader>
 
-        <div className="flex flex-1 flex-col gap-3 overflow-y-auto py-4">
+        <div className="flex flex-col gap-3 py-4">
           {isLoading && (
             <div className="flex flex-col items-center gap-3 py-10">
               <Spinner className="size-6 text-emerald-700" />
               <span className="text-sm text-black/60">
-                Analyzing your dataset with Gemini…
+                Analyzing your dataset…
               </span>
             </div>
           )}
@@ -268,6 +304,56 @@ export const SuggestHyperparamsDialog = ({
                     </TableCell>
                     <TableCell className="max-w-64 align-top text-xs leading-4 text-black/60">
                       {data.epochs.reasoning}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="align-top">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-black/90">
+                          Dataset split
+                        </span>
+                        <span className="font-mono text-xs text-black/50">
+                          train/val/test
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="align-top text-sm text-black/60">
+                      {context.splitTrain} / {context.splitValidate} /{" "}
+                      {context.splitTest}
+                    </TableCell>
+                    <TableCell className="align-top">
+                      <div className="flex flex-row items-center gap-1">
+                        <NumberInput
+                          className="w-20"
+                          min={0}
+                          max={100}
+                          value={editedSplit.train}
+                          onValueChange={(train) =>
+                            setEditedSplit((prev) => ({ ...prev, train }))
+                          }
+                        />
+                        <NumberInput
+                          className="w-20"
+                          min={0}
+                          max={100}
+                          value={editedSplit.validation}
+                          onValueChange={(validation) =>
+                            setEditedSplit((prev) => ({ ...prev, validation }))
+                          }
+                        />
+                        <NumberInput
+                          className="w-20"
+                          min={0}
+                          max={100}
+                          value={editedSplit.test}
+                          onValueChange={(test) =>
+                            setEditedSplit((prev) => ({ ...prev, test }))
+                          }
+                        />
+                      </div>
+                    </TableCell>
+                    <TableCell className="max-w-64 align-top text-xs leading-4 text-black/60">
+                      {data.split.reasoning}
                     </TableCell>
                   </TableRow>
                   {entry &&
