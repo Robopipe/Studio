@@ -33,6 +33,7 @@ const request: SuggestHyperparamsRequest = {
 
 const validReply = {
   epochs: { value: 150, reasoning: "small dataset" },
+  split: { train: 80, validation: 15, test: 5, reasoning: "small dataset" },
   params: {
     model_variant: { value: "yolo11s", reasoning: "fits dataset size" },
     imgsz: { value: 960, reasoning: "small objects" },
@@ -122,6 +123,12 @@ describe("HyperparamSuggestionService.suggest", () => {
 
     expect(result.backend).toBe(ModelBackendEnum.ULTRALYTICS);
     expect(result.epochs).toEqual({ value: 150, reasoning: "small dataset" });
+    expect(result.split).toEqual({
+      train: 80,
+      validation: 15,
+      test: 5,
+      reasoning: "small dataset",
+    });
     expect(result.params.model_variant).toEqual({
       value: "yolo11s",
       reasoning: "fits dataset size",
@@ -160,6 +167,24 @@ describe("HyperparamSuggestionService.suggest", () => {
     const retryParts = geminiClient.generateStructured.mock.calls[1][0].parts;
     const lastPart = retryParts[retryParts.length - 1];
     expect(lastPart.text).toContain("previous reply was invalid");
+  });
+
+  it("retries with the sum error when the suggested split does not sum to 100", async () => {
+    const badSplitReply = {
+      ...validReply,
+      split: { train: 60, validation: 30, test: 20, reasoning: "oops" },
+    };
+    geminiClient.generateStructured
+      .mockResolvedValueOnce(JSON.stringify(badSplitReply))
+      .mockResolvedValueOnce(JSON.stringify(validReply));
+
+    const result = await service.suggest(PROJECT_ID, request);
+
+    expect(result.split.train).toBe(80);
+    expect(geminiClient.generateStructured).toHaveBeenCalledTimes(2);
+    const retryParts = geminiClient.generateStructured.mock.calls[1][0].parts;
+    const lastPart = retryParts[retryParts.length - 1];
+    expect(lastPart.text).toContain("must equal exactly 100");
   });
 
   it("rejects out-of-range values via the registry schema and 502s after two failures", async () => {

@@ -1,6 +1,7 @@
 import z from "zod";
 import {
   suggestedParamSchema,
+  suggestedSplitSchema,
   suggestHyperparamsRequestSchema,
   suggestHyperparamsResponseSchema,
   suggestionWarningSchema,
@@ -14,3 +15,4 @@ export type SuggestHyperparamsResponse = z.infer<
 >;
 export type SuggestionWarning = z.infer<typeof suggestionWarningSchema>;
 export type SuggestedParam = z.infer<typeof suggestedParamSchema>;
+export type SuggestedSplit = z.infer<typeof suggestedSplitSchema>;

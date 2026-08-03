@@ -48,11 +48,14 @@ describe("getGeminiSuggestionSchema", () => {
     expect(json).not.toContain('"additionalProperties":true');
     expect(json).toContain('"model_variant"');
     expect(json).toContain('"warnings"');
+    expect(json).toContain('"split"');
+    expect(json).toContain("MUST sum to exactly 100");
   });
 
   it("round-trips a sample reply", () => {
     const sample = {
       epochs: { value: 120, reasoning: "r" },
+      split: { train: 70, validation: 20, test: 10, reasoning: "r" },
       params: {
         model_variant: { value: "yolo11s", reasoning: "r" },
         mosaic: { value: 0.5, reasoning: "r" },
@@ -65,6 +68,27 @@ describe("getGeminiSuggestionSchema", () => {
       summary: "s",
     };
     expect(schema.safeParse(sample).success).toBe(true);
+  });
+
+  it("enforces the split sum and bounds at parse time", () => {
+    const base = {
+      epochs: { value: 120, reasoning: "r" },
+      params: {},
+      warnings: [],
+      summary: "s",
+    };
+    const withSplit = (split: Record<string, unknown>) =>
+      schema.safeParse({ ...base, split: { reasoning: "r", ...split } });
+
+    expect(withSplit({ train: 60, validation: 30, test: 20 }).success).toBe(
+      false,
+    );
+    expect(withSplit({ train: 80, validation: 30, test: -10 }).success).toBe(
+      false,
+    );
+    expect(withSplit({ train: 85, validation: 15, test: 0 }).success).toBe(
+      true,
+    );
   });
 
   it("rejects unknown backends", () => {
