@@ -108,6 +108,7 @@ export class HyperparamSuggestionService {
     return {
       backend: data.backend,
       epochs: suggestion.epochs,
+      split: suggestion.split,
       params: this.mapParams(suggestion),
       warnings: suggestion.warnings.map((w) => ({
         severity: w.severity,

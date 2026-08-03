@@ -3,16 +3,10 @@ import {
   ModelOutputTypeEnum,
   ModelRegionEnum,
   ProjectTypeEnum,
-  SuggestHyperparamsRequest,
 } from "@repo/schema";
-import { Sparkles } from "lucide-react";
 import { useState } from "react";
 import { SettingsCard } from "../SettingsCard";
 import { HyperparamsModal } from "./HyperparamsModal";
-import {
-  AppliedSuggestion,
-  SuggestHyperparamsDialog,
-} from "./SuggestHyperparamsDialog";
 
 const REGION_LABELS: Record<ModelRegionEnum, string> = {
   [ModelRegionEnum.EUROPE_WEST4]: "europe-west4",
@@ -29,8 +23,6 @@ export interface AdvancedSettingsProps {
   onCustomHyperparamsChange: (value: string) => void;
   hyperparamsError: string | null;
   onHyperparamsErrorChange: (error: string | null) => void;
-  suggestionContext: SuggestHyperparamsRequest & { projectId: number };
-  onApplySuggestion: (result: AppliedSuggestion) => void;
 }
 
 export const AdvancedSettings = ({
@@ -43,12 +35,9 @@ export const AdvancedSettings = ({
   onCustomHyperparamsChange,
   hyperparamsError,
   onHyperparamsErrorChange,
-  suggestionContext,
-  onApplySuggestion,
 }: AdvancedSettingsProps) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
-  const [suggestOpen, setSuggestOpen] = useState(false);
 
   const handleApply = (value: string) => {
     onCustomHyperparamsChange(value);
@@ -56,26 +45,7 @@ export const AdvancedSettings = ({
     setModalOpen(false);
   };
 
-  const handleApplySuggestion = (result: AppliedSuggestion) => {
-    setAdvancedOpen(true);
-    onApplySuggestion(result);
-  };
-
   const hasSummary = customHyperparams.trim().length > 0;
-
-  const suggestButton = (className?: string) => (
-    <button
-      type="button"
-      onClick={() => setSuggestOpen(true)}
-      className={cn(
-        "flex cursor-pointer flex-row items-center gap-1 text-sm font-medium leading-5 text-emerald-700 hover:underline",
-        className,
-      )}
-    >
-      <Sparkles className="size-3.5" />
-      Suggest with AI
-    </button>
-  );
 
   return (
     <>
@@ -86,7 +56,6 @@ export const AdvancedSettings = ({
         collapsible
         open={advancedOpen}
         onOpenChange={setAdvancedOpen}
-        headerActions={suggestButton("py-1")}
       >
         <div className="flex flex-1 flex-col gap-4">
           <div className="flex flex-col gap-0.5">
@@ -170,7 +139,6 @@ export const AdvancedSettings = ({
               >
                 {hasSummary ? "Edit" : "Configure"}
               </button>
-              {suggestButton()}
               {hasSummary && (
                 <button
                   type="button"
@@ -208,15 +176,6 @@ export const AdvancedSettings = ({
           value={customHyperparams}
           onApply={handleApply}
           onClose={() => setModalOpen(false)}
-        />
-      )}
-
-      {suggestOpen && (
-        <SuggestHyperparamsDialog
-          open={suggestOpen}
-          onOpenChange={setSuggestOpen}
-          context={suggestionContext}
-          onApply={handleApplySuggestion}
         />
       )}
     </>

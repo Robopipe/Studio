@@ -18,8 +18,9 @@ export enum SuggestionWarningSeverityEnum {
 
 /**
  * Snapshot of the create-model form sent for analysis. Everything except
- * `epochs` and `currentHyperparams` is a fixed constraint — Gemini gets it as
- * context and may warn about it, but only suggests hyperparams + epochs.
+ * `epochs`, `currentHyperparams` and the split percentages is a fixed
+ * constraint — Gemini gets it as context and may warn about it, but only
+ * suggests hyperparams + epochs + dataset split.
  */
 export const suggestHyperparamsRequestSchema = z.object({
   backend: z.enum(ModelBackendEnum).default(ModelBackendEnum.ULTRALYTICS),
@@ -56,9 +57,21 @@ export const suggestedEpochsSchema = z.object({
   reasoning: z.string(),
 });
 
+export const suggestedSplitSchema = z
+  .object({
+    train: z.number().int().min(0).max(100),
+    validation: z.number().int().min(0).max(100),
+    test: z.number().int().min(0).max(100),
+    reasoning: z.string(),
+  })
+  .refine((s) => s.train + s.validation + s.test === 100, {
+    message: "train + validation + test must equal exactly 100",
+  });
+
 export const suggestHyperparamsResponseSchema = z.object({
   backend: z.enum(ModelBackendEnum),
   epochs: suggestedEpochsSchema,
+  split: suggestedSplitSchema,
   /** Keyed by registry param name; web orders rows via registry insertion order */
   params: z.record(z.string(), suggestedParamSchema),
   warnings: suggestionWarningSchema.array(),
@@ -102,6 +115,36 @@ export const getGeminiSuggestionSchema = (backend: ModelBackendEnum) => {
         ),
       reasoning: z.string().describe("One short sentence explaining this choice"),
     }),
+    split: z
+      .object({
+        train: z
+          .number()
+          .int()
+          .min(0)
+          .max(100)
+          .describe("Training set percentage of the dataset"),
+        validation: z
+          .number()
+          .int()
+          .min(0)
+          .max(100)
+          .describe("Validation set percentage"),
+        test: z
+          .number()
+          .int()
+          .min(0)
+          .max(100)
+          .describe("Test set percentage; 0 is acceptable for small datasets"),
+        reasoning: z
+          .string()
+          .describe("One short sentence explaining this choice"),
+      })
+      .describe(
+        "Suggested train/validation/test dataset split. The three integer percentages MUST sum to exactly 100.",
+      )
+      .refine((s) => s.train + s.validation + s.test === 100, {
+        message: "train + validation + test must equal exactly 100",
+      }),
     params: z.object(paramShape),
     warnings: z
       .array(

@@ -67,6 +67,12 @@ describe("buildSystemInstruction", () => {
     expect(instruction).toContain("must not be changed");
     expect(instruction).toContain("base model_variant names");
   });
+
+  it("asks for a dataset split summing to 100", () => {
+    const instruction = buildSystemInstruction();
+    expect(instruction).toContain("sum to exactly 100");
+    expect(instruction).not.toContain("dataset split, quantization");
+  });
 });
 
 describe("buildContents", () => {
@@ -78,6 +84,20 @@ describe("buildContents", () => {
     expect(texts).toContain("70% train / 20% validation / 10% test");
     expect(texts).toContain('"model_variant":"yolo11l"');
     expect(texts).toContain("Epochs: 100");
+  });
+
+  it("lists the dataset split as user-editable, not FIXED", () => {
+    const texts = buildContents(promptInput)
+      .map((p) => ("text" in p ? p.text : ""))
+      .join("\n");
+    const fixedIndex = texts.indexOf("FIXED constraints");
+    const editableIndex = texts.indexOf("Current user-editable values");
+    const splitIndex = texts.indexOf("Dataset split:");
+    expect(fixedIndex).toBeGreaterThanOrEqual(0);
+    expect(splitIndex).toBeGreaterThan(editableIndex);
+    expect(texts.slice(fixedIndex, editableIndex)).not.toContain(
+      "Dataset split",
+    );
   });
 
   it("embeds the dataset analytics and uncovered labels", () => {
