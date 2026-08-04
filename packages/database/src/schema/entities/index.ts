@@ -23,9 +23,7 @@ export * from "./pending-task";
 export * from "./user";
 export * from "./password-reset";
 export * from "./email-verification";
-export * from './dashboard-configuration'
-export * from './dashboard-evaluation'
-export * from './eval'
+export * from './run-configuration'
 export * from './captured-video'
 export * from './project-pre-annotate-settings'
 export * from './confidence-report'

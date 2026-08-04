@@ -2,13 +2,11 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import type { CreateProjectRequest, UpdateProjectRequest } from '@repo/schema';
 import { ProjectEntity } from '../entities/project.entity';
 import { ProjectRepository } from 'src/repository/services/project-repository.service';
-import { DashboardConfigurationRepository } from 'src/repository/services/dashboard-configuration.service';
 
 @Injectable()
 export class ProjectService {
   constructor(
     private readonly projectRepository: ProjectRepository,
-    private readonly dashboardConfigurationRepository: DashboardConfigurationRepository,
   ) {}
 
   /**
@@ -36,20 +34,13 @@ export class ProjectService {
   }
 
   /**
-   * Create project with a default dashboard configuration
+   * Create project
    * @param data  - CreateProjectRequest
    * @param organizationId
    * @returns Created Project entity
    */
   public async create(data: CreateProjectRequest, organizationId: number): Promise<ProjectEntity> {
-    const project = await this.projectRepository.create({ ...data, organizationId });
-
-    await this.dashboardConfigurationRepository.create({
-      projectId: project.id,
-      name: 'Default dashboard',
-    });
-
-    return project;
+    return this.projectRepository.create({ ...data, organizationId });
   }
 
   /**

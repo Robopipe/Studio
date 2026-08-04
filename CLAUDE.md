@@ -100,13 +100,6 @@ Key env vars:
 
 Requires: pnpm v10.28+, Node >= 18, PostgreSQL 16+, Python 3.11 (for ML)
 
-## Deployment
-
-- **GCP Cloud Run**: API and ML services via Cloud Build (`cloudbuild-api.yaml`, `cloudbuild-ml.yaml`)
-- **GCP GCS + CDN**: Web static files (`cloudbuild-web.yaml`)
-- **Terraform**: Infrastructure in `infra/` (Cloud Run, Cloud SQL, GCS, Artifact Registry, Secret Manager, Load Balancer)
-- **Branch triggers**: `dev` -> staging, `master` -> production
-
 ## Code Conventions
 
 - Prettier with `prettier-plugin-organize-imports` (auto-sorts imports)

@@ -6,7 +6,7 @@ import {
 } from "@/core/auth/services";
 import { cameraApi } from "@/core/cameraApi";
 import { captureApi } from "@/modules/capture/services/captureApi";
-import { dashboardConfigApi } from "@/modules/dashboard/services";
+import { runConfigApi } from "@/modules/run/services/runConfigApi";
 import { modelApi } from "@/modules/model/services";
 import { projectApi } from "@/modules/project/services/projectApi";
 import { organizationApi } from "@/modules/account/services";
@@ -33,7 +33,7 @@ export const OrgDropdown = () => {
       dispatch(modelApi.util.resetApiState());
       dispatch(captureApi.util.resetApiState());
       dispatch(cameraApi.util.resetApiState());
-      dispatch(dashboardConfigApi.util.resetApiState());
+      dispatch(runConfigApi.util.resetApiState());
       navigate("/", { replace: true });
     } catch (error) {
       console.error("Failed to switch organization:", error);

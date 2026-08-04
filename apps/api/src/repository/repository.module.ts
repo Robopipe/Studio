@@ -11,15 +11,11 @@ import {
   ModelOutputRepository,
 } from "./services/model-output-repository.service";
 import { ModelLogRepository } from "./services/model-log-repository.service";
-import { DashboardConfigurationRepository } from "./services/dashboard-configuration.service";
-import { DashboardEvaluationRepository } from "./services/dashboard-evaluation.service";
+import { RunConfigurationRepository } from "./services/run-configuration.service";
 import { PasswordResetRepository } from "./services/password-reset-repository.service";
 import { EmailVerificationRepository } from "./services/email-verification-repository.service";
 import { OrganizationMemberRepository } from "./services/organization-member-repository.service";
 import { InvitationRepository } from "./services/invitation-repository.service";
-import { EvalLimitRepository } from './services/eval-limit.service';
-import { EvalTestCaseRepository } from './services/eval-test-case.service';
-import { EvalThresholdRepository } from './services/eval-threshold.service';
 import { CapturedVideoRepository } from './services/captured-video-repository.service';
 import { ProjectPreAnnotateSettingsRepository } from './services/project-pre-annotate-settings-repository.service';
 import { ConfidenceReportRepository } from './services/confidence-report-repository.service';
@@ -43,11 +39,7 @@ import { ConfidenceReportRepository } from './services/confidence-report-reposit
     ModelOutputRepository,
     ModelLogRepository,
 
-    DashboardConfigurationRepository,
-    DashboardEvaluationRepository,
-    EvalLimitRepository,
-    EvalTestCaseRepository,
-    EvalThresholdRepository,
+    RunConfigurationRepository,
     CapturedVideoRepository,
     ProjectPreAnnotateSettingsRepository,
     ConfidenceReportRepository,
@@ -68,11 +60,7 @@ import { ConfidenceReportRepository } from './services/confidence-report-reposit
     ModelOutputRepository,
     ModelLogRepository,
 
-    DashboardConfigurationRepository,
-    DashboardEvaluationRepository,
-    EvalLimitRepository,
-    EvalTestCaseRepository,
-    EvalThresholdRepository,
+    RunConfigurationRepository,
     CapturedVideoRepository,
     ProjectPreAnnotateSettingsRepository,
     ConfidenceReportRepository,

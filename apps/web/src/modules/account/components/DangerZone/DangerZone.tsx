@@ -2,7 +2,7 @@ import { appConfig } from "@/config";
 import { authApi } from "@/core/auth/services";
 import { cameraApi } from "@/core/cameraApi";
 import { captureApi } from "@/modules/capture/services/captureApi";
-import { dashboardConfigApi } from "@/modules/dashboard/services";
+import { runConfigApi } from "@/modules/run/services/runConfigApi";
 import { modelApi } from "@/modules/model/services";
 import { projectApi } from "@/modules/project/services/projectApi";
 import { Button } from "@/modules/shadcn/ui/button";
@@ -43,7 +43,7 @@ export const DangerZone = ({ organization }: DangerZoneProps) => {
       dispatch(modelApi.util.resetApiState());
       dispatch(captureApi.util.resetApiState());
       dispatch(cameraApi.util.resetApiState());
-      dispatch(dashboardConfigApi.util.resetApiState());
+      dispatch(runConfigApi.util.resetApiState());
       dispatch(authApi.util.resetApiState());
       navigate(appConfig.web.routes.auth.selectOrganization, { replace: true });
       toast.success("Organization deleted");

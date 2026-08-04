@@ -33,10 +33,6 @@ export const taskTable = p.pgTable("task", {
   precision: p.real("precision"),
   /** Micro-averaged recall for the image: TP/(TP+FN) at IoU≥0.5. */
   recall: p.real("recall"),
-  // Camera-API report event this image was imported from ("save to dataset").
-  // Null for regular captures.
-  sourceDashboardId: p.integer("source_dashboard_id"),
-  sourceEventId: p.integer("source_event_id"),
   // Task in another project this image was copied from ("import from project").
   // Null for regular captures. Points at the immediate parent only.
   sourceTaskId: p
@@ -47,9 +43,6 @@ export const taskTable = p.pgTable("task", {
   p.unique().on(t.projectId, t.iid),
   p.index("task_project_created_idx").on(t.projectId, t.createdAt),
   // Partial so soft-deleting an imported task frees the slot for re-import.
-  p.uniqueIndex("task_source_event_unique_idx")
-    .on(t.projectId, t.sourceDashboardId, t.sourceEventId)
-    .where(sql`${t.deletedAt} IS NULL`),
   p.uniqueIndex("task_source_task_unique_idx")
     .on(t.projectId, t.sourceTaskId)
     .where(sql`${t.deletedAt} IS NULL`),

@@ -12,8 +12,7 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
  * Mutations that restart the pipeline are listed below. This mirrors the
  * `close()` + `open()` calls visible in the camera API's Camera class
  * (deploy_nn, delete_nn, add_replay_video, remove_replay_video,
- * activate_sensor, deactivate_sensor). Dashboard deploy/remove are
- * included too — they carry an NN under the hood.
+ * activate_sensor, deactivate_sensor).
  */
 export interface CameraPipelineGenerationState {
   byStream: Record<string, number>;
@@ -41,8 +40,6 @@ export const cameraPipelineGenerationSlice = createSlice({
     const endpoints = [
       cameraApi.endpoints.deployNN,
       cameraApi.endpoints.removeNN,
-      cameraApi.endpoints.deployDashboard,
-      cameraApi.endpoints.removeDashboard,
       cameraApi.endpoints.addReplayVideo,
       cameraApi.endpoints.addReplayVideoFromUrl,
       cameraApi.endpoints.removeReplayVideo,

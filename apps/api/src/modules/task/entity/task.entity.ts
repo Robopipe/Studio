@@ -24,8 +24,6 @@ export class TaskEntity {
   readonly meanIou: number | null;
   readonly precision: number | null;
   readonly recall: number | null;
-  readonly sourceDashboardId: number | null;
-  readonly sourceEventId: number | null;
   readonly sourceTaskId: number | null;
 
   constructor(data: TaskSelect) {
@@ -47,8 +45,6 @@ export class TaskEntity {
     this.meanIou = data.meanIou ?? null;
     this.precision = data.precision ?? null;
     this.recall = data.recall ?? null;
-    this.sourceDashboardId = data.sourceDashboardId ?? null;
-    this.sourceEventId = data.sourceEventId ?? null;
     this.sourceTaskId = data.sourceTaskId ?? null;
   }
 
@@ -68,8 +64,6 @@ export class TaskEntity {
       meanIou: this.meanIou,
       precision: this.precision,
       recall: this.recall,
-      sourceDashboardId: this.sourceDashboardId,
-      sourceEventId: this.sourceEventId,
       sourceTaskId: this.sourceTaskId,
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),

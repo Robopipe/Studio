@@ -17,8 +17,6 @@ import { User } from "../../auth/decorators/user.decorator";
 import type { SessionUser } from "../../auth/strategies/jwt.strategy";
 import {
   ConfirmTaskUploadDto,
-  ImportedEventIdsResponseDto,
-  ImportedEventsQueryDto,
   ImportedSourceTaskIdsQueryDto,
   ImportedSourceTaskIdsResponseDto,
   ImportTasksDto,
@@ -75,15 +73,6 @@ export class TaskController {
   ): Promise<TaskIdsResponseDto> {
     const ids = await this.taskService.getTaskIds(projectId, query.annotated, query.labelIds, query.sortBy, query.sortOrder);
     return { ids };
-  }
-
-  @Get("imported-events")
-  public async listImportedEvents(
-    @ProjectId() projectId: number,
-    @Query() query: ImportedEventsQueryDto,
-  ): Promise<ImportedEventIdsResponseDto> {
-    const eventIds = await this.taskService.getImportedEventIds(projectId, query.dashboardId, query.eventIds);
-    return { eventIds };
   }
 
   @Post("import")

@@ -10,10 +10,10 @@ import { cameraPipelineGenerationSlice } from "@/modules/camera-stream/services/
 import { captureApi } from "@/modules/capture/services/captureApi";
 import { pendingCapturesSlice } from "@/modules/capture/services/pendingCapturesSlice";
 import { pendingVideoCapturesSlice } from "@/modules/capture/services/pendingVideoCapturesSlice";
-import { dashboardConfigApi } from "@/modules/dashboard/services";
 import { modelApi } from "@/modules/model/services";
 import { projectApi } from "@/modules/project/services/projectApi";
 import { projectSlice } from "@/modules/project/services/projectSlice";
+import { runConfigApi } from "@/modules/run/services/runConfigApi";
 import { combineReducers, configureStore } from "@reduxjs/toolkit";
 import { listenerMiddleware } from "./listenerMiddleware";
 
@@ -34,7 +34,7 @@ const apis = {
   [organizationApi.reducerPath]: organizationApi.reducer,
   [projectApi.reducerPath]: projectApi.reducer,
   [modelApi.reducerPath]: modelApi.reducer,
-  [dashboardConfigApi.reducerPath]: dashboardConfigApi.reducer,
+  [runConfigApi.reducerPath]: runConfigApi.reducer,
 };
 const middlewares = [
   listenerMiddleware.middleware,
@@ -45,7 +45,7 @@ const middlewares = [
   organizationApi.middleware,
   projectApi.middleware,
   modelApi.middleware,
-  dashboardConfigApi.middleware,
+  runConfigApi.middleware,
 ];
 
 const appReducer = combineReducers({

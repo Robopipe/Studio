@@ -6,7 +6,6 @@ import {
   CapturedVideo,
   ConfirmTaskUpload,
   ConfirmVideoUpload,
-  ImportedEventIdsResponse,
   ImportedSourceTaskIdsResponse,
   ImportTasks,
   ImportTasksResponse,
@@ -103,21 +102,6 @@ export const captureApi = captureApiBase.injectEndpoints({
           ...(sortOrder && { sortOrder }),
         },
       }),
-      providesTags: (_result, _error, { projectId }) => [
-        { type: CaptureApiTagType.Tasks, id: projectId },
-      ],
-    }),
-    getImportedEvents: builder.query<
-      ImportedEventIdsResponse,
-      { projectId: number; dashboardId: number; eventIds: number[] }
-    >({
-      query: ({ projectId, dashboardId, eventIds }) => ({
-        url: tasks.importedEvents(projectId),
-        method: HttpMethod.GET,
-        params: { dashboardId, eventIds: eventIds.join(",") },
-      }),
-      // Provided under the Tasks tag so deleteTask invalidation re-enables
-      // the reports "save to dataset" button after a dataset delete.
       providesTags: (_result, _error, { projectId }) => [
         { type: CaptureApiTagType.Tasks, id: projectId },
       ],
@@ -239,7 +223,6 @@ export const {
   useGetTasksQuery,
   useLazyGetTasksQuery,
   useGetTaskIdsQuery,
-  useGetImportedEventsQuery,
   useImportTasksMutation,
   useGetImportedSourceTaskIdsQuery,
   useLazyExportTasksQuery,

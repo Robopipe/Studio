@@ -34,7 +34,6 @@ export const EditProjectModal = ({
     project.cameraApiUrl,
   );
   const [cameraApiUrlError, setCameraApiUrlError] = useState<string | null>(null);
-  const [multipleDashboardConfigs] = useState(project.multipleDashboardConfigs);
   const [selectedCameraMxid, setSelectedCameraMxid] = useState<string | null>(
     project.cameraMxid,
   );
@@ -74,7 +73,6 @@ export const EditProjectModal = ({
         description,
         cameraApiUrl: normalizedUrl,
         cameraMxid: selectedCameraMxid,
-        multipleDashboardConfigs,
       }).unwrap();
 
       // Eagerly reset cameraApi when the project URL changes so any in-flight
@@ -116,7 +114,6 @@ export const EditProjectModal = ({
           onCameraApiUrlBlur={handleCameraApiUrlBlur}
           selectedCameraMxid={selectedCameraMxid}
           setSelectedCameraMxid={setSelectedCameraMxid}
-          multipleDashboardConfigs={multipleDashboardConfigs}
         />
       ),
     },

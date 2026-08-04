@@ -1,4 +1,4 @@
-import { DeleteLimitDialog } from "@/modules/dashboard/components/DeleteLimitDialog/DeleteLimitDialog";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { Button } from "@/modules/shadcn/ui/button";
 import { Skeleton } from "@/modules/shadcn/ui/skeleton";
 import { ModelStatusEnum } from "@repo/schema";
@@ -225,7 +225,7 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
       </div>
 
       {showDeleteDialog && (
-        <DeleteLimitDialog
+        <ConfirmDeleteDialog
           title="Delete this model version?"
           description="This action cannot be undone. All training data and outputs for this version will be permanently deleted."
           confirmLabel="Delete version"
@@ -242,7 +242,7 @@ export const ModelDetailPage = ({}: ModelDetailPageProps) => {
       )}
 
       {showCancelDialog && (
-        <DeleteLimitDialog
+        <ConfirmDeleteDialog
           title="Stop training this model?"
           description="Training will be terminated. Epoch logs already recorded will be kept, but no model files will be produced."
           confirmLabel="Stop training"

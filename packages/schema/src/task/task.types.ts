@@ -7,8 +7,6 @@ import {
   createPolygonAnnotationSchema,
   createRectangleAnnotationSchema,
   createTaskSchema,
-  importedEventIdsResponseSchema,
-  importedEventsQuerySchema,
   importedSourceTaskIdsQuerySchema,
   importedSourceTaskIdsResponseSchema,
   importTasksResponseSchema,
@@ -53,8 +51,6 @@ export type RequestTaskUploadInput = z.input<typeof requestTaskUploadSchema>
 export type TaskUploadContentType = z.infer<typeof taskUploadContentTypeSchema>
 export type TaskUploadUrl = z.infer<typeof taskUploadUrlSchema>
 export type ConfirmTaskUpload = z.infer<typeof confirmTaskUploadSchema>
-export type ImportedEventsQuery = z.infer<typeof importedEventsQuerySchema>
-export type ImportedEventIdsResponse = z.infer<typeof importedEventIdsResponseSchema>
 export type ImportTasks = z.infer<typeof importTasksSchema>
 export type ImportTasksResponse = z.infer<typeof importTasksResponseSchema>
 export type ImportedSourceTaskIdsQuery = z.infer<typeof importedSourceTaskIdsQuerySchema>

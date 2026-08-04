@@ -5,12 +5,14 @@ import { ConfigurationSidebar } from "./ConfigurationSidebar";
 import { useConfigurationState } from "./useConfigurationState";
 
 export interface ConfigurationTabHandle {
-  saveIfDirty: () => Promise<{ capturedVideoId: number | null }>;
+  saveIfDirty: () => Promise<{
+    capturedVideoId: number | null;
+    modelId: number | null;
+  }>;
 }
 
 interface ConfigurationTabProps {
   projectId: number;
-  configId: number | null;
   sahiConfig: SahiConfig | null;
   onSahiConfigChange: (config: SahiConfig | null) => void;
   ref?: Ref<ConfigurationTabHandle>;
@@ -18,45 +20,10 @@ interface ConfigurationTabProps {
 
 export const ConfigurationTab = ({
   projectId,
-  configId,
   sahiConfig,
   onSahiConfigChange,
   ref,
 }: ConfigurationTabProps) => {
-  if (!configId) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <p className="text-sm text-muted-foreground">
-          No dashboard configuration available.
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <ConfigurationTabContent
-      ref={ref}
-      projectId={projectId}
-      configId={configId}
-      sahiConfig={sahiConfig}
-      onSahiConfigChange={onSahiConfigChange}
-    />
-  );
-};
-
-const ConfigurationTabContent = ({
-  projectId,
-  configId,
-  sahiConfig,
-  onSahiConfigChange,
-  ref,
-}: {
-  projectId: number;
-  configId: number;
-  sahiConfig: SahiConfig | null;
-  onSahiConfigChange: (config: SahiConfig | null) => void;
-  ref?: Ref<ConfigurationTabHandle>;
-}) => {
   const {
     streams,
     trainedModels,
@@ -69,21 +36,22 @@ const ConfigurationTabContent = ({
     setSelectedModelId,
     selectedVideoId,
     setSelectedVideoId,
-    zoneConfig,
-    setZoneConfig,
     hasChanges,
     handleSave,
-  } = useConfigurationState(projectId, configId);
+  } = useConfigurationState(projectId);
 
   useImperativeHandle(
     ref,
     () => ({
       saveIfDirty: async () => {
         if (hasChanges) return await handleSave();
-        return { capturedVideoId: selectedVideoId };
+        return {
+          capturedVideoId: selectedVideoId,
+          modelId: selectedModelId === null ? null : Number(selectedModelId),
+        };
       },
     }),
-    [hasChanges, handleSave, selectedVideoId],
+    [hasChanges, handleSave, selectedVideoId, selectedModelId],
   );
 
   return (
@@ -93,8 +61,6 @@ const ConfigurationTabContent = ({
         selectedModelId={selectedModelId}
         onModelChange={setSelectedModelId}
         onModelClear={() => setSelectedModelId(null)}
-        zoneConfig={zoneConfig}
-        onZoneConfigChange={setZoneConfig}
         streams={streams}
         selectedCamera={selectedCamera}
         selectedStream={selectedStream}
@@ -110,7 +76,6 @@ const ConfigurationTabContent = ({
         <p className="text-xl">Live stream</p>
         <CameraPreview
           imageUrl={previewImageUrl}
-          zoneConfig={zoneConfig}
           selectedCamera={selectedCamera}
           selectedStream={selectedStream}
         />

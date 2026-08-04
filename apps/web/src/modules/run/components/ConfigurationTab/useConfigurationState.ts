@@ -4,33 +4,18 @@ import {
   useGetCapturedVideosQuery,
   useGetTasksQuery,
 } from "@/modules/capture/services/captureApi";
-import { ZoneConfig } from "@/modules/dashboard/components/DashboardZoneConfiguration";
-import {
-  useGetDashboardConfigQuery,
-  useUpdateDashboardConfigMutation,
-} from "@/modules/dashboard/services/dashboardConfigApi";
 import { useGetModelsQuery } from "@/modules/model/services";
 import {
-  DashboardConfigurationZoneDirectionEnum,
-  ModelStatusEnum,
-} from "@repo/schema";
+  useGetRunConfigQuery,
+  useUpdateRunConfigMutation,
+} from "@/modules/run/services/runConfigApi";
+import { ModelStatusEnum } from "@repo/schema";
 import { useEffect, useState } from "react";
 
-const defaultZoneConfig: ZoneConfig = {
-  zoneDirection: DashboardConfigurationZoneDirectionEnum.BOTTOM_TO_TOP,
-  zoneCenter: 50,
-  zoneThickness: 20,
-  optimistic: true,
-};
-
-export const useConfigurationState = (
-  projectId: number,
-  configId: number,
-) => {
-  const { data: config } = useGetDashboardConfigQuery({ projectId, configId });
+export const useConfigurationState = (projectId: number) => {
+  const { data: config } = useGetRunConfigQuery({ projectId });
   const { data: models = [] } = useGetModelsQuery({ projectId });
-  const [updateConfig, { isLoading: isSaving }] =
-    useUpdateDashboardConfigMutation();
+  const [updateConfig, { isLoading: isSaving }] = useUpdateRunConfigMutation();
   const { data: tasks } = useGetTasksQuery({ projectId, limit: 1 });
   const { data: capturedVideosPage } = useGetCapturedVideosQuery({
     projectId,
@@ -43,7 +28,7 @@ export const useConfigurationState = (
 
   // Camera + stream come from the project-wide selection so changes here
   // propagate to Capture and vice versa (per client spec). The camera is the
-  // project's DB setting (project modal); configs only carry the stream.
+  // project's DB setting (project modal); the config only carries the stream.
   // Model and replay video stay local — they're per-config, not per-project.
   const {
     cameraMxid: selectedCamera,
@@ -53,16 +38,13 @@ export const useConfigurationState = (
 
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
   const [selectedVideoId, setSelectedVideoId] = useState<number | null>(null);
-  const [zoneConfig, setZoneConfig] = useState<ZoneConfig>(defaultZoneConfig);
 
   const { data: streams } = useListStreamsQuery(selectedCamera!, {
     skip: !selectedCamera,
   });
 
-  // When a config opens, seed the slice from the config's persisted stream —
-  // the camera is centralized (project modal) and no longer restored from
-  // configs; legacy config.cameraMxid values are ignored. Model/video are
-  // local (per-config).
+  // When the config loads, seed the slice from its persisted stream — the
+  // camera is centralized (project modal). Model/video are local form state.
   useEffect(() => {
     if (config) {
       if (config.streamName) {
@@ -72,12 +54,6 @@ export const useConfigurationState = (
         config.modelId != null ? String(config.modelId) : null,
       );
       setSelectedVideoId(config.capturedVideoId ?? null);
-      setZoneConfig({
-        zoneDirection: config.zoneDirection,
-        zoneCenter: Math.round(config.zoneCenter * 100),
-        zoneThickness: Math.round(config.zoneThickness * 100),
-        optimistic: config.optimistic,
-      });
     }
   }, [config, setSelectedStream]);
 
@@ -87,27 +63,20 @@ export const useConfigurationState = (
       (selectedModelId === null
         ? config.modelId != null
         : Number(selectedModelId) !== config.modelId) ||
-      selectedVideoId !== (config.capturedVideoId ?? null) ||
-      zoneConfig.zoneDirection !== config.zoneDirection ||
-      zoneConfig.zoneCenter !== Math.round(config.zoneCenter * 100) ||
-      zoneConfig.zoneThickness !== Math.round(config.zoneThickness * 100) ||
-      zoneConfig.optimistic !== config.optimistic);
+      selectedVideoId !== (config.capturedVideoId ?? null));
 
-  const handleSave = async (): Promise<{ capturedVideoId: number | null }> => {
-    // cameraMxid is deliberately omitted — the camera is no longer persisted
-    // per config; omitting leaves the legacy column value untouched.
+  const handleSave = async (): Promise<{
+    capturedVideoId: number | null;
+    modelId: number | null;
+  }> => {
+    const modelId = selectedModelId === null ? null : Number(selectedModelId);
     await updateConfig({
       projectId,
-      configId,
       streamName: selectedStream,
-      modelId: selectedModelId === null ? null : Number(selectedModelId),
+      modelId,
       capturedVideoId: selectedVideoId,
-      zoneDirection: zoneConfig.zoneDirection,
-      zoneCenter: zoneConfig.zoneCenter / 100,
-      zoneThickness: zoneConfig.zoneThickness / 100,
-      optimistic: zoneConfig.optimistic,
     }).unwrap();
-    return { capturedVideoId: selectedVideoId };
+    return { capturedVideoId: selectedVideoId, modelId };
   };
 
   return {
@@ -122,8 +91,6 @@ export const useConfigurationState = (
     setSelectedModelId,
     selectedVideoId,
     setSelectedVideoId,
-    zoneConfig,
-    setZoneConfig,
     hasChanges,
     handleSave,
     isSaving,

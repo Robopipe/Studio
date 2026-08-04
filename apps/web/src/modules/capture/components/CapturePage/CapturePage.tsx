@@ -50,7 +50,7 @@ export const CapturePage = ({}: CapturePageProps) => {
   const [isStreaming, setIsStreaming] = useState(false);
   const [isSwitchingStream, setIsSwitchingStream] = useState(false);
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
-  const hasLoadedDashboardOnceRef = useRef(false);
+  const hasLoadedModelOnceRef = useRef(false);
 
   // When cameras transitions from unavailable (empty array OR network error)
   // to available, bump the pipeline so CameraStreamProvider retries the WebRTC
@@ -88,11 +88,11 @@ export const CapturePage = ({}: CapturePageProps) => {
   );
   useEffect(() => {
     if (isModelRunning || isModelError)
-      hasLoadedDashboardOnceRef.current = true;
+      hasLoadedModelOnceRef.current = true;
   }, [isModelRunning, isModelError]);
 
   const isInitialModelLoad =
-    isModelLoading && !hasLoadedDashboardOnceRef.current;
+    isModelLoading && !hasLoadedModelOnceRef.current;
 
   const hasCameras = cameras && cameras.length > 0;
 

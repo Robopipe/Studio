@@ -19,9 +19,9 @@ export const relationBase = defineRelations(schema, (r) => ({
       from: r.projectTable.id,
       to: r.datasetTable.projectId,
     }),
-    dashboardConfigurations: r.many.dashboardConfigurationTable({
+    runConfiguration: r.one.runConfigurationTable({
       from: r.projectTable.id,
-      to: r.dashboardConfigurationTable.projectId,
+      to: r.runConfigurationTable.projectId,
     }),
     capturedVideos: r.many.capturedVideoTable({
       from: r.projectTable.id,
@@ -144,30 +144,18 @@ export const relationBase = defineRelations(schema, (r) => ({
       to: r.modelTable.id,
     }),
   },
-  dashboardConfigurationTable: {
+  runConfigurationTable: {
     project: r.one.projectTable({
-      from: r.dashboardConfigurationTable.projectId,
+      from: r.runConfigurationTable.projectId,
       to: r.projectTable.id,
     }),
     model: r.one.modelTable({
-      from: r.dashboardConfigurationTable.modelId,
+      from: r.runConfigurationTable.modelId,
       to: r.modelTable.id,
     }),
     capturedVideo: r.one.capturedVideoTable({
-      from: r.dashboardConfigurationTable.capturedVideoId,
+      from: r.runConfigurationTable.capturedVideoId,
       to: r.capturedVideoTable.id,
-    }),
-    evaluation: r.one.dashboardEvaluationTable({
-      from: r.dashboardConfigurationTable.id,
-      to: r.dashboardEvaluationTable.dashboardConfigurationId,
-    }),
-    testCases: r.many.evalTestCaseTable({
-      from: r.dashboardConfigurationTable.id,
-      to: r.evalTestCaseTable.dashboardConfigurationId,
-    }),
-    masterThresholds: r.many.evalThresholdTable({
-      from: r.dashboardConfigurationTable.id,
-      to: r.evalThresholdTable.dashboardConfigurationId,
     }),
   },
   capturedVideoTable: {
@@ -175,15 +163,9 @@ export const relationBase = defineRelations(schema, (r) => ({
       from: r.capturedVideoTable.projectId,
       to: r.projectTable.id,
     }),
-    dashboardConfigurations: r.many.dashboardConfigurationTable({
+    runConfigurations: r.many.runConfigurationTable({
       from: r.capturedVideoTable.id,
-      to: r.dashboardConfigurationTable.capturedVideoId,
-    }),
-  },
-  dashboardEvaluationTable: {
-    dashboardConfiguration: r.one.dashboardConfigurationTable({
-      from: r.dashboardEvaluationTable.dashboardConfigurationId,
-      to: r.dashboardConfigurationTable.id,
+      to: r.runConfigurationTable.capturedVideoId,
     }),
   },
   projectPreAnnotateSettingsTable: {

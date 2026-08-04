@@ -36,7 +36,6 @@ export const studioApiEndpoints = {
     ids: (projectId: number) => `task/${projectId}/ids`,
     history: (projectId: number, taskId: number) =>
       `task/${projectId}/${taskId}/history`,
-    importedEvents: (projectId: number) => `task/${projectId}/imported-events`,
     import: (projectId: number) => `task/${projectId}/import`,
     importedSourceTasks: (projectId: number) =>
       `task/${projectId}/imported-source-tasks`,
@@ -50,14 +49,7 @@ export const studioApiEndpoints = {
     models: {
       models: (projectId: number) => `model/${projectId}`,
     },
-    dashboardConfig: {
-      configurations: (projectId: number) =>
-        `dashboard-config/${projectId}/configurations`,
-      configuration: (projectId: number, configId: number) =>
-        `dashboard-config/${projectId}/configurations/${configId}`,
-      evaluation: (projectId: number, configId: number) =>
-        `dashboard-config/${projectId}/configurations/${configId}/evaluation`,
-    },
+    runConfig: (projectId: number) => `run-config/${projectId}`,
   },
   capturedVideos: {
     list: (projectId: number) => `captured-video/${projectId}`,

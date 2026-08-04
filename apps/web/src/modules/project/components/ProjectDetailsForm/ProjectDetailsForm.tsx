@@ -19,8 +19,6 @@ interface ProjectDetailsFormProps {
   onCameraApiUrlBlur?: () => void;
   selectedCameraMxid: string | null;
   setSelectedCameraMxid: (mxid: string | null) => void;
-  multipleDashboardConfigs?: boolean;
-  setMultipleDashboardConfigs?: (val: boolean) => void;
 }
 
 export const ProjectDetailsForm = ({
@@ -34,8 +32,6 @@ export const ProjectDetailsForm = ({
   onCameraApiUrlBlur,
   selectedCameraMxid,
   setSelectedCameraMxid,
-  multipleDashboardConfigs,
-  setMultipleDashboardConfigs,
 }: ProjectDetailsFormProps) => {
   // Detect cameras against the URL as currently typed, not the saved value.
   // An invalid URL yields no detection.
@@ -115,20 +111,6 @@ export const ProjectDetailsForm = ({
           value={selectedCameraMxid}
           onChange={setSelectedCameraMxid}
         />
-
-        {setMultipleDashboardConfigs !== undefined && (
-          <label className="flex cursor-pointer items-center gap-2">
-            <input
-              type="checkbox"
-              checked={multipleDashboardConfigs ?? false}
-              onChange={(e) => setMultipleDashboardConfigs(e.target.checked)}
-              className="size-4 cursor-pointer accent-emerald-500"
-            />
-            <span className="text-sm font-medium">
-              Multiple dashboard configurations
-            </span>
-          </label>
-        )}
       </div>
     </div>
   );

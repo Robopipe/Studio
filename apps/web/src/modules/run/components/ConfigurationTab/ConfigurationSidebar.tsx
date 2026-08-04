@@ -1,22 +1,12 @@
 import type { SahiConfig } from "@/core/cameraApi/schemas/nn";
 import { formatDuration } from "@/lib/utils";
 import {
-  DirectionPicker,
-  ZoneConfig,
-  centerThicknessToSafeBounds,
-  safeBoundsToCenterThickness,
-  safeZoneLabels,
-} from "@/modules/dashboard/components/DashboardZoneConfiguration";
-import { Label } from "@/modules/shadcn/ui/label";
-import { NumberInput } from "@/modules/shadcn/ui/number-input";
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/modules/shadcn/ui/select";
-import { Switch } from "@/modules/shadcn/ui/switch";
 import type { CapturedVideo } from "@repo/schema";
 import { X } from "lucide-react";
 import type { ReactNode } from "react";
@@ -37,9 +27,6 @@ interface ConfigurationSidebarProps {
   onModelChange: (id: string | null) => void;
   onModelClear: () => void;
 
-  zoneConfig: ZoneConfig;
-  onZoneConfigChange: (value: ZoneConfig) => void;
-
   streams: Stream[] | undefined;
   selectedCamera: string | null;
   selectedStream: string | null;
@@ -58,8 +45,6 @@ export const ConfigurationSidebar = ({
   selectedModelId,
   onModelChange,
   onModelClear,
-  zoneConfig,
-  onZoneConfigChange,
   streams,
   selectedCamera,
   selectedStream,
@@ -111,72 +96,6 @@ export const ConfigurationSidebar = ({
             )}
           </div>
         </Field>
-      </Section>
-
-      <Section title="Setup Safe Zones">
-        <Field label="Direction">
-          <div className="w-fit">
-            <DirectionPicker
-              value={zoneConfig.zoneDirection}
-              onChange={(zoneDirection) =>
-                onZoneConfigChange({ ...zoneConfig, zoneDirection })
-              }
-            />
-          </div>
-        </Field>
-        {(() => {
-          const { safeStartPct, safeEndPct } = centerThicknessToSafeBounds(
-            zoneConfig.zoneCenter,
-            zoneConfig.zoneThickness,
-          );
-          const labels = safeZoneLabels(zoneConfig.zoneDirection);
-          const applySafeBounds = (nextStart: number, nextEnd: number) => {
-            const { centerPct, thicknessPct } = safeBoundsToCenterThickness(
-              nextStart,
-              nextEnd,
-            );
-            onZoneConfigChange({
-              ...zoneConfig,
-              zoneCenter: centerPct,
-              zoneThickness: thicknessPct,
-            });
-          };
-          const setSafeStart = (next: number) => {
-            const s = Math.max(0, Math.min(100, next));
-            const e = Math.min(safeEndPct, 100 - s);
-            applySafeBounds(s, e);
-          };
-          const setSafeEnd = (next: number) => {
-            const e = Math.max(0, Math.min(100, next));
-            const s = Math.min(safeStartPct, 100 - e);
-            applySafeBounds(s, e);
-          };
-          return (
-            <>
-              <Field label={labels.start}>
-                <PercentInput value={safeStartPct} onChange={setSafeStart} />
-              </Field>
-              <Field label={labels.end}>
-                <PercentInput value={safeEndPct} onChange={setSafeEnd} />
-              </Field>
-            </>
-          );
-        })()}
-        <div className="flex items-center justify-between gap-3 pt-1">
-          <Label
-            htmlFor="run-zone-optimistic"
-            className="text-sm text-muted-foreground"
-          >
-            Optimistic
-          </Label>
-          <Switch
-            id="run-zone-optimistic"
-            checked={zoneConfig.optimistic}
-            onCheckedChange={(checked) =>
-              onZoneConfigChange({ ...zoneConfig, optimistic: checked })
-            }
-          />
-        </div>
       </Section>
 
       <Section title="Camera Configuration">
@@ -275,27 +194,6 @@ const Field = ({ label, children }: { label: string; children: ReactNode }) => (
   <div className="flex flex-col gap-1.5">
     <label className="text-sm text-muted-foreground">{label}</label>
     {children}
-  </div>
-);
-
-const PercentInput = ({
-  value,
-  onChange,
-}: {
-  value: number;
-  onChange: (value: number) => void;
-}) => (
-  <div className="relative">
-    <NumberInput
-      value={value}
-      min={0}
-      max={100}
-      onValueChange={(v) => onChange(v ?? 0)}
-      className="pr-8"
-    />
-    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-      %
-    </span>
   </div>
 );
 

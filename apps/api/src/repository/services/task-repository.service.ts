@@ -527,32 +527,6 @@ export class TaskRepository {
   }
 
   /**
-   * Which of the given camera-API event ids already exist as non-deleted
-   * tasks imported from the given dashboard.
-   */
-  public async getImportedEventIds(
-    projectId: number,
-    dashboardId: number,
-    eventIds: number[],
-  ): Promise<number[]> {
-    if (eventIds.length === 0) return [];
-
-    const rows = await this.db
-      .select({ eventId: taskTable.sourceEventId })
-      .from(taskTable)
-      .where(
-        and(
-          eq(taskTable.projectId, projectId),
-          eq(taskTable.sourceDashboardId, dashboardId),
-          inArray(taskTable.sourceEventId, eventIds),
-          isNull(taskTable.deletedAt),
-        ),
-      );
-
-    return rows.map((r) => r.eventId).filter((id): id is number => id !== null);
-  }
-
-  /**
    * Delete task by id
    * @param id
    */

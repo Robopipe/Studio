@@ -7,7 +7,6 @@ export const projectSchema = z.object({
   description: z.string(),
   cameraApiUrl: z.url().nullable(),
   cameraMxid: z.string().nullable(),
-  multipleDashboardConfigs: z.boolean(),
   hasLicense: z.boolean(),
   organizationId: z.number(),
   taskCount: z.number(),
@@ -27,7 +26,6 @@ export const updateProjectRequestSchema = z.object({
   description: z.string(),
   cameraApiUrl: z.url().nullable(),
   cameraMxid: z.string().max(256).nullish(),
-  multipleDashboardConfigs: z.boolean().optional(),
 });
 
 // ProjectTypeEnum is used by model training, not by projects themselves.
