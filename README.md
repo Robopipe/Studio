@@ -169,7 +169,7 @@ Open a [GitHub issue](https://github.com/Robopipe/Studio/issues/new) for bugs, i
 
 ## License
 
-This repository does not contain a licence file yet. Contact Robopipe before you reuse the code.
+Robopipe Studio is open source under the [MIT License](LICENSE).
 
 ## Contact
 
